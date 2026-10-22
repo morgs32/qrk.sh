@@ -6,10 +6,11 @@ import { ModulePreview } from "./ModulePreview";
 
 export function ModuleFilmstrip(props: {
   breakpoint: (typeof BREAKPOINTS)[number]["id"];
+  cardStyle: boolean;
   renderModuleLink: (brickModule: (typeof modulesHash)[keyof typeof modulesHash]) => ReactNode;
   renderModuleAction?: (brickModule: (typeof modulesHash)[keyof typeof modulesHash]) => ReactNode;
 }) {
-  const { breakpoint, renderModuleLink, renderModuleAction } = props;
+  const { breakpoint, cardStyle, renderModuleLink, renderModuleAction } = props;
 
   return (
     <div
@@ -21,6 +22,7 @@ export function ModuleFilmstrip(props: {
           key={brickModule.id}
           brickModule={brickModule}
           breakpoint={breakpoint}
+          cardStyle={cardStyle}
           moduleLink={renderModuleLink(brickModule)}
           moduleAction={renderModuleAction?.(brickModule)}
         />

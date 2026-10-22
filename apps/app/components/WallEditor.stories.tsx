@@ -6,24 +6,28 @@ import {
   Outlet,
   RouterProvider,
   useNavigate,
+  useParams,
+  useSearch,
 } from "@tanstack/react-router";
-import { MockAggregateInitializer } from "@zerospin/react";
-import { prefixId } from "@zerospin/sdk/browser";
+import { MockAggregateInitializer, useLiveQuery } from "@zerospin/react";
+import { makeId, makeIdSchema, prefixId, stageAggregateSessionCommand } from "@zerospin/sdk/browser";
 import { Schema } from "effect";
-import { useContext, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { TransformComponent, TransformWrapper } from "react-zoom-pan-pinch";
+import { isNonEmptySpec } from "@json-render/core";
 import { WallBreakpointPane } from "../modules/lib/WallBreakpointPane";
 import { WallModuleAction } from "../modules/lib/wall/WallModuleAction";
-import { WallViewportProvider, useWallViewport } from "../modules/lib/WallViewportProvider";
+import { WallTree } from "../modules/lib/wall/WallTree";
+import { makeWallLayoutView } from "../modules/lib/wall/makeWallLayoutView";
+import { BrickWrapper } from "../modules/components/brick/BrickWrapper";
 import { BREAKPOINTS } from "../modules/lib/breakpoints";
 import { makePlacementId } from "@qrk.sh/zerospin/src/modules/lib/makePlacementId";
+import { stackIdSchema } from "@qrk.sh/zerospin/src/aggregates/user/layout/wallLayoutSchema";
 import { swatchAndIconV1 } from "@qrk.sh/zerospin/src/modules/swatchAndIcon/swatchAndIconV1";
 import { modulesHash } from "../modules/lib/modulesHash";
 import { UserUI } from "@/zerospin/UserUI";
 import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
-import { WallEditorProvider } from "@/app/[username]/site/[siteId]/page/[pageId]/WallEditorProvider";
-import { WallEditorContext } from "@/app/[username]/site/[siteId]/page/[pageId]/WallEditorContext";
 import { BrickDetail } from "@/app/[username]/site/[siteId]/page/[pageId]/BrickDetail/BrickDetail";
 
 const { user, site, page, wall, brick, placement } = userSessionDefinition.models;
@@ -150,37 +154,193 @@ function makeResources(emptyWall: boolean) {
 }
 
 function WallStoryPage() {
-  const { regionRef } = useWallViewport();
+  const [availableWidth, setAvailableWidth] = useState<number | null>(null);
+  const regionRef = useCallback((node: HTMLDivElement | null) => {
+    if (node === null) return;
+    setAvailableWidth(node.clientWidth);
+    const observer = new ResizeObserver(() => setAvailableWidth(node.clientWidth));
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
   return (
     <div ref={regionRef} className="w-full">
-      <WallEditorProvider>
-        <WallStoryContent />
-      </WallEditorProvider>
+      <WallStoryContent availableWidth={availableWidth} />
     </div>
   );
 }
 
-function WallStoryContent() {
-  const editor = useContext(WallEditorContext);
-  const { activeBreakpoint } = useWallViewport();
+function WallStoryContent(props: { availableWidth: number | null }) {
+  const { availableWidth } = props;
+  const session = UserUI.useSession();
+  const { data: siteRow } = useLiveQuery({
+    session,
+    key: siteId,
+    query: (db, id) => db.query.site.findFirst({ where: { id: { eq: id } } }),
+  });
+  const search = useSearch({ from: "/$username/site/$siteId/page/$pageId" });
+  const { brickId: selectedBrickId } = useParams({ strict: false });
   const navigate = useNavigate();
-  if (editor === null) throw new Error("Wall story requires WallEditorProvider");
+  const breakpoint = BREAKPOINTS.find((entry) => entry.id === search.breakpoint);
+  const { data: walls } = useLiveQuery({
+    session,
+    key: pageId,
+    query: (db, id) =>
+      db.query.wall.findMany({
+        where: { pageId: { eq: id } },
+        with: { placements: { with: { brick: true } } },
+      }),
+  });
+  const activeWall = walls.find((entry) => entry.breakpoint === breakpoint?.id);
+  const canEdit =
+    availableWidth !== null &&
+    breakpoint !== undefined &&
+    breakpoint.previewWidth <= availableWidth;
+  useEffect(() => {
+    if (availableWidth === null) return;
+    const largestFitting = BREAKPOINTS.filter((entry) => entry.previewWidth <= availableWidth).at(-1);
+    if (largestFitting === undefined) return;
+    if (breakpoint !== undefined && breakpoint.previewWidth <= availableWidth) return;
+    void navigate({
+      to: ".",
+      replace: true,
+      resetScroll: false,
+      search: (previous) => ({
+        ...previous,
+        breakpoint: largestFitting.id,
+        insertion: undefined,
+      }),
+    });
+  }, [availableWidth, breakpoint, navigate]);
+  if (siteRow === undefined) return <p role="alert">The Storybook Site fixture is missing.</p>;
+
+  function editBrick(brickId: string) {
+    void navigate({
+      to: "/$username/site/$siteId/page/$pageId/brick/$brickId",
+      params: { username: "story", siteId, pageId, brickId },
+      search: { breakpoint: search.breakpoint },
+      resetScroll: false,
+    });
+  }
+
+  const sections = activeWall === undefined ? [] : makeWallLayoutView({ wall: activeWall }).sections;
   return (
     <div className="grid gap-3">
       <div className="flex items-center gap-3 border bg-background p-2 text-sm">
         <span>Drag a module into the wall</span>
-        {editor.activeWallId !== null ? (
-          <WallModuleAction wallId={editor.activeWallId} moduleId="swatch-and-icon" />
+        {canEdit && activeWall !== undefined ? (
+          <WallModuleAction wallId={activeWall.id} moduleId="swatch-and-icon" />
         ) : null}
       </div>
       <p className="text-xs text-muted-foreground">
         Real local session · the app's queries, commands, and editing form.
       </p>
       <div className="min-h-64 border bg-background">
-        {activeBreakpoint === null ? (
+        {availableWidth === null ? (
+          <p>Measuring preview…</p>
+        ) : availableWidth < BREAKPOINTS[0].previewWidth ? (
           <p>At least 360px is needed.</p>
+        ) : breakpoint === undefined || !canEdit ? (
+          <p>Choosing a fitting breakpoint…</p>
+        ) : activeWall === undefined ? (
+          <p role="status">This page's wall is unavailable.</p>
         ) : (
-          editor.renderWall(activeBreakpoint)
+          <WallTree
+            wallId={activeWall.id}
+            breakpoint={breakpoint.id}
+            selectedBrickId={selectedBrickId}
+            sections={sections.map((section) => ({
+              id: section.id,
+              stacks: section.stacks.map((stack) => ({
+                id: stack.id,
+                name: stack.name,
+                rows: stack.rows.map((row) => ({
+                  id: row.id,
+                  placements: row.placements.map((placement) => {
+                    const brick = placement.brick;
+                    const module = modulesHash[brick.moduleId];
+                    const Component = module.component;
+                    return {
+                      id: placement.id,
+                      brickId: brick.id,
+                      minWidth: module.variants[placement.variantId].minWidth,
+                      content:
+                        brick.state === null || isNonEmptySpec(placement.spec) ? (
+                          <div
+                            data-brick-surface=""
+                            data-card-style={siteRow.cardStyle}
+                            className="brick-hover-target relative min-w-0"
+                          >
+                            <BrickWrapper className="brick-hover-surface h-auto w-full min-w-0">
+                              <Component
+                                state={brick.state}
+                                variantId={placement.variantId}
+                                spec={
+                                  isNonEmptySpec(placement.spec)
+                                    ? placement.spec
+                                    : module.variants[placement.variantId].spec
+                                }
+                              />
+                            </BrickWrapper>
+                          </div>
+                        ) : (
+                          <p role="alert">Invalid Brick spec</p>
+                        ),
+                    };
+                  }),
+                })),
+              })),
+            }))}
+            onAddModule={(moduleId, target) => {
+              const module = Object.values(modulesHash).find((entry) => entry.id === moduleId);
+              if (module === undefined || target.wallId !== activeWall.id) return false;
+              const id = session.runSync(makeId(brick));
+              const result = stageAggregateSessionCommand({
+                session,
+                contractName: "addBrick",
+                payload: { id, pageId, moduleId: module.id, target },
+              });
+              if (result._tag === "Success") editBrick(id);
+              return result._tag === "Success";
+            }}
+            onMovePlacement={(id, target) => {
+              const placementId = Schema.decodeUnknownSync(makeIdSchema(placement))(id);
+              return (
+                stageAggregateSessionCommand({
+                  session,
+                  contractName: "movePlacement",
+                  payload: { id: crypto.randomUUID(), placementId, target },
+                })._tag === "Success"
+              );
+            }}
+            onMoveStack={(id, target) => {
+              const stackId = Schema.decodeUnknownSync(stackIdSchema)(id);
+              return (
+                stageAggregateSessionCommand({
+                  session,
+                  contractName: "moveStack",
+                  payload: { id: crypto.randomUUID(), stackId, target },
+                })._tag === "Success"
+              );
+            }}
+            onEditBrick={editBrick}
+            onDeleteBrick={(id) => {
+              const brickId = Schema.decodeUnknownSync(makeIdSchema(brick))(id);
+              const result = stageAggregateSessionCommand({
+                session,
+                contractName: "deleteBrick",
+                payload: { brickId },
+              });
+              if (result._tag === "Success" && selectedBrickId === brickId) {
+                void navigate({
+                  to: "/$username/site/$siteId/page/$pageId",
+                  params: { username: "story", siteId, pageId },
+                  search: { breakpoint: search.breakpoint },
+                  resetScroll: false,
+                });
+              }
+              return result._tag === "Success";
+            }}
+          />
         )}
       </div>
       <button
@@ -190,7 +350,8 @@ function WallStoryContent() {
           void navigate({
             to: "/$username/site/$siteId/page/$pageId",
             params: { username: "story", siteId, pageId },
-            search: {},
+            search: { breakpoint: search.breakpoint },
+            resetScroll: false,
           });
         }}
       >
@@ -209,8 +370,12 @@ function WallEditorStory(props: { width: number; rowHeight: number; emptyWall: b
     const editor = createRoute({
       getParentRoute: () => root,
       path: "/$username/site/$siteId/page/$pageId",
-      validateSearch: (search: Record<string, unknown>): { insertion?: string } =>
-        typeof search.insertion === "string" ? { insertion: search.insertion } : {},
+      validateSearch: (
+        search: Record<string, unknown>,
+      ): { breakpoint?: string; insertion?: string } => ({
+        breakpoint: typeof search.breakpoint === "string" ? search.breakpoint : undefined,
+        insertion: typeof search.insertion === "string" ? search.insertion : undefined,
+      }),
       component: WallStoryPage,
     });
     const detail = createRoute({
@@ -218,9 +383,16 @@ function WallEditorStory(props: { width: number; rowHeight: number; emptyWall: b
       path: "brick/$brickId",
       component: BrickDetail,
     });
+    const initialBreakpoint = BREAKPOINTS.filter((entry) => entry.previewWidth <= width).at(-1);
     return createRouter({
       routeTree: root.addChildren([editor.addChildren([detail])]),
-      history: createMemoryHistory({ initialEntries: [`/story/site/${siteId}/page/${pageId}`] }),
+      history: createMemoryHistory({
+        initialEntries: [
+          `/story/site/${siteId}/page/${pageId}${
+            initialBreakpoint === undefined ? "" : `?breakpoint=${initialBreakpoint.id}`
+          }`,
+        ],
+      }),
     });
   });
   return (
@@ -242,9 +414,7 @@ function WallEditorStory(props: { width: number; rowHeight: number; emptyWall: b
         {({ session, isLoaded }) =>
           isLoaded ? (
             <UserUI session={session}>
-              <WallViewportProvider>
-                <RouterProvider router={router} />
-              </WallViewportProvider>
+              <RouterProvider router={router} />
             </UserUI>
           ) : (
             <p role="status">Opening local session…</p>

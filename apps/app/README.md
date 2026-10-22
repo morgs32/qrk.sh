@@ -45,14 +45,18 @@ update a local preview and CSS output; **Copy CSS** copies the generated styles.
 The story has no session or backend dependencies. App Storybook defaults to
 port 10020; `PORT` overrides it.
 
-**App / Studio / Wall Editor / Default** mounts the production wall editor and
+**App / Studio / Wall Editor / Default** mounts a controlled `WallTree` fixture and
 Brick form with a real in-memory mock session. It uses `MockAggregateInitializer`, the same
 `UserUI` context, queries, and commands as App. Complete resources seed the
 User/Site/Page ownership graph and four breakpoint layouts. Storybook provides
-memory routing and viewport context; it needs no Clerk credentials, API connection,
-or SharedWorker. Add, move, edit and delete use production behavior rather than
-fixture-array mutations. Width selects the active breakpoint; row-height affects
-presentation only. Empty Wall and Zoomed Out scenarios use the same editor.
+memory routing with an initial canonical `?breakpoint=...` and story-local width;
+it uses neither the App width store nor the production breakpoint guard. It needs
+no Clerk credentials, API connection, or SharedWorker. Existing story components
+query the mock session and stage add, move, edit and delete commands directly,
+rendering shared `WallTree` without either wall provider. Width controls available
+space; the URL owns the selected Wall. Row-height affects presentation only.
+Empty Wall and Zoomed Out scenarios use the same fixture. This story does not
+mount production PagePreview's adopted development canvas and drag registrations.
 Zoom/pan gestures remain disabled in the 50% presentation study.
 
 Module development playgrounds live in App Storybook under `modules/`. They
@@ -61,11 +65,13 @@ live Generate spec/input, Component/JsonRender comparisons at all four widths,
 and Brick Definition JSON. App owns the UI source; Zerospin owns shared definitions and schemas.
 The Library package is removed. See [Modules](./modules/README.md).
 
-## Development page preview
+## Page editor canvas
 
-Open `/<username>/site/<siteId>/dev/page/<pageId>/<breakpoint>` on App's development
-host to view only the selected saved Wall. Use `sm`, `md`, `lg`, or `xl` for the
-existing preview widths of 360, 720, 1080, or 1440px respectively. The route reuses
+Open `/<username>/site/<siteId>/page/<pageId>?breakpoint=md` to edit the selected
+saved Wall inside the existing browser frame, site header and drawer chrome.
+The former development canvas now lives in production `PagePreview`; the separate
+`/dev/page/...` route is removed. Use `sm`, `md`, `lg`, or `xl` for the
+existing preview widths of 360, 720, 1080, or 1440px respectively. The editor reuses
 the signed-in user's existing `UserUI` session, requires the page to belong to
 the requested site, and queries Wall directly by page ID, breakpoint, and the
 related Page's site ID, including `page.site`, `Wall.layout`, and separate
@@ -75,8 +81,9 @@ Module renderers handle placeholders
 and saved content, including an explicit empty-content view for old null metadata. Placement's versioned spec primitive validates saved
 specs during query decoding; failures reach the existing session error boundary.
 The Wall query uses `findFirstOrThrow`: a missing Wall or a Page belonging to a
-different site reaches the session error boundary. Invalid breakpoints show the
-not-found view.
+different site reaches the session error boundary. PageLayout first rejects
+missing Site/Page rows. Its breakpoint guard replaces missing, invalid or
+non-fitting URL choices after measuring available width.
 The current session selects User aggregate and web actor revision `1`. Its
 SharedWorker registers this single definition; obsolete session partitions and
 queued commands are excluded from the fresh baseline.
@@ -85,8 +92,8 @@ and errors are form-local; Cancel/navigation prevents a late save. No provider
 runner resumes work after the form closes. Layout/spec generation is recorded by
 the canonical user aggregate as external work; it continues independently of App's
 session lifetime.
-The development preview has a compact palette for adding new default-variant
-Bricks and a hover/focus grip on each existing Brick for moving its Placement
+The Modules drawer supplies draggable catalog previews for adding new default-variant
+Bricks; the canvas retains a hover/focus grip on each existing Brick for moving its Placement
 within the selected Wall. Brick content remains interactive. A compatible Row
 accepts a horizontal addition; an incompatible Row creates a Row immediately
 below it, blank Stack space appends a Row, and the Wall's bottom drop zone creates
@@ -104,9 +111,10 @@ Stack destinations rehearse the existing `moveStack` contract, including the
 breakpoint's surviving-Stack capacity limit. Full, stale, foreign, and
 unchanged-position destinations show no valid indicator and stage no command.
 
-The route stays separate from the current editor, drawer, and draft stores. Each
+PageLayout owns the production editor and drawer around this canvas. Each
 accepted drop stages one ordinary `addBrick`, `movePlacement`, or `moveStack`
-command and stays on the development page without opening a Brick form. Moves retain the Brick,
+command and stays on the canvas without opening a Brick form. Placement controls
+retain Edit and Delete; editing opens the existing routed module form. Moves retain the Brick,
 Placement, variant, and spec, changing only the current breakpoint's Wall layout.
 Shared variant sizing determines Row compatibility, with minimum-width fitting
 measured in the browser. Additions use the default variant; moves use the saved
@@ -116,11 +124,10 @@ Unchanged-position drops, cancelled drags, and foreign or stale sources stage no
 command. Movement uses the existing whole-Wall pruning of empty Rows, Stacks,
 and Sections; bottom drops deliberately create a new Section. Success
 announcements describe local optimistic staging, not canonical execution.
-Opening the route does not reset storage.
-Production requests to this route return the not-found view.
+Opening the editor does not reset storage. The former dev URL has no route.
 
-The first slice follows the [development-route research](../../wiki/research/wall-editor-development-route.md).
-Implementation and manual verification are tracked in
+The original development slice follows the [development-route research](../../wiki/research/wall-editor-development-route.md).
+Its implementation and historical manual verification are tracked in
 [Plan 038](../../wiki/archive/plans/038-plan-development-brick-drops.md).
 The Wall-owned storage replacement and local cutover are tracked separately in
 [Plan 039](../../wiki/archive/plans/039-plan-wall-owned-layout-tree.md).
@@ -290,7 +297,7 @@ does not deploy the backends.
 
 QRK.SH's Clerk development and production instances have **Sign-up with username** and **Require username** enabled under **User & authentication → Username**, and **Allow users to change their username** disabled under **User model**. The existing web `<SignUp />` collects the required username, including during social sign-up completion; `/replace` then redirects to `/<username>` on App's configured origin. Users choose their username once. Clerk owns this username; the setting does not populate QRK's currently null backend username field. Production uses `clerk.qrk.sh`; its DNS/certificates and Google OAuth credentials are configured. Google is published to an External production audience, and both deployed frontends use production Clerk keys. The support email is `me@morganatwork.com`; see the [production authentication setup](../../README.md#production-authentication) for legal links and Google's restricted support-email exception.
 
-`lib/getClerkToken.ts` retrieves tokens through the current Clerk hook getter. It maps `ClerkOfflineError` to a typed `ZerospinError` with code `clerk-offline-error`, preserves other rejections as defects, and returns `null` unchanged for signed-out callers. Session credentials and Image/Site Settings uploads use this helper.
+`lib/getClerkToken.ts` retrieves tokens through the current Clerk hook getter. It maps `ClerkOfflineError` to a typed `ZerospinError` with code `clerk-offline-error`, preserves other rejections as defects, and returns `null` unchanged for signed-out callers. Session credentials use this helper. Image and Site Settings uploads acquire fresh tokens directly through Clerk, retaining their own offline/signed-out feedback.
 
 ## Static shell and browser state
 
@@ -311,8 +318,11 @@ matches the homepage: Silkscreen 400 at 18px, loaded from installed
 article titles and subtitles and Spectral for body text and headings. App
 adds no heading font override. Storybook imports the same global and article
 styles. `App` holds the client providers and the React Speed Insights
-integration. The username layout keeps one session initializer mounted across
-App navigation; `UserLayout` gates only data-dependent content.
+integration. Actual `app/[username]/layout.tsx` is UserLayout: it owns Clerk
+loading/sign-in redirect and the connected initializer directly. Its account-keyed
+initializer remains mounted across Page/drawer navigation and exposes descendants
+only after session readiness. Dashboard and production editor
+inherit that boundary; there is no separate authentication wrapper.
 
 `ConnectedAggregateInitializer` owns construction and descendant error boundaries.
 Its `{ session, isLoaded }` callback explicitly gates the session-dependent subtree,
@@ -336,8 +346,9 @@ ready. Its four browser frames render the Page's independent breakpoint Walls.
 App owns optimistic session editing and form drafts; commands materialize the
 same saved models authoritatively in the user aggregate. The active preview includes
 the restored 64px site navbar below its browser chrome and above Wall content.
-Its wordmark shows the saved site name, or the current name draft while Site
-Settings is open. Cancel restores the saved name. Public website rendering remains deferred.
+Its wordmark and sticky positioning use saved Site rows. Unsaved settings stay
+inside their forms; the outer preview changes after Save. Public website rendering
+remains deferred.
 
 ## Routes and transitions
 
@@ -372,53 +383,93 @@ Effect Schema validation, form keys, and navigation without scroll resets are
 retained. Unknown paths render the Router not-found screen. The local error
 boundary preserves client diagnostics and reload behavior.
 
-Site Settings includes a **Sticky navbar** checkbox, enabled by default. It
-previews the draft while settings are open, persists through Save, and restores
-its opening value on Cancel. The navbar's containing element spans the whole
-scrolling page so sticky positioning remains effective through page content.
+Actual `app/[username]/site/[siteId]/layout.tsx` is SiteLayout and owns only
+the shared height/overflow shell. Actual `page/[pageId]/layout.tsx` is PageLayout:
+it queries the saved Site and its scoped Page, renders NotFound for missing rows,
+and owns the saved editing title, authenticated upload host, preview scrolling,
+drawer spacing, toolbar positioning, persistent drawer and Outlet. It is keyed by pageId and remains
+mounted across drawer and breakpoint-search navigation. Separate EditorLayout,
+draft-initialization wrappers, global settings stores and both custom wall
+providers/contexts, BrickCardStyleContext and WallPreviewViewport are removed.
+Production rendering reads saved `Site.cardStyle`; there is no local Cards override.
+[Plan 042](../../wiki/archive/plans/042-plan-route-layout-ownership.md)
+records this composition change; verification was waived by the user, so no new
+build, test or runtime evidence is claimed.
 
-The page layout keeps site/page settings drafts, `MainColumns`, `PagePreview`,
-and the authenticated user session mounted. `PagePreview` owns responsive preview
-frames, breakpoint transitions, and scrolling; `WallEditorProvider` supplies the
-saved Wall contents. `EditorLayout` owns the persistent bottom drawer shell.
-Matched route IDs determine its `open` state through a pathless drawer layout;
-catalog and module-detail routes are sibling leaves. `EditorLayout` supplies
-`DrawerHeader` through the shared Drawer's `persistentHeader` slot. It owns catalog breadcrumbs, the brick-detail
-heading **Update your {collectionName} brick**, the left-side underlined
-**← Bricks** catalog link and **/** separator, publication actions, and
-Close or settings Save/Cancel. The fixed 56px navigation remains visible when
-closed, stays on one line, and scrolls horizontally on narrow screens. Bricks
-opens the catalog; Close/Cancel appears only while the drawer is open.
-`Toolbars` retains the separate floating Page controls and breakpoint controls.
+Existing settings route components query their saved entity and mount the form
+with `key={siteId}` or `key={pageId}`. SiteSettings owns its name, description,
+logo/favicons, Cards and Sticky navbar fields; PageSettings owns title and
+description. Local fields initialize once and are not overwritten by live-query
+updates. Each form owns Save and Cancel. Save stages the existing settings command
+and stays open; a staging refusal preserves fields and displays its message.
+Cancel or navigation away unmounts and discards unsaved fields. Reopening reads
+the latest saved row. Site Settings retains its image uploads, QR/share views
+and independent Unpublish Site command. Save is optimistic staging, not server
+acknowledgement. No settings synchronization effect or synthetic draft identity
+is used.
+
+`PagePreview` adopts the development canvas's direct Wall query, layout projection,
+drop resolution and DOM drag registrations through `UserUI.useSession()`, inside
+the existing WallBreakpointPane and SiteHeader chrome. It owns add-on-drop and
+Placement/Stack moves; WallPlacement retains edit and delete controls.
+Module catalog/detail routes query the URL-selected Wall and stage their existing
+add command directly and their catalog previews supply drag payloads to the canvas.
+The controlled `WallTree` remains a separate Storybook fixture. UserUI supplies
+the session; it gains no wall-specific methods.
+
+Matched route IDs determine the bottom drawer's `open` state through a pathless
+drawer layout; catalog and module-detail routes are sibling leaves. PageLayout
+renders the shared Drawer shell; the drawer route owns `DrawerHeader` and its scrollable body. The
+header owns catalog breadcrumbs, the brick-detail heading **Update your
+{collectionName} brick**, the underlined **← Bricks** link and **/** separator,
+page publication actions and Close. Publish Site lives in the
+floating Page toolbar. Settings Save/Cancel live in the
+forms. The 56px navigation stays on one line and scrolls horizontally on narrow screens.
+It slides out with the drawer and is hidden when closed. `Toolbars` retains floating Page and breakpoint controls.
 
 The drawer occupies the bottom `50dvh` on desktop and mobile. Opening it keeps
 the browser frame's height and adds `50dvh` of trailing scroll space, so the
-frame bottom remains reachable above the drawer. Closed state reserves 56px
-for persistent navigation. Scroll position is preserved
+frame bottom remains reachable above the drawer. Closed state reserves no drawer space. Scroll position is preserved
 on opening and clamped on closing; an already bottom-anchored preview stays at
-the end during resizing. Shared Wall controls own drag gestures in the active pane.
+the end during resizing. PageLayout owns this trailing space and scroll anchoring
+directly, using ResizeObserver to clamp or retain the bottom anchor when geometry
+changes. PagePreview owns the canvas's drag registrations.
 
 On browsing/editor routes, **sm / md / lg / xl** sit on the
-right side of the drawer header beside **Cards** and publication controls.
-Cards remains usable while closed, starts from the saved Site style, and changes
-the Wall/catalog preview without saving Site Settings. Its state survives drawer
-navigation in the mounted editor. Catalog previews always display configured
+right side of the drawer header beside publication controls. Card styling comes
+directly from saved `Site.cardStyle`; Site Settings Save changes it. There is no
+editor-local override or header Cards control. Catalog previews always display configured
 examples; module placeholders remain available in the Unconfigured brick stories.
 Breakpoints select **360 / 720 / 1080 / 1440px** browser frames;
-widths larger than the available composition are disabled. Four frames stay
-mounted around one editor session on every editor route. Page and Site Settings
+widths larger than the available composition are disabled. Only the fitting,
+URL-selected frame mounts the canvas. Page and Site Settings
 display no breakpoint selector. The separate `/breakpoints` route retains its
-floating controls and close action. The selected breakpoint returns when it fits;
-otherwise the largest fitting frame is displayed. Below 360px, the
-insufficient-width message appears. Catalog previews follow the active width.
+floating controls and close action. The production URL owns selection with `?breakpoint=sm|md|lg|xl`.
+`useEditorViewportStore` holds only `availableWidth: number | null` and its setter;
+available choices derive from that width and `BREAKPOINTS`.
+
+PageLayout calls `useBreakpointGuard` once. Its stable preview callback ref
+measures the mounted preview region with ResizeObserver and clears the width
+on detach. One focused effect replaces a missing, invalid or non-fitting URL
+breakpoint with the largest fitting choice, preserving the drawer/path and
+unrelated search while clearing insertion. Correction waits for this preview's
+measurement; the measurable DOM stays mounted before URL readiness. History
+replacement preserves scroll and creates no resize history entries. Growing
+width enables choices without restoring an earlier selection. Below 360px the
+insufficient-width message appears without a fallback Wall or redirect; canvas
+interaction waits until the URL choice fits. Settings forms remain mounted across
+width and recognized-breakpoint changes.
+
+Breakpoint controls update URL search and clear insertion. Editor links and Close
+preserve breakpoint. Catalog previews follow that URL choice. There is no
+separate development breakpoint path or editor route.
 
 `WallBreakpointPane` adds a 48px muted-gray browser header and thin inset frame.
 sm/md show a Safari-like mobile address pill; lg/xl show desktop window dots and a
 centered address bar. Both display static `qrk.sh`, remain noninteractive, and
-are hidden from assistive technology. Chrome slides with its breakpoint pane;
-reduced motion skips the slide. The active frame body renders the site navbar and its Wall's Sections,
-Stacks, Rows, and placed Bricks through the shared controlled components. Only
-the active pane registers drag targets and interactions. Placement cells use the
+are hidden from assistive technology. The frame body renders the saved site navbar
+and the adopted canvas's Sections, Stacks, Rows, and placed Bricks. Only
+the URL-selected frame registers drag targets and interactions. Placement cells use the
 Wall's logical breakpoint and fill their Row cell; catalog `defaultWidth` is
 not applied to placed content. Cells respect the selected variant's `minWidth`: 320px for
 every module except Swatch and Icon at 160px, at every breakpoint. Each Row
@@ -431,19 +482,21 @@ and Stacks show drop placeholders, including the initial Page scaffold. A move
 prunes empty containers across its Wall; Brick deletion prunes only ancestors
 emptied by its removed appearances.
 
-App consumes shared `WallPreviewViewport` and `WallPreviewToolbar` source. The
-viewport adds 32px above the frame and 43px below it, making every frame
+PageLayout directly adds 32px above the frame and 43px below it, making its frame
 `calc(100dvh - 75px)` high, including its 48px browser header. Frame dimensions
-stay fixed while the 38px floating toolbar sits 24px above the persistent
-bar when closed, or above the open drawer;
-toolbar controls are 28px high. App's floating toolbar remains visible only on
+stay fixed while the 38px floating toolbar sits 24px above the viewport bottom
+when closed, or above the open drawer;
+toolbar controls are 28px high. PageLayout positions the toolbar above the viewport bottom
+or open 50dvh drawer and skips positional animation for reduced motion.
+There is no WallPreviewViewport component. Shared `WallPreviewToolbar` retains
+toolbar presentation. App's floating toolbar remains visible only on
 the editor index and `/breakpoints` routes, while drawer routes show none.
 
 App imports the shared `Drawer` from `modules/lib/Drawer.tsx` and passes
-`open` and `persistentHeader`. Its shell slides with a 300ms CSS transform; editor height and padding
+`open`. Its shell slides with a 300ms CSS transform; editor height and padding
 do not animate. TanStack Router's `defaultViewTransition` owns native document
 transitions during regular and history navigation. The drawer route marks its
-DOM with `viewTransitionName: "app-drawer"`; CSS animates only an outgoing
+header and body with `viewTransitionName: "app-drawer"`; CSS animates only an outgoing
 drawer snapshot without a new sibling, sliding it down over 300ms. Root and
 matched drawer snapshots have no animation, so opening and navigation between
 drawer routes have no snapshot entrance. This preserves the existing React
@@ -456,12 +509,12 @@ pointer events through. This supersedes plan 007's animated grid-row
 reservation and snapshot entrance; its unrelated verification items remain
 separate.
 
-One persistent `DrawerHeader` serves brick browsing/editing
-and Page/Site Settings; the route layout renders only its body. Settings Save/Cancel keep their opening baselines and
-discard behavior. Publication status comes from live models rather than settings
-draft stores.
+One route-owned `DrawerHeader` serves brick browsing/editing
+and Page/Site Settings; each route renders its body. Settings forms own their
+fields and Save/Cancel without header coordination. Publication status and dirty
+comparison use saved models; publishing never submits unsaved settings implicitly.
 
-**Publish Site** appears immediately before the page action and Close/Cancel
+**Publish Site** appears immediately before the page action and Close
 while the site is unpublished. Its modal reuses `SiteTree` with checkboxes,
 preselecting previously published pages and locking the index page at `/`.
 One command publishes the checked set and enables the site. Unchecked pages keep
@@ -488,6 +541,8 @@ App supplies typed Router links to its
 `/modules/$moduleId` detail routes. The catalog lives at `/modules` under the
 page editor, with a **Bricks** breadcrumb and **Bricks** toolbar action.
 Normal catalog links remain browsing actions, with separate module drag grips.
+Catalog grips use the Wall's 28px ghost button and 16px grip icon at the top-right
+edge, with the same hover/focus reveal and touch visibility, without a dropdown.
 Drag a module grip from the catalog into the Wall to create its Brick. There are
 no Add controls in the Wall. Existing query-encoded targeted catalog URLs retain
 their + action in the drawer while preview content stays live.
@@ -586,7 +641,15 @@ evidence is recorded in
 
 App retains the brick-detail route and renders the selected module's `Form` without an enclosing form. All ten registered bricks expose a form: Image, Article, GitHub Profile, GitHub Repo, GitHub Activity, Figma Thumbnail, Instagram, Link, Map Place, and Swatch and Icon. Shared forms receive decoded `state` or `null`, synchronous `onSave`/module-specific configuration callbacks, and `onCancel`; the standalone session/Brick identity props are removed. App supplies real command callbacks; Storybook supplies local example behavior. Unconfigured provider bricks receive genuine `null` and show blank source inputs. Image provides a dropzone and file picker above its Image URL and Title fields. Article uses Meowdown in Hybrid mode with native shortcuts, slash/link controls, and block handles in the existing centered writing column; it has no formatting toolbar or mode switcher. Article state has separate required title/subtitle strings and nullable Markdown content; generated ArticleBrick specs bind all three fields. This hard cutover adds no JSON conversion or compatibility reader. Catalog previews use Meowdown's read-only MarkdownView without an editor.
 
-Modules own unsaved drafts and validation. Provider forms invoke their module's configuration callback and render resolution status/error from the Brick query; App stages the canonical command synchronously. The user-session owner composes module-owned local executors, which call the existing same-origin API and stage revision-guarded completions. Closing an editor discards its draft while accepted work continues for the session lifetime; session replacement ignores late results. No server durability guarantee is added. Ordinary Article/Image/Swatch saves preserve the actual local staging result, clear drafts only on success, and render optimism/rollback through the query. Article remounts its editor on Cancel; its portaled link form does not submit the Article form. Page and Site Settings retain their existing commands.
+Modules own unsaved drafts and validation. Provider forms fetch/decode through
+their existing browser RPC on Save, then stage `updateBrick`; pending/errors stay
+local, and Cancel/navigation invalidate unfinished submissions. Ordinary
+Article/Image/Swatch saves preserve the local staging result and show optimism
+or rollback through live queries. BrickDetail resolves its Placement from the URL
+breakpoint and keys the form by Placement identity plus its existing reset epoch.
+Changing breakpoint, including automatic URL correction, invalidates the old form
+and pending work. Article remounts its editor on Cancel; its portaled link form
+does not submit the Article form. Page and Site Settings keep their existing commands.
 
 The detail drawer provides one centered column around the module-owned form and Save/Cancel.
 Image uses stacked shadcn inputs that fill that column; its actions sit below
@@ -607,10 +670,10 @@ reference the final App Page directly. Canonical declarations/commands live in
 QRK's user aggregate; no second persisted Library host or declaration-binding
 factory exists.
 
-`WallEditorProvider` uses the initialized App session to query Walls with their
-separate Placements and Bricks. `makeWallLayoutView` resolves the ordered tree
-for it and the development route. The provider supplies shared `WallTree`
-presentation and action callbacks. Selected means
+`PagePreview` uses the initialized UserUI session to query the URL-selected Wall with
+its separate Placements and Bricks. `makeWallLayoutView` resolves the ordered
+tree for the adopted development canvas, now inside the production editor chrome.
+There is one App canvas and no dev URL. Selected means
 the Brick form is open; active means DOM focus. Grip/menu controls stay separate
 from live module content. Adding at a stable insertion target creates the Brick,
 all four Placements, and required parent containers atomically, then opens its
@@ -648,9 +711,9 @@ four ordered Wall hierarchies, so layout changes participate in dirty comparison
 
 ## Image uploads
 
-Drop or choose one nonempty PNG, JPEG, WebP, or SVG up to 5 MiB in the Image drawer. Upload starts immediately and updates only the module-owned draft Image URL on success; Save persists the brick state. Image retains file validation, picker/drop behavior, drafts, pending/error feedback, Save gating, and cancellation. Fields and Save are disabled during upload; Cancel stays available, restores saved state, and aborts unfinished requests. Switching bricks or leaving the drawer also aborts pending uploads and ignores late results. Breakpoint switches retain the draft and its upload.
+Drop or choose one nonempty PNG, JPEG, WebP, or SVG up to 5 MiB in the Image drawer. Upload starts immediately and updates only the module-owned draft Image URL on success; Save persists the brick state. Image retains file validation, picker/drop behavior, drafts, pending/error feedback, Save gating, and cancellation. Fields and Save are disabled during upload; Cancel stays available, restores saved state, and aborts unfinished requests. Switching bricks or leaving the drawer also aborts pending uploads and ignores late results. Changing the URL breakpoint selects another Placement, discards the old form draft, and aborts pending upload; automatic breakpoint correction has the same lifetime.
 
-`EditorLayout` and Storybook's `ModulePlayground` each supply their concrete `uploadImage(file, { signal }): Promise<string>` through `SWRConfig`. `ImageForm` reads it with `useSWRConfig` and explicitly passes it to `useSWRMutation`; the mutation owns pending/request-error state and starts only from file-selection/drop handlers. Local validation/save errors and drafts stay in the form. Revalidation and cache population are disabled. `ImageUploadSWR.d.ts` types the optional field through SWR's exported `_internal` configuration interface; no separate upload context, Effect service, layer or runner remains. Without an uploader, the form offers manual URL entry only.
+`PageLayout` and Storybook's `ModulePlayground` each supply their concrete `uploadImage(file, { signal }): Promise<string>` through `SWRConfig`. `ImageForm` reads it with `useSWRConfig` and explicitly passes it to `useSWRMutation`; the mutation owns pending/request-error state and starts only from file-selection/drop handlers. Local validation/save errors and drafts stay in the form. Revalidation and cache population are disabled. `ImageUploadSWR.d.ts` types the optional field through SWR's exported `_internal` configuration interface; no separate upload context, Effect service, layer or runner remains. Without an uploader, the form offers manual URL entry only.
 
 Uploads run independently of the Zerospin session; Save stages the existing `updateBrick` command. App owns the HTTP request: each invocation retrieves fresh Clerk credentials through `getToken()`, sends multipart file and current site ID to `/upload`, and decodes the untrusted success/error response before returning the image URL. Signed-out and offline errors fail visibly. App checks for cancellation after token acquisition, and both hosts forward the form's AbortSignal to `fetch`. The form separately aborts transport, resets mutation state, and ignores late results; SWR reset does not cancel HTTP. Image receives a URL without knowing the endpoint, site ID, authorization header, multipart protocol, or response shape. The shared form contract carries no Image-specific upload props. Site Settings also acquires its upload token directly through Clerk; its existing Promise uploader, session reads/commands and QR-code SWR read remain separate. Returned asset URLs remain publicly readable, including draft and Storybook uploads.
 

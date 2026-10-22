@@ -13,7 +13,6 @@ import { Input } from "../components/ui/input";
 import type { LibraryApi } from "@qrk.sh/api/modules/LibraryApi.public";
 import type { IScrapeError } from "@qrk.sh/api/modules/types";
 import { BreakpointPreviewRow } from "./BreakpointPreviewRow";
-import { BrickCardStyleContext } from "./BrickCardStyleContext";
 import { BREAKPOINTS } from "./breakpoints";
 import { modulesHash } from "./modulesHash";
 
@@ -70,7 +69,6 @@ export function ModulePlayground(props: {
 
   return (
     <SWRConfig value={{ uploadImage }}>
-      <BrickCardStyleContext value={cardStyle}>
         <main className="qrk-bricks min-h-screen bg-zinc-50">
           <OrderedDoc>
             <div className="flex flex-col gap-8 px-6 lg:flex-row lg:gap-10 lg:px-8">
@@ -209,6 +207,7 @@ export function ModulePlayground(props: {
                           brick={brick}
                           entry={entry}
                           moduleState={moduleState}
+                          cardStyle={cardStyle}
                           moduleId={moduleId}
                           specs={specs}
                           className={index === 0 ? undefined : "mt-10"}
@@ -230,7 +229,6 @@ export function ModulePlayground(props: {
             </div>
           </OrderedDoc>
         </main>
-      </BrickCardStyleContext>
     </SWRConfig>
   );
 }

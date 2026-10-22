@@ -1,7 +1,6 @@
 "use client";
 
-import { Link, useMatches, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { Link, useMatches, useNavigate, useSearch } from "@tanstack/react-router";
 import { Result, Schema } from "effect";
 import { isEqual } from "es-toolkit";
 import { ArrowLeft, FileText, Globe, X } from "lucide-react";
@@ -10,22 +9,14 @@ import { makeIdSchema, makeId, stageAggregateSessionCommand } from "@zerospin/sd
 import { makeEffectSchema } from "@zerospin/shapes";
 import { modulesHash } from "../../../../../../../modules/lib/modulesHash";
 import { brickV1 } from "@qrk.sh/zerospin/src/aggregates/user/models/brick/BrickV1";
-import { BREAKPOINTS } from "../../../../../../../modules/lib/breakpoints";
-import { useWallViewport } from "../../../../../../../modules/lib/WallViewportProvider";
 import { pageV1 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV1";
 import { siteV1 as Site } from "@qrk.sh/zerospin/src/aggregates/user/models/site/SiteV1";
 import { pageSnapshotV1 as PageSnapshot } from "@qrk.sh/zerospin/src/aggregates/user/models/pageSnapshot/PageSnapshotV1";
 import { makePageSnapshot } from "@qrk.sh/zerospin/src/aggregates/user/snapshots/makePageSnapshot";
 
-import { useZerospinUserInitializedState } from "@/components/ZerospinUser";
 import { Button } from "@/components/ui/button";
-import { TooltipProvider } from "@/components/ui/tooltip";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
 import { UserUI } from "@/zerospin/UserUI";
-import { useSiteStore } from "../../../siteStore";
-import { ToolbarButton } from "../../../Toolbars/ToolbarButton";
-import { usePageStore } from "../pageStore";
-import { PublishSiteDialog } from "./PublishSiteDialog";
 
 const ParamsSchema = Schema.Struct({
   username: Schema.String,
@@ -35,43 +26,14 @@ const ParamsSchema = Schema.Struct({
   brickId: Schema.optional(Schema.String),
 });
 
-export function DrawerHeader(props: {
-  open: boolean;
-  cardStyle: boolean;
-  onCardStyleChange: (value: boolean) => void;
-}) {
-  const { open, cardStyle, onCardStyleChange } = props;
+export function DrawerHeader() {
   const params = useValidatedParams(ParamsSchema);
   const routeId = useMatches({ select: (matches) => matches.at(-1)?.routeId });
   const navigate = useNavigate();
-  const { availableWidth, activeBreakpoint, setSelectedBreakpoint } = useWallViewport();
+  const search = useSearch({ from: "/$username/site/$siteId/page/$pageId" });
   const session = UserUI.useSession();
-  const { db } = useZerospinUserInitializedState();
-  const siteDraft = useSiteStore((state) => state.site);
-  const pageDraft = usePageStore((state) => state.page);
   const isSiteSettings = routeId === "/$username/site/$siteId/page/$pageId/_drawer/site-settings";
   const isPageSettings = routeId === "/$username/site/$siteId/page/$pageId/_drawer/page-settings";
-  const [baseline, setBaseline] = useState(() => {
-    const site = db.query.site.findFirst({ where: { id: { eq: params.siteId } } }).sync();
-    const page = db.query.page
-      .findFirst({ where: { id: { eq: params.pageId }, siteId: { eq: params.siteId } } })
-      .sync();
-    if (site === undefined || page === undefined) {
-      throw new Error("The current site or page was not found");
-    }
-    return {
-      site: {
-        name: site.name ?? "",
-        description: site.description ?? "",
-        logoUrl: site.logoUrl ?? "",
-        faviconLightUrl: site.faviconLightUrl ?? "",
-        faviconDarkUrl: site.faviconDarkUrl ?? "",
-        cardStyle: site.cardStyle,
-        stickyNavbar: site.stickyNavbar,
-      },
-      page: { title: page.title ?? "", description: page.description ?? "" },
-    };
-  });
   const { data: site } = useLiveQuery({
     session,
     key: params.siteId,
@@ -111,25 +73,6 @@ export function DrawerHeader(props: {
       }),
   });
 
-  const draftSite =
-    siteDraft?.id === params.siteId
-      ? {
-          name: siteDraft.name,
-          description: siteDraft.description,
-          logoUrl: siteDraft.logoUrl,
-          faviconLightUrl: siteDraft.faviconLightUrl,
-          faviconDarkUrl: siteDraft.faviconDarkUrl,
-          cardStyle: siteDraft.cardStyle,
-          stickyNavbar: siteDraft.stickyNavbar,
-        }
-      : baseline.site;
-  const draftPage =
-    pageDraft?.id === params.pageId
-      ? { title: pageDraft.title, description: pageDraft.description }
-      : baseline.page;
-  const isDirty =
-    (isSiteSettings && !isEqual(draftSite, baseline.site)) ||
-    (isPageSettings && !isEqual(draftPage, baseline.page));
   const savedContent =
     page === undefined
       ? null
@@ -175,6 +118,7 @@ export function DrawerHeader(props: {
               <Link
                 to="/$username/site/$siteId/page/$pageId/modules"
                 params={params}
+                search={{ breakpoint: search.breakpoint }}
                 resetScroll={false}
                 className="inline-flex shrink-0 items-center gap-1.5 underline underline-offset-4"
               >
@@ -195,6 +139,7 @@ export function DrawerHeader(props: {
               <Link
                 to="/$username/site/$siteId/page/$pageId/modules"
                 params={params}
+                search={{ breakpoint: search.breakpoint }}
                 resetScroll={false}
                 className="underline underline-offset-4"
               >
@@ -213,80 +158,6 @@ export function DrawerHeader(props: {
         </nav>
       )}
       <div className="ml-auto flex shrink-0 items-center gap-3">
-        {!isSiteSettings && !isPageSettings ? (
-          <TooltipProvider>
-            <div
-              role="group"
-              aria-label="Preview breakpoint"
-              className="mr-1 flex items-center rounded-md border border-input p-0.5"
-            >
-              {BREAKPOINTS.map((row) => (
-                <ToolbarButton
-                  key={row.id}
-                  tooltip={`${row.id} (${row.previewWidth}px)`}
-                  aria-label={`${row.id} preview width`}
-                  aria-pressed={activeBreakpoint === row.id}
-                  disabled={row.previewWidth > availableWidth}
-                  onClick={() => setSelectedBreakpoint(row.id)}
-                  className={
-                    activeBreakpoint === row.id
-                      ? "h-7 px-2 text-[13px] font-normal text-foreground"
-                      : "h-7 px-2 text-[13px] font-normal text-muted-foreground hover:text-foreground"
-                  }
-                >
-                  {row.id}
-                </ToolbarButton>
-              ))}
-            </div>
-          </TooltipProvider>
-        ) : null}
-        <label className="flex cursor-pointer items-center gap-2 text-xs">
-          <input
-            type="checkbox"
-            checked={cardStyle}
-            onChange={(event) => onCardStyleChange(event.target.checked)}
-          />
-          Cards
-        </label>
-        {isDirty ? (
-          <Button
-            type="button"
-            size="sm"
-            onClick={() => {
-              const result = isSiteSettings
-                ? stageAggregateSessionCommand({
-                    session,
-                    contractName: "updateSiteSettings",
-                    payload: {
-                      id: params.siteId,
-                      name: draftSite.name.length > 0 ? draftSite.name : null,
-                      description: draftSite.description.length > 0 ? draftSite.description : null,
-                      logoUrl: draftSite.logoUrl.length > 0 ? draftSite.logoUrl : null,
-                      faviconLightUrl:
-                        draftSite.faviconLightUrl.length > 0 ? draftSite.faviconLightUrl : null,
-                      faviconDarkUrl:
-                        draftSite.faviconDarkUrl.length > 0 ? draftSite.faviconDarkUrl : null,
-                      cardStyle: draftSite.cardStyle,
-                      stickyNavbar: draftSite.stickyNavbar,
-                    },
-                  })
-                : stageAggregateSessionCommand({
-                    session,
-                    contractName: "updatePageSettings",
-                    payload: {
-                      id: params.pageId,
-                      title: draftPage.title.length > 0 ? draftPage.title : null,
-                      description: draftPage.description.length > 0 ? draftPage.description : null,
-                    },
-                  });
-              if (result._tag === "Failure") return;
-              setBaseline({ site: structuredClone(draftSite), page: structuredClone(draftPage) });
-            }}
-          >
-            Save
-          </Button>
-        ) : null}
-        {site?.isPublished === false ? <PublishSiteDialog siteId={params.siteId} /> : null}
         {canPublishPage || canPublishUpdates ? (
           <Button
             type="button"
@@ -303,40 +174,23 @@ export function DrawerHeader(props: {
             {canPublishPage ? "Publish Page" : "Publish Updates"}
           </Button>
         ) : null}
-        {open ? (
-          <Button
-            type="button"
-            variant={isDirty ? "destructive" : "ghost"}
-            size={isDirty ? "sm" : "icon"}
-            className={isDirty ? "h-8 cursor-pointer" : "size-8 cursor-pointer"}
-            aria-label={isDirty ? "Cancel" : "Close drawer"}
-            onClick={() => {
-              if (isDirty && isSiteSettings) {
-                const store = useSiteStore.getState();
-                store.setName(baseline.site.name);
-                store.setDescription(baseline.site.description);
-                store.setLogoUrl(baseline.site.logoUrl);
-                store.setFaviconLightUrl(baseline.site.faviconLightUrl);
-                store.setFaviconDarkUrl(baseline.site.faviconDarkUrl);
-                store.setCardStyle(baseline.site.cardStyle);
-                store.setStickyNavbar(baseline.site.stickyNavbar);
-              }
-              if (isDirty && isPageSettings) {
-                const store = usePageStore.getState();
-                store.setTitle(baseline.page.title);
-                store.setDescription(baseline.page.description);
-              }
-              void navigate({
-                to: "/$username/site/$siteId/page/$pageId",
-                params,
-                resetScroll: false,
-              });
-            }}
-          >
-            <X className="size-3.5" aria-hidden />
-            {isDirty ? "Cancel" : null}
-          </Button>
-        ) : null}
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="size-8 cursor-pointer"
+          aria-label="Close drawer"
+          onClick={() => {
+            void navigate({
+              to: "/$username/site/$siteId/page/$pageId",
+              params,
+              search: { breakpoint: search.breakpoint },
+              resetScroll: false,
+            });
+          }}
+        >
+          <X className="size-3.5" aria-hidden />
+        </Button>
       </div>
     </header>
   );

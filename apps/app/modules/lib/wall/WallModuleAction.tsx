@@ -29,10 +29,10 @@ export function WallModuleAction(props: { wallId: string; moduleId: string; onAd
       ref={gripRef}
       aria-label={`Drag ${moduleId} into Wall`}
       variant="ghost"
-      size="icon"
-      className="cursor-grab rounded-none active:cursor-grabbing"
+      type="button"
+      className="size-7 cursor-grab rounded-none p-0 active:cursor-grabbing"
     >
-      <GripVertical aria-hidden="true" />
+      <GripVertical className="size-4" aria-hidden="true" />
     </Button>
   );
 }

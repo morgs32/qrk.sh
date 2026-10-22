@@ -1,15 +1,15 @@
 "use client";
 
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useSearch } from "@tanstack/react-router";
 
 import { BREAKPOINTS } from "../../../../../modules/lib/breakpoints";
 import { WallPreviewToolbar } from "../../../../../modules/lib/WallPreviewToolbar";
-import { useWallViewport } from "../../../../../modules/lib/WallViewportProvider";
 import { Schema } from "effect";
 import { motion, useReducedMotion } from "framer-motion";
 import { X } from "lucide-react";
 
 import { useValidatedParams } from "@/hooks/useValidatedParams";
+import { useEditorViewportStore } from "@/stores/useEditorViewportStore";
 
 import { ToolbarSeparator } from "./ToolbarSeparator";
 import { ToolbarButton } from "./ToolbarButton";
@@ -30,7 +30,8 @@ export function BreakpointsToolbar() {
   const reducedMotion = useReducedMotion();
   const params = useValidatedParams(ParamsSchema);
   const navigate = useNavigate();
-  const { availableWidth, activeBreakpoint, setSelectedBreakpoint } = useWallViewport();
+  const search = useSearch({ from: "/$username/site/$siteId/page/$pageId" });
+  const availableWidth = useEditorViewportStore((state) => state.availableWidth);
 
   return (
     <motion.div
@@ -51,11 +52,21 @@ export function BreakpointsToolbar() {
             key={row.id}
             tooltip={`${row.id} (${row.previewWidth}px)`}
             aria-label={`${row.id} preview width`}
-            aria-pressed={activeBreakpoint === row.id}
-            disabled={row.previewWidth > availableWidth}
-            onClick={() => setSelectedBreakpoint(row.id)}
+            aria-pressed={search.breakpoint === row.id}
+            disabled={availableWidth === null || row.previewWidth > availableWidth}
+            onClick={() =>
+              navigate({
+                to: ".",
+                search: (previous) => ({
+                  ...previous,
+                  breakpoint: row.id,
+                  insertion: undefined,
+                }),
+                resetScroll: false,
+              })
+            }
             className={
-              activeBreakpoint === row.id
+              search.breakpoint === row.id
                 ? "h-7 px-2 text-[13px] font-normal text-foreground"
                 : "h-7 px-2 text-[13px] font-normal text-muted-foreground hover:text-foreground"
             }
@@ -73,6 +84,7 @@ export function BreakpointsToolbar() {
             navigate({
               to: "/$username/site/$siteId/page/$pageId",
               params,
+              search: { breakpoint: search.breakpoint },
               resetScroll: false,
             })
           }

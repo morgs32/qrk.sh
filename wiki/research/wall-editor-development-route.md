@@ -2,20 +2,51 @@
 
 Research date: 2026-10-21. Reviewed [PR #16](https://github.com/morgs32/qrk.sh/pull/16), pinned to `7a34e20450d7238c6480cfe03ccc9efd2cbb5711`, against its base `36b2f13e35bfa5ed981cd56eb2e7309bd1068994`. The original research was source-only, with no product changes or verification runs; PR #16 remains open.
 
-Implementation follow-up: the initial read-only sibling route now lives in
-[the development page route](../../apps/app/routes/$username.site.$siteId.dev.page.$pageId.$breakpoint.tsx).
-It uses the existing `UserUI` session and auth gate, validates page/site identity,
-renders only the URL-selected Wall, and rejects production mounting. The initial
-slice was fixed to `sm` at 360px; the route now accepts `sm`, `md`, `lg`, or `xl`
-and uses the existing preview widths of 360, 720, 1080, or 1440px respectively.
-The query starts at Wall by page ID and breakpoint, with `page.site` included.
-Module renderers own placeholders; the Placement V2 spec primitive validates
-saved specs during query decoding and failures reach the existing session
-boundary. Missing route targets render the not-found view.
-The current editor is unchanged. No verification runs were performed. The broader
-editor work below remains a proposal.
+The original implementation began as a read-only sibling development route,
+then gained palette additions and Placement/Stack moves with DOM drag
+registrations. That route has now been retired: its canvas lives in production
+[PagePreview](../../apps/app/app/[username]/site/[siteId]/page/[pageId]/PagePreview.tsx).
+The current follow-up below records that adoption. The original broader editor
+discussion and commit-linked PR findings remain dated research.
 
-## Recommendation
+## Current composition follow-up: Plan 042
+
+Implemented 2026-10-22 without verification. Actual
+[UserLayout](../../apps/app/app/[username]/layout.tsx) now owns Clerk gating and
+connected initializer readiness for all username descendants. Actual
+[SiteLayout](../../apps/app/app/[username]/site/[siteId]/layout.tsx) remains a
+shared height shell.
+
+Production now composes the editor directly in actual
+[PageLayout](../../apps/app/app/[username]/site/[siteId]/page/[pageId]/layout.tsx).
+PagePreview adopts the development canvas's direct Wall query, layout projection,
+drop resolution and DOM drag registrations inside the existing WallBreakpointPane
+and SiteHeader chrome. One fitting URL-selected frame mounts this canvas;
+WallPlacement retains editing/deletion, and the Modules drawer supplies draggable
+catalog previews. The former `/dev/page/...` route is deleted and the route tree
+regenerated. There is one App canvas. Both custom wall providers/contexts,
+BrickCardStyleContext and WallPreviewViewport are removed. App uses saved
+`Site.cardStyle` directly; only Site Settings Save changes that appearance value.
+Shared previews receive ordinary boolean props, while ModulePlayground retains
+its local visual Cards control.
+
+PageLayout directly owns the preview scroll region, 50dvh trailing space while
+the drawer is open or 56px while closed, scroll anchoring/clamping during drawer
+changes and resizing, and floating toolbar positioning with reduced-motion
+handling. The production URL owns `?breakpoint=md`, and
+App's Zustand store holds only measured available width. `useBreakpointGuard`
+measures the mounted viewport and replaces a missing/non-fitting URL choice
+with the largest fitting breakpoint, clearing insertion; below 360px it shows
+insufficient space without a fallback Wall. Settings forms own fields and
+Save/Cancel keyed by Site/Page ID; Storybook owns its width and memory-router
+breakpoint locally. Its Wall Editor story remains a controlled WallTree fixture;
+it does not mount PagePreview's adopted canvas. Models, commands and module
+behavior keep their existing owners. See
+[Plan 042](../archive/plans/042-plan-route-layout-ownership.md). The commit-linked
+PR findings below still describe their original revisions and do not constitute
+verification of this change.
+
+## Original recommendation (2026-10-21)
 
 Keep the existing editor available and start the new editor in a small sibling development route at `/<username>/site/<siteId>/dev/page/<pageId>/<breakpoint>`. The route renders one selected breakpoint and the existing page/wall data plainly, before adding the chooser, insertion controls, drawer, animation, or drag-and-drop. It reuses the existing connected user session while bypassing the old page editor layout. The route shape follows the current TanStack file router and its username/site ancestors. [Routing configuration][routing-config], [username route][username-route], [site route][site-route], [TanStack route nesting][router-concepts].
 

@@ -5,15 +5,21 @@ import { motion, useReducedMotion } from "framer-motion";
 import { useMemo } from "react";
 import { ArrowLeft, File, Globe, Plus, RectangleHorizontal } from "lucide-react";
 import { WallPreviewToolbar } from "../../../../../modules/lib/WallPreviewToolbar";
+import { useSearch } from "@tanstack/react-router";
+import { useLiveQuery } from "@zerospin/react";
+import { makeIdSchema } from "@zerospin/sdk/browser";
+import { siteV1 as Site } from "@qrk.sh/zerospin/src/aggregates/user/models/site/SiteV1";
 
 import { useValidatedParams } from "@/hooks/useValidatedParams";
+import { UserUI } from "@/zerospin/UserUI";
+import { PublishSiteDialog } from "../page/[pageId]/(drawer)/PublishSiteDialog";
 
 import { ToolbarSeparator } from "./ToolbarSeparator";
 import { ToolbarButton } from "./ToolbarButton";
 
 const ParamsSchema = Schema.Struct({
   username: Schema.String,
-  siteId: Schema.String,
+  siteId: makeIdSchema(Site),
   pageId: Schema.String,
 });
 
@@ -25,6 +31,13 @@ const toolbarPresenceTransition = {
 export function SiteToolbar() {
   const reducedMotion = useReducedMotion();
   const params = useValidatedParams(ParamsSchema);
+  const session = UserUI.useSession();
+  const { data: site } = useLiveQuery({
+    session,
+    key: params.siteId,
+    query: (db, id) => db.query.site.findFirst({ where: { id: { eq: id } } }),
+  });
+  const { breakpoint } = useSearch({ from: "/$username/site/$siteId/page/$pageId" });
   const username = params.username;
   const siteId = params.siteId;
   const pageId = params.pageId;
@@ -58,7 +71,11 @@ export function SiteToolbar() {
         <ToolbarButton
           label="Bricks"
           icon={<Plus className="h-3.5 w-3.5" />}
-          link={{ to: "/$username/site/$siteId/page/$pageId/modules", params: hrefParams }}
+          link={{
+            to: "/$username/site/$siteId/page/$pageId/modules",
+            params: hrefParams,
+            search: { breakpoint },
+          }}
           className="h-7 gap-1.5 px-2 text-[13px] font-normal text-muted-foreground hover:text-foreground"
         />
 
@@ -71,6 +88,7 @@ export function SiteToolbar() {
           link={{
             to: "/$username/site/$siteId/page/$pageId/breakpoints",
             params: hrefParams,
+            search: { breakpoint },
           }}
           className="h-7 gap-1.5 px-2 text-[13px] font-normal text-muted-foreground hover:text-foreground"
         />
@@ -84,6 +102,7 @@ export function SiteToolbar() {
           link={{
             to: "/$username/site/$siteId/page/$pageId/page-settings",
             params: hrefParams,
+            search: { breakpoint },
           }}
           className="h-7 gap-1.5 px-2 text-[13px] font-normal text-muted-foreground hover:text-foreground"
         />
@@ -97,9 +116,16 @@ export function SiteToolbar() {
           link={{
             to: "/$username/site/$siteId/page/$pageId/site-settings",
             params: hrefParams,
+            search: { breakpoint },
           }}
           className="h-7 gap-1.5 px-2 text-[13px] font-normal text-muted-foreground hover:text-foreground"
         />
+        {site?.isPublished === false ? (
+          <>
+            <ToolbarSeparator />
+            <PublishSiteDialog siteId={params.siteId} />
+          </>
+        ) : null}
       </WallPreviewToolbar>
     </motion.div>
   );

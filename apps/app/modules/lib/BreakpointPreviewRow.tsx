@@ -1,11 +1,8 @@
-import { useContext } from "react";
-
 import type { Spec } from "@json-render/core";
 
 import { OrderedSection } from "@qrk.sh/web/library/OrderedDoc";
 
 import { BrickWrapper } from "../components/brick/BrickWrapper";
-import { BrickCardStyleContext } from "./BrickCardStyleContext";
 import { BREAKPOINTS } from "./breakpoints";
 import { modulesHash } from "./modulesHash";
 
@@ -14,11 +11,11 @@ export function BreakpointPreviewRow(props: {
   moduleId: keyof typeof modulesHash;
   brick: (typeof modulesHash)[keyof typeof modulesHash];
   moduleState: unknown;
+  cardStyle: boolean;
   className?: string;
   specs: Record<(typeof BREAKPOINTS)[number]["id"], Spec>;
 }) {
-  const { entry, moduleId, brick, moduleState, className, specs } = props;
-  const cardStyle = useContext(BrickCardStyleContext);
+  const { entry, moduleId, brick, moduleState, cardStyle, className, specs } = props;
   const maxPerPage = brick.maxPerPage;
   const view = brick.variants.default;
   const Component = view.component;

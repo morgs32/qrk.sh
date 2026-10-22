@@ -1,8 +1,51 @@
 # Studio publishing ownership
 
-Publication serialization was implemented and verified on 2026-10-16 and now lives in QRK's existing snapshot files. The subsequently approved Image upload ownership change is recorded separately below; its compilation and runtime verification are complete. The other scan candidates were considered and left unchanged.
+Publication serialization was implemented and verified on 2026-10-16 and now lives in QRK's existing snapshot files. Image upload ownership is recorded separately below: Plan 027's verification is historical; the subsequent Plan 041 SWRConfig cleanup was implemented without new verification at the user's request. The other scan candidates were considered and left unchanged at that scan. The
+Plan 042 composition follow-up below records current owners separately from the
+original Library-era findings and verification.
 
-## Implemented ownership
+## Current composition follow-up: Plan 042
+
+Implemented 2026-10-22 without verification, as requested. Actual
+[UserLayout](/Users/morgs32/GitHub/qrk.sh/apps/app/app/[username]/layout.tsx)
+owns Clerk loading/sign-in and the account-keyed connected initializer; only its
+ready callback mounts UserUI and descendants. Actual
+[SiteLayout](/Users/morgs32/GitHub/qrk.sh/apps/app/app/[username]/site/[siteId]/layout.tsx)
+owns the shared shell, and actual
+[PageLayout](/Users/morgs32/GitHub/qrk.sh/apps/app/app/[username]/site/[siteId]/page/[pageId]/layout.tsx)
+owns production editor composition, title and authenticated SWR upload host.
+Separate authentication/draft wrappers, global settings stores, EditorLayout,
+both wall providers/contexts, BrickCardStyleContext and WallPreviewViewport are
+removed. PageLayout directly owns preview scrolling, 50dvh/56px drawer space,
+scroll anchoring/clamping and floating toolbar placement, including reduced
+motion. App reads saved `Site.cardStyle` directly; the local Cards override and
+drawer-header Cards control are removed.
+
+Site/Page settings routes query saved rows and key existing forms by the real
+entity ID. Unsaved fields, Save and Cancel belong to each form. Outer title,
+wordmark and sticky navbar read saved rows; publishing continues to use saved
+Site/Page/Brick/Wall/Placement data and never saves form fields implicitly.
+DrawerHeader retains breadcrumbs, navigation, breakpoint controls and publication.
+
+The production URL owns `?breakpoint=md`; App's Zustand store owns only available
+width. PageLayout's guard measures its viewport and uses one focused effect to
+replace missing/non-fitting choices with the largest fitting breakpoint, clearing
+insertion. Below 360px it shows insufficient space without selecting another
+Wall. PagePreview adopts the development canvas's direct Wall query, drop
+resolution and DOM drag registrations inside the existing WallBreakpointPane and
+SiteHeader chrome. One fitting URL-selected frame mounts the canvas, with
+WallPlacement retaining editing/deletion and Modules supplying draggable catalog
+previews. The dev route and generated route-tree entries are removed. Chooser
+components retain their UserUI queries and direct commands. Storybook owns its
+memory-router breakpoint and width locally; its Wall Editor story remains a
+controlled WallTree fixture and does not mount the adopted production canvas.
+BrickDetail's form follows Placement identity: breakpoint changes, including
+automatic correction, discard the old draft and abort pending uploads. Historical
+upload evidence below predates this changed lifetime. The development canvas's
+query, add/move and drag behavior now belongs to production PagePreview. See
+[Plan 042](../archive/plans/042-plan-route-layout-ownership.md).
+
+## Original publication ownership
 
 QRK owns its persisted publication format, including the saved Library content inside it. `PageSnapshotSchema` now declares the complete page/wall shape, and `makePageSnapshot` projects the complete saved page content. Both use Library's existing editable models and field codecs. The former `WallSnapshotSchema` and `makeWallSnapshot` Library files and package exports are removed; no new helper, named type, or forwarding seam replaces them. [Schema](/Users/morgs32/GitHub/qrk.sh/apps/zerospin/src/aggregates/user/snapshots/pageSnapshotSchema.ts), [Projection](/Users/morgs32/GitHub/qrk.sh/apps/zerospin/src/aggregates/user/snapshots/makePageSnapshot.ts), [Library models](/Users/morgs32/GitHub/qrk.sh/apps/library/libraryModule/libraryModule.ts:127), [Library exports](/Users/morgs32/GitHub/qrk.sh/apps/library/package.json).
 
@@ -19,18 +62,18 @@ The keep-Library argument was proximity to its content models. That remains appr
 
 ## Implemented follow-up: host-owned Image uploads
 
-[Plan 027](../archive/plans/027-plan-host-owned-image-uploads.md) changes the existing `ImageUploadEnvironment` service to one operation: `upload(file): Effect.Effect<string, Error>`. The Image module passes its validated file and receives the uploaded image URL. It no longer constructs a request from endpoint, site ID, or authorization fields. The former request helper is removed; the environment's service identity/export and existing runtime context remain. [Environment](/Users/morgs32/GitHub/qrk.sh/apps/app/modules/image/ImageUploadEnvironment.ts), [Image form](/Users/morgs32/GitHub/qrk.sh/apps/app/modules/image/ImageForm.tsx), [Runtime context](/Users/morgs32/GitHub/qrk.sh/apps/app/modules/image/ImageUploadRuntimeContext.ts).
+[Plan 027](../archive/plans/027-plan-host-owned-image-uploads.md) established host-owned upload protocols. [Plan 041](../archive/plans/041-plan-host-owned-upload-functions.md) subsequently removed the upload Effect service, runtime context, host layers and runner adapters. App and Storybook now provide `uploadImage(file, { signal }): Promise<string>` through `SWRConfig`. ImageForm explicitly supplies that function to `useSWRMutation`; a type-only augmentation declares the optional SWR field. No separate Image upload context or initializer capability is added. [Image form](/Users/morgs32/GitHub/qrk.sh/apps/app/modules/image/ImageForm.tsx), [Configuration typing](/Users/morgs32/GitHub/qrk.sh/apps/app/modules/image/ImageUploadSWR.d.ts).
 
-1. App's EditorLayout supplies the operation and owns fresh Clerk-token acquisition, the configured `/upload` endpoint, multipart file/current-site fields, authorization headers, response parsing, and Effect Schema decoding. Storybook's ModulePlayground supplies its anonymous `/image/upload` operation with no site or authorization fields. Both use ordinary `Effect.runPromise` with their host-owned upload layer, independently of Zerospin, and forward the form's AbortSignal through Effect interruption to `fetch`. Save stages App's existing `updateBrick` command; returned asset URLs remain publicly readable. No shared HTTP adapter was added because these protocols belong to the two actual hosts. [App host](/Users/morgs32/GitHub/qrk.sh/apps/app/app/[username]/site/[siteId]/page/[pageId]/EditorLayout.tsx), [Storybook host](/Users/morgs32/GitHub/qrk.sh/apps/app/modules/lib/ModulePlayground.tsx).
-2. Image retains file validation, picker/drop behavior, unsaved drafts, pending/error feedback, Save gating, cancellation, and suppression of late results. Success updates only the draft URL; Save persists Image state. Cancel and leaving the form interrupt unfinished work without changing saved state. Completed uploads retain their existing storage lifetime. [Form lifecycle](/Users/morgs32/GitHub/qrk.sh/apps/app/modules/image/ImageForm.tsx).
-3. Server authentication, routes, request/response formats, R2 keys, asset serving, Site Settings uploads, and the ordinary module form contract remain unchanged. No dependency, source helper, provider, model/contract version, migration, or reset was introduced. [API routing and authentication](/Users/morgs32/GitHub/qrk.sh/apps/api/Worker.ts:41), [Upload storage](/Users/morgs32/GitHub/qrk.sh/apps/api/handleUpload.ts).
-4. This implements the image-protocol candidate from the scan without expanding the earlier publication relocation. Normal compilation and manual verification in both applications passed; the separate Image evidence below records the actual outcomes and an initial development-session interruption.
+1. App's PageLayout owns fresh Clerk `getToken()` acquisition, the configured `/upload` endpoint, multipart file/current-site fields, authorization headers, response parsing, and synchronous Effect Schema decoding. Storybook's ModulePlayground owns anonymous `/image/upload` with no site or authorization fields. Both use ordinary async functions, independently of Zerospin, and forward the form's AbortSignal to `fetch`; App also checks cancellation after token acquisition. Save stages App's existing `updateBrick` command; returned asset URLs remain publicly readable. No shared HTTP adapter was added because these protocols belong to the two actual hosts. [App host](/Users/morgs32/GitHub/qrk.sh/apps/app/app/[username]/site/[siteId]/page/[pageId]/layout.tsx), [Storybook host](/Users/morgs32/GitHub/qrk.sh/apps/app/modules/lib/ModulePlayground.tsx).
+2. SWR owns form-local request pending/error state, with revalidation and cache population disabled. Image retains file validation, local validation/save errors, picker/drop behavior, unsaved drafts, Save gating, cancellation, and suppression of late results. Success updates only the draft URL; Save persists Image state. Cancel resets mutation state and separately aborts unfinished transport. Leaving the form also aborts it. Completed uploads retain their existing storage lifetime. Without an uploader, the form supports manual URL entry and Save. [Form lifecycle](/Users/morgs32/GitHub/qrk.sh/apps/app/modules/image/ImageForm.tsx).
+3. Server authentication, routes, request/response formats, R2 keys, asset serving, and the ordinary module form contract remain unchanged. Site Settings now acquires its upload token directly through Clerk while retaining its Promise uploader, session reads/commands, toasts and unrelated QR-code SWR read. No dependency, model/contract version, migration, or reset was introduced. [Site Settings](/Users/morgs32/GitHub/qrk.sh/apps/app/app/[username]/site/[siteId]/page/[pageId]/SiteSettings/SiteSettings.tsx), [API routing and authentication](/Users/morgs32/GitHub/qrk.sh/apps/api/Worker.ts:41), [Upload storage](/Users/morgs32/GitHub/qrk.sh/apps/api/handleUpload.ts).
+4. Plan 027 implemented the image-protocol candidate from the scan without expanding the earlier publication relocation. Its compilation and manual verification passed; the separate Image evidence below records those historical outcomes and an initial development-session interruption. Plan 041 added no tests, builds, browser uploads or failure injection at the user's request; those earlier results do not verify the new wiring.
 
 ## Other scan decisions: unchanged
 
 1. **Keep `/rpc` and Mapbox configuration as they are.** Module resolution and spec generation still open the host's `/rpc`, while MapCanvas reads `PUBLIC_MAPBOX_TOKEN`. Endpoint injection or another token configuration layer was considered; current callers already configure host origins/tokens, and no differing requirement justified changing these seams. Provider workflows and map rendering remain module-owned. [Spec generation](/Users/morgs32/GitHub/qrk.sh/apps/library/session/startBrickSpecGeneration.ts:56), [Place lookup](/Users/morgs32/GitHub/qrk.sh/apps/app/modules/mapPlace/GooglePlaceLookup.tsx:52), [Map resolution](/Users/morgs32/GitHub/qrk.sh/apps/library/modules/mapPlace/startMapPlaceResolution.ts:46), [Map configuration](/Users/morgs32/GitHub/qrk.sh/apps/app/modules/mapPlace/MapCanvas.tsx:8).
 2. **Keep shared preview chrome.** WallBreakpointPane retains its decorative device/browser frame and `qrk.sh` label. Both Studio and Library's app use that frame; no additional whole-file move or host configuration was justified by current callers. [Browser chrome](/Users/morgs32/GitHub/qrk.sh/apps/app/modules/lib/WallBreakpointPane.tsx:94), [Studio preview](/Users/morgs32/GitHub/qrk.sh/apps/app/app/[username]/site/[siteId]/page/[pageId]/PagePreview.tsx), [Library preview](/Users/morgs32/GitHub/qrk.sh/apps/library/app/LibraryLayout.tsx).
-3. **Keep shared drawer sizing.** Both actual Drawer callers use `side="bottom"` and controlled `open`, giving them the same `50dvh` overlay on desktop/mobile. Both hosts reserve matching trailing padding and preserve their bottom scroll anchor. The older 4rem-offset classes are overridden for these callers; Studio's route/ViewTransition behavior and Library's local open state differ in lifecycle, not geometry. Host-supplied geometry would add coordination without addressing a current variation, so the sizing, focus/inert handling, and animation remain unchanged. [Controlled height](/Users/morgs32/GitHub/qrk.sh/apps/app/modules/lib/Drawer.tsx:140), [Studio drawer caller](/Users/morgs32/GitHub/qrk.sh/apps/app/app/[username]/site/[siteId]/page/[pageId]/EditorLayout.tsx), [Studio padding](/Users/morgs32/GitHub/qrk.sh/apps/app/app/[username]/site/[siteId]/page/[pageId]/MainColumns.tsx:27), [Library drawer and padding](/Users/morgs32/GitHub/qrk.sh/apps/library/app/LibraryLayout.tsx).
+3. **Keep shared drawer sizing.** Both actual Drawer callers use `side="bottom"` and controlled `open`, giving them the same `50dvh` overlay on desktop/mobile. Both hosts reserve matching trailing padding and preserve their bottom scroll anchor. The older 4rem-offset classes are overridden for these callers; Studio's route/ViewTransition behavior and Library's local open state differ in lifecycle, not geometry. Host-supplied geometry would add coordination without addressing a current variation, so the sizing, focus/inert handling, and animation remain unchanged. [Controlled height](/Users/morgs32/GitHub/qrk.sh/apps/app/modules/lib/Drawer.tsx:140), [Studio drawer caller](/Users/morgs32/GitHub/qrk.sh/apps/app/app/[username]/site/[siteId]/page/[pageId]/layout.tsx), [Studio padding](/Users/morgs32/GitHub/qrk.sh/apps/app/app/[username]/site/[siteId]/page/[pageId]/MainColumns.tsx:27), [Library drawer and padding](/Users/morgs32/GitHub/qrk.sh/apps/library/app/LibraryLayout.tsx).
 
 ## Shared behavior retained in Library
 

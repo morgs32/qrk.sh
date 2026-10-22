@@ -1,5 +1,5 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
-import SiteRootLayout from "@/app/[username]/site/[siteId]/layout";
+import SiteLayout from "@/app/[username]/site/[siteId]/layout";
 
 export const Route = createFileRoute("/$username/site/$siteId")({
   component: RouteComponent,
@@ -7,8 +7,8 @@ export const Route = createFileRoute("/$username/site/$siteId")({
 
 function RouteComponent() {
   return (
-    <SiteRootLayout>
+    <SiteLayout>
       <Outlet />
-    </SiteRootLayout>
+    </SiteLayout>
   );
 }

@@ -169,27 +169,27 @@ through a normal combined Save/reload. Screenshot:
 - Require `system spec accepted` before final browser verification. Reset local development data only; add no compatibility decoder, production migration, or deployment.
 - Update affected documentation as phases land. Preserve unrelated WIP, including the earlier dashboard heading removal.
 
-Implementation approved in chat. Prior token-helper work remains part of the authenticated environment.
+Implementation approved in chat. The upload amendment below reflects the subsequent Plan 041 cleanup; the original verification evidence remains historical.
 
 ## Accepted upload amendment
 
-1. Image owns `ImageUploadEnvironment`, `ImageUploadRuntimeContext`, and its named upload Effect. The environment contains upload URL, optional site grouping, and a fresh authorization Effect.
-2. Studio editor composition supplies Clerk authorization using `getClerkToken`; offline errors preserve `clerk-offline-error`. Standalone Library deliberately supplies its anonymous endpoint. Missing Studio tokens fail without falling back to anonymous upload.
-3. The Image-owned runner provides the editor Layer at the existing session `runPromise` boundary; add no managed runtime or generic module service framework.
+1. [Plan 041](../archive/plans/041-plan-host-owned-upload-functions.md) supersedes the upload service/layer/runner arrangement. App's EditorLayout and Storybook's ModulePlayground each supply `uploadImage(file, { signal }): Promise<string>` through `SWRConfig`; no separate Image upload context remains.
+2. App owns authenticated `/upload`, fresh Clerk `getToken()` acquisition, current-site multipart fields and response decoding. Storybook owns anonymous `/image/upload`. Missing App tokens fail without falling back to anonymous upload; offline failures retain visible feedback. The Effect credential helper remains for Zerospin authentication, outside upload execution.
+3. ImageForm explicitly supplies the host function to `useSWRMutation`, with revalidation and cache population disabled. SWR owns request pending/error state; Image retains file validation, local validation/save errors, drafts, Save, AbortController guards and unmount cleanup. Cancel separately aborts transport and resets mutation state. Without an uploader, manual URL entry remains available.
 
-```ts
-// 1. The module consumes a dependency; it owns the multipart operation.
-const environment = yield* ImageUploadEnvironment;
-const authorization = yield* environment.authorization;
-
-// 2. The host binds its environment before the session executes the program.
-session.runPromise(program.pipe(Effect.provide(imageLayer)), { signal });
+```tsx
+// 1. The host supplies its own concrete Promise operation.
+<SWRConfig value={{ uploadImage }}>
+  {/* 2. The existing editor/playground subtree consumes it without new form props. */}
+</SWRConfig>
 ```
+
+Plan 041 was implemented without new verification at the user's request. The checks and browser evidence below describe the earlier implementation.
 
 ## Implementation status
 
 1. Phases 0-8 implemented. All ten views register module-owned forms.
-2. Image upload environment supplied by editor composition; Clerk offline mapping preserved.
+2. Image upload ownership was subsequently simplified by Plan 041 as recorded above; the former upload environment and runtime context were removed.
 3. Library and Studio typechecking/lint and Library package build pass, including the final cancellation fixes. Backend typechecking/lint and workerd pass: 2 files, 12 checks. Studio formatting and all 37 changed Library source/config files pass formatting; the whole-Library formatting target still reports the unrelated existing `lib/ModulePreview.tsx` formatting failure, which remains untouched.
 4. Development backend backed up at `apps/zerospin/.wrangler/zerospin/backups/sys_qrk_sh_1-20261014T015027Z-pre-brick-forms`; fresh backend reports `system spec accepted` on port 8788.
 5. Existing Library origins reject stale browser storage before Reset renders. Manual verification uses a fresh local origin while preserving the existing origin backups and Clerk cookies.

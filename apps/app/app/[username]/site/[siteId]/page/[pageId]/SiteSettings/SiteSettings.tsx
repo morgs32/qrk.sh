@@ -8,12 +8,12 @@ import { useAuth } from "@clerk/react";
 import { ClerkOfflineError } from "@clerk/react/errors";
 
 import { Schema } from "effect";
-import { useLiveQuery } from "@zerospin/react";
+import { useNavigate, useSearch } from "@tanstack/react-router";
+import { isEqual } from "es-toolkit";
 import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import useSWR from "swr";
 
-import { useSiteStore } from "../../../siteStore";
 import { CopyButton } from "./CopyButton";
 import { SearchPreviewCard } from "../SearchPreviewCard";
 
@@ -72,25 +72,46 @@ async function uploadSiteImage(props: {
   return { url: body.url };
 }
 
-export function SiteSettings() {
+export function SiteSettings(props: {
+  site: {
+    id: `sit_${string}`;
+    name: string;
+    description: string;
+    logoUrl: string;
+    faviconLightUrl: string;
+    faviconDarkUrl: string;
+    cardStyle: boolean;
+    stickyNavbar: boolean;
+    isPublished: boolean;
+  };
+}) {
+  const { site } = props;
   const params = useValidatedParams(ParamsSchema);
   const username = useUsername();
   const { getToken } = useAuth();
   const session = UserUI.useSession();
-  const siteId = params.siteId;
-  const { data: site } = useLiveQuery({
-    session,
-    key: params.siteId,
-    query: (db, siteId) => db.query.site.findFirst({ where: { id: { eq: siteId } } }),
+  const siteId = site.id;
+  const navigate = useNavigate();
+  const search = useSearch({ from: "/$username/site/$siteId/page/$pageId" });
+  const [fields, setFields] = useState(() => ({
+    name: site.name,
+    description: site.description,
+    logoUrl: site.logoUrl,
+    faviconLightUrl: site.faviconLightUrl,
+    faviconDarkUrl: site.faviconDarkUrl,
+    cardStyle: site.cardStyle,
+    stickyNavbar: site.stickyNavbar,
+  }));
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const isDirty = !isEqual(fields, {
+    name: site.name,
+    description: site.description,
+    logoUrl: site.logoUrl,
+    faviconLightUrl: site.faviconLightUrl,
+    faviconDarkUrl: site.faviconDarkUrl,
+    cardStyle: site.cardStyle,
+    stickyNavbar: site.stickyNavbar,
   });
-  const siteDraft = useSiteStore((state) => state.site);
-  const setName = useSiteStore((state) => state.setName);
-  const setDescription = useSiteStore((state) => state.setDescription);
-  const setLogoUrl = useSiteStore((state) => state.setLogoUrl);
-  const setFaviconLightUrl = useSiteStore((state) => state.setFaviconLightUrl);
-  const setFaviconDarkUrl = useSiteStore((state) => state.setFaviconDarkUrl);
-  const setStickyNavbar = useSiteStore((state) => state.setStickyNavbar);
-  const setCardStyle = useSiteStore((state) => state.setCardStyle);
   const logoInputRef = useRef<HTMLInputElement>(null);
   const faviconLightInputRef = useRef<HTMLInputElement>(null);
   const faviconDarkInputRef = useRef<HTMLInputElement>(null);
@@ -114,10 +135,6 @@ export function SiteSettings() {
       width: 256,
     });
   });
-
-  if (siteDraft === null || siteDraft.id !== params.siteId) return null;
-
-  const draft = siteDraft;
 
   const runUpload = async (props: { file: File | undefined; onUrl: (url: string) => void }) => {
     const { file, onUrl } = props;
@@ -149,7 +166,29 @@ export function SiteSettings() {
   };
 
   return (
-    <div className="w-full">
+    <form
+      autoComplete="off"
+      className="w-full"
+      onSubmit={(event) => {
+        event.preventDefault();
+        setSaveError(null);
+        const result = stageAggregateSessionCommand({
+          session,
+          contractName: "updateSiteSettings",
+          payload: {
+            id: site.id,
+            name: fields.name.length > 0 ? fields.name : null,
+            description: fields.description.length > 0 ? fields.description : null,
+            logoUrl: fields.logoUrl.length > 0 ? fields.logoUrl : null,
+            faviconLightUrl: fields.faviconLightUrl.length > 0 ? fields.faviconLightUrl : null,
+            faviconDarkUrl: fields.faviconDarkUrl.length > 0 ? fields.faviconDarkUrl : null,
+            cardStyle: fields.cardStyle,
+            stickyNavbar: fields.stickyNavbar,
+          },
+        });
+        if (result._tag === "Failure") setSaveError(result.failure.message);
+      }}
+    >
       <div className="space-y-8 px-4 py-6">
         <div className="flex items-center justify-between gap-4">
           <FieldLabel htmlFor="site-card-style" description="Show each brick as a card">
@@ -157,8 +196,8 @@ export function SiteSettings() {
           </FieldLabel>
           <Switch
             id="site-card-style"
-            checked={draft.cardStyle}
-            onCheckedChange={setCardStyle}
+            checked={fields.cardStyle}
+            onCheckedChange={(cardStyle) => setFields({ ...fields, cardStyle })}
           />
         </div>
 
@@ -169,8 +208,8 @@ export function SiteSettings() {
           <input
             id="site-sticky-navbar"
             type="checkbox"
-            checked={draft.stickyNavbar}
-            onChange={(event) => setStickyNavbar(event.target.checked)}
+            checked={fields.stickyNavbar}
+            onChange={(event) => setFields({ ...fields, stickyNavbar: event.target.checked })}
           />
         </div>
 
@@ -186,7 +225,7 @@ export function SiteSettings() {
                 onChange={(event) => {
                   const file = event.target.files?.[0];
                   event.target.value = "";
-                  void runUpload({ file, onUrl: setLogoUrl });
+                  void runUpload({ file, onUrl: (logoUrl) => setFields((current) => ({ ...current, logoUrl })) });
                 }}
               />
               <Button
@@ -198,9 +237,9 @@ export function SiteSettings() {
                 Upload
               </Button>
               <div className="relative flex w-full max-w-[375px] min-h-16 items-center justify-center overflow-hidden rounded-md border bg-muted">
-                {draft.logoUrl.length > 0 ? (
+                {fields.logoUrl.length > 0 ? (
                   <img
-                    src={draft.logoUrl}
+                    src={fields.logoUrl}
                     alt="Site logo"
                     className="max-h-12 w-auto object-contain"
                   />
@@ -224,7 +263,7 @@ export function SiteSettings() {
                   onChange={(event) => {
                     const file = event.target.files?.[0];
                     event.target.value = "";
-                    void runUpload({ file, onUrl: setFaviconLightUrl });
+                    void runUpload({ file, onUrl: (faviconLightUrl) => setFields((current) => ({ ...current, faviconLightUrl })) });
                   }}
                 />
                 <Button
@@ -238,9 +277,9 @@ export function SiteSettings() {
                 </Button>
                 <div className="flex w-36 flex-col overflow-hidden rounded-md border bg-muted/30">
                   <div className="flex items-center gap-1 border-b bg-background px-2 py-1.5">
-                    {draft.faviconLightUrl.length > 0 ? (
+                    {fields.faviconLightUrl.length > 0 ? (
                       <img
-                        src={draft.faviconLightUrl}
+                        src={fields.faviconLightUrl}
                         alt="Light favicon"
                         className="size-4 shrink-0 rounded-sm object-cover"
                       />
@@ -262,7 +301,7 @@ export function SiteSettings() {
                   onChange={(event) => {
                     const file = event.target.files?.[0];
                     event.target.value = "";
-                    void runUpload({ file, onUrl: setFaviconDarkUrl });
+                    void runUpload({ file, onUrl: (faviconDarkUrl) => setFields((current) => ({ ...current, faviconDarkUrl })) });
                   }}
                 />
                 <Button
@@ -276,9 +315,9 @@ export function SiteSettings() {
                 </Button>
                 <div className="flex w-36 flex-col overflow-hidden rounded-md border bg-muted/30">
                   <div className="flex items-center gap-1 border-b bg-zinc-900 px-2 py-1.5">
-                    {draft.faviconDarkUrl.length > 0 ? (
+                    {fields.faviconDarkUrl.length > 0 ? (
                       <img
-                        src={draft.faviconDarkUrl}
+                        src={fields.faviconDarkUrl}
                         alt="Dark favicon"
                         className="size-4 shrink-0 rounded-sm object-cover"
                       />
@@ -299,8 +338,8 @@ export function SiteSettings() {
             <FieldLabel htmlFor="site-name-and-wordmark">Site name and wordmark</FieldLabel>
             <Input
               id="site-name-and-wordmark"
-              value={siteDraft.name}
-              onChange={(event) => setName(event.target.value)}
+              value={fields.name}
+              onChange={(event) => setFields({ ...fields, name: event.target.value })}
             />
           </div>
 
@@ -308,8 +347,8 @@ export function SiteSettings() {
             <FieldLabel htmlFor="site-description">Description</FieldLabel>
             <Textarea
               id="site-description"
-              value={siteDraft.description}
-              onChange={(event) => setDescription(event.target.value)}
+              value={fields.description}
+              onChange={(event) => setFields({ ...fields, description: event.target.value })}
             />
           </div>
         </div>
@@ -373,11 +412,30 @@ export function SiteSettings() {
         <div className="flex flex-col gap-2">
           <FieldLabel>Preview</FieldLabel>
           <SearchPreviewCard
-            title={siteDraft.name}
+            title={fields.name}
             url={publishedUrlDisplay}
-            description={siteDraft.description}
-            faviconSrc={draft.faviconLightUrl.length > 0 ? draft.faviconLightUrl : undefined}
+            description={fields.description}
+            faviconSrc={fields.faviconLightUrl.length > 0 ? fields.faviconLightUrl : undefined}
           />
+        </div>
+
+        {saveError === null ? null : <p role="alert" className="text-sm text-destructive">{saveError}</p>}
+        <div className="flex items-center gap-2">
+          <Button type="submit" disabled={!isDirty || isUploading}>Save</Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => {
+              void navigate({
+                to: "/$username/site/$siteId/page/$pageId",
+                params,
+                search: { breakpoint: search.breakpoint },
+                resetScroll: false,
+              });
+            }}
+          >
+            Cancel
+          </Button>
         </div>
 
         <Separator />
@@ -388,7 +446,7 @@ export function SiteSettings() {
               Danger Zone
             </FieldLabel>
           </div>
-          {site?.isPublished ? (
+          {site.isPublished ? (
             <Button
               type="button"
               variant="destructive"
@@ -406,6 +464,6 @@ export function SiteSettings() {
           ) : null}
         </div>
       </div>
-    </div>
+    </form>
   );
 }

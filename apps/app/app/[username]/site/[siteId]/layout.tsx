@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-export default function SiteRootLayout(props: { children: ReactNode }) {
+export default function SiteLayout(props: { children: ReactNode }) {
   const { children } = props;
   return (
     <div className="flex h-dvh flex-col overflow-hidden">

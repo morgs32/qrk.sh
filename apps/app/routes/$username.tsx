@@ -1,5 +1,5 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
-import UsernameLayout from "@/app/[username]/layout";
+import UserLayout from "@/app/[username]/layout";
 
 export const Route = createFileRoute("/$username")({
   component: RouteComponent,
@@ -7,8 +7,8 @@ export const Route = createFileRoute("/$username")({
 
 function RouteComponent() {
   return (
-    <UsernameLayout>
+    <UserLayout>
       <Outlet />
-    </UsernameLayout>
+    </UserLayout>
   );
 }

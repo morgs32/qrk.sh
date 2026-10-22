@@ -6,16 +6,16 @@ import { brickV1 } from "@qrk.sh/zerospin/src/aggregates/user/models/brick/Brick
 import { UserUI } from "@/zerospin/UserUI";
 import { pageV1 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV1";
 import { BREAKPOINTS } from "../../../../../../../modules/lib/breakpoints";
-import { BrickCardStyleContext } from "../../../../../../../modules/lib/BrickCardStyleContext";
-import { useWallViewport } from "../../../../../../../modules/lib/WallViewportProvider";
+import { useLocation, useRouter, useSearch } from "@tanstack/react-router";
 import { isNonEmptySpec } from "@json-render/core";
 import { makeIdSchema, stageAggregateSessionCommand } from "@zerospin/sdk/browser";
 import { useLiveQuery } from "@zerospin/react";
 import { Schema } from "effect";
-import { useContext, useLayoutEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 
 import { useValidatedParams } from "@/hooks/useValidatedParams";
 import { BrickWrapper } from "../../../../../../../modules/components/brick/BrickWrapper";
+import NotFound from "@/app/not-found";
 
 const ParamsSchema = Schema.Struct({
   username: Schema.String,
@@ -29,51 +29,32 @@ function isBrickId(value: string): value is `brk_${string}` {
 }
 
 export function BrickDetail() {
-  const { activeBreakpoint } = useWallViewport();
-  const breakpoint = activeBreakpoint ?? "sm";
-  const cardStyle = useContext(BrickCardStyleContext);
-  const entry = BREAKPOINTS.find((row) => row.id === breakpoint);
-  if (entry === undefined) throw new Error(`Unknown breakpoint: ${breakpoint}`);
+  const search = useSearch({ from: "/$username/site/$siteId/page/$pageId" });
+  const entry = BREAKPOINTS.find((row) => row.id === search.breakpoint);
+  const breakpoint = entry?.id;
   const params = useValidatedParams(ParamsSchema);
   const session = UserUI.useSession();
+  const { data: site } = useLiveQuery({
+    session,
+    key: params.siteId,
+    query: (db, id) => db.query.site.findFirst({ where: { id: { eq: id } } }),
+  });
+  const router = useRouter();
+  const location = useLocation();
   const [editorEpoch, setEditorEpoch] = useState(0);
   const navigationPending = useRef(false);
-  useLayoutEffect(() => {
-    navigationPending.current = false;
-    function invalidateEditor() {
-      navigationPending.current = true;
-      setEditorEpoch((epoch) => epoch + 1);
-    }
-    function navigate(event: MouseEvent) {
-      if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
-        return;
-      }
-      const anchor = event.target instanceof Element ? event.target.closest("a[href]") : null;
-      if (!(anchor instanceof HTMLAnchorElement) || anchor.target === "_blank") return;
-      const destination = new URL(anchor.href);
-      if (
-        destination.origin === window.location.origin &&
-        (destination.pathname !== window.location.pathname ||
-          destination.search !== window.location.search)
-      ) {
-        invalidateEditor();
-      }
-    }
-    document.addEventListener("click", navigate, true);
-    window.addEventListener("popstate", invalidateEditor);
-    return () => {
-      navigationPending.current = true;
-      document.removeEventListener("click", navigate, true);
-      window.removeEventListener("popstate", invalidateEditor);
-    };
-  }, [params.brickId]);
+  const currentPlacementId = useRef<string | null>(null);
   const brickId = isBrickId(params.brickId) ? params.brickId : null;
   const brickQuery = useLiveQuery({
     session,
-    key: { brickId, pageId: params.pageId },
+    key: { brickId, pageId: params.pageId, siteId: params.siteId },
     query: (db, key) =>
       db.query.brick.findFirst({
-        where: { id: { eq: key.brickId ?? "brk_missing" }, pageId: { eq: key.pageId } },
+        where: {
+          id: { eq: key.brickId ?? "brk_missing" },
+          pageId: { eq: key.pageId },
+          page: { siteId: { eq: key.siteId } },
+        },
       }),
   });
   const placementQuery = useLiveQuery({
@@ -83,7 +64,10 @@ export function BrickDetail() {
       db.query.placement.findFirst({
         where: {
           id: {
-            eq: key.brickId === null ? "plc_missing" : makePlacementId(key.brickId, key.breakpoint),
+            eq:
+              key.brickId === null || key.breakpoint === undefined
+                ? "plc_missing"
+                : makePlacementId(key.brickId, key.breakpoint),
           },
         },
       }),
@@ -91,6 +75,25 @@ export function BrickDetail() {
 
   const brickRow = brickQuery.data;
   const placement = placementQuery.data;
+  const placementId = placement?.id ?? null;
+  useLayoutEffect(() => {
+    navigationPending.current = false;
+    currentPlacementId.current = placementId;
+    const unsubscribe = router.subscribe("onBeforeNavigate", (event) => {
+      if (
+        !event.pathChanged &&
+        event.fromLocation?.searchStr === event.toLocation.searchStr
+      ) return;
+      navigationPending.current = true;
+      setEditorEpoch((epoch) => epoch + 1);
+    });
+    return () => {
+      navigationPending.current = true;
+      currentPlacementId.current = null;
+      unsubscribe();
+    };
+  }, [location.href, params.brickId, placementId, router]);
+  if (site === undefined) return <NotFound />;
   const brick = brickRow !== undefined ? modulesHash[brickRow.moduleId] : undefined;
   const view = placement === undefined ? undefined : brick?.variants[placement.variantId];
   const BrickComponent = brick?.component;
@@ -122,6 +125,7 @@ export function BrickDetail() {
         !BrickComponent ||
         brickRow === undefined ||
         placement === undefined ||
+        entry === undefined ||
         view === undefined ||
         spec === undefined ? (
           <div className="px-6 pt-6" data-testid="brick-not-found">
@@ -135,10 +139,10 @@ export function BrickDetail() {
             {Form !== undefined ? (
               <div className="mx-auto mt-8 w-full max-w-3xl px-6">
                 <Form
-                  key={`${brickRow.id}:${editorEpoch}`}
+                  key={`${placement.id}:${editorEpoch}`}
                   state={formState}
                   onSave={(state) => {
-                    if (navigationPending.current) {
+                    if (navigationPending.current || currentPlacementId.current !== placement.id) {
                       throw new DOMException("Brick editor navigation started", "AbortError");
                     }
                     return stageAggregateSessionCommand({
@@ -152,7 +156,7 @@ export function BrickDetail() {
                     });
                   }}
                   onCancel={() => {
-                    navigationPending.current = false;
+                    if (navigationPending.current || currentPlacementId.current !== placement.id) return;
                     setEditorEpoch((epoch) => epoch + 1);
                   }}
                 />
@@ -161,7 +165,7 @@ export function BrickDetail() {
               <div className="mt-8 overflow-auto">
                 <div
                   data-brick-surface=""
-                  data-card-style={cardStyle}
+                  data-card-style={site.cardStyle}
                   className="brick-hover-target relative shrink-0"
                   style={{
                     width: Math.min(view.defaultWidth, entry.previewWidth),

@@ -1,10 +1,11 @@
 "use client";
 
-import { makeIdSchema } from "@zerospin/sdk/browser";
+import { makeId, makeIdSchema, stageAggregateSessionCommand } from "@zerospin/sdk/browser";
 
-import { useParams } from "@tanstack/react-router";
-import { useContext } from "react";
-import { WallEditorContext } from "../../../../WallEditorContext";
+import { useNavigate, useParams, useSearch } from "@tanstack/react-router";
+import { useLiveQuery } from "@zerospin/react";
+import { UserUI } from "@/zerospin/UserUI";
+import { wallInsertionTargetSchema } from "@qrk.sh/zerospin/src/aggregates/user/layout/wallTargetSchemas";
 import { WallModuleAction } from "../../../../../../../../../../modules/lib/wall/WallModuleAction";
 
 import { modulesHash } from "../../../../../../../../../../modules/lib/modulesHash";
@@ -13,11 +14,13 @@ import { makeEffectSchema } from "@zerospin/shapes";
 import { Result, Schema } from "effect";
 import { pageV1 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV1";
 import { BREAKPOINTS } from "../../../../../../../../../../modules/lib/breakpoints";
-import { BrickCardStyleContext } from "../../../../../../../../../../modules/lib/BrickCardStyleContext";
 
 import { CodeText } from "@/app/[username]/site/[siteId]/page/[pageId]/Modules/CodeText";
 import { MetadataField } from "@/app/[username]/site/[siteId]/page/[pageId]/Modules/MetadataField";
 import { BrickWrapper } from "../../../../../../../../../../modules/components/brick/BrickWrapper";
+import NotFound from "@/app/not-found";
+
+const PageIdSchema = makeIdSchema(Page);
 
 export default function ModuleRoute() {
   const params = useParams({
@@ -30,7 +33,7 @@ export default function ModuleRoute() {
   const decoded = Schema.decodeUnknownResult(
     makeEffectSchema({ moduleId: brickV1.attributes.moduleId }),
   )({ moduleId: moduleId });
-  const decodedPageId = Schema.decodeUnknownResult(makeIdSchema(Page))(pageId);
+  const decodedPageId = Schema.decodeUnknownResult(PageIdSchema)(pageId);
 
   if (Result.isFailure(decoded) || Result.isFailure(decodedPageId)) {
     return (
@@ -41,27 +44,73 @@ export default function ModuleRoute() {
   }
 
   const brickModule = modulesHash[decoded.success.moduleId];
-  return <ModuleRouteBody brickModule={brickModule} />;
+  return <ModuleRouteBody brickModule={brickModule} pageId={decodedPageId.success} />;
 }
 
-function ModuleRouteBody(props: { brickModule: (typeof modulesHash)[keyof typeof modulesHash] }) {
-  const { brickModule } = props;
-  const cardStyle = useContext(BrickCardStyleContext);
-  const editor = useContext(WallEditorContext);
-  if (editor === null) throw new Error("ModuleRoute requires WallEditorContext");
+function ModuleRouteBody(props: {
+  brickModule: (typeof modulesHash)[keyof typeof modulesHash];
+  pageId: typeof PageIdSchema.Type;
+}) {
+  const { brickModule, pageId } = props;
+  const params = useParams({ from: "/$username/site/$siteId/page/$pageId" });
+  const search = useSearch({ from: "/$username/site/$siteId/page/$pageId" });
+  const breakpoint = BREAKPOINTS.find((entry) => entry.id === search.breakpoint);
+  const navigate = useNavigate();
+  const session = UserUI.useSession();
+  const { data: site } = useLiveQuery({
+    session,
+    key: params.siteId,
+    query: (db, id) => db.query.site.findFirst({ where: { id: { eq: id } } }),
+  });
+  const { data: walls } = useLiveQuery({
+    session,
+    key: { pageId, siteId: params.siteId },
+    query: (db, key) =>
+      db.query.wall.findMany({
+        where: { pageId: { eq: key.pageId }, page: { siteId: { eq: key.siteId } } },
+      }),
+  });
+  const wall = walls.find((entry) => entry.breakpoint === breakpoint?.id);
+  let insertionTarget: typeof wallInsertionTargetSchema.Type | null = null;
+  if (search.insertion !== undefined) {
+    try {
+      insertionTarget = Schema.decodeUnknownSync(wallInsertionTargetSchema)(
+        JSON.parse(search.insertion),
+      );
+    } catch {
+      // Invalid route input remains a refused Add, never an append target.
+    }
+  }
   const maxPerPage = brickModule.maxPerPage;
   const JsonRender = brickModule.component;
+  if (site === undefined) return <NotFound />;
 
   return (
     <div className="min-h-0 flex-1 overflow-y-auto pb-6">
       <div className="relative px-6 pt-6">
-        {editor.activeWallId === null ? null : (
+        {wall === undefined || breakpoint === undefined ? null : (
           <div className="absolute right-6 top-6">
             <WallModuleAction
-              wallId={editor.activeWallId}
+              wallId={wall.id}
               moduleId={brickModule.id}
               onAdd={
-                editor.insertionTarget === null ? undefined : () => editor.addBrick(brickModule.id)
+                search.insertion === undefined ? undefined : () => {
+                  if (insertionTarget === null || insertionTarget.wallId !== wall.id) return;
+                  const id = session.runSync(makeId(brickV1));
+                  const result = stageAggregateSessionCommand({
+                    session,
+                    contractName: "addBrick",
+                    payload: { id, pageId, moduleId: brickModule.id, target: insertionTarget },
+                  });
+                  if (result._tag === "Success") {
+                    void navigate({
+                      to: "/$username/site/$siteId/page/$pageId/brick/$brickId",
+                      params: { ...params, brickId: id },
+                      search: (previous) => ({ ...previous, breakpoint: breakpoint.id, insertion: undefined }),
+                      resetScroll: false,
+                    });
+                  }
+                }
               }
             />
           </div>
@@ -93,7 +142,7 @@ function ModuleRouteBody(props: { brickModule: (typeof modulesHash)[keyof typeof
                     <p className="m-0 mb-2 font-mono text-neutral-500">Component</p>
                     <div
                       data-brick-surface=""
-                      data-card-style={cardStyle}
+                      data-card-style={site.cardStyle}
                       className="brick-hover-target relative shrink-0"
                       style={{ width: previewWidth, minWidth: view.minWidth }}
                     >
@@ -110,7 +159,7 @@ function ModuleRouteBody(props: { brickModule: (typeof modulesHash)[keyof typeof
                     <p className="m-0 mb-2 font-mono text-neutral-500">JsonRender</p>
                     <div
                       data-brick-surface=""
-                      data-card-style={cardStyle}
+                      data-card-style={site.cardStyle}
                       className="brick-hover-target relative shrink-0"
                       style={{ width: previewWidth, minWidth: view.minWidth }}
                     >

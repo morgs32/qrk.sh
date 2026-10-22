@@ -1,8 +1,39 @@
 # Optional card styling for page bricks
 
-Researched 2026-10-14 against the current checkout and official React documentation. The approved live local spike uses a boolean Context to switch shared borders and cards with uniform 16px interior and perimeter gutters. No Site/Page setting is persisted. This is an exploration note, not a production implementation plan.
+Researched 2026-10-14 against the checkout at that date and official React documentation. The original local spike used a boolean Context to switch shared borders and cards with uniform 16px interior and perimeter gutters, without persisting a Site/Page setting. The current ownership is recorded immediately below; the remaining sections preserve the original exploration and its dated evidence.
 
-## Current model and settings ownership
+## Current composition follow-up: Plan 042
+
+Updated 2026-10-22 without new verification. The original Library/RGL exploration
+and its dated verification below remain historical. Site now persists
+`cardStyle`; App reads that saved value directly. BrickCardStyleContext, the
+editor-local preview override and drawer-header Cards control are removed.
+Shared preview surfaces receive an ordinary boolean prop; Storybook's
+ModulePlayground retains its local visual Cards toggle. SiteSettings owns an
+independent unsaved field and submits the existing update command on Save.
+Wordmark, sticky navbar and document title use saved rows. Settings Save/Cancel
+belong to their forms; global settings draft stores and the draft initializer
+are removed. [PageLayout](../../apps/app/app/[username]/site/[siteId]/page/[pageId]/layout.tsx),
+[SiteSettings](../../apps/app/app/[username]/site/[siteId]/page/[pageId]/SiteSettings/SiteSettings.tsx).
+
+PagePreview now contains the former development canvas's direct Wall query, drop
+resolution and DOM drag registrations inside the existing WallBreakpointPane and
+SiteHeader chrome. WallEditorProvider, WallViewportProvider/contexts and
+WallPreviewViewport are removed. PageLayout owns preview scrolling, drawer
+space, bottom scroll anchoring/clamping and toolbar positioning directly.
+URL search owns the production
+breakpoint, while an App-owned Zustand store holds only measured available width.
+The preview guard replaces missing/non-fitting URL selections after measurement;
+Storybook owns its fixture URL and width locally. The development canvas's query,
+add/move and drag behavior now runs in production PagePreview; the separate dev
+URL is removed. The Wall Editor story retains its controlled WallTree fixture
+and does not mount this production canvas.
+[PagePreview](../../apps/app/app/[username]/site/[siteId]/page/[pageId]/PagePreview.tsx),
+[width store](../../apps/app/stores/useEditorViewportStore.ts),
+[guard](../../apps/app/app/[username]/site/[siteId]/page/[pageId]/useBreakpointGuard.ts),
+[Plan 042](../archive/plans/042-plan-route-layout-ownership.md).
+
+## Model and settings ownership at research time
 
 The QRK user aggregate declares `site`, `page`, and the Library models, plus the existing `updateSiteSettings` and `updatePageSettings` contracts. The persisted appearance choice would belong beside those existing QRK declarations; Library can consume a resolved rendering value without knowing the Site/Page models. [UserV1.ts, lines 18–33](../../apps/zerospin/src/aggregates/user/UserV1.ts#L18-L33).
 
@@ -12,9 +43,9 @@ Studio seeds separate Site/Page Zustand drafts from the current records when the
 
 There is also a separate `sitePageDraftStore` containing seeded title/description/layout data in browser localStorage, keyed by owner/site/page. It is not the settings command persistence path described above. Its presence does not establish a new appearance setting's storage owner. [sitePageDraftStore.ts, lines 7–44 and 86–91](../../apps/app/app/[username]/site/[siteId]/sitePageDraftStore.ts#L7-L44), [localStorage persistence, lines 259–279](../../apps/app/app/[username]/site/[siteId]/sitePageDraftStore.ts#L259-L279).
 
-## Current rendering entry points
+## Rendering entry points at research time
 
-Studio's client `PagePreview` renders responsive breakpoint panes, the site header, and the active Wall supplied by `WallEditorProvider`. The provider owns the saved Wall rows and passes their presentation and editing callbacks into shared `WallTree` rendering. Appearance settings can enter that shared rendering subtree from the containing application. [PagePreview](../../apps/app/app/[username]/site/[siteId]/page/[pageId]/PagePreview.tsx), [WallEditorProvider](../../apps/app/app/[username]/site/[siteId]/page/[pageId]/WallEditorProvider.tsx).
+Studio's client `PagePreview` renders responsive breakpoint panes, the site header, and the active Wall supplied by `WallEditorProvider`. The provider owns the saved Wall rows and passes their presentation and editing callbacks into shared `WallTree` rendering. Appearance settings can enter that shared rendering subtree from the containing application. [PagePreview](../../apps/app/app/[username]/site/[siteId]/page/[pageId]/PagePreview.tsx), [Historical WallEditorProvider](https://github.com/morgs32/qrk.sh/blob/36b2f13e35bfa5ed981cd56eb2e7309bd1068994/apps/app/app/%5Busername%5D/site/%5BsiteId%5D/page/%5BpageId%5D/WallEditorProvider.tsx).
 
 The current standalone `/bricks/[brickId]` route is the module Form drawer, while the surrounding Library layout renders the wall. It does not load a QRK Site/Page record. [brick detail page, lines 24–79](../../apps/library/app/bricks/[brickId]/page.tsx#L24-L79), [Library wall](../../apps/library/app/LibraryLayout.tsx#L399).
 
@@ -28,7 +59,7 @@ No published Site/Page wall renderer was found under the current `apps/web/app` 
 
 React recommends trying explicit props or composition before Context. Context fits values consumed across a subtree, including visual themes; intermediate components need not forward it. Consumers use the nearest provider. [React: Passing Data Deeply with Context](https://react.dev/learn/passing-data-deeply-with-context#before-you-use-context), [Context use cases](https://react.dev/learn/passing-data-deeply-with-context#use-cases-for-context).
 
-Context transports a value; the Context object does not store the durable choice. Its default is a static fallback when no provider exists. The live spike assigns `false` to the default shared-border mode and `true` to cards with gutters. [React: createContext](https://react.dev/reference/react/createContext#parameters), [BrickCardStyleContext.ts](../../apps/app/modules/lib/BrickCardStyleContext.ts#L14).
+Context transports a value; the Context object does not store the durable choice. Its default is a static fallback when no provider exists. The original spike assigned `false` to the default shared-border mode and `true` to cards with gutters in the now-retired `BrickCardStyleContext.ts`. [React: createContext](https://react.dev/reference/react/createContext#parameters).
 
 React classifies `createContext` and `useContext` as client APIs for React Server Components. A boolean is serializable across a Server-to-Client prop boundary, so a future server-loaded setting can be passed to a client provider or client wall. Current Studio PagePreview and standalone Library rendering are already client code. [React: client APIs](https://react.dev/reference/rsc/use-client#using-third-party-libraries), [Serializable props](https://react.dev/reference/rsc/use-client#serializable-types-returned-by-server-components), [PagePreview.tsx, line 1](../../apps/app/app/[username]/site/[siteId]/page/[pageId]/PagePreview.tsx#L1), [GridItemPreview.tsx, line 1](../../apps/library/lib/GridItemPreview.tsx#L1).
 
@@ -69,7 +100,7 @@ Default false mode retains the opaque overlapping 1px shared-border geometry in 
 
 ## Live local spike
 
-The host owns `useState(false)` and its setter; `BrickCardStyleContext` remains `createContext(false)`. The **Cards** button is in standalone Library's existing grid toolbar and Studio's upper-right corner, with `aria-pressed` reflecting the mode. Both providers cover the wall and drawer subtree, including module/detail/catalog previews. The flag remains local to the mounted layout; no Site/Page field or localStorage entry is introduced. [Library host](../../apps/library/app/LibraryLayout.tsx#L349), [Studio host](../../apps/app/app/[username]/site/[siteId]/page/[pageId]/EditorLayout.tsx#L57).
+The host owns `useState(false)` and its setter; `BrickCardStyleContext` remains `createContext(false)`. The **Cards** button is in standalone Library's existing grid toolbar and Studio's upper-right corner, with `aria-pressed` reflecting the mode. Both providers cover the wall and drawer subtree, including module/detail/catalog previews. The flag remains local to the mounted layout; no Site/Page field or localStorage entry is introduced. [Library host](../../apps/library/app/LibraryLayout.tsx#L349), [Historical Studio host](https://github.com/morgs32/qrk.sh/blob/36b2f13e35bfa5ed981cd56eb2e7309bd1068994/apps/app/app/%5Busername%5D/site/%5BsiteId%5D/page/%5BpageId%5D/EditorLayout.tsx#L57).
 
 ```tsx
 // (3) Host-owned local flag; the Context transports only the boolean.
@@ -84,7 +115,7 @@ const [cardStyle, setCardStyle] = useState(false);
 
 1. **Default borders:** false mode draws a 1px opaque `#282824` rectangle using the outer surface's `::before`; existing hover/drag `::after` feedback and resize-control layers remain separate. [Shared styles](../../apps/app/modules/bricks.css).
 2. **Card gutters:** true mode sets native 16px margins and padding, applies the square row-height formula, and lets the card root fill the slot. Radius remains 8px, with a white background and shadow. Module content retains its own padding, media behavior, and backgrounds. Fixed previews use the same native span-size formula; intrinsic decoration adds no exterior padding. [BrickWall](../../apps/library/lib/BrickWall.tsx), [GridItemPreview](../../apps/library/lib/GridItemPreview.tsx), [MeasuredBrickWrapper](../../apps/library/components/brick/MeasuredBrickWrapper.tsx).
-3. **Local Context:** the wall and both preview wrappers consume the defining Library Context object, shared through the public package entry. No registry/catalog appearance prop is added. [Context definition](../../apps/app/modules/lib/BrickCardStyleContext.ts), [package export](../../apps/library/package.json#L45-L48), [Vite entry](../../apps/library/vite.lib.config.ts#L34).
+3. **Local Context:** the original wall and both preview wrappers consumed the now-retired Library `BrickCardStyleContext` object, shared through the former public package entry. No registry/catalog appearance prop was added in that spike. [Historical package export](../../apps/library/package.json#L45-L48), [Historical Vite entry](../../apps/library/vite.lib.config.ts#L34).
 
 Stored logical `x/y/w/h`, existing minimum-unit conversion, and measurement callbacks remain unchanged; card mode changes their rendered pixel geometry. Intrinsic probes still report undecorated content dimensions. Guaranteeing capacity for a required dimension `D` would require at least `ceil((D + G) / pitch)` units, allowing for rounding; that sizing change is outside this local spike. Existing fixed-size content can clip in the smaller slot. Drag hit targets, selection outlines, and resize handles follow the native positioned card slot. [Sizing conversion](../../apps/app/modules/lib/breakpoints.ts#L9-L12), [measurement root](../../apps/library/components/brick/MeasuredBrickWrapper.tsx), [wall controls](../../apps/library/lib/BrickWall.tsx).
 
@@ -94,6 +125,6 @@ Library and Studio typechecking/lint passed for the native-spacing correction, i
 
 The Cards button handlers still only update local React state. Source review found no new persistence call or card-mode dependency in layout normalization; runtime confirmation of command-free toggling remains part of the manual check.
 
-## Remaining work
+## Original spike's remaining work
 
 1. Manually verify 16px interior/perimeter gaps at all four breakpoints, fixed/intrinsic preview behavior, drag/resize alignment, unchanged false-mode shared borders, and that toggling stages no command. Browser observation was previously blocked by the browser URL security policy; visual verification remains pending while that access limitation persists. No current visual pass is claimed.

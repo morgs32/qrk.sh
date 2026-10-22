@@ -178,9 +178,9 @@ Article's stylesheet, Storybook, and App declare
 precedes Meowdown rules and utilities remain last.
 
 The shared `Drawer` preserves its optional controlled `open` behavior and 300ms
-visibility transform. Its optional `persistentHeader` retains a 56px navigation
-bar while a controlled bottom drawer's body closes; reduced motion skips the
-animation and the closed body is inert. These are retained shared capabilities,
+visibility transform. A controlled bottom drawer slides fully below the viewport
+when closed; reduced motion skips the animation and the closed shell is inert
+and hidden from assistive technology. These are retained shared capabilities,
 not a requirement to recreate the retired Library shell in App. Drawer owns no
 routing, breadcrumbs, or settings actions. App retains its own route-owned
 transitions and drawer lifecycle.
@@ -190,11 +190,13 @@ transitions and drawer lifecycle.
 headings pinned above their previews. App supplies catalog/insertion actions;
 Storybook supplies its own module examples. Live preview content stays interactive.
 
-The local **Cards** choice is supplied through `BrickCardStyleContext`. In module
-playgrounds the checkbox appears in the Module section; App retains its existing
-appearance control. Cards use an 8px radius, white background, and preview shadow.
-The local flag starts false, writes no Page/Site preference, and changes no model
-layout or preview width. Existing hover/shadow studies remain available.
+Card styling is an ordinary boolean presentation prop on shared previews;
+BrickCardStyleContext is removed. Module playgrounds own a local checkbox
+starting false. App reads saved `Site.cardStyle` directly, with no local preview
+override or drawer-header Cards control; SiteSettings owns its unsaved field and
+persists it only on Save. Storybook's visual toggle changes no model layout or
+preview width. Cards use an 8px radius, white background, and preview
+shadow. Existing hover/shadow studies remain available.
 
 ## Modules and interaction
 
@@ -225,7 +227,7 @@ content height. The shared height floor is 45px. Optional `minHeight` declares
 a higher floor (`90 | 180 | 360 | 720`), and every current variant omits it.
 `defaultHeight: null` also identifies variable-height content for Row sharing.
 The shared `canShareRow` rule lets an empty Row accept any variant, but a
-nonempty Row can contain only fixed-height variants. The development preview
+nonempty Row can contain only fixed-height variants. The adopted PagePreview canvas
 combines this rule with minimum-width fitting at the rendered Row width; fixed
 variants with different heights may share. `addBrick` enforces exclusivity before
 recording mutations and refuses rather than choosing another destination.
@@ -360,10 +362,29 @@ schemas, input normalization, and provider operations; it does not construct
 contracts from injected host models or versions.
 
 The shared controlled wall components render supplied data and action callbacks.
-App's `WallEditorProvider` supplies live queries, command staging,
-selected Brick routing, and drag scope. The Wall Editor story mounts that provider
-with the existing in-memory MockAggregateInitializer and seeds Wall layouts plus separate
-Placement records. New-Brick creation, layout moves,
+App's PagePreview reads the initialized `UserUI` session and adopts the development
+canvas's direct Wall query, drop resolution and DOM drag registrations. The
+URL-selected Wall renders inside WallBreakpointPane with SiteHeader, with existing
+WallPlacement edit/delete controls. Module catalog/detail routes own their scoped
+add handlers and supply draggable catalog previews to the canvas.
+There is no WallEditorProvider or WallViewportProvider/context. The URL owns
+`?breakpoint=sm|md|lg|xl`; the App-only Zustand viewport store owns measured width,
+with available choices derived from static `BREAKPOINTS`. PageLayout's
+`useBreakpointGuard` measures PageLayout's preview region through its plain `previewRef`
+and replaces a missing/non-fitting URL choice after measurement. Below 360px it
+shows insufficient space without choosing a fallback Wall. Width growth enables
+choices while keeping the current URL selection. The separate development URL is
+removed. PageLayout directly owns the scroll region, open/closed drawer trailing
+space, scroll anchoring/clamping and floating toolbar placement; WallPreviewViewport
+is removed. Reduced motion skips positional toolbar animation.
+
+The Wall Editor story uses the existing in-memory MockAggregateInitializer and
+UserUI, seeds Wall layouts plus separate Placement records, and renders WallTree
+with host-local queries/commands. Its memory router has a canonical breakpoint
+search value, and its width control/measurement remains local to the story. It
+uses neither the App width store nor the production guard and does not mount
+PagePreview's adopted development canvas. Shared wall presentation components
+import no App store or router. New-Brick creation, layout moves,
 and global Brick deletion are ordinary App commands. Pure layout functions edit
 ordered arrays, and each command records the complete atomic change. Moves prune
 all empty containers in their affected Wall after editing; Brick deletion prunes
@@ -419,7 +440,11 @@ Image retains file validation, local validation/save errors, picker/drop behavio
 drafts, Save gating, and cancellation. Fields and Save stay disabled during
 upload. Cancel resets mutation state and separately aborts the request; leaving
 the brick also aborts it. Current-request guards suppress late results because
-SWR reset does not cancel transport. Completed R2 objects remain stored.
+SWR reset does not cancel transport. App's PageLayout owns the authenticated
+uploader; Storybook's ModulePlayground owns its anonymous uploader. BrickDetail
+keys the form by its URL-selected Placement, so breakpoint changes, including
+automatic correction after a resize, discard the old draft and abort its upload.
+Completed R2 objects remain stored.
 Uploaded file bytes remain API-owned and are not included in browser session storage.
 
 ## Article editing in the brick drawer
@@ -477,7 +502,8 @@ controls, and validates Markdown strings plus complete state before the callback
 Failed saves retain the draft and show an error. Unsaved edits survive session
 echoes; clean forms follow saved props. Cancel remounts the editor to discard
 Markdown edits and canceled undo history. Leaving the Brick discards unsaved
-drafts; breakpoint switches retain the form draft.
+drafts. Changing the URL breakpoint selects a different Placement and remounts
+the form, discarding that draft and invalidating pending submissions.
 
 Native Meowdown controls retain formatting, selection, undo/redo, block dragging,
 and image resizing. Resizing writes width/height into a trailing Markdown comment.

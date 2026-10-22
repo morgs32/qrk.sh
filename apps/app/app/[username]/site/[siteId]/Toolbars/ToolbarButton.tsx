@@ -32,6 +32,7 @@ type IToolbarButtonLabeledProps = {
           | "/$username/site/$siteId/page/$pageId/page-settings"
           | "/$username/site/$siteId/page/$pageId/site-settings";
         params: { username: string; siteId: string; pageId: string };
+        search: { breakpoint?: string };
       };
   activeDestructive?: boolean;
   tooltip?: string;

@@ -144,7 +144,7 @@ their extensionless ESM imports. Referenced `/assets/` public files retain
 explicit legacy mappings.
 
 App resolves the SharedWorker and browser SQLite WASM from installed
-`28.0.0` package exports. `userSessionDefinition` is shared by
+`30.0.0` package exports. `userSessionDefinition` is shared by
 `ConnectedAggregateInitializer` and the authored `node.worker.ts` entrypoint.
 It owns the complete revision `1` declaration with explicit canonical model and
 public contract imports. The worker imports that single defining module.
@@ -314,13 +314,13 @@ styles. `App` holds the client providers and the React Speed Insights
 integration. The username layout keeps one session initializer mounted across
 App navigation; `UserLayout` gates only data-dependent content.
 
-Standalone `ConnectedAggregateInitializer` owns construction and descendant error boundaries.
+`ConnectedAggregateInitializer` owns construction and descendant error boundaries.
 Its `{ session, isLoaded }` callback explicitly gates the session-dependent subtree,
 then provides the session with `<UserUI session={session}>`. `UserUI.useSession()`
 is a synchronous context lookup with a missing-provider guard; readiness does not
 use Suspense. Pure declarations, UI context, and connected configuration live in
 separate, consistently named modules. `renderError` displays terminal failures;
-retry is owned by the initializer. `UserSessionWork` scopes background work and
+retry is owned by the initializer. `UserSessionFailures` scopes
 one nonterminal failure subscription to the ready session. Command-result guards
 still prevent follow-up actions after local refusal.
 
@@ -650,7 +650,7 @@ four ordered Wall hierarchies, so layout changes participate in dirty comparison
 
 Drop or choose one nonempty PNG, JPEG, WebP, or SVG up to 5 MiB in the Image drawer. Upload starts immediately and updates only the module-owned draft Image URL on success; Save persists the brick state. Image retains file validation, picker/drop behavior, drafts, pending/error feedback, Save gating, and cancellation. Fields and Save are disabled during upload; Cancel stays available, restores saved state, and aborts unfinished requests. Switching bricks or leaving the drawer also aborts pending uploads and ignores late results. Breakpoint switches retain the draft and its upload.
 
-`EditorLayout` supplies `ImageUploadEnvironment.upload(file): Effect.Effect<string, Error>` through the existing Layer, session runner, and `ImageUploadRuntimeContext`. App owns the HTTP request: each invocation retrieves fresh Clerk credentials through `getClerkToken`, sends multipart file and current site ID to `/upload`, and decodes the untrusted success/error response before returning the image URL. A signed-out result fails visibly. Effect interruption reaches `fetch` through its AbortSignal. Image passes only its validated file and receives the URL, without knowing the endpoint, site ID, authorization header, multipart protocol, or response shape. The shared form contract carries no Image-specific upload props.
+`EditorLayout` supplies `ImageUploadEnvironment.upload(file): Effect.Effect<string, Error>` through its Effect Layer, ordinary `Effect.runPromise` runner, and `ImageUploadRuntimeContext`, matching Storybook's upload execution. Uploads run independently of the Zerospin session; Save stages the existing `updateBrick` command. App owns the HTTP request: each invocation retrieves fresh Clerk credentials through `getClerkToken`, sends multipart file and current site ID to `/upload`, and decodes the untrusted success/error response before returning the image URL. A signed-out result fails visibly. Effect interruption reaches `fetch` through the form's AbortSignal. Image passes only its validated file and receives the URL, without knowing the endpoint, site ID, authorization header, multipart protocol, or response shape. The shared form contract carries no Image-specific upload props. Returned asset URLs remain publicly readable, including draft and Storybook uploads.
 
 Set `NEXT_PUBLIC_API_URL` to the unified API Worker origin; production uses `https://api.qrk.sh`, and local development uses `https://api.qrk.localhost`. Root `pnpm dev` starts API alongside App. The API Worker verifies the Clerk bearer token using `CLERK_SECRET_KEY` and `CLERK_AUTHORIZED_PARTY`, stores the bytes in its `QRKSH` R2 binding, and returns a URL built from `R2_PUBLIC_BASE_URL`. The configured authorized party and CORS origins must match the browser origin: `https://app.qrk.localhost` locally and `https://app.qrk.sh` in production. New local upload URLs use `https://api.qrk.localhost/assets`; production uses `https://api.qrk.sh/assets`. `/assets/library/*` uses its `ASSETS` bucket. No public R2 bucket hostname is required. Clerk secrets stay on the Worker.
 

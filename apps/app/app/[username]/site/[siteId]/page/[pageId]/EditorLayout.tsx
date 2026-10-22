@@ -91,7 +91,7 @@ export default function EditorLayout(props: { children: ReactNode }) {
       <ImageUploadRuntimeContext
         value={{
           runPromise: (program, options) =>
-            session.runPromise(program.pipe(Effect.provide(imageLayer)), options),
+            Effect.runPromise(program.pipe(Effect.provide(imageLayer)), options),
         }}
       >
         <WallViewportProvider key={documentKey}>

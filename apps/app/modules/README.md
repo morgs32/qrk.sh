@@ -403,13 +403,14 @@ WebP, or SVG images up to 5 MiB. Selection uploads immediately; success changes
 only the draft Image URL until Save. `ImageUploadEnvironment` supplies one
 host-owned operation, `upload(file): Effect.Effect<string, Error>`, returning the
 uploaded URL. Each host binds that operation through its Effect Layer,
-runner, and `ImageUploadRuntimeContext`; the shared form contract has no
-Image-specific upload props.
+ordinary `Effect.runPromise` runner, and `ImageUploadRuntimeContext`, independently
+of Zerospin. The shared form contract has no Image-specific upload props.
 
 Each host owns HTTP, endpoint configuration, multipart fields, credentials, and
 response decoding. Storybook performs anonymous `POST /image/upload`; App's
 host performs `/upload` with its current site ID
-and fresh Clerk authorization. Both forward Effect interruption into `fetch`.
+and fresh Clerk authorization. Both forward the form's AbortSignal through Effect
+interruption into `fetch`. Returned asset URLs remain publicly readable.
 Image retains file validation, picker/drop behavior, drafts, pending/error
 feedback, Save gating, and cancellation. Fields and Save stay disabled during
 upload. Cancel or leaving the brick aborts unfinished requests and ignores late

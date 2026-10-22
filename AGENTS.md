@@ -70,16 +70,16 @@ vendor operations. Keep consumer integrations outside vendors.
 
 # Testing and checks
 
-And we'll never need. Let's avoid integration testing of our Zerospin backend.
-
-All repository tests and standalone automated checks are removed until we agree
-on a solid test structure. Do not add or require client-side integration tests
-for the Zerospin backend or reintroduce test suites and check gates before that
-structure is agreed.
-
-The future test structure will use end-to-end tests before deploying changes to
-verify compatibility with the existing system, including contracts, sessions,
-aggregates, and models. That suite is deferred; do not scaffold it now.
+Test authored backend behavior with `makeSystemHarness` from
+`@zerospin/sdk/testing` and scoped `it.effect` tests from `@effect/vitest`.
+Use the actual System and registered releases, create model rows through commands,
+and call `harness.flush()` to execute queued external and command operations.
+Substitute provider services with Effect Layers; never call live providers in tests.
+The current harness accepts System-origin commands only; it does not test actor
+authentication or actor-origin commands. Keep representative success and rejection
+paths concise. These tests verify
+authored behavior, not Durable Object delivery, browser synchronization, or production.
+Run the backend `test` script (through Nx when configured).
 
 ## Plans
 

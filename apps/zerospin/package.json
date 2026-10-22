@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "dev": "portless",
-    "dev:app": "zerospin dev --port ${PORT:-8788}"
+    "dev:app": "zerospin dev --port ${PORT:-8788}",
+    "test": "tsc -p tsconfig.test.json && vitest run --config vitest.config.mts"
   },
   "dependencies": {
     "@clerk/backend": "^3.8.5",
@@ -23,12 +24,14 @@
     "system-worker": "26.0.2"
   },
   "devDependencies": {
+    "@effect/vitest": "4.0.2",
     "@types/node": "^25.5.2",
     "@zerospin/cli": "26.0.2",
     "@zerospin/dev-worker": "26.0.2",
     "cloudflare": "^6.1.0",
     "drizzle-orm": "npm:@zerospin/drizzle-orm@1.0.0-rc.5-qrk.3",
     "typescript": "^6.0.2",
+    "vitest": "5.0.5",
     "wrangler": "^4.127.1"
   },
   "nx": {

@@ -13,7 +13,7 @@ export function defineModule<
   abbreviation: ABBREVIATION;
   label: string;
   description: string;
-  maxPerPage?: number;
+  maxPerPage?: number | undefined;
 }) {
   const { id, abbreviation, label, description, maxPerPage } = props;
   assertKebabCaseId(id);

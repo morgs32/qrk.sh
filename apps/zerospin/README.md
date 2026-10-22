@@ -35,9 +35,10 @@ comparison path. The authorized local cutover reset development state for
 `sys_qrk_sh_1` and QRK's Zerospin browser databases; login cookies and credentials
 were retained. This work did not deploy or reset production.
 
-Repository tests and standalone automated checks are deferred until a test
-structure is agreed. Avoid integration testing of this Zerospin backend; the
-future end-to-end compatibility suite is deferred (see root `AGENTS.md`).
+Run `pnpm nx run @qrk.sh/zerospin:test` for contained backend behavior with
+`makeSystemHarness` and `@effect/vitest`. Tests use empty in-memory storage and
+System-origin commands. They do not verify actor authentication, browser
+synchronization, Durable Object transport, or live providers.
 
 ## Production
 

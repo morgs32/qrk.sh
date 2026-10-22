@@ -62,7 +62,7 @@ export function makeModuleVersion<
     abbreviation: ABBREVIATION;
     label: string;
     description: string;
-    maxPerPage?: number;
+    maxPerPage?: number | undefined;
   }>,
   props: {
     version: VERSION;

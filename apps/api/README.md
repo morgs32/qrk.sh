@@ -164,6 +164,14 @@ patch stream when a valid current spec exists; fresh blank generation still
 fails validation. Refusals, tool calls, incomplete completions, and non-string
 content fail through the existing `generateSpec` RPC error response.
 
+Zerospin's canonical `generateBrickSpec` adapter records the generation request
+with frozen Brick state, current Placement spec, and request/revision identity.
+The external request calls this existing `LibraryApi.generateSpec` method using
+`QRK_LIBRARY_API_URL` from the backend environment; OpenAI credentials and provider
+implementation stay in API. Its continuation applies the validated spec only while
+that Placement still matches the recorded request and revisions. No browser
+scanner or ordinary completion command owns this work.
+
 ### Material Symbols
 
 `searchIcons(query, offset, limit)` serves Google's bundled

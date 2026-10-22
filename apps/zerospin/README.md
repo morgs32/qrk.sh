@@ -9,8 +9,9 @@ the logical system name.
 Put local authentication settings in this directory's `.env.local` (see
 `.env.example`). The CLI discovers environment files from this project root.
 Set `CLERK_AUTHORIZED_PARTY=https://app.qrk.localhost` to match App's
-browser origin. Web still owns the sign-in UI; keep existing secrets in their
-current local environment file.
+browser origin. Set `QRK_LIBRARY_API_URL=https://api.qrk.localhost/rpc` to the
+API Worker's full LibraryApi RPC endpoint for brick-spec generation. Web still
+owns the sign-in UI; keep existing secrets in their current local environment file.
 Run local development from the repository root:
 
 ```sh
@@ -36,9 +37,12 @@ comparison path. The authorized local cutover reset development state for
 were retained. This work did not deploy or reset production.
 
 Run `pnpm nx run @qrk.sh/zerospin:test` for contained backend behavior with
-`makeSystemHarness` and `@effect/vitest`. Tests use empty in-memory storage and
-System-origin commands. They do not verify actor authentication, browser
-synchronization, Durable Object transport, or live providers.
+`@effect/vitest`. `makeSystemHarness` tests use empty in-memory storage and
+System-origin commands. Generation tests evaluate the authored declarations
+against fresh method-level SQLite seed rows and replay their recorded model
+operations; those tests do not exercise actor-origin admission. Neither test
+seam verifies actor authentication, browser synchronization, Durable Object
+transport, or live providers.
 
 ## Production
 
@@ -58,6 +62,7 @@ production rollout uses these bindings:
 
 - `ZEROSPIN_ENVIRONMENT=production` and `ZEROSPIN_SYSTEM_ID=sys_qrk_sh_1`.
 - `CLERK_AUTHORIZED_PARTY=https://app.qrk.sh` for the standalone App rollout.
+- `QRK_LIBRARY_API_URL=https://api.qrk.sh/rpc` for recorded brick-spec generation.
 - Secrets `ZEROSPIN_PUBLISHABLE_KEY`, `ZEROSPIN_SECRET_KEY`, and `CLERK_SECRET_KEY`.
 
 App's production build uses `https://zerospin.qrk.sh` and the matching
@@ -78,8 +83,8 @@ using the installed `@zerospin/production-worker/ProductionWorker` entrypoint
 and `environment: "production"`. Preserve its generated aliases, version
 metadata, migrations, and Durable Object bindings. Set only its deployment
 `name` to `qrk-zerospin`, the account ID to
-`4b0ca6b8e3a6fe721318c9de65b5f29d`, `workers_dev` to `true`, and the Clerk
-authorized-party variable above. Preserve
+`4b0ca6b8e3a6fe721318c9de65b5f29d`, `workers_dev` to `true`, and the
+`CLERK_AUTHORIZED_PARTY` and `QRK_LIBRARY_API_URL` variables above. Preserve
 `routes: [{ pattern: "zerospin.qrk.sh", custom_domain: true }]` in the generated
 production configuration so future deployments retain the Custom Domain.
 Upload the three secrets from a protected JSON
@@ -216,6 +221,36 @@ validators without a predecessor or payload-translation edge. The cutover
 requires empty affected development and production stores; stored commands and
 resources from former releases cannot be imported into this baseline.
 
+### Recorded brick-spec generation
+
+The browser stages the optimistic `generateBrickSpecV1` command. Its backend
+`generateBrickSpecServerV1` adapter re-records the checked Placement update and
+one `generateBrickSpecExternalV1` operation with canonical module content,
+current spec, prompt, request identity and both revisions. The originating
+AggregateChain retains the request and its continuation; an open browser is no
+longer required to initiate the provider request or apply its result.
+
+`generateBrickSpecExternalV1.external.request` calls `LibraryApi.generateSpec`
+through the required `QRK_LIBRARY_API_URL` full HTTP(S) RPC URL. OpenAI and its
+credentials remain in `apps/api`. The request has a 30-second lifetime, aborts
+HTTP and disposes its Cap'n Web session when it finishes or is interrupted, and
+decodes the API's unknown response before retention. Missing or invalid URL
+configuration becomes a recorded external request failure.
+
+The continuation handles recorded Success and Failure. It rechecks the current
+request identity, module, state/spec revisions and Wall membership before
+recording a Placement update. Valid module specs advance `specRevision` and
+mark generation ready; API rejections, invalid specs and external request
+failures mark the still-current generation failed. Superseded results record
+no model mutation. `completeBrickSpecGenerationV1` and App's generation scanner
+are removed. No storage schema or storage reset is part of this change.
+
+Source command replay does not call providers. Uncertain process loss can
+repeat a provider request; this integration does not claim exactly-once OpenAI
+execution. Contained harness tests do not verify real API delivery or production
+configuration. Set the production
+`QRK_LIBRARY_API_URL=https://api.qrk.sh/rpc` binding when deploying this capability.
+
 ### Provider forms save complete state
 
 User revision `1` exposes `updateBrickV1` for content saves. The seven
@@ -229,8 +264,8 @@ Each module form fetches and validates before staging its one state save. Provid
 failures leave previous content intact. Cancellation closes local RPC and blocks
 late saves; it does not reverse remote side effects. Pending status and errors are
 not persisted and nothing resumes on mount. App's provider runners are deleted;
-its separate layout generation remains. Storybook uses the same fetch-then-save
-forms with local example state. No verification runs were performed.
+brick-spec generation runs through recorded backend external work. Storybook
+uses the same fetch-then-save forms with local example state. No verification runs were performed.
 
 App owns the persisted editor. Its Page owns shared Bricks and four Walls,
 one per `sm`/`md`/`lg`/`xl` breakpoint. Walls own ordered Sections; Sections own

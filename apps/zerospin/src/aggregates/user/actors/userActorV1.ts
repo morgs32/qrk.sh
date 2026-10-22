@@ -16,8 +16,7 @@ import { movePlacementV1 as movePlacement } from "../contracts/wall/MovePlacemen
 import { moveStackV1 as moveStack } from "../contracts/wall/MoveStackContractV1";
 import { deleteBrickV1 as deleteBrick } from "../contracts/wall/DeleteBrickContractV1";
 import { updateBrickV1 as updateBrick } from "../contracts/brick/UpdateBrickV1";
-import { generateBrickSpecV1 as generateBrickSpec } from "../contracts/brick/GenerateBrickSpecV1";
-import { completeBrickSpecGenerationV1 as completeBrickSpecGeneration } from "../contracts/brick/GenerateBrickSpecV1";
+import { generateBrickSpecServerV1 as generateBrickSpec } from "../contracts/brick/GenerateBrickSpecServerV1";
 import { updateArticleSpecAtBreakpointV1 as updateArticleSpecAtBreakpoint } from "../contracts/brick/UpdateArticleSpecAtBreakpointV1";
 import { updateFigmaThumbnailSpecAtBreakpointV1 as updateFigmaThumbnailSpecAtBreakpoint } from "../contracts/brick/UpdateFigmaThumbnailSpecAtBreakpointV1";
 import { updateGithubActivitySpecAtBreakpointV1 as updateGithubActivitySpecAtBreakpoint } from "../contracts/brick/UpdateGithubActivitySpecAtBreakpointV1";
@@ -106,7 +105,6 @@ export const userActorV1 = makeAggregateActorVersion(defineAggregateActor({ name
     deleteBrick,
     updateBrick,
     generateBrickSpec,
-    completeBrickSpecGeneration,
     updateArticleSpecAtBreakpoint,
     updateFigmaThumbnailSpecAtBreakpoint,
     updateGithubActivitySpecAtBreakpoint,

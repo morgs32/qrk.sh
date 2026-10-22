@@ -1,10 +1,25 @@
 import { expect, it } from '@effect/vitest';
 import * as sdk from '@zerospin/sdk';
+import { applyOperationTx } from '@zerospin/core/contracts/applyOperationTx';
+import { makeContractReadDb } from '@zerospin/core/contracts/make/makeContractReadDb';
+import type { IAnyOperation } from '@zerospin/core/contracts/types';
+import { makeResourceDbConfig } from '@zerospin/core/drizzle/make/makeDbConfig/makeDbConfig';
+import { makeTx } from '@zerospin/core/drizzle/make/makeTx';
+import { openHarnessDb } from '@zerospin/core/testing/systemHarness/openHarnessDb';
 import { makeSystemHarness } from '@zerospin/sdk/testing';
 import { Effect } from 'effect';
+import { newHttpBatchRpcResponse, RpcTarget } from 'capnweb';
+import { vi } from 'vitest';
 
 import { system } from '../src/system';
 import { userAggregateV1 } from '../src/aggregates/user/UserV1';
+import { generateBrickSpecServerV1 } from '../src/aggregates/user/contracts/brick/GenerateBrickSpecServerV1';
+import { generateBrickSpecExternalV1 } from '../src/aggregates/user/contracts/brick/GenerateBrickSpecExternalV1';
+import { updateSwatchAndIconSpecAtBreakpointV1 } from '../src/aggregates/user/contracts/brick/UpdateSwatchAndIconSpecAtBreakpointV1';
+import { makePlacementId } from '../src/modules/lib/makePlacementId';
+import { swatchAndIconV1 } from '../src/modules/swatchAndIcon/swatchAndIconV1';
+
+vi.mock('cloudflare:workers', () => ({ env: { QRK_LIBRARY_API_URL: 'https://api.qrk.test/rpc' } }));
 
 it.effect('creates a user through a command and rejects unauthenticated site creation', () =>
   Effect.gen(function* () {
@@ -26,3 +41,174 @@ it.effect('creates a user through a command and rejects unauthenticated site cre
     expect(yield* harness.query({ release: userAggregateV1, aggregateId: 'acct_harness' },
       db.query.site.findMany({}))).toEqual([]);
   }).pipe(Effect.provide(sdk.NanoIdFactory)));
+
+
+const recordedAt = new Date('2026-10-22T12:00:00Z');
+const placementId = makePlacementId('brk_one', 'lg');
+const generatedSpec = {
+  root: 'color',
+  elements: { color: { type: 'SwatchAndIconColor', props: { color: '#123456' } } },
+};
+
+// Method-level seam: initial seed precedes execution; every later write replays
+// operations emitted by the actual contracts. The System harness has no seed API.
+const openGenerationDb = () => Effect.gen(function* () {
+  const config = makeResourceDbConfig({ models: userAggregateV1.models });
+  const db = yield* openHarnessDb(config);
+  const readDb = makeContractReadDb({ db, models: userAggregateV1.models });
+  const timestamps = { createdAt: recordedAt, updatedAt: recordedAt };
+  db.transaction(tx => {
+    tx.insert(config.schema.user).values({
+      ...timestamps, id: 'usr_one', clerkUserId: 'user_one', username: null, displayName: null,
+    }).run();
+    tx.insert(config.schema.site).values({
+      ...timestamps, id: 'sit_one', userId: 'usr_one', slug: null, name: null,
+      description: null, logoUrl: null, faviconLightUrl: null, faviconDarkUrl: null,
+      isPublished: false, stickyNavbar: true, cardStyle: false,
+    }).run();
+    tx.insert(config.schema.page).values({
+      ...timestamps, id: 'pag_one', siteId: 'sit_one', slug: null, title: null,
+      description: null, isPublished: false, publishedSnapshotId: null,
+    }).run();
+    tx.insert(config.schema.wall).values({
+      ...timestamps, id: 'wal_one', pageId: 'pag_one', breakpoint: 'lg',
+      layout: JSON.stringify({ sections: [{ id: 'sec_one', stacks: [{ id: 'stk_one', name: '',
+        rows: [{ id: 'row_one', placementIds: [placementId] }],
+      }] }] }),
+    }).run();
+    tx.insert(config.schema.brick).values({
+      ...timestamps, id: 'brk_one', pageId: 'pag_one', moduleId: 'swatch-and-icon',
+      stateRevision: 0, state: JSON.stringify(swatchAndIconV1.defaultState),
+    }).run();
+    tx.insert(config.schema.placement).values({
+      ...timestamps, id: placementId, brickId: 'brk_one', wallId: 'wal_one',
+      variantId: 'default', specRevision: 0, generation: null, spec: JSON.stringify(swatchAndIconV1.defaultSpec),
+    }).run();
+  });
+  const replay = (operation: IAnyOperation) => makeTx('generation.replay')(function* (tx) {
+    yield* applyOperationTx({
+      tx, operation, commandId: 'cmd_generation', operationIndex: 0, appliedAt: recordedAt,
+    });
+  })(db);
+  const start = (requestId: string) => Effect.gen(function* () {
+    const requested = yield* generateBrickSpecServerV1.evaluate({
+      aggregateId: 'acct_harness', claims: null, db: readDb,
+      payload: { brickId: 'brk_one', breakpoint: 'lg', requestId, prompt: '  Make it green  ' },
+    });
+    expect(requested.operations.map(operation => operation.operationName)).toEqual(['update', 'external']);
+    const [update, external] = requested.operations;
+    if (update?.operationName !== 'update' || external?.operationName !== 'external') {
+      expect.fail('Expected Placement update followed by external generation');
+    }
+    yield* replay(update);
+    return external;
+  });
+  return { db: readDb, replay, start };
+});
+
+it.effect('records canonical generation inputs and commits the validated external spec', () =>
+  Effect.gen(function* () {
+    const { db, replay, start } = yield* openGenerationDb();
+    const external = yield* start('req_one');
+    expect(userAggregateV1.contracts.generateBrickSpec).toBe(generateBrickSpecServerV1);
+    expect(userAggregateV1.contracts.generateBrickSpecExternal).toBe(generateBrickSpecExternalV1);
+    expect(external.contract).toBe(generateBrickSpecExternalV1);
+    expect(external.payload).toEqual({
+      brickId: 'brk_one', breakpoint: 'lg', moduleId: 'swatch-and-icon', requestId: 'req_one',
+      prompt: 'Make it green', baseStateRevision: 0, baseSpecRevision: 0,
+      state: swatchAndIconV1.defaultState, currentSpec: swatchAndIconV1.defaultSpec,
+    });
+    class LibraryApiFixture extends RpcTarget {
+      generateSpec(moduleId: string, prompt: string, state: unknown, currentSpec: unknown) {
+        expect([moduleId, prompt, state, currentSpec]).toEqual([
+          external.payload.moduleId, external.payload.prompt,
+          external.payload.state, external.payload.currentSpec,
+        ]);
+        return Promise.resolve({ _tag: 'Right', right: generatedSpec });
+      }
+    }
+    const requests: Request[] = [];
+    const fetch = vi.spyOn(globalThis, 'fetch').mockImplementation((input, init) => {
+      const request = new Request(input, init);
+      expect(request.url).toBe('https://api.qrk.test/rpc');
+      requests.push(request);
+      return newHttpBatchRpcResponse(request, new LibraryApiFixture());
+    });
+    yield* Effect.addFinalizer(() => Effect.sync(() => fetch.mockRestore()));
+    const requestGeneration: (
+      props: Parameters<typeof generateBrickSpecExternalV1.external.request>[0]
+    ) => ReturnType<typeof generateBrickSpecExternalV1.external.request> =
+      generateBrickSpecExternalV1.external.request;
+    const response = yield* requestGeneration({ payload: external.payload });
+    expect(requests).toHaveLength(1);
+    expect(requests[0]?.signal.aborted).toBe(true);
+    const completed = yield* generateBrickSpecExternalV1.evaluate({
+      aggregateId: 'acct_harness', claims: null, payload: external.payload, db,
+      externalOutcome: { _tag: 'Success', success: response, recordedAt },
+    });
+    expect(completed.operations).toHaveLength(1);
+    const update = completed.operations[0];
+    if (update?.operationName !== 'update') expect.fail('Expected generated Placement update');
+    yield* replay(update);
+    expect(yield* sdk.findFirst({ db, model: userAggregateV1.models.placement,
+      where: { id: { eq: placementId } } })).toMatchObject({
+        spec: generatedSpec, specRevision: 1,
+        generation: { requestId: 'req_one', status: 'ready', error: null },
+      });
+  }));
+
+it.effect('ignores superseded requests and results arriving after a spec edit', () =>
+  Effect.gen(function* () {
+    const { db, replay, start } = yield* openGenerationDb();
+    const first = yield* start('req_old');
+    const latest = yield* start('req_new');
+    const superseded = yield* generateBrickSpecExternalV1.evaluate({
+      aggregateId: 'acct_harness', claims: null, payload: first.payload, db,
+      externalOutcome: { _tag: 'Success', success: { _tag: 'Right', right: generatedSpec }, recordedAt },
+    });
+    expect(superseded.operations).toEqual([]);
+    const edited = yield* updateSwatchAndIconSpecAtBreakpointV1.evaluate({
+      aggregateId: 'acct_harness', claims: null, db,
+      payload: { brickId: 'brk_one', breakpoint: 'lg', spec: generatedSpec },
+    });
+    const update = edited.operations[0];
+    if (update?.operationName !== 'update') expect.fail('Expected user-authored spec update');
+    yield* replay(update);
+    const stale = yield* generateBrickSpecExternalV1.evaluate({
+      aggregateId: 'acct_harness', claims: null, payload: latest.payload, db,
+      externalOutcome: { _tag: 'Success', success: { _tag: 'Right', right: swatchAndIconV1.defaultSpec }, recordedAt },
+    });
+    expect(stale.operations).toEqual([]);
+    expect(yield* sdk.findFirst({ db, model: userAggregateV1.models.placement,
+      where: { id: { eq: placementId } } })).toMatchObject({
+        spec: generatedSpec, specRevision: 1, generation: { status: 'superseded' },
+      });
+  }));
+
+it.effect('turns recorded request failures, provider rejections and invalid specs into failed generation', () =>
+  Effect.gen(function* () {
+    const { db, start } = yield* openGenerationDb();
+    const external = yield* start('req_one');
+    const cases = [
+      { outcome: { _tag: 'Failure', failure: { _tag: 'ExternalRequestFailure',
+        code: 'external-request-failed', message: 'LibraryApi was unavailable' }, recordedAt },
+        error: { code: 'external-request-failed', message: 'LibraryApi was unavailable', retryable: true } },
+      { outcome: { _tag: 'Success', success: { _tag: 'Left',
+        left: { code: 'generation-rejected', message: 'Unsupported request', retryable: false } }, recordedAt },
+        error: { code: 'generation-rejected', message: 'Unsupported request', retryable: false } },
+      { outcome: { _tag: 'Success', success: { _tag: 'Right',
+        right: { root: 'missing', elements: {} } }, recordedAt },
+        error: { code: 'generated-spec-invalid', retryable: true } },
+    ] as const;
+    for (const { outcome, error } of cases) {
+      const failed = yield* generateBrickSpecExternalV1.evaluate({
+        aggregateId: 'acct_harness', claims: null, payload: external.payload, db,
+        externalOutcome: outcome,
+      });
+      expect(failed.operations).toHaveLength(1);
+      expect(failed.operations[0]).toMatchObject({
+        operationName: 'update', resourceId: placementId,
+        body: { attributes: { generation: { status: 'failed', error } } },
+      });
+    }
+  }));

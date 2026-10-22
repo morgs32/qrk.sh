@@ -13,7 +13,6 @@ import { moveStackV1 as moveStack } from "@qrk.sh/zerospin/src/aggregates/user/c
 import { deleteBrickV1 as deleteBrick } from "@qrk.sh/zerospin/src/aggregates/user/contracts/wall/DeleteBrickContractV1";
 import { updateBrickV1 as updateBrick } from "@qrk.sh/zerospin/src/aggregates/user/contracts/brick/UpdateBrickV1";
 import { generateBrickSpecV1 as generateBrickSpec } from "@qrk.sh/zerospin/src/aggregates/user/contracts/brick/GenerateBrickSpecV1";
-import { completeBrickSpecGenerationV1 as completeBrickSpecGeneration } from "@qrk.sh/zerospin/src/aggregates/user/contracts/brick/GenerateBrickSpecV1";
 import { updateArticleSpecAtBreakpointV1 as updateArticleSpecAtBreakpoint } from "@qrk.sh/zerospin/src/aggregates/user/contracts/brick/UpdateArticleSpecAtBreakpointV1";
 import { updateFigmaThumbnailSpecAtBreakpointV1 as updateFigmaThumbnailSpecAtBreakpoint } from "@qrk.sh/zerospin/src/aggregates/user/contracts/brick/UpdateFigmaThumbnailSpecAtBreakpointV1";
 import { updateGithubActivitySpecAtBreakpointV1 as updateGithubActivitySpecAtBreakpoint } from "@qrk.sh/zerospin/src/aggregates/user/contracts/brick/UpdateGithubActivitySpecAtBreakpointV1";
@@ -59,7 +58,6 @@ export const userSessionDefinition = makeAggregateSessionDefinition({
     deleteBrick,
     updateBrick,
     generateBrickSpec,
-    completeBrickSpecGeneration,
     updateArticleSpecAtBreakpoint,
     updateFigmaThumbnailSpecAtBreakpoint,
     updateGithubActivitySpecAtBreakpoint,

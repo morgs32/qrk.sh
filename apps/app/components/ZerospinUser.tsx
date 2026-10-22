@@ -6,7 +6,6 @@ import { Effect } from "effect";
 import { useEffect, useSyncExternalStore, type ReactNode } from "react";
 import { getClerkToken } from "@/lib/getClerkToken";
 import { toast } from "sonner";
-import { startBrickSpecGeneration } from "@/zerospin/startBrickSpecGeneration";
 import { Initializer } from "@zerospin/react";
 import { userConnection } from "@/zerospin/userConnection";
 import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
@@ -49,7 +48,7 @@ function ZerospinUserInitializedStateProvider(props: { clerkUserId: string; chil
       {({ session, isLoaded }) =>
         isLoaded ? (
           <UserUI session={session}>
-            <UserSessionWork />
+            <UserSessionFailures />
             {children}
           </UserUI>
         ) : null
@@ -77,23 +76,16 @@ export function ZerospinUserProvider(props: { children: ReactNode }) {
   );
 }
 
-function UserSessionWork() {
+function UserSessionFailures() {
   const session = UserUI.useSession();
-  const initialized = useSyncExternalStore(
-    session.store.subscribe,
-    () => session.store.getState().initialized,
-    () => session.store.getState().initialized,
-  );
   useEffect(() => {
-    const stopWork = startBrickSpecGeneration(session);
     const stopFailures = session.store.subscribe((state, previous) => {
       if (state.status !== "failed" && state.failure !== null && state.failure !== previous.failure)
         toast.error(state.failure.message);
     });
     return () => {
-      stopWork();
       stopFailures();
     };
-  }, [session, initialized?.db]);
+  }, [session]);
   return null;
 }

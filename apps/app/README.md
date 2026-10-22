@@ -82,8 +82,9 @@ SharedWorker registers this single definition; obsolete session partitions and
 queued commands are excluded from the fresh baseline.
 Provider forms fetch and validate on Save, then stage one `updateBrick`. Pending
 and errors are form-local; Cancel/navigation prevents a late save. No provider
-runner resumes work after the form closes. Layout/spec generation retains its
-session lifetime independently.
+runner resumes work after the form closes. Layout/spec generation is recorded by
+the canonical user aggregate as external work; it continues independently of App's
+session lifetime.
 The development preview has a compact palette for adding new default-variant
 Bricks. A compatible Row accepts a horizontal addition; an incompatible Row
 creates a Row immediately below it, blank Stack space appends a Row, and the
@@ -618,9 +619,12 @@ and duplicated breakpoint fields are removed; the containing Wall supplies its
 breakpoint.
 
 The existing user initializer owns initialization, disposal, and failure
-presentation across Page/drawer navigation. App's session work composes module
-provider algorithms and spec generation for that lifetime. Later completion
-commands enforce request/revision guards and safely ignore deleted Bricks.
+presentation across Page/drawer navigation. App stages `generateBrickSpec`; its
+canonical adapter freezes the current Brick state and Placement spec and records
+an external request to API's `LibraryApi.generateSpec`. The backend requires
+`QRK_LIBRARY_API_URL`. Its external continuation enforces request/revision/layout
+guards and ignores deleted or superseded Bricks. App has no generation scanner or
+ordinary completion command.
 Local staging Success remains optimistic; finalized canonical command outcomes
 are separate evidence. Publication snapshots include shared Bricks once and all
 four ordered Wall hierarchies, so layout changes participate in dirty comparison.

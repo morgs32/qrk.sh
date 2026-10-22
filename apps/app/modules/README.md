@@ -362,7 +362,7 @@ contracts from injected host models or versions.
 The shared controlled wall components render supplied data and action callbacks.
 App's `WallEditorProvider` supplies live queries, command staging,
 selected Brick routing, and drag scope. The Wall Editor story mounts that provider
-with the existing in-memory MockInitializer and seeds Wall layouts plus separate
+with the existing in-memory MockAggregateInitializer and seeds Wall layouts plus separate
 Placement records. New-Brick creation, layout moves,
 and global Brick deletion are ordinary App commands. Pure layout functions edit
 ordered arrays, and each command records the complete atomic change. Moves prune

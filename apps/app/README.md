@@ -46,7 +46,7 @@ The story has no session or backend dependencies. App Storybook defaults to
 port 10020; `PORT` overrides it.
 
 **App / Studio / Wall Editor / Default** mounts the production wall editor and
-Brick form with a real in-memory mock session. It uses `MockInitializer`, the same
+Brick form with a real in-memory mock session. It uses `MockAggregateInitializer`, the same
 `UserUI` context, queries, and commands as App. Complete resources seed the
 User/Site/Page ownership graph and four breakpoint layouts. Storybook provides
 memory routing and viewport context; it needs no Clerk credentials, API connection,
@@ -86,20 +86,37 @@ runner resumes work after the form closes. Layout/spec generation is recorded by
 the canonical user aggregate as external work; it continues independently of App's
 session lifetime.
 The development preview has a compact palette for adding new default-variant
-Bricks. A compatible Row accepts a horizontal addition; an incompatible Row
-creates a Row immediately below it, blank Stack space appends a Row, and the
-Wall's bottom drop zone creates a Section, Stack, and Row. First insertion reuses
+Bricks and a hover/focus grip on each existing Brick for moving its Placement
+within the selected Wall. Brick content remains interactive. A compatible Row
+accepts a horizontal addition; an incompatible Row creates a Row immediately
+below it, blank Stack space appends a Row, and the Wall's bottom drop zone creates
+a Section, Stack, and Row. First insertion reuses
 an existing empty Stack when available. The empty surface fills available height
 with a 320px minimum, and populated Walls retain a full-width bottom drop zone
 with the same minimum.
 
-The route stays separate from the current editor, drawer, and draft stores. It
-stages one ordinary `addBrick` command and stays on the development page; it does
-not open a Brick form. Existing Bricks are not drag sources. Shared variant
-sizing determines Row compatibility, with minimum-width fitting measured in the
-browser and variable-height exclusivity enforced by `addBrick`. `movePlacement`
-enforcement and movement in this preview remain deferred. Opening the route
-does not reset storage.
+Occupied Stacks have a separate left-hand hover/focus grip. Dropping on the left
+or right half of a Stack inserts the entire moving Stack before or after it in
+that Section; Section background appends it. The Wall bottom creates a new
+Section containing the Stack. Rows, Placements, and their saved content travel
+together. Empty scaffold Stacks have no grip because movement prunes them.
+Stack destinations rehearse the existing `moveStack` contract, including the
+breakpoint's surviving-Stack capacity limit. Full, stale, foreign, and
+unchanged-position destinations show no valid indicator and stage no command.
+
+The route stays separate from the current editor, drawer, and draft stores. Each
+accepted drop stages one ordinary `addBrick`, `movePlacement`, or `moveStack`
+command and stays on the development page without opening a Brick form. Moves retain the Brick,
+Placement, variant, and spec, changing only the current breakpoint's Wall layout.
+Shared variant sizing determines Row compatibility, with minimum-width fitting
+measured in the browser. Additions use the default variant; moves use the saved
+variant and exclude the moving Placement from the destination Row's occupied
+width and sharing check. Variable-height content remains alone in its Row.
+Unchanged-position drops, cancelled drags, and foreign or stale sources stage no
+command. Movement uses the existing whole-Wall pruning of empty Rows, Stacks,
+and Sections; bottom drops deliberately create a new Section. Success
+announcements describe local optimistic staging, not canonical execution.
+Opening the route does not reset storage.
 Production requests to this route return the not-found view.
 
 The first slice follows the [development-route research](../../wiki/research/wall-editor-development-route.md).
@@ -127,8 +144,8 @@ their extensionless ESM imports. Referenced `/assets/` public files retain
 explicit legacy mappings.
 
 App resolves the SharedWorker and browser SQLite WASM from installed
-`26.0.2` package exports. `userSessionDefinition` is shared by
-`Initializer` and the authored `node.worker.ts` entrypoint.
+`28.0.0` package exports. `userSessionDefinition` is shared by
+`ConnectedAggregateInitializer` and the authored `node.worker.ts` entrypoint.
 It owns the complete revision `1` declaration with explicit canonical model and
 public contract imports. The worker imports that single defining module.
 `makeApplicationSharedWorker` binds that emitted worker artifact to the session.
@@ -297,7 +314,7 @@ styles. `App` holds the client providers and the React Speed Insights
 integration. The username layout keeps one session initializer mounted across
 App navigation; `UserLayout` gates only data-dependent content.
 
-Standalone `Initializer` owns construction and descendant error boundaries.
+Standalone `ConnectedAggregateInitializer` owns construction and descendant error boundaries.
 Its `{ session, isLoaded }` callback explicitly gates the session-dependent subtree,
 then provides the session with `<UserUI session={session}>`. `UserUI.useSession()`
 is a synchronous context lookup with a missing-provider guard; readiness does not

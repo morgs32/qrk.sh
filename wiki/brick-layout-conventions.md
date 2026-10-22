@@ -95,19 +95,27 @@ accepted drag actions are announced. Whole-Row
 and Section dragging, container deletion, hiding, resizing, and production zoom
 remain outside the feature.
 
-## Development preview: new-brick drops
+## Development preview: Brick and Stack drops
 
-The separate `/dev/page/<pageId>/<breakpoint>` preview accepts only new
-default-variant Bricks from its compact palette. Existing Placements are not
-drag sources. Its empty Wall fills available height with a 320px minimum; a
+The separate `/dev/page/<pageId>/<breakpoint>` preview accepts new
+default-variant Bricks from its compact palette and moves existing Placements
+through their grips. Occupied Stacks have a separate left-hand grip that moves
+all their Rows and Placements together. All moves stay within the selected Wall.
+Its empty Wall fills available height with a 320px minimum; a
 populated Wall retains a full-width bottom drop zone with a 320px minimum.
 
 The pointer selects the destination: a compatible Row appends horizontally;
 an incompatible Row creates a Row immediately below itself in the same Stack;
 blank Stack space appends a Row; and the Wall bottom creates a Section, Stack,
 and Row. There is no search for an available Row elsewhere. Initial empty
-Section/Stack scaffolding is reused on the first drop. Side-Stack creation and
-between-Section insertion are deferred for this preview.
+Section/Stack scaffolding is reused on the first drop. Stack drops on the left
+or right half of another Stack insert before or after it in that Section;
+Section background appends it, and the Wall bottom creates a Section containing
+the moving Stack. Existing `moveStack` validation determines capacity after
+empty-container pruning. Empty scaffold Stacks are not draggable. Unchanged
+positions, invalid destinations, and cancelled/outside drops stage no command.
+Side-Stack creation for individual Bricks and between-Section insertion remain
+deferred for this preview.
 
 Shared module-version declarations own each variant's sizing metadata; React
 views consume it. A Row accepts a new Brick only when its existing contents

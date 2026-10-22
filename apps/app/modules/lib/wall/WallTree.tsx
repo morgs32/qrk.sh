@@ -4,7 +4,7 @@ import {
   draggable,
   dropTargetForElements,
   monitorForElements,
-  type ElementDropTargetEventBasePayload,
+  type ElementEventBasePayload,
 } from "@atlaskit/pragmatic-drag-and-drop/adapter/element-adapter";
 import { combine } from "@atlaskit/pragmatic-drag-and-drop/utils/combine";
 import { pointerOutsideOfPreview } from "@atlaskit/pragmatic-drag-and-drop/utils/pointer-outside-of-preview";
@@ -341,7 +341,7 @@ export function WallTree(props: {
           ),
       }),
     );
-    function updateDropIndicator(event: ElementDropTargetEventBasePayload) {
+    function updateDropIndicator(event: ElementEventBasePayload) {
       const target = event.location.current.dropTargets[0];
       const instruction = target ? extractInstruction(target.data) : null;
       setIndicator(

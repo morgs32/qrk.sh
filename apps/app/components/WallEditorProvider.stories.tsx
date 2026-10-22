@@ -7,7 +7,7 @@ import {
   RouterProvider,
   useNavigate,
 } from "@tanstack/react-router";
-import { MockInitializer } from "@zerospin/react";
+import { MockAggregateInitializer } from "@zerospin/react";
 import { prefixId } from "@zerospin/sdk/browser";
 import { Schema } from "effect";
 import { useContext, useState } from "react";
@@ -18,6 +18,7 @@ import { WallModuleAction } from "../modules/lib/wall/WallModuleAction";
 import { WallViewportProvider, useWallViewport } from "../modules/lib/WallViewportProvider";
 import { BREAKPOINTS } from "../modules/lib/breakpoints";
 import { makePlacementId } from "@qrk.sh/zerospin/src/modules/lib/makePlacementId";
+import { swatchAndIconV1 } from "@qrk.sh/zerospin/src/modules/swatchAndIcon/swatchAndIconV1";
 import { modulesHash } from "../modules/lib/modulesHash";
 import { UserUI } from "@/zerospin/UserUI";
 import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
@@ -48,7 +49,7 @@ function makeResources(emptyWall: boolean) {
           moduleId: "swatch-and-icon",
           stateRevision: 0,
           state: {
-            ...modulesHash["swatch-and-icon"].defaultState,
+            ...swatchAndIconV1.defaultState,
             payload: { hash: "", color: ["#4A7C59", "#D4A373", "#577590"][position] },
           },
         }),
@@ -225,7 +226,7 @@ function WallEditorStory(props: { width: number; rowHeight: number; emptyWall: b
   return (
     <div data-wall-story="" style={{ width }}>
       <style>{`[data-wall-story] [data-wall-placement] { min-height: ${rowHeight}px; }`}</style>
-      <MockInitializer
+      <MockAggregateInitializer
         definition={userSessionDefinition}
         claims={claims}
         resources={resources}
@@ -249,7 +250,7 @@ function WallEditorStory(props: { width: number; rowHeight: number; emptyWall: b
             <p role="status">Opening local session…</p>
           )
         }
-      </MockInitializer>
+      </MockAggregateInitializer>
     </div>
   );
 }
@@ -261,7 +262,7 @@ const meta = {
     docs: {
       source: {
         type: "code",
-        code: "<MockInitializer definition={userSessionDefinition} claims={claims} resources={resources}>…</MockInitializer>",
+        code: "<MockAggregateInitializer definition={userSessionDefinition} claims={claims} resources={resources}>…</MockAggregateInitializer>",
       },
     },
   },

@@ -6,8 +6,11 @@ import { Effect } from "effect";
 import { useEffect, useSyncExternalStore, type ReactNode } from "react";
 import { getClerkToken } from "@/lib/getClerkToken";
 import { toast } from "sonner";
-import { Initializer } from "@zerospin/react";
-import { userConnection } from "@/zerospin/userConnection";
+import { ConnectedAggregateInitializer } from "@zerospin/react";
+import { userApplicationLayer } from "@/zerospin/userApplicationLayer";
+import { signature } from "@qrk.sh/zerospin/src/signature";
+import { makeApplicationSharedWorker } from "@zerospin/browser/makeApplicationSharedWorker";
+import workerUrl from "@/zerospin/node.worker?sharedworker&url";
 import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
 import { UserUI } from "@/zerospin/UserUI";
 import AppError from "@/app/error";
@@ -28,9 +31,11 @@ function ZerospinUserInitializedStateProvider(props: { clerkUserId: string; chil
   const { getToken } = useAuth();
   const aggregateId = clerkUserId;
   return (
-    <Initializer
+    <ConnectedAggregateInitializer
       definition={userSessionDefinition}
-      connection={userConnection}
+      sharedWorker={userSharedWorker}
+      credentialsSchema={signature}
+      layer={userApplicationLayer}
       renderError={(error) => <AppError error={error} />}
       aggregateId={aggregateId}
       expectedClaims={{ aggregateId, clerkUserId }}
@@ -53,7 +58,7 @@ function ZerospinUserInitializedStateProvider(props: { clerkUserId: string; chil
           </UserUI>
         ) : null
       }
-    </Initializer>
+    </ConnectedAggregateInitializer>
   );
 }
 
@@ -88,4 +93,9 @@ function UserSessionFailures() {
     };
   }, [session]);
   return null;
+}
+
+function userSharedWorker(props: { name: string }) {
+  const { name } = props;
+  return makeApplicationSharedWorker(workerUrl, { name });
 }

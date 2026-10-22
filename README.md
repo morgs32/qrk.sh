@@ -3,7 +3,7 @@
 ## Zerospin packages
 
 Zerospin owns its source, builds, and releases in the sibling `../zerospin`
-checkout. QRK installs exact `27.0.0` packages from the local Verdaccio registry;
+checkout. QRK installs exact `28.0.0` packages from the local Verdaccio registry;
 there is no vendored Zerospin source or consumer-side Zerospin build.
 Actor and agent selection identity uses the authored definition rather than
 generated SQL. Existing direct Drizzle dependencies use the same exact local
@@ -85,7 +85,7 @@ See [Modules](apps/app/modules/README.md) and [App](apps/app/README.md).
    On the first registry bootstrap, install, build, verify, and publish the
    release in Zerospin before installing QRK. Follow Zerospin's package release
    instructions. Existing registry storage survives restarts. A fresh checkout
-   requires the running registry with the locked `27.0.0` packages; hosted
+   requires the running registry with the locked `28.0.0` packages; hosted
    distribution and deployment-machine bootstrap are not configured here.
 
 2. Start the four application development servers through Portless:
@@ -133,9 +133,10 @@ Development and production storage must be empty for this cutover, and the
 maintainer has authorized erasing this system's obsolete data. Source migration
 and storage reset completion are tracked separately.
 
-App's `Initializer` receives its pure `userSessionDefinition` and
-`userConnection`. The connection uses `makeApplicationSharedWorker` to bind the
-authored `node.worker.ts` artifact to the connected session.
+App's `ConnectedAggregateInitializer` receives its pure `userSessionDefinition`,
+`userApplicationLayer`, credentials schema and stable SharedWorker factory directly.
+The factory uses `makeApplicationSharedWorker` to bind the authored `node.worker.ts`
+artifact to the connected session.
 Zerospin chooses its name from the runtime version and persistent session identity.
 App uses Vite's `?sharedworker&url` import for the authored worker
 and `@zerospin/browser/sqlite.wasm?url` for the matching installed SQLite asset.
@@ -150,8 +151,8 @@ App bundles installed Zerospin packages with
 `ssr.noExternal` so their extensionless ESM imports resolve through Vite.
 
 App prerenders a static document shell and initializes its routes in the
-browser. `UserApp.Initializer` owns a fresh facade for its Clerk binding; ready
-readers suspend until that facade publishes its initialized database. The
+browser. `ConnectedAggregateInitializer` owns a fresh facade for its Clerk binding; its
+`isLoaded` callback gates readers until the initialized database is published. The
 dashboard uses the installed Silkscreen font for its `QRK.SH` wordmark.
 Browser-owned data and editor drafts stay under the content readiness gate.
 Persistent Router layouts retain the editor across drawers; the drawer shell

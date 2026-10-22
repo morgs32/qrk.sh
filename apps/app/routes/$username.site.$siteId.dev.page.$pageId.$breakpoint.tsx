@@ -1,13 +1,28 @@
-import { makeId, makeIdSchema, stageAggregateSessionCommand } from "@zerospin/sdk/browser";
+import {
+  makeId,
+  makeIdSchema,
+  stageAggregateSessionCommand,
+  validateAggregateSessionCommand,
+} from "@zerospin/sdk/browser";
 import { createFileRoute, notFound } from "@tanstack/react-router";
 import {
+  draggable,
   dropTargetForElements,
   monitorForElements,
-  type ElementDropTargetEventBasePayload,
+  type ElementEventBasePayload,
 } from "@atlaskit/pragmatic-drag-and-drop/adapter/element-adapter";
 import { combine } from "@atlaskit/pragmatic-drag-and-drop/utils/combine";
 import { announce, cleanup } from "@atlaskit/pragmatic-drag-and-drop-live-region";
+import {
+  attachInstruction,
+  extractInstruction,
+  type Instruction,
+} from "@atlaskit/pragmatic-drag-and-drop-hitbox/list-item";
+import { DropIndicator } from "@atlaskit/pragmatic-drag-and-drop-react-drop-indicator/list-item";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { GripVertical } from "lucide-react";
+import { Button } from "../modules/components/ui/button";
 import { BrickWrapper } from "../modules/components/brick/BrickWrapper";
 import { BREAKPOINTS } from "../modules/lib/breakpoints";
 import { modulesHash } from "../modules/lib/modulesHash";
@@ -17,7 +32,10 @@ import { brickV1 } from "@qrk.sh/zerospin/src/aggregates/user/models/brick/Brick
 import { canShareRow } from "@qrk.sh/zerospin/src/modules/lib/canShareRow";
 import { makeWallLayoutView } from "../modules/lib/wall/makeWallLayoutView";
 import { WallModuleAction } from "../modules/lib/wall/WallModuleAction";
-import { wallInsertionTargetSchema } from "@qrk.sh/zerospin/src/aggregates/user/layout/wallTargetSchemas";
+import {
+  stackMoveTargetSchema,
+  wallInsertionTargetSchema,
+} from "@qrk.sh/zerospin/src/aggregates/user/layout/wallTargetSchemas";
 import { useLiveQuery } from "@zerospin/react";
 import { Result, Schema } from "effect";
 
@@ -47,7 +65,13 @@ function RouteComponent() {
 function DevelopmentPage(props: { breakpoint: (typeof BREAKPOINTS)[number] }) {
   const { breakpoint } = props;
   const wallRef = useRef<HTMLDivElement>(null);
-  const [dropTarget, setDropTarget] = useState<typeof wallInsertionTargetSchema.Type | null>(null);
+  const [dropTarget, setDropTarget] = useState<
+    typeof wallInsertionTargetSchema.Type | typeof stackMoveTargetSchema.Type | null
+  >(null);
+  const [stackIndicator, setStackIndicator] = useState<{
+    element: Element;
+    instruction: Instruction;
+  } | null>(null);
   const session = UserUI.useSession();
   const { siteId, pageId } = useValidatedParams(
     Schema.Struct({
@@ -77,11 +101,12 @@ function DevelopmentPage(props: { breakpoint: (typeof BREAKPOINTS)[number] }) {
 
   /** Choose a destination only; the drag monitor owns feedback and submission. */
   function resolveBrickDrop(props: {
-    moduleId: keyof typeof modulesHash;
+    incomingVariant: { minWidth: number; defaultHeight: number | null };
+    movingPlacementId?: string;
     zone: typeof wallInsertionTargetSchema.Type;
     rowWidth: number;
   }): typeof wallInsertionTargetSchema.Type | null {
-    const { moduleId, zone, rowWidth } = props;
+    const { incomingVariant, movingPlacementId, zone, rowWidth } = props;
     if (zone.wallId !== wall.id) return null;
 
     // 1. A hovered Row either accepts sharing or inserts immediately below itself.
@@ -89,10 +114,10 @@ function DevelopmentPage(props: { breakpoint: (typeof BREAKPOINTS)[number] }) {
       const stack = stacks.find((entry) => entry.rows.some((row) => row.id === zone.rowId));
       const row = stack?.rows.find((entry) => entry.id === zone.rowId);
       if (stack === undefined || row === undefined) return null;
-      const incomingVariant = modulesHash[moduleId].variants.default;
-      const existingVariants = row.placements.map(
-        (entry) => modulesHash[entry.brick.moduleId].variants[entry.variantId],
-      );
+      if (row.placements.length === 1 && row.placements[0].id === movingPlacementId) return null;
+      const existingVariants = row.placements
+        .filter((entry) => entry.id !== movingPlacementId)
+        .map((entry) => modulesHash[entry.brick.moduleId].variants[entry.variantId]);
       const occupiedWidth = existingVariants.reduce(
         (width, variant) => width + variant.minWidth,
         0,
@@ -129,33 +154,134 @@ function DevelopmentPage(props: { breakpoint: (typeof BREAKPOINTS)[number] }) {
   }
 
   // Read the latest queried Wall without re-registering targets for feedback changes.
-  const resolveCurrentDrop = useEffectEvent((event: ElementDropTargetEventBasePayload) => {
+  const resolveCurrentDrop = useEffectEvent((event: ElementEventBasePayload) => {
     const { source, location } = event;
-    if (source.data.kind !== "wall-module" || source.data.wallId !== wall.id) return null;
-    const moduleId = Object.values(modulesHash).find(
-      (module) => module.id === source.data.moduleId,
-    )?.id;
     const hovered = location.current.dropTargets[0];
-    if (moduleId === undefined || hovered === undefined) return null;
+    if (source.data.wallId !== wall.id || hovered === undefined) return null;
+
+    // Whole Stacks use the existing contract for capacity, ownership, and pruning checks.
+    if (source.data.kind === "stack") {
+      const sourceSection = sections.find((section) =>
+        section.stacks.some((stack) => stack.id === source.data.id),
+      );
+      const movingStack = sourceSection?.stacks.find((stack) => stack.id === source.data.id);
+      if (
+        sourceSection === undefined ||
+        movingStack === undefined ||
+        !movingStack.rows.some((row) => row.placements.length > 0)
+      )
+        return null;
+      const decoded = Schema.decodeUnknownResult(stackMoveTargetSchema)(hovered.data);
+      if (Result.isFailure(decoded)) return null;
+      const target = decoded.success;
+      if (
+        target.kind === "section" &&
+        target.sectionId === sourceSection.id &&
+        (target.beforeStackId === movingStack.id ||
+          target.beforeStackId ===
+            (sourceSection.stacks[sourceSection.stacks.indexOf(movingStack) + 1]?.id ?? null))
+      )
+        return null;
+      const validation = validateAggregateSessionCommand({
+        session,
+        contractName: "moveStack",
+        payload: { id: movingStack.id, stackId: movingStack.id, target },
+      });
+      if (validation._tag === "Failure") return null;
+      return {
+        stackMove: {
+          stackId: movingStack.id,
+          target,
+          element: hovered.element,
+          instruction: extractInstruction(hovered.data),
+        },
+      };
+    }
+    if (source.data.kind !== "wall-module" && source.data.kind !== "placement") return null;
+    const moving =
+      source.data.kind === "placement"
+        ? wall.placements.find((placement) => placement.id === source.data.id)
+        : undefined;
+    if (source.data.kind === "placement" && moving === undefined) return null;
+    const moduleId =
+      moving?.brick.moduleId ??
+      Object.values(modulesHash).find((module) => module.id === source.data.moduleId)?.id;
+    if (moduleId === undefined) return null;
     const zone = Schema.decodeUnknownResult(wallInsertionTargetSchema)(hovered.data);
     if (Result.isFailure(zone)) return null;
     const target = resolveBrickDrop({
-      moduleId,
+      incomingVariant:
+        moving === undefined
+          ? modulesHash[moduleId].variants.default
+          : modulesHash[moduleId].variants[moving.variantId],
+      movingPlacementId: moving?.id,
       zone: zone.success,
       rowWidth: hovered.element.getBoundingClientRect().width,
     });
-    return target === null ? null : { moduleId, target };
+    if (target === null) return null;
+
+    // Preserve the current Row when appending or inserting would leave the Brick in place.
+    if (moving !== undefined) {
+      const sourceStack = stacks.find((stack) =>
+        stack.rows.some((row) => row.placements.some((placement) => placement.id === moving.id)),
+      );
+      const sourceRow = sourceStack?.rows.find((row) =>
+        row.placements.some((placement) => placement.id === moving.id),
+      );
+      if (sourceStack === undefined || sourceRow === undefined) return null;
+      if (
+        target.kind === "row" &&
+        target.rowId === sourceRow.id &&
+        sourceRow.placements.at(-1)?.id === moving.id
+      )
+        return null;
+      if (
+        target.kind === "stack" &&
+        target.stackId === sourceStack.id &&
+        sourceRow.placements.length === 1 &&
+        (target.beforeRowId === sourceRow.id ||
+          target.beforeRowId ===
+            (sourceStack.rows[sourceStack.rows.indexOf(sourceRow) + 1]?.id ?? null))
+      )
+        return null;
+    }
+    return { brickDrop: { moduleId, moving, target } };
   });
 
-  const submitDrop = useEffectEvent((event: ElementDropTargetEventBasePayload) => {
+  const submitDrop = useEffectEvent((event: ElementEventBasePayload) => {
     const resolved = resolveCurrentDrop(event);
     setDropTarget(null);
+    setStackIndicator(null);
     if (resolved === null) return;
+    if (resolved.stackMove !== undefined) {
+      const { stackId, target } = resolved.stackMove;
+      const result = stageAggregateSessionCommand({
+        session,
+        contractName: "moveStack",
+        payload: { id: crypto.randomUUID(), stackId, target },
+      });
+      if (result._tag === "Success") announce("Stack moved in this Wall.");
+      return;
+    }
+    const { moduleId, moving, target } = resolved.brickDrop;
+    if (moving !== undefined) {
+      const result = stageAggregateSessionCommand({
+        session,
+        contractName: "movePlacement",
+        payload: {
+          id: crypto.randomUUID(),
+          placementId: moving.id,
+          target,
+        },
+      });
+      if (result._tag === "Success") announce("Brick moved in this Wall.");
+      return;
+    }
     const id = session.runSync(makeId(brickV1));
     const result = stageAggregateSessionCommand({
       session,
       contractName: "addBrick",
-      payload: { id, pageId, moduleId: resolved.moduleId, target: resolved.target },
+      payload: { id, pageId, moduleId, target },
     });
     if (result._tag === "Success") announce("Brick added to this Wall.");
   });
@@ -166,19 +292,84 @@ function DevelopmentPage(props: { breakpoint: (typeof BREAKPOINTS)[number] }) {
     if (root === null) return;
     const disposers: (() => void)[] = [];
     const accepts = (data: Record<string | symbol, unknown>) =>
-      data.kind === "wall-module" &&
       data.wallId === wall.id &&
-      Object.values(modulesHash).some((module) => module.id === data.moduleId);
+      (data.kind === "wall-module"
+        ? Object.values(modulesHash).some((module) => module.id === data.moduleId)
+        : data.kind === "stack"
+          ? stacks.some(
+              (stack) =>
+                stack.id === data.id && stack.rows.some((row) => row.placements.length > 0),
+            )
+          : data.kind === "placement" &&
+            wall.placements.some((placement) => placement.id === data.id));
+
+    for (const element of root.querySelectorAll<HTMLElement>(
+      "[data-dev-placement], [data-dev-stack]",
+    )) {
+      const kind = element.hasAttribute("data-dev-stack") ? "stack" : "placement";
+      const id = kind === "stack" ? element.dataset.devStack : element.dataset.devPlacement;
+      const grip = element.querySelector<HTMLButtonElement>(
+        kind === "stack" ? "[data-stack-grip]" : "[data-placement-grip]",
+      );
+      if (id === undefined || grip === null) continue;
+      disposers.push(
+        draggable({
+          element,
+          dragHandle: grip,
+          getInitialData: () => ({ kind, id, wallId: wall.id }),
+        }),
+      );
+    }
 
     // DOM registrations follow saved layout changes, never transient highlighting.
     for (const element of root.querySelectorAll<HTMLElement>(
-      "[data-dev-row], [data-dev-stack], [data-dev-wall-bottom]",
+      "[data-dev-row], [data-dev-stack], [data-dev-section], [data-dev-wall-bottom]",
     )) {
       disposers.push(
         dropTargetForElements({
           element,
-          canDrop: ({ source }) => accepts(source.data),
-          getData: () => {
+          canDrop: ({ source }) =>
+            accepts(source.data) &&
+            (element.hasAttribute("data-dev-section")
+              ? source.data.kind === "stack"
+              : !element.hasAttribute("data-dev-row") || source.data.kind !== "stack"),
+          getData: ({ source, input }) => {
+            if (source.data.kind === "stack" && element.dataset.devStack !== undefined) {
+              const section = sections.find((entry) =>
+                entry.stacks.some((stack) => stack.id === element.dataset.devStack),
+              );
+              const stack = section?.stacks.find((entry) => entry.id === element.dataset.devStack);
+              if (section === undefined || stack === undefined) return {};
+              const data = attachInstruction(
+                {},
+                {
+                  element,
+                  input,
+                  axis: "horizontal",
+                  operations: { "reorder-before": "available", "reorder-after": "available" },
+                },
+              );
+              return {
+                ...data,
+                wallId: wall.id,
+                kind: "section",
+                sectionId: section.id,
+                beforeStackId:
+                  extractInstruction(data)?.operation === "reorder-before"
+                    ? stack.id
+                    : (section.stacks
+                        .slice(section.stacks.indexOf(stack) + 1)
+                        .find((entry) => entry.id !== source.data.id)?.id ?? null),
+              };
+            }
+            if (element.dataset.devSection !== undefined) {
+              return {
+                wallId: wall.id,
+                kind: "section",
+                sectionId: element.dataset.devSection,
+                beforeStackId: null,
+              };
+            }
             if (element.dataset.devRow !== undefined) {
               return {
                 wallId: wall.id,
@@ -200,19 +391,36 @@ function DevelopmentPage(props: { breakpoint: (typeof BREAKPOINTS)[number] }) {
         }),
       );
     }
-    const showDestination = (event: ElementDropTargetEventBasePayload) => {
-      setDropTarget(resolveCurrentDrop(event)?.target ?? null);
+    const showDestination = (event: ElementEventBasePayload) => {
+      const resolved = resolveCurrentDrop(event);
+      const stackMove = resolved?.stackMove;
+      setDropTarget(stackMove?.target ?? resolved?.brickDrop?.target ?? null);
+      setStackIndicator(
+        stackMove?.instruction
+          ? { element: stackMove.element, instruction: stackMove.instruction }
+          : null,
+      );
     };
     disposers.push(
       monitorForElements({
         canMonitor: ({ source }) => accepts(source.data),
-        onDragStart: showDestination,
+        onDragStart: (event) => {
+          root.dataset.dragging = "true";
+          showDestination(event);
+        },
         onDrag: showDestination,
         onDropTargetChange: showDestination,
-        onDrop: submitDrop,
+        onDrop: (event) => {
+          delete root.dataset.dragging;
+          submitDrop(event);
+        },
       }),
     );
-    return combine(...disposers, () => setDropTarget(null));
+    return combine(...disposers, () => {
+      delete root.dataset.dragging;
+      setDropTarget(null);
+      setStackIndicator(null);
+    });
   }, [wall, pageId, breakpoint.id]);
 
   return (
@@ -234,15 +442,37 @@ function DevelopmentPage(props: { breakpoint: (typeof BREAKPOINTS)[number] }) {
       </div>
       <div
         ref={wallRef}
-        className="@container mx-auto flex min-h-80 shrink-0 grow flex-col bg-background"
+        className="group/dev-wall @container mx-auto flex min-h-80 shrink-0 grow flex-col bg-background"
         style={{ width: breakpoint.previewWidth }}
         role="region"
         aria-label={`${breakpoint.id} page preview`}
       >
         {sections.map((section) => (
-          <section key={section.id} className="grid auto-cols-fr grid-flow-col">
+          <section
+            key={section.id}
+            data-dev-section={section.id}
+            className={`relative grid auto-cols-fr grid-flow-col ${dropTarget?.kind === "section" && dropTarget.sectionId === section.id && stackIndicator === null ? "ring-2 ring-inset ring-blue-500" : ""}`}
+          >
             {section.stacks.map((stack) => (
-              <div key={stack.id} data-dev-stack={stack.id} className="relative min-h-12 min-w-0">
+              <div
+                key={stack.id}
+                data-dev-stack={stack.id}
+                className="group/dev-stack relative min-h-12 min-w-0"
+              >
+                {stack.rows.some((row) => row.placements.length > 0) ? (
+                  <div className="absolute left-0 top-0 z-30 flex h-7 max-w-[calc(100%-3.5rem)] items-center gap-1 bg-background/95 text-xs text-muted-foreground opacity-0 transition-opacity group-hover/dev-stack:opacity-100 group-focus-within/dev-stack:opacity-100 group-data-[dragging=true]/dev-wall:pointer-events-none group-data-[dragging=true]/dev-wall:invisible motion-reduce:transition-none [@media(hover:none)]:opacity-100 [@media(pointer:coarse)]:opacity-100">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      aria-label={`Drag Stack ${stack.id}`}
+                      data-stack-grip
+                      className="size-7 cursor-grab rounded-none p-0 active:cursor-grabbing"
+                    >
+                      <GripVertical className="size-4" aria-hidden="true" />
+                    </Button>
+                    <span className="min-w-0 truncate">{stack.name}</span>
+                  </div>
+                ) : null}
                 {stack.rows.map((row, index) => (
                   <div key={row.id} data-dev-row={row.id} className="relative min-h-12 min-w-0">
                     <div className="flex min-w-0 items-start overflow-x-auto">
@@ -253,11 +483,21 @@ function DevelopmentPage(props: { breakpoint: (typeof BREAKPOINTS)[number] }) {
                         return (
                           <div
                             key={placement.id}
-                            className="min-w-0 flex-1"
+                            data-dev-placement={placement.id}
+                            className="group/dev-placement relative min-w-0 flex-1"
                             style={{
                               minWidth: module.variants[placement.variantId].minWidth,
                             }}
                           >
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              aria-label={`Drag Brick ${brick.id}`}
+                              data-placement-grip
+                              className="absolute right-0 top-0 z-20 size-7 cursor-grab rounded-none bg-background/95 p-0 opacity-0 shadow-sm transition-opacity hover:bg-background group-hover/dev-placement:opacity-100 group-focus-within/dev-placement:opacity-100 active:cursor-grabbing motion-reduce:transition-none [@media(hover:none)]:opacity-100 [@media(pointer:coarse)]:opacity-100"
+                            >
+                              <GripVertical className="size-4" aria-hidden="true" />
+                            </Button>
                             <BrickWrapper className="h-auto">
                               <Component
                                 state={brick.state}
@@ -301,10 +541,15 @@ function DevelopmentPage(props: { breakpoint: (typeof BREAKPOINTS)[number] }) {
           className={`flex min-h-80 w-full grow items-center justify-center border-2 border-dashed text-sm text-muted-foreground ${dropTarget?.kind === "wall" ? "border-blue-500 bg-blue-50" : "border-transparent"}`}
         >
           {stacks.some((stack) => stack.rows.some((row) => row.placements.length > 0))
-            ? "Drop a new brick to create a Section"
+            ? "Drop a Brick or Stack to create a Section"
             : "Drop your first brick here"}
         </div>
       </div>
+      {stackIndicator &&
+        createPortal(
+          <DropIndicator instruction={stackIndicator.instruction} />,
+          stackIndicator.element,
+        )}
     </main>
   );
 }

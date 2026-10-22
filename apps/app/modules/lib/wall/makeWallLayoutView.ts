@@ -1,4 +1,4 @@
-import type { IInferResource } from "@zerospin/core/models/types";
+import type { IInferModelRow } from "@zerospin/core/models/types";
 import type { wallLayoutSchema } from "@qrk.sh/zerospin/src/aggregates/user/layout/wallLayoutSchema";
 import type { placementV1 } from "@qrk.sh/zerospin/src/aggregates/user/models/placement/PlacementV1";
 import type { brickV1 } from "@qrk.sh/zerospin/src/aggregates/user/models/brick/BrickV1";
@@ -8,11 +8,11 @@ export function makeWallLayoutView(props: {
   wall: {
     layout: typeof wallLayoutSchema.Type;
     placements: readonly {
-      id: IInferResource<typeof placementV1>["id"];
-      brickId: IInferResource<typeof placementV1>["brickId"];
-      variantId: IInferResource<typeof placementV1>["variantId"];
-      spec: IInferResource<typeof placementV1>["spec"];
-      brick: IInferResource<typeof brickV1>;
+      id: IInferModelRow<typeof placementV1>["id"];
+      brickId: IInferModelRow<typeof placementV1>["brickId"];
+      variantId: IInferModelRow<typeof placementV1>["variantId"];
+      spec: IInferModelRow<typeof placementV1>["spec"];
+      brick: IInferModelRow<typeof brickV1>;
     }[];
   };
 }) {

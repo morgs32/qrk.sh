@@ -400,21 +400,27 @@ Image's field groups fill the supplied column, with Save/Cancel aligned to its f
 
 Image also offers a single-file dropzone and picker for nonempty PNG, JPEG,
 WebP, or SVG images up to 5 MiB. Selection uploads immediately; success changes
-only the draft Image URL until Save. `ImageUploadEnvironment` supplies one
-host-owned operation, `upload(file): Effect.Effect<string, Error>`, returning the
-uploaded URL. Each host binds that operation through its Effect Layer,
-ordinary `Effect.runPromise` runner, and `ImageUploadRuntimeContext`, independently
-of Zerospin. The shared form contract has no Image-specific upload props.
+only the draft Image URL until Save. Each host supplies
+`uploadImage(file, { signal }): Promise<string>` through `SWRConfig`.
+`ImageForm` reads that function with `useSWRConfig` and explicitly supplies it to
+`useSWRMutation`, which owns request pending/error state. Uploads start only from
+file-selection/drop handlers, with revalidation and cache population disabled.
+`ImageUploadSWR.d.ts` augments SWR's exported `_internal` configuration interface
+with this optional field. Without an uploader, manual Image URL entry and Save
+remain available. No separate upload context, Effect service, layer or runner
+is needed; the shared form contract has no Image-specific upload props.
 
 Each host owns HTTP, endpoint configuration, multipart fields, credentials, and
 response decoding. Storybook performs anonymous `POST /image/upload`; App's
 host performs `/upload` with its current site ID
-and fresh Clerk authorization. Both forward the form's AbortSignal through Effect
-interruption into `fetch`. Returned asset URLs remain publicly readable.
-Image retains file validation, picker/drop behavior, drafts, pending/error
-feedback, Save gating, and cancellation. Fields and Save stay disabled during
-upload. Cancel or leaving the brick aborts unfinished requests and ignores late
-results; completed R2 objects remain stored. Uploaded file bytes remain API-owned and are not included in browser session storage.
+and fresh Clerk authorization. Both forward the form's AbortSignal into `fetch`,
+independently of Zerospin. Returned asset URLs remain publicly readable.
+Image retains file validation, local validation/save errors, picker/drop behavior,
+drafts, Save gating, and cancellation. Fields and Save stay disabled during
+upload. Cancel resets mutation state and separately aborts the request; leaving
+the brick also aborts it. Current-request guards suppress late results because
+SWR reset does not cancel transport. Completed R2 objects remain stored.
+Uploaded file bytes remain API-owned and are not included in browser session storage.
 
 ## Article editing in the brick drawer
 

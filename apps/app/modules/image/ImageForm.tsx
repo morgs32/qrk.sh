@@ -2,15 +2,15 @@
 
 import type { IResult } from "@zerospin/error";
 
-import { useContext, useId, useLayoutEffect, useRef, useState } from "react";
-import { Effect, Schema } from "effect";
+import { useId, useLayoutEffect, useRef, useState } from "react";
+import { Schema } from "effect";
 import { makeEffectSchema } from "@zerospin/shapes";
+import { useSWRConfig } from "swr";
+import useSWRMutation from "swr/mutation";
 
 import { Input } from "../components/ui/input";
 import { Button } from "../components/ui/button";
-import { ImageUploadRuntimeContext } from "./ImageUploadRuntimeContext";
 import { imageV1 } from "@qrk.sh/zerospin/src/modules/image/imageV1";
-import { ImageUploadEnvironment } from "./ImageUploadEnvironment";
 
 export function ImageForm(props: {
   state: { imageUrl: string; title: string } | null;
@@ -18,18 +18,29 @@ export function ImageForm(props: {
   onCancel: () => void;
 }) {
   const { state, onSave, onCancel } = props;
-  const runtime = useContext(ImageUploadRuntimeContext);
+  const { uploadImage } = useSWRConfig();
+  const { trigger, isMutating, error, reset } = useSWRMutation(
+    "image-upload",
+    (_key, props: { arg: { file: File; signal: AbortSignal } }) => {
+      const { arg } = props;
+      if (uploadImage === undefined) throw new Error("Image upload is unavailable");
+      return uploadImage(arg.file, { signal: arg.signal });
+    },
+    { revalidate: false, populateCache: false, throwOnError: true },
+  );
   const initialState = state ?? { imageUrl: "", title: "" };
   const [formDraft, setDraft] = useState<{ imageUrl: string; title: string } | null>(null);
   const draft = formDraft ?? initialState;
-  const [isUploadingImage, setIsUploadingImage] = useState(false);
-  const isBusy = isUploadingImage;
+  const isBusy = isMutating;
   const isDirty = state === null || JSON.stringify(draft) !== JSON.stringify(initialState);
   const inputId = useId();
   const fileInput = useRef<HTMLInputElement>(null);
   const activeUpload = useRef<AbortController | null>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
+  const errorMessage =
+    formError ??
+    (error === undefined ? null : error instanceof Error ? error.message : "Image upload failed.");
 
   useLayoutEffect(() => {
     return () => {
@@ -39,46 +50,39 @@ export function ImageForm(props: {
   }, []);
 
   async function uploadFiles(files: File[]) {
-    if (runtime === null || isBusy || activeUpload.current !== null) return;
-    setUploadError(null);
+    if (uploadImage === undefined || isBusy || activeUpload.current !== null) return;
+    setFormError(null);
+    reset();
     if (files.length !== 1) {
-      setUploadError("Choose one image at a time.");
+      setFormError("Choose one image at a time.");
       return;
     }
     const file = files[0];
     if (file.size === 0) {
-      setUploadError("The selected image is empty.");
+      setFormError("The selected image is empty.");
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
-      setUploadError("The selected image exceeds the 5 MiB limit.");
+      setFormError("The selected image exceeds the 5 MiB limit.");
       return;
     }
     if (!["image/png", "image/jpeg", "image/webp", "image/svg+xml"].includes(file.type)) {
-      setUploadError("Choose a PNG, JPEG, WebP, or SVG image.");
+      setFormError("Choose a PNG, JPEG, WebP, or SVG image.");
       return;
     }
 
     const controller = new AbortController();
     activeUpload.current = controller;
-    setIsUploadingImage(true);
     try {
-      const imageUrl = await runtime.runPromise(
-        Effect.gen(function* () {
-          const { upload } = yield* ImageUploadEnvironment;
-          return yield* upload(file);
-        }),
-        { signal: controller.signal },
-      );
+      const imageUrl = await trigger({ file, signal: controller.signal });
       if (controller.signal.aborted || activeUpload.current !== controller) return;
       setDraft((current) => ({ ...(current ?? initialState), imageUrl }));
-    } catch (cause) {
+    } catch {
       if (controller.signal.aborted || activeUpload.current !== controller) return;
-      setUploadError(cause instanceof Error ? cause.message : "Image upload failed.");
+      // SWR exposes the current request error; event handlers consume its rejection here.
     } finally {
       if (activeUpload.current === controller) {
         activeUpload.current = null;
-        setIsUploadingImage(false);
       }
     }
   }
@@ -91,23 +95,24 @@ export function ImageForm(props: {
       onSubmit={(event) => {
         event.preventDefault();
         if (!isDirty || activeUpload.current !== null) return;
-        setUploadError(null);
+        setFormError(null);
+        reset();
         try {
           const nextState = Schema.decodeUnknownSync(
             Schema.toType(makeEffectSchema(imageV1.stateShape)),
           )(draft);
           const result = onSave(nextState);
           if (result._tag === "Failure") {
-            setUploadError(result.failure.message ?? "Brick save was refused");
+            setFormError(result.failure.message ?? "Brick save was refused");
             return;
           }
           setDraft(null);
         } catch (cause) {
-          setUploadError(cause instanceof Error ? cause.message : "Failed to save image");
+          setFormError(cause instanceof Error ? cause.message : "Failed to save image");
         }
       }}
     >
-      {runtime !== null ? (
+      {uploadImage !== undefined ? (
         <div className="flex flex-col gap-2">
           <input
             accept="image/png,image/jpeg,image/webp,image/svg+xml"
@@ -159,13 +164,13 @@ export function ImageForm(props: {
             type="button"
           >
             <span className="font-medium">
-              {isUploadingImage ? "Uploading image…" : "Drop an image here or click to choose"}
+              {isMutating ? "Uploading image…" : "Drop an image here or click to choose"}
             </span>
           </button>
           <small className="m-0" id={`${inputId}-upload-help`}>
             PNG, JPEG, WebP, or SVG · up to 5 MiB
           </small>
-          {isUploadingImage ? (
+          {isMutating ? (
             <p className="m-0" role="status">
               Uploading image…
             </p>
@@ -201,9 +206,9 @@ export function ImageForm(props: {
           value={draft.title}
         />
       </div>
-      {uploadError !== null ? (
+      {errorMessage !== null ? (
         <p className="m-0" role="alert">
-          {uploadError}
+          {errorMessage}
         </p>
       ) : null}
       <div className="flex flex-wrap gap-2">
@@ -216,9 +221,9 @@ export function ImageForm(props: {
           onClick={() => {
             activeUpload.current?.abort();
             activeUpload.current = null;
-            setIsUploadingImage(false);
+            reset();
             setIsDragging(false);
-            setUploadError(null);
+            setFormError(null);
             setDraft(null);
             onCancel();
           }}

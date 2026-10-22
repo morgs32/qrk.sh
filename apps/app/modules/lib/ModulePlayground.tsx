@@ -3,14 +3,13 @@ import { OrderedBody } from "@qrk.sh/web/library/OrderedBody";
 import { OrderedDoc, OrderedSection } from "@qrk.sh/web/library/OrderedDoc";
 import { OrderedOutline } from "@qrk.sh/web/library/OrderedOutline";
 import { newSyncRpcSession } from "@zerospin/core/utils/getApi/newSyncRpcSession/newSyncRpcSession";
-import { Effect, Layer, Schema } from "effect";
+import { Schema } from "effect";
 import { useId, useMemo, useState } from "react";
 import { collapseAllNested, defaultStyles, JsonView } from "react-json-view-lite";
+import { SWRConfig } from "swr";
 
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
-import { ImageUploadEnvironment } from "../image/ImageUploadEnvironment";
-import { ImageUploadRuntimeContext } from "../image/ImageUploadRuntimeContext";
 import type { LibraryApi } from "@qrk.sh/api/modules/LibraryApi.public";
 import type { IScrapeError } from "@qrk.sh/api/modules/types";
 import { BreakpointPreviewRow } from "./BreakpointPreviewRow";
@@ -47,42 +46,30 @@ export function ModulePlayground(props: {
     }),
     [brick, generatedSpec],
   );
-  const imageLayer = useMemo(
-    () =>
-      Layer.succeed(ImageUploadEnvironment, {
-        upload: Effect.fn("Storybook.Image.upload")(function* (file: File) {
-          const body = new FormData();
-          body.set("file", file);
-          const response = yield* Effect.tryPromise((signal) =>
-            fetch("/image/upload", {
-              method: "POST",
-              body,
-              signal,
-            }),
-          );
-          const result: unknown = yield* Effect.tryPromise(() => response.json());
-          if (!response.ok) {
-            const error = yield* Schema.decodeUnknownEffect(
-              Schema.Struct({ code: Schema.String, message: Schema.String }),
-            )(result);
-            return yield* Effect.fail(new Error(error.message));
-          }
-          const uploaded = yield* Schema.decodeUnknownEffect(
-            Schema.Struct({ key: Schema.String, url: Schema.String, contentType: Schema.String }),
-          )(result);
-          return uploaded.url;
-        }),
-      }),
-    [],
-  );
+  async function uploadImage(file: File, options: { signal: AbortSignal }): Promise<string> {
+    const { signal } = options;
+    const body = new FormData();
+    body.set("file", file);
+    const response = await fetch("/image/upload", {
+      method: "POST",
+      body,
+      signal,
+    });
+    const result: unknown = await response.json();
+    if (!response.ok) {
+      const error = Schema.decodeUnknownSync(
+        Schema.Struct({ code: Schema.String, message: Schema.String }),
+      )(result);
+      throw new Error(error.message);
+    }
+    const uploaded = Schema.decodeUnknownSync(
+      Schema.Struct({ key: Schema.String, url: Schema.String, contentType: Schema.String }),
+    )(result);
+    return uploaded.url;
+  }
 
   return (
-    <ImageUploadRuntimeContext
-      value={{
-        runPromise: (program, options) =>
-          Effect.runPromise(program.pipe(Effect.provide(imageLayer)), options),
-      }}
-    >
+    <SWRConfig value={{ uploadImage }}>
       <BrickCardStyleContext value={cardStyle}>
         <main className="qrk-bricks min-h-screen bg-zinc-50">
           <OrderedDoc>
@@ -244,6 +231,6 @@ export function ModulePlayground(props: {
           </OrderedDoc>
         </main>
       </BrickCardStyleContext>
-    </ImageUploadRuntimeContext>
+    </SWRConfig>
   );
 }

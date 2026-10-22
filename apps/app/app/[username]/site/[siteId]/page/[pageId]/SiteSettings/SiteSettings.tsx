@@ -5,6 +5,7 @@ import { stageAggregateSessionCommand } from "@zerospin/sdk/browser";
 /* oxlint-disable next/no-img-element -- App uses Vite, so Next image optimization is unavailable. */
 
 import { useAuth } from "@clerk/react";
+import { ClerkOfflineError } from "@clerk/react/errors";
 
 import { Schema } from "effect";
 import { useLiveQuery } from "@zerospin/react";
@@ -26,7 +27,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useUsername } from "@/hooks/useUsername";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
-import { getClerkToken } from "@/lib/getClerkToken";
 
 const ParamsSchema = Schema.Struct({
   username: Schema.String,
@@ -127,7 +127,10 @@ export function SiteSettings() {
 
     setIsUploading(true);
     try {
-      const sessionToken = await session.runPromise(getClerkToken({ getToken }));
+      const sessionToken = await getToken().catch((cause) => {
+        if (ClerkOfflineError.is(cause)) throw new Error("Clerk is offline");
+        throw cause;
+      });
       if (sessionToken === null) {
         toast.error("Sign in to upload images");
         return;

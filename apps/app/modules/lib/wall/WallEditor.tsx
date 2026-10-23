@@ -362,7 +362,7 @@ export function WallEditor(props: {
                       </StackAction>
                     ) : null}
                     {stack.rows.map((row, rowIndex) => (
-                      <div key={row.id} data-wall-row-id={row.id} className="relative min-w-0">
+                      <div key={row.id} data-wall-row-id={row.id} className="relative flow-root min-w-0">
                         {dropTarget?.kind === "stack" &&
                           dropTarget.stackId === stack.id &&
                           dropTarget.beforeRowId === row.id && (
@@ -375,7 +375,7 @@ export function WallEditor(props: {
                             </span>
                           )}
                         <div
-                          className={`relative flex min-h-12 min-w-0 items-start overflow-x-auto ${row.placements.length === 0 && dropTarget?.kind === "row" && dropTarget.rowId === row.id ? "bg-blue-50 outline outline-blue-500 -outline-offset-2" : ""}`}
+                          className={`relative -m-[0.5px] flex min-h-[49px] min-w-0 items-start overflow-x-auto p-[0.5px] ${row.placements.length === 0 && dropTarget?.kind === "row" && dropTarget.rowId === row.id ? "bg-blue-50 outline outline-blue-500 -outline-offset-2" : ""}`}
                         >
                           {row.placements.map((placement) => {
                             const brick = placement.brick;

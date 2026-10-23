@@ -133,10 +133,14 @@ Selected means a Brick's edit form is open. Active means DOM focus, including
 keyboard focus. Controls appear on hover, focus, selection, and open menus, with
 touch access. Edit/Delete menus are keyboard-accessible. The Delete confirmation
 supports cancellation and restores focus to its trigger or a surviving control.
-Placement interaction borders use a noninteractive `::after` overlay inset
-0.5px at z-index 19: white on hover, with blue-500 taking precedence for selection,
-an open menu, or keyboard focus. It paints above hovered content and below BrickActions while
-preserving the half-pixel padding, minimum widths, orange seams, and drop geometry.
+Placement interaction borders use a noninteractive `::after` overlay outset
+0.5px, centering the stroke on the shared 1px seam. White hover borders use
+z-index 18; blue-500 selection, open-menu, and keyboard-focus borders use z-index
+19 so blue wins across neighboring seams. Both remain below action tabs at
+z-index 20. Each outer Row uses `flow-root` to contain its scroller's -0.5px
+margin; 0.5px padding and a 49px minimum height allow seam-covering paint through
+the clip while preserving the 48px outer minimum, content positions and widths,
+scroll range, Placement padding/minimum widths, and drop geometry.
 Container deletion, hiding, resizing, and production zoom remain outside the
 feature. The separate `/dev/page/<pageId>/<breakpoint>` route is removed; its
 historical implementation is recorded in

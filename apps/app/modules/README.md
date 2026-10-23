@@ -438,6 +438,10 @@ Stacks that survive cleanup; catalog additions retain their existing capacity
 rules. Rows have no CSS gutters; half-pixel content and Placement insets create
 the condensed gaps.
 Each Row contains a flex scroll element and a sibling insertion-indicator overlay.
+The outer Row uses `flow-root` to contain the scroller's -0.5px margin. Its
+0.5px padding and 49px minimum height allow seam-covering borders through the
+scroll clip while preserving content positions, widths, scroll range, and the
+Row's 48px outer minimum height.
 Placed Bricks use `.brick-surface`, retaining `.brick-surface-card` for card
 treatment but omitting `.brick-surface-flat`; catalog flat borders are retained.
 Editor styling also uses
@@ -446,9 +450,10 @@ Placement styling through `.wall-story .wall-placement`. These class hooks repla
 editor-owned data attributes. Library state, password-manager hints, and
 unrelated module attributes retain their owners.
 Each Placement draws its interaction border with a noninteractive `::after`
-overlay, inset 0.5px at z-index 19. Hover uses white; selection, an open menu,
-and keyboard focus take precedence with blue-500. The border paints above hovered content and
-below BrickActions without changing the orange seams or drop geometry.
+overlay outset 0.5px, centering its stroke on the shared 1px seam. White hover
+borders use z-index 18; blue-500 selection, open-menu, and keyboard-focus borders
+use z-index 19 so blue wins across neighboring seams. Both remain below action
+tabs at z-index 20 without changing Placement padding, minimum widths, or drop geometry.
 `BrickAction` owns the top-right control surface for both Placements and catalog
 previews; `StackAction` owns the top-left Stack surface. Both sit 1px inside the
 border and use solid zinc-800 backgrounds with white text and icons. Buttons

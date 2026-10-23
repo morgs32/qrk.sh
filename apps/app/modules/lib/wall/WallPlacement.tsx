@@ -21,11 +21,11 @@ export function WallPlacement(props: {
       data-wall-placement-id={placement.id}
       style={{ minWidth: placement.minWidth + 1 }}
       className={cn(
-        "wall-placement group/brick relative flex-1 p-[0.5px] after:pointer-events-none after:absolute after:inset-[0.5px] after:z-[19] after:border after:content-[''] focus-within:after:border-blue-500",
+        "wall-placement group/brick relative flex-1 p-[0.5px] after:pointer-events-none after:absolute after:-inset-[0.5px] after:z-[18] after:border after:content-[''] focus-within:after:z-[19] focus-within:after:border-blue-500",
         selected && "is-selected",
         menuOpen && "is-menu-open",
         selected || menuOpen
-          ? "after:border-blue-500"
+          ? "after:z-[19] after:border-blue-500"
           : "after:border-transparent [&:hover:not(:focus-within)]:after:border-white",
       )}
     >

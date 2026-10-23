@@ -6,7 +6,7 @@ import { BREAKPOINTS } from "../../../../../../modules/lib/breakpoints";
 
 import { PagePreview } from "./PagePreview";
 
-export function MainColumns() {
+export function ValidBreakpoint() {
   const search = useSearch({ from: "/$username/site/$siteId/page/$pageId" });
   const breakpoint = BREAKPOINTS.find((entry) => entry.id === search.breakpoint);
   const availableWidth = useEditorViewportStore((state) => state.availableWidth);

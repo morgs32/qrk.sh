@@ -13,7 +13,7 @@ import { siteV1 as Site } from "@qrk.sh/zerospin/src/aggregates/user/models/site
 import { pageV1 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV1";
 import { Drawer } from "../../../../../../modules/lib/Drawer";
 import { Toolbars } from "../../Toolbars/Toolbars";
-import { MainColumns } from "./MainColumns";
+import { ValidBreakpoint } from "./ValidBreakpoint";
 import { useBreakpointGuard } from "./useBreakpointGuard";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
 import { UserUI } from "@/zerospin/UserUI";
@@ -167,7 +167,7 @@ export default function PageLayout(props: { children: ReactNode }) {
           className="relative h-full min-h-0 min-w-0 overflow-x-hidden overflow-y-auto pt-[var(--wall-preview-top-gap)] pb-[var(--wall-preview-bottom-gap)]"
         >
           <div className="relative">
-            <MainColumns />
+            <ValidBreakpoint />
           </div>
           <div ref={drawerSpace} aria-hidden />
         </div>

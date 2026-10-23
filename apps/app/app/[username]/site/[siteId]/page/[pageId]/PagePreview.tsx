@@ -15,7 +15,7 @@ import { Button } from "../../../../../../modules/components/ui/button";
 import { StackAction } from "../../../../../../modules/components/StackAction";
 import { BrickWrapper } from "../../../../../../modules/components/brick/BrickWrapper";
 import { BREAKPOINTS } from "../../../../../../modules/lib/breakpoints";
-import { WallBreakpointPane } from "../../../../../../modules/lib/WallBreakpointPane";
+import { BrowserChrome } from "../../../../../../modules/lib/BrowserChrome";
 import { WallPlacement } from "../../../../../../modules/lib/wall/WallPlacement";
 import { modulesHash } from "../../../../../../modules/lib/modulesHash";
 import { makeWallLayoutView } from "../../../../../../modules/lib/wall/makeWallLayoutView";
@@ -70,7 +70,7 @@ export function PagePreview(props: { breakpoint: (typeof BREAKPOINTS)[number] })
 
   return (
     <>
-      <WallBreakpointPane breakpoint={breakpoint.id} previewWidth={breakpoint.previewWidth}>
+      <BrowserChrome breakpoint={breakpoint.id} previewWidth={breakpoint.previewWidth}>
         <div
           className="wall-preview-scroll min-h-0 flex-1 overflow-y-auto bg-white"
           role="region"
@@ -149,7 +149,7 @@ export function PagePreview(props: { breakpoint: (typeof BREAKPOINTS)[number] })
             </div>
           </div>
         </div>
-      </WallBreakpointPane>
+      </BrowserChrome>
       <Dialog.Root
         open={deletingBrickId !== null}
         onOpenChange={(open) => {

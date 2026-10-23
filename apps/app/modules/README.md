@@ -363,7 +363,7 @@ contracts from injected host models or versions.
 The shared controlled wall components render supplied data and action callbacks.
 App's PagePreview reads the initialized `UserUI` session and adopts the development
 canvas's direct Wall query and layout projection. The
-URL-selected Wall renders inside WallBreakpointPane with SiteHeader, with existing
+URL-selected Wall renders inside BrowserChrome with SiteHeader, with existing
 WallPlacement edit/delete controls. Module catalog/detail routes own their scoped
 add handlers for query-encoded insertion targets.
 There is no WallEditorProvider or WallViewportProvider/context. The URL owns
@@ -375,9 +375,9 @@ shows insufficient space without choosing a fallback Wall. Width growth enables
 choices while keeping the current URL selection. The separate development URL is
 removed. PageLayout's single `.wall-preview-viewport` root contains the editor
 scroll region and drawer spacer, toolbar anchor, and Drawer as siblings. It owns
-scroll anchoring/clamping and floating toolbar placement. MainColumns and
+scroll anchoring/clamping and floating toolbar placement. ValidBreakpoint and
 PagePreview add no presentation wrappers; WallPreviewViewport is removed.
-WallBreakpointPane accepts only children, breakpoint, and previewWidth and keeps
+BrowserChrome accepts only children, breakpoint, and previewWidth and keeps
 its clipped frame and decorative browser bar without a slide-animation lifecycle.
 Its `.wall-preview-scroll` remains separate from the editor scroll region.
 Reduced motion skips positional toolbar animation; drawer animation is unchanged.

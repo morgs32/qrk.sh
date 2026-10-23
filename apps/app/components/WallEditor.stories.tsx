@@ -16,7 +16,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { TransformComponent, TransformWrapper } from "react-zoom-pan-pinch";
 import { isNonEmptySpec } from "@json-render/core";
-import { WallBreakpointPane } from "../modules/lib/WallBreakpointPane";
+import { BrowserChrome } from "../modules/lib/BrowserChrome";
 import { WallTree } from "../modules/lib/wall/WallTree";
 import { makeWallLayoutView } from "../modules/lib/wall/makeWallLayoutView";
 import { BrickWrapper } from "../modules/components/brick/BrickWrapper";
@@ -428,11 +428,11 @@ export const ZoomedOut: StoryObj<typeof meta> = {
             wrapperStyle={{ width: 512, height: 320 }}
             contentStyle={{ width: 1024, height: 640 }}
           >
-            <WallBreakpointPane breakpoint="lg" previewWidth={1024}>
+            <BrowserChrome breakpoint="lg" previewWidth={1024}>
               <div className="min-h-0 flex-1 overflow-auto bg-background p-8">
                 <Story />
               </div>
-            </WallBreakpointPane>
+            </BrowserChrome>
           </TransformComponent>
         </TransformWrapper>
       </div>

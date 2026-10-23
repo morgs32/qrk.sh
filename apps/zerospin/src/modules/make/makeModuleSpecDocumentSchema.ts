@@ -2,7 +2,7 @@ import { Schema } from "effect";
 
 import type { defineComponent } from "./defineComponent";
 import { makeComponentSpecSchema } from "./makeComponentSpecSchema";
-import { placementSpecSchema } from "./makePlacementModel";
+import { placementSpecSchema } from "./placementSpecSchema";
 
 /** Full checked json-render Spec document schema from a module's component set. */
 export function makeModuleSpecDocumentSchema(components: {

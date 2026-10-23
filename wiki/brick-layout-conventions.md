@@ -28,13 +28,13 @@ its breakpoint directly from its Wall.
 
 ## Frame and content rendering
 
-The shared `WallBreakpointPane` is a static frame accepting children, breakpoint,
+The shared `BrowserChrome` is a static frame accepting children, breakpoint,
 and previewWidth. It retains clipping, the 48px decorative browser bar, and the
 inset border; its dormant slide-animation lifecycle is removed. PageLayout owns
 breakpoint fitting/selection. Only the URL-selected frame mounts the canvas.
 PageLayout's single `.wall-preview-viewport` root contains the editor scroll region with
 its drawer spacer, toolbar anchor, and Drawer as siblings. The inner
-`.wall-preview-scroll` remains a separate scroll owner. MainColumns and PagePreview
+`.wall-preview-scroll` remains a separate scroll owner. ValidBreakpoint and PagePreview
 add no presentation wrappers. Drawer spacing, scroll anchoring, toolbar
 positioning, and drawer animation keep their existing behavior.
 App's `PagePreview` queries the Wall with separate

@@ -79,7 +79,7 @@ unrelated local storage are outside this local cutover's scope.
 
 1. [Wall model](../../apps/zerospin/src/aggregates/user/models/wall/WallV1.ts)
    and [layout schema](../../apps/zerospin/src/aggregates/user/layout/wallLayoutSchema.ts).
-2. [Placement attributes](../../apps/zerospin/src/modules/make/makePlacementModel.ts)
+2. [Placement attributes](../../apps/zerospin/src/aggregates/user/models/placement/PlacementV1.ts)
    and [pure layout operations](../../apps/zerospin/src/aggregates/user/layout/wallLayout.ts).
 3. [Brick deletion](../../apps/zerospin/src/aggregates/user/contracts/wall/DeleteBrickContractV1.ts)
    and [App reference resolution](../../apps/app/modules/lib/wall/makeWallLayoutView.ts).

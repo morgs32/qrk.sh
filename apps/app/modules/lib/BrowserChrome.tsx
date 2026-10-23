@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { cn } from "cn";
 import { LockKeyhole } from "lucide-react";
 
-export function WallBreakpointPane(props: {
+export function BrowserChrome(props: {
   children: ReactNode;
   breakpoint: "sm" | "md" | "lg" | "xl";
   previewWidth: number;

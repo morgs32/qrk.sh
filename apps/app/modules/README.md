@@ -294,7 +294,8 @@ All ten modules declare a module-owned placeholder. Exact null selects it before
 state decoding or JsonRender execution; empty strings, objects, and collections
 still use the normal schema/rendering path. Article, Map Place, Swatch and Icon,
 and Image use explicit unconfigured presentations. Catalog `defaultState`
-examples remain separate. Placeholder skeletons respect reduced motion and contain
+examples remain separate. Swatch and Icon uses its declared default height with a
+white question-mark icon on a gray background. Placeholder skeletons respect reduced motion and contain
 no outbound interactions; a configured Brick is never reset by preview controls.
 
 `makeComponentView` binds display markup to a `defineComponent` descriptor. Its

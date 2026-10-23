@@ -2,7 +2,6 @@ import { Menu } from "@base-ui/react/menu";
 import { Ellipsis } from "lucide-react";
 import { useState, type ComponentProps } from "react";
 import { Button } from "../../components/ui/button";
-import { DragHandle } from "../../components/DragHandle";
 import { BrickAction } from "../../components/BrickAction";
 import type { WallTree } from "./WallTree";
 
@@ -27,11 +26,6 @@ export function WallPlacement(props: {
       className="group/brick relative flex-1 outline outline-1 -outline-offset-1 outline-transparent hover:outline-zinc-300 focus-within:outline-blue-500 data-[selected=true]:outline-blue-500 data-[menu-open=true]:outline-blue-500"
     >
       <BrickAction>
-        <DragHandle
-          id={`${scope}-placement-grip-${placement.id}`}
-          aria-label={`Drag Brick ${placement.brickId}`}
-          data-placement-grip
-        />
         <Menu.Root open={menuOpen} onOpenChange={setMenuOpen}>
           <Menu.Trigger
             id={triggerId}

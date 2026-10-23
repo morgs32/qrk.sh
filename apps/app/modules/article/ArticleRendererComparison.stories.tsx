@@ -134,13 +134,29 @@ export const SideBySide: StoryObj<typeof meta> = {
           </section>
         </div>
 
-        <details className="mt-6 min-w-0 rounded-lg border border-zinc-200 bg-white">
+        <details
+          className="mt-6 min-w-0 rounded-lg border border-zinc-200 bg-white"
+          onDragStartCapture={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+          }}
+          onDragOverCapture={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            event.dataTransfer.dropEffect = "none";
+          }}
+          onDropCapture={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+          }}
+        >
           <summary className="cursor-pointer px-5 py-3 font-semibold">Edit with Meowdown</summary>
           <p className="border-t border-zinc-200 px-5 py-3 leading-6">
             Editing keeps Meowdown’s Markdown serialization. Both read-only panels use that output.
           </p>
           <MeowdownEditor
             initialMarkdown={articleRendererComparisonMarkdown}
+            blockHandle={false}
             mode="focus"
             handleRef={editorRef}
             onDocChange={handleDocChange}

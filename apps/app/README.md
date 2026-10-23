@@ -52,11 +52,11 @@ User/Site/Page ownership graph and four breakpoint layouts. Storybook provides
 memory routing with an initial canonical `?breakpoint=...` and story-local width;
 it uses neither the App width store nor the production breakpoint guard. It needs
 no Clerk credentials, API connection, or SharedWorker. Existing story components
-query the mock session and stage add, move, edit and delete commands directly,
+query the mock session and stage edit and delete commands directly,
 rendering shared `WallTree` without either wall provider. Width controls available
 space; the URL owns the selected Wall. Row-height affects presentation only.
 Empty Wall and Zoomed Out scenarios use the same fixture. This story does not
-mount production PagePreview's adopted development canvas and drag registrations.
+mount production PagePreview's adopted development canvas.
 Zoom/pan gestures remain disabled in the 50% presentation study.
 
 Module development playgrounds live in App Storybook under `modules/`. They
@@ -92,38 +92,15 @@ and errors are form-local; Cancel/navigation prevents a late save. No provider
 runner resumes work after the form closes. Layout/spec generation is recorded by
 the canonical user aggregate as external work; it continues independently of App's
 session lifetime.
-The Modules drawer supplies draggable catalog previews for adding new default-variant
-Bricks; the canvas retains a hover/focus grip on each existing Brick for moving its Placement
-within the selected Wall. Brick content remains interactive. A compatible Row
-accepts a horizontal addition; an incompatible Row creates a Row immediately
-below it, blank Stack space appends a Row, and the Wall's bottom drop zone creates
-a Section, Stack, and Row. First insertion reuses
-an existing empty Stack when available. The empty surface fills available height
-with a 320px minimum, and populated Walls retain a full-width bottom drop zone
-with the same minimum.
-
-Occupied Stacks have a separate left-hand hover/focus grip. Dropping on the left
-or right half of a Stack inserts the entire moving Stack before or after it in
-that Section; Section background appends it. The Wall bottom creates a new
-Section containing the Stack. Rows, Placements, and their saved content travel
-together. Empty scaffold Stacks have no grip because movement prunes them.
-Stack destinations rehearse the existing `moveStack` contract, including the
-breakpoint's surviving-Stack capacity limit. Full, stale, foreign, and
-unchanged-position destinations show no valid indicator and stage no command.
-
-PageLayout owns the production editor and drawer around this canvas. Each
-accepted drop stages one ordinary `addBrick`, `movePlacement`, or `moveStack`
-command and stays on the canvas without opening a Brick form. Placement controls
-retain Edit and Delete; editing opens the existing routed module form. Moves retain the Brick,
-Placement, variant, and spec, changing only the current breakpoint's Wall layout.
-Shared variant sizing determines Row compatibility, with minimum-width fitting
-measured in the browser. Additions use the default variant; moves use the saved
-variant and exclude the moving Placement from the destination Row's occupied
-width and sharing check. Variable-height content remains alone in its Row.
-Unchanged-position drops, cancelled drags, and foreign or stale sources stage no
-command. Movement uses the existing whole-Wall pruning of empty Rows, Stacks,
-and Sections; bottom drops deliberately create a new Section. Success
-announcements describe local optimistic staging, not canonical execution.
+PageLayout owns the production editor and drawer around this canvas. Placement
+controls retain Edit and Delete; editing opens the existing routed module form.
+Module catalog/detail routes retain Add actions for query-encoded insertion
+targets. The canvas renders saved Sections, Stacks, Rows, and Placements without
+drag sources, drop targets, insertion indicators, or movement controls. Brick
+content remains interactive. The backend `addBrick`, `movePlacement`, and
+`moveStack` commands and their layout rules remain available independently of the
+canvas. Movement commands preserve Brick, Placement, variant, and spec identity
+and prune empty containers in the affected Wall.
 Opening the editor does not reset storage. The former dev URL has no route.
 
 The original development slice follows the [development-route research](../../wiki/research/wall-editor-development-route.md).
@@ -408,12 +385,11 @@ and independent Unpublish Site command. Save is optimistic staging, not server
 acknowledgement. No settings synchronization effect or synthetic draft identity
 is used.
 
-`PagePreview` adopts the development canvas's direct Wall query, layout projection,
-drop resolution and DOM drag registrations through `UserUI.useSession()`, inside
-the existing WallBreakpointPane and SiteHeader chrome. It owns add-on-drop and
-Placement/Stack moves; WallPlacement retains edit and delete controls.
+`PagePreview` adopts the development canvas's direct Wall query and layout
+projection through `UserUI.useSession()`, inside the existing WallBreakpointPane
+and SiteHeader chrome. WallPlacement retains edit and delete controls.
 Module catalog/detail routes query the URL-selected Wall and stage their existing
-add command directly and their catalog previews supply drag payloads to the canvas.
+add command directly for query-encoded insertion targets.
 The controlled `WallTree` remains a separate Storybook fixture. UserUI supplies
 the session; it gains no wall-specific methods.
 
@@ -433,7 +409,7 @@ frame bottom remains reachable above the drawer. Closed state reserves no drawer
 on opening and clamped on closing; an already bottom-anchored preview stays at
 the end during resizing. PageLayout owns this trailing space and scroll anchoring
 directly, using ResizeObserver to clamp or retain the bottom anchor when geometry
-changes. PagePreview owns the canvas's drag registrations.
+changes.
 
 On browsing/editor routes, **sm / md / lg / xl** sit on the
 right side of the drawer header beside publication controls. Card styling comes
@@ -469,16 +445,16 @@ sm/md show a Safari-like mobile address pill; lg/xl show desktop window dots and
 centered address bar. Both display static `qrk.sh`, remain noninteractive, and
 are hidden from assistive technology. The frame body renders the saved site navbar
 and the adopted canvas's Sections, Stacks, Rows, and placed Bricks. Only
-the URL-selected frame registers drag targets and interactions. Placement cells use the
+the URL-selected frame mounts the canvas. Placement cells use the
 Wall's logical breakpoint and fill their Row cell; catalog `defaultWidth` is
 not applied to placed content. Cells respect the selected variant's `minWidth`: 320px for
 every module except Swatch and Icon at 160px, at every breakpoint. Each Row
 scrolls horizontally when its minimums exceed the available width, preserving
 neighboring Stack widths and saved arrangement.
 Wall, Section, Stack, and Row layout has no outer padding or inter-item gutters.
-Stack controls overlay content rather than reserving a toolbar row. The Wall has
-no Add/plus buttons; drop indicators appear during dragging. Empty saved Rows
-and Stacks show drop placeholders, including the initial Page scaffold. A move
+Stack names overlay content rather than reserving a toolbar row. The Wall has
+no Add/plus buttons. Empty saved Rows and Stacks retain their layout containers,
+including the initial Page scaffold. A move command
 prunes empty containers across its Wall; Brick deletion prunes only ancestors
 emptied by its removed appearances.
 
@@ -540,18 +516,13 @@ omitted by every current variant. Heights remain metadata only in this phase.
 App supplies typed Router links to its
 `/modules/$moduleId` detail routes. The catalog lives at `/modules` under the
 page editor, with a **Bricks** breadcrumb and **Bricks** toolbar action.
-Normal catalog links remain browsing actions, with separate module drag grips.
-Catalog, Placement and Stack grips render the shared `DragHandle` component.
+Normal catalog links remain browsing actions.
 `BrickAction` positions the catalog and Placement controls at the top-right and
 owns their hover/focus and selected/menu visibility. `StackAction` positions Stack
-controls at the top-left and hides them during Wall dragging. Both containers
-accept children; the Placement owns its dropdown and state, while the catalog
-supplies only its drag or targeted-add action.
-Catalog grips use its 28px ghost button and 16px grip icon at the top-right
-edge, with the same hover/focus reveal and touch visibility, without a dropdown.
-Drag a module grip from the catalog into the Wall to create its Brick. There are
-no Add controls in the Wall. Existing query-encoded targeted catalog URLs retain
-their + action in the drawer while preview content stays live.
+names at the top-left. Both containers accept children; the Placement owns its
+dropdown and state, while the catalog supplies only its targeted-add action.
+There are no Add controls in the Wall. Existing query-encoded targeted catalog
+URLs retain their + action in the drawer while preview content stays live.
 Closing, leaving the chooser, or changing breakpoint cancels insertion without a
 saved reservation. The previous catalog URLs remain retired without redirects.
 
@@ -645,7 +616,7 @@ evidence is recorded in
 
 ## Article editing in the detail drawer
 
-App retains the brick-detail route and renders the selected module's `Form` without an enclosing form. All ten registered bricks expose a form: Image, Article, GitHub Profile, GitHub Repo, GitHub Activity, Figma Thumbnail, Instagram, Link, Map Place, and Swatch and Icon. Shared forms receive decoded `state` or `null`, synchronous `onSave`/module-specific configuration callbacks, and `onCancel`; the standalone session/Brick identity props are removed. App supplies real command callbacks; Storybook supplies local example behavior. Unconfigured provider bricks receive genuine `null` and show blank source inputs. Image provides a dropzone and file picker above its Image URL and Title fields. Article uses Meowdown in Hybrid mode with native shortcuts, slash/link controls, and block handles in the existing centered writing column; it has no formatting toolbar or mode switcher. Article state has separate required title/subtitle strings and nullable Markdown content; generated ArticleBrick specs bind all three fields. This hard cutover adds no JSON conversion or compatibility reader. Catalog previews use Meowdown's read-only MarkdownView without an editor.
+App retains the brick-detail route and renders the selected module's `Form` without an enclosing form. All ten registered bricks expose a form: Image, Article, GitHub Profile, GitHub Repo, GitHub Activity, Figma Thumbnail, Instagram, Link, Map Place, and Swatch and Icon. Shared forms receive decoded `state` or `null`, synchronous `onSave`/module-specific configuration callbacks, and `onCancel`; the standalone session/Brick identity props are removed. App supplies real command callbacks; Storybook supplies local example behavior. Unconfigured provider bricks receive genuine `null` and show blank source inputs. Image provides a file picker above its Image URL and Title fields. Article uses Meowdown in Hybrid mode with native shortcuts and slash/link controls in the existing centered writing column; drag/drop is blocked and block drag handles are disabled while table menus remain usable. It has no formatting toolbar or mode switcher. Article state has separate required title/subtitle strings and nullable Markdown content; generated ArticleBrick specs bind all three fields. This hard cutover adds no JSON conversion or compatibility reader. Catalog previews use Meowdown's read-only MarkdownView without an editor.
 
 Modules own unsaved drafts and validation. Provider forms fetch/decode through
 their existing browser RPC on Save, then stage `updateBrick`; pending/errors stay
@@ -680,7 +651,7 @@ factory exists.
 its separate Placements and Bricks. `makeWallLayoutView` resolves the ordered
 tree for the adopted development canvas, now inside the production editor chrome.
 There is one App canvas and no dev URL. Selected means
-the Brick form is open; active means DOM focus. Grip/menu controls stay separate
+the Brick form is open; active means DOM focus. Menu controls stay separate
 from live module content. Adding at a stable insertion target creates the Brick,
 all four Placements, and required parent containers atomically, then opens its
 form after local staging succeeds. Other widths append a new Row to their last
@@ -695,12 +666,10 @@ Genuine self-before moves leave the tree unchanged. Deleting a Brick confirms
 removal at all four breakpoints, removes its Placement references/records and
 shared Brick, and prunes only ancestors emptied by those removals. Unrelated
 empty containers remain untouched; sibling renumbering is unnecessary.
-Empty Walls remain usable drop targets.
-Sections allow 1/2/3/4 surviving Stacks at sm/md/lg/xl after move cleanup; drag
-eligibility uses that final count. Catalog additions retain their existing
-capacity rules. Rows have no artificial Placement cap. Whole-Row dragging,
-Section dragging, container deletion, hiding,
-and user resizing remain deferred. Placement's old grid geometry, visibility,
+Sections allow 1/2/3/4 surviving Stacks at sm/md/lg/xl after move cleanup.
+Catalog additions retain their existing capacity rules. Rows have no artificial
+Placement cap. Container deletion, hiding, and user resizing remain deferred.
+Placement's old grid geometry, visibility,
 and duplicated breakpoint fields are removed; the containing Wall supplies its
 breakpoint.
 
@@ -717,9 +686,9 @@ four ordered Wall hierarchies, so layout changes participate in dirty comparison
 
 ## Image uploads
 
-Drop or choose one nonempty PNG, JPEG, WebP, or SVG up to 5 MiB in the Image drawer. Upload starts immediately and updates only the module-owned draft Image URL on success; Save persists the brick state. Image retains file validation, picker/drop behavior, drafts, pending/error feedback, Save gating, and cancellation. Fields and Save are disabled during upload; Cancel stays available, restores saved state, and aborts unfinished requests. Switching bricks or leaving the drawer also aborts pending uploads and ignores late results. Changing the URL breakpoint selects another Placement, discards the old form draft, and aborts pending upload; automatic breakpoint correction has the same lifetime.
+Choose one nonempty PNG, JPEG, WebP, or SVG up to 5 MiB in the Image drawer. Upload starts immediately and updates only the module-owned draft Image URL on success; Save persists the brick state. Image retains file validation, picker behavior, drafts, pending/error feedback, Save gating, and cancellation. Fields and Save are disabled during upload; Cancel stays available, restores saved state, and aborts unfinished requests. Switching bricks or leaving the drawer also aborts pending uploads and ignores late results. Changing the URL breakpoint selects another Placement, discards the old form draft, and aborts pending upload; automatic breakpoint correction has the same lifetime.
 
-`PageLayout` and Storybook's `ModulePlayground` each supply their concrete `uploadImage(file, { signal }): Promise<string>` through `SWRConfig`. `ImageForm` reads it with `useSWRConfig` and explicitly passes it to `useSWRMutation`; the mutation owns pending/request-error state and starts only from file-selection/drop handlers. Local validation/save errors and drafts stay in the form. Revalidation and cache population are disabled. `ImageUploadSWR.d.ts` types the optional field through SWR's exported `_internal` configuration interface; no separate upload context, Effect service, layer or runner remains. Without an uploader, the form offers manual URL entry only.
+`PageLayout` and Storybook's `ModulePlayground` each supply their concrete `uploadImage(file, { signal }): Promise<string>` through `SWRConfig`. `ImageForm` reads it with `useSWRConfig` and explicitly passes it to `useSWRMutation`; the mutation owns pending/request-error state and starts only from file-selection handlers. Local validation/save errors and drafts stay in the form. Revalidation and cache population are disabled. `ImageUploadSWR.d.ts` types the optional field through SWR's exported `_internal` configuration interface; no separate upload context, Effect service, layer or runner remains. Without an uploader, the form offers manual URL entry only.
 
 Uploads run independently of the Zerospin session; Save stages the existing `updateBrick` command. App owns the HTTP request: each invocation retrieves fresh Clerk credentials through `getToken()`, sends multipart file and current site ID to `/upload`, and decodes the untrusted success/error response before returning the image URL. Signed-out and offline errors fail visibly. App checks for cancellation after token acquisition, and both hosts forward the form's AbortSignal to `fetch`. The form separately aborts transport, resets mutation state, and ignores late results; SWR reset does not cancel HTTP. Image receives a URL without knowing the endpoint, site ID, authorization header, multipart protocol, or response shape. The shared form contract carries no Image-specific upload props. Site Settings also acquires its upload token directly through Clerk; its existing Promise uploader, session reads/commands and QR-code SWR read remain separate. Returned asset URLs remain publicly readable, including draft and Storybook uploads.
 

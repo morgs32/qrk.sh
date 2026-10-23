@@ -36,7 +36,6 @@ export function ImageForm(props: {
   const inputId = useId();
   const fileInput = useRef<HTMLInputElement>(null);
   const activeUpload = useRef<AbortController | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const errorMessage =
     formError ??
@@ -129,42 +128,13 @@ export function ImageForm(props: {
           />
           <button
             aria-describedby={`${inputId}-upload-help`}
-            className={`flex min-h-36 w-full flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed p-6 text-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-wait disabled:opacity-60 ${isDragging ? "border-primary bg-muted" : "border-input hover:bg-muted/50"}`}
+            className="flex min-h-36 w-full flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-input p-6 text-center transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-wait disabled:opacity-60"
             disabled={isBusy}
             onClick={() => fileInput.current?.click()}
-            onDragEnter={(event) => {
-              if (!event.dataTransfer.types.includes("Files")) return;
-              event.preventDefault();
-              event.stopPropagation();
-              if (!isBusy) setIsDragging(true);
-            }}
-            onDragLeave={(event) => {
-              event.stopPropagation();
-              if (
-                !event.currentTarget.contains(
-                  event.relatedTarget instanceof Node ? event.relatedTarget : null,
-                )
-              ) {
-                setIsDragging(false);
-              }
-            }}
-            onDragOver={(event) => {
-              if (!event.dataTransfer.types.includes("Files")) return;
-              event.preventDefault();
-              event.stopPropagation();
-              event.dataTransfer.dropEffect = isBusy ? "none" : "copy";
-            }}
-            onDrop={(event) => {
-              if (!event.dataTransfer.types.includes("Files")) return;
-              event.preventDefault();
-              event.stopPropagation();
-              setIsDragging(false);
-              void uploadFiles(Array.from(event.dataTransfer.files));
-            }}
             type="button"
           >
             <span className="font-medium">
-              {isMutating ? "Uploading image…" : "Drop an image here or click to choose"}
+              {isMutating ? "Uploading image…" : "Click to choose an image"}
             </span>
           </button>
           <small className="m-0" id={`${inputId}-upload-help`}>
@@ -222,7 +192,6 @@ export function ImageForm(props: {
             activeUpload.current?.abort();
             activeUpload.current = null;
             reset();
-            setIsDragging(false);
             setFormError(null);
             setDraft(null);
             onCancel();

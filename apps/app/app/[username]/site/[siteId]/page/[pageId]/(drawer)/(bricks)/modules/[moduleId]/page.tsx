@@ -91,26 +91,31 @@ function ModuleRouteBody(props: {
         {wall === undefined || breakpoint === undefined ? null : (
           <div className="absolute right-6 top-6">
             <WallModuleAction
-              wallId={wall.id}
               moduleId={brickModule.id}
               onAdd={
-                search.insertion === undefined ? undefined : () => {
-                  if (insertionTarget === null || insertionTarget.wallId !== wall.id) return;
-                  const id = session.runSync(makeId(brickV1));
-                  const result = stageAggregateSessionCommand({
-                    session,
-                    contractName: "addBrick",
-                    payload: { id, pageId, moduleId: brickModule.id, target: insertionTarget },
-                  });
-                  if (result._tag === "Success") {
-                    void navigate({
-                      to: "/$username/site/$siteId/page/$pageId/brick/$brickId",
-                      params: { ...params, brickId: id },
-                      search: (previous) => ({ ...previous, breakpoint: breakpoint.id, insertion: undefined }),
-                      resetScroll: false,
-                    });
-                  }
-                }
+                search.insertion === undefined
+                  ? undefined
+                  : () => {
+                      if (insertionTarget === null || insertionTarget.wallId !== wall.id) return;
+                      const id = session.runSync(makeId(brickV1));
+                      const result = stageAggregateSessionCommand({
+                        session,
+                        contractName: "addBrick",
+                        payload: { id, pageId, moduleId: brickModule.id, target: insertionTarget },
+                      });
+                      if (result._tag === "Success") {
+                        void navigate({
+                          to: "/$username/site/$siteId/page/$pageId/brick/$brickId",
+                          params: { ...params, brickId: id },
+                          search: (previous) => ({
+                            ...previous,
+                            breakpoint: breakpoint.id,
+                            insertion: undefined,
+                          }),
+                          resetScroll: false,
+                        });
+                      }
+                    }
               }
             />
           </div>

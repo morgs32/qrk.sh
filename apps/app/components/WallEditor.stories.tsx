@@ -10,20 +10,18 @@ import {
   useSearch,
 } from "@tanstack/react-router";
 import { MockAggregateInitializer, useLiveQuery } from "@zerospin/react";
-import { makeId, makeIdSchema, prefixId, stageAggregateSessionCommand } from "@zerospin/sdk/browser";
+import { makeIdSchema, prefixId, stageAggregateSessionCommand } from "@zerospin/sdk/browser";
 import { Schema } from "effect";
 import { useCallback, useEffect, useState } from "react";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { TransformComponent, TransformWrapper } from "react-zoom-pan-pinch";
 import { isNonEmptySpec } from "@json-render/core";
 import { WallBreakpointPane } from "../modules/lib/WallBreakpointPane";
-import { WallModuleAction } from "../modules/lib/wall/WallModuleAction";
 import { WallTree } from "../modules/lib/wall/WallTree";
 import { makeWallLayoutView } from "../modules/lib/wall/makeWallLayoutView";
 import { BrickWrapper } from "../modules/components/brick/BrickWrapper";
 import { BREAKPOINTS } from "../modules/lib/breakpoints";
 import { makePlacementId } from "@qrk.sh/zerospin/src/modules/lib/makePlacementId";
-import { stackIdSchema } from "@qrk.sh/zerospin/src/aggregates/user/layout/wallLayoutSchema";
 import { swatchAndIconV1 } from "@qrk.sh/zerospin/src/modules/swatchAndIcon/swatchAndIconV1";
 import { modulesHash } from "../modules/lib/modulesHash";
 import { UserUI } from "@/zerospin/UserUI";
@@ -197,7 +195,9 @@ function WallStoryContent(props: { availableWidth: number | null }) {
     breakpoint.previewWidth <= availableWidth;
   useEffect(() => {
     if (availableWidth === null) return;
-    const largestFitting = BREAKPOINTS.filter((entry) => entry.previewWidth <= availableWidth).at(-1);
+    const largestFitting = BREAKPOINTS.filter((entry) => entry.previewWidth <= availableWidth).at(
+      -1,
+    );
     if (largestFitting === undefined) return;
     if (breakpoint !== undefined && breakpoint.previewWidth <= availableWidth) return;
     void navigate({
@@ -222,15 +222,10 @@ function WallStoryContent(props: { availableWidth: number | null }) {
     });
   }
 
-  const sections = activeWall === undefined ? [] : makeWallLayoutView({ wall: activeWall }).sections;
+  const sections =
+    activeWall === undefined ? [] : makeWallLayoutView({ wall: activeWall }).sections;
   return (
     <div className="grid gap-3">
-      <div className="flex items-center gap-3 border bg-background p-2 text-sm">
-        <span>Drag a module into the wall</span>
-        {canEdit && activeWall !== undefined ? (
-          <WallModuleAction wallId={activeWall.id} moduleId="swatch-and-icon" />
-        ) : null}
-      </div>
       <p className="text-xs text-muted-foreground">
         Real local session · the app's queries, commands, and editing form.
       </p>
@@ -245,7 +240,6 @@ function WallStoryContent(props: { availableWidth: number | null }) {
           <p role="status">This page's wall is unavailable.</p>
         ) : (
           <WallTree
-            wallId={activeWall.id}
             breakpoint={breakpoint.id}
             selectedBrickId={selectedBrickId}
             sections={sections.map((section) => ({
@@ -290,38 +284,6 @@ function WallStoryContent(props: { availableWidth: number | null }) {
                 })),
               })),
             }))}
-            onAddModule={(moduleId, target) => {
-              const module = Object.values(modulesHash).find((entry) => entry.id === moduleId);
-              if (module === undefined || target.wallId !== activeWall.id) return false;
-              const id = session.runSync(makeId(brick));
-              const result = stageAggregateSessionCommand({
-                session,
-                contractName: "addBrick",
-                payload: { id, pageId, moduleId: module.id, target },
-              });
-              if (result._tag === "Success") editBrick(id);
-              return result._tag === "Success";
-            }}
-            onMovePlacement={(id, target) => {
-              const placementId = Schema.decodeUnknownSync(makeIdSchema(placement))(id);
-              return (
-                stageAggregateSessionCommand({
-                  session,
-                  contractName: "movePlacement",
-                  payload: { id: crypto.randomUUID(), placementId, target },
-                })._tag === "Success"
-              );
-            }}
-            onMoveStack={(id, target) => {
-              const stackId = Schema.decodeUnknownSync(stackIdSchema)(id);
-              return (
-                stageAggregateSessionCommand({
-                  session,
-                  contractName: "moveStack",
-                  payload: { id: crypto.randomUUID(), stackId, target },
-                })._tag === "Success"
-              );
-            }}
             onEditBrick={editBrick}
             onDeleteBrick={(id) => {
               const brickId = Schema.decodeUnknownSync(makeIdSchema(brick))(id);

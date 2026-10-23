@@ -1,6 +1,6 @@
 # Brick preview and editor conventions
 
-**updated:** 2026-10-21
+**updated:** 2026-10-22
 
 ## App owns saved editing
 
@@ -29,22 +29,21 @@ its breakpoint directly from its Wall.
 ## Frame and content rendering
 
 The shared `WallBreakpointPane` retains the 48px decorative browser bar,
-breakpoint fitting/selection, and reduced-motion behavior. Four panes remain
-mounted; only the active Wall registers drag sources and targets. App's
-`WallEditorProvider` queries Walls with separate Placements/Bricks and resolves
-their layout references through `makeWallLayoutView`. It stages commands through the existing
-session from `UserUI.useSession()`. App initializes a connected session;
-Storybook initializes a real local mock with complete seed resources. Both mount
-the same `WallEditorProvider`, shared `WallTree`, and Brick form. Storybook's
-memory router and viewport contexts supply route/visual inputs; edits use ordinary
-commands and reactive queries rather than local fixture mutations.
+breakpoint fitting/selection, and reduced-motion behavior. Only the URL-selected
+frame mounts the canvas. App's `PagePreview` queries the Wall with separate
+Placements/Bricks through `UserUI.useSession()` and resolves layout references
+through `makeWallLayoutView`. App initializes a connected session; Storybook
+initializes a real local mock with complete seed resources and renders the
+separate controlled `WallTree` fixture. Storybook's memory router and local width
+control supply route/visual inputs; editing and deletion use ordinary commands
+and reactive queries rather than local fixture mutations.
 
 A placed Brick fills its Row cell, whose minimum width comes from its module.
 It uses the containing Wall's logical breakpoint and Placement spec, regardless
 of cell width. Catalog
 preferred widths do not constrain placed content. Every module has a 320px
 minimum except Swatch and Icon at 160px, constant across all breakpoints.
-Module links, inputs, forms, and provider states remain interactive. Drag grips and menus are siblings of
+Module links, inputs, forms, and provider states remain interactive. Menus are siblings of
 content rather than a wrapping button or selection overlay.
 
 Every module accepts null as unconfigured content and provides its module-owned
@@ -54,10 +53,10 @@ spec changes affect only their Wall/Placement.
 
 ## Insertion, movement, and selection
 
-Insertion targets carry Wall identity and stable before-sibling IDs. A Row target
+Query-encoded insertion targets carry Wall identity and stable before-sibling IDs. A Row target
 inserts horizontally; a Stack boundary creates a Row; Section/Wall targets create
-required containers. Nullable before IDs append. The Wall has no Add/plus buttons;
-modules enter through catalog drag grips. Targeted catalog URLs still open add
+required containers. Nullable before IDs append. The Wall has no Add/plus buttons.
+Targeted catalog URLs open add
 mode without persisting a reservation. Cancelling/leaving/changing breakpoint
 clears that mode; stale or malformed targets refuse rather than append elsewhere.
 
@@ -72,72 +71,26 @@ Brick confirms removal from all four widths. Movement prunes all empty container
 in the affected Wall after editing. Brick deletion removes its references and
 records and prunes only ancestors emptied by that deletion. Unrelated empty
 containers remain untouched. Array order needs no sibling renumbering.
-The Wall remains available as a drop target.
 Stable insertion anchors are validated before cleanup; self-before moves remain
 no-ops.
 
 Wall layout containers have zero padding and no gaps between adjacent content.
-Stack chrome and drag insertion boundaries overlay the layout. Empty persisted
-Rows/Stacks, including initial Page scaffolds, show drop placeholders until a
-move cleans their Wall or deletion empties their ancestor path; spacing is not
-used to host controls.
-Row before/after drop zones create Rows; the middle resolves horizontal
-Placement insertion. Each Row's content scrolls inside its indicator host, so
-Row before/after indicators remain visible outside the scrollport. Stock drop
-instructions use the innermost eligible container, and blocked destinations do
-not fall through. Blank Wall below the last Section creates a Section.
+Stack names overlay the layout. Empty persisted Rows/Stacks, including initial
+Page scaffolds, retain their layout containers until a move command cleans their
+Wall or deletion empties their ancestor path; spacing is not used to host controls.
+The production canvas and Storybook WallTree render saved layout with Edit and
+Delete controls. Drag sources, drop targets, grips, insertion indicators, and
+drop placeholders are removed. Backend add/move commands and their layout
+validation remain available independently of the canvas.
 
 Selected means a Brick's edit form is open. Active means DOM focus, including
 keyboard focus. Controls appear on hover, focus, selection, and open menus, with
 touch access. Edit/Delete menus are keyboard-accessible. The Delete confirmation
-supports cancellation and restores focus to its trigger or a surviving control;
-accepted drag actions are announced. Whole-Row
-and Section dragging, container deletion, hiding, resizing, and production zoom
-remain outside the feature.
-
-## Development preview: Brick and Stack drops
-
-The separate `/dev/page/<pageId>/<breakpoint>` preview accepts new
-default-variant Bricks from its compact palette and moves existing Placements
-through their grips. Occupied Stacks have a separate left-hand grip that moves
-all their Rows and Placements together. All moves stay within the selected Wall.
-Its empty Wall fills available height with a 320px minimum; a
-populated Wall retains a full-width bottom drop zone with a 320px minimum.
-
-The pointer selects the destination: a compatible Row appends horizontally;
-an incompatible Row creates a Row immediately below itself in the same Stack;
-blank Stack space appends a Row; and the Wall bottom creates a Section, Stack,
-and Row. There is no search for an available Row elsewhere. Initial empty
-Section/Stack scaffolding is reused on the first drop. Stack drops on the left
-or right half of another Stack insert before or after it in that Section;
-Section background appends it, and the Wall bottom creates a Section containing
-the moving Stack. Existing `moveStack` validation determines capacity after
-empty-container pruning. Empty scaffold Stacks are not draggable. Unchanged
-positions, invalid destinations, and cancelled/outside drops stage no command.
-Side-Stack creation for individual Bricks and between-Section insertion remain
-deferred for this preview.
-
-Shared module-version declarations own each variant's sizing metadata; React
-views consume it. A Row accepts a new Brick only when its existing contents
-and the incoming variant can share and their combined minimum widths fit the
-rendered Row. An empty Row can accept variable-height content; a nonempty Row
-can contain only fixed-height variants. Different fixed heights may share.
-No persisted exclusive-Row flag or Article-specific branch is needed.
-
-The browser's `resolveBrickDrop` applies compatibility and measured-width rules
-for both feedback and submission. `addBrick` checks the shared `canShareRow`
-rule before mutations, rejecting an incompatible destination rather than
-rerouting it. Pixel-width fitting remains in the browser. These checks apply
-to additions only: `movePlacement` and the production editor's movement
-behavior are unchanged, and existing mixed Rows are not repaired.
-
-A successful local stage stays on the development page without opening a Brick
-form. It retains ordinary creation of shared null Brick content and four
-Placements; the other three Walls append new Rows through the existing command.
-Cancelled, foreign-Wall, malformed, and stale drops create nothing. The same
-destination drives the highlight or insertion line and is recomputed on drop.
-See [Plan 038](./archive/plans/038-plan-development-brick-drops.md) for implementation
-and pending verification.
+supports cancellation and restores focus to its trigger or a surviving control.
+Container deletion, hiding, resizing, and production zoom remain outside the
+feature. The separate `/dev/page/<pageId>/<breakpoint>` route is removed; its
+historical implementation is recorded in
+[Plan 038](./archive/plans/038-plan-development-brick-drops.md).
 
 ## Shared modules and Storybook
 

@@ -121,6 +121,19 @@ const greeting = "Hello, Meowdown";
           <section
             aria-labelledby="meowdown-editor-heading"
             className="min-w-0 rounded-lg border border-zinc-200 bg-white"
+            onDragStartCapture={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+            }}
+            onDragOverCapture={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              event.dataTransfer.dropEffect = "none";
+            }}
+            onDropCapture={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+            }}
           >
             <h2
               id="meowdown-editor-heading"
@@ -130,6 +143,7 @@ const greeting = "Hello, Meowdown";
             </h2>
             <MeowdownEditor
               initialMarkdown={fixture}
+              blockHandle={false}
               mode={mode}
               handleRef={editorRef}
               onDocChange={handleDocChange}

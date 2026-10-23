@@ -9,18 +9,11 @@ export function WallSection(props: {
   onEditBrick: ComponentProps<typeof WallTree>["onEditBrick"];
   onRequestDelete: ComponentProps<typeof WallStack>["onRequestDelete"];
 }) {
-  const {
-    section,
-    scope,
-    selectedBrickId,
-    onEditBrick,
-    onRequestDelete,
-  } = props;
+  const { section, scope, selectedBrickId, onEditBrick, onRequestDelete } = props;
   return (
     <section
-      data-wall-section={section.id}
       aria-label={`Section ${section.id}`}
-      className={`group/section relative min-w-0 outline outline-1 -outline-offset-1 outline-transparent ${section.stacks.length === 0 ? "min-h-7" : ""}`}
+      className="relative min-w-0 outline outline-1 -outline-offset-1 outline-transparent"
     >
       <div
         className="grid min-w-0 items-stretch"

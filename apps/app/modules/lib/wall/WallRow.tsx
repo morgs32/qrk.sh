@@ -11,7 +11,7 @@ export function WallRow(props: {
 }) {
   const { row, scope, selectedBrickId, onEditBrick, onRequestDelete } = props;
   return (
-    <div data-wall-row={row.id} className="relative min-w-0">
+    <div className="relative min-w-0">
       <div
         role="group"
         aria-label={`Row ${row.id}`}
@@ -28,12 +28,6 @@ export function WallRow(props: {
             onRequestDelete={onRequestDelete}
           />
         ))}
-        {row.placements.length === 0 && (
-          <div
-            className="min-h-12 flex-1 border border-dashed border-zinc-200"
-            aria-label="Empty Row"
-          />
-        )}
       </div>
     </div>
   );

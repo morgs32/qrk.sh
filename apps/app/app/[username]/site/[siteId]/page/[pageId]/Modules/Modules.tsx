@@ -64,7 +64,6 @@ export function Modules() {
           renderModuleAction={(brickModule) =>
             wall === undefined ? null : (
               <WallModuleAction
-                wallId={wall.id}
                 moduleId={brickModule.id}
                 onAdd={
                   search.insertion === undefined
@@ -75,13 +74,22 @@ export function Modules() {
                         const result = stageAggregateSessionCommand({
                           session,
                           contractName: "addBrick",
-                          payload: { id, pageId: params.pageId, moduleId: brickModule.id, target: insertionTarget },
+                          payload: {
+                            id,
+                            pageId: params.pageId,
+                            moduleId: brickModule.id,
+                            target: insertionTarget,
+                          },
                         });
                         if (result._tag === "Success") {
                           void navigate({
                             to: "/$username/site/$siteId/page/$pageId/brick/$brickId",
                             params: { ...params, brickId: id },
-                            search: (previous) => ({ ...previous, breakpoint: breakpoint.id, insertion: undefined }),
+                            search: (previous) => ({
+                              ...previous,
+                              breakpoint: breakpoint.id,
+                              insertion: undefined,
+                            }),
                             resetScroll: false,
                           });
                         }
@@ -94,7 +102,11 @@ export function Modules() {
             <Link
               to="/$username/site/$siteId/page/$pageId/modules/$moduleId"
               params={{ ...params, moduleId: brickModule.id }}
-              search={(previous) => ({ ...previous, breakpoint: breakpoint.id, insertion: search.insertion })}
+              search={(previous) => ({
+                ...previous,
+                breakpoint: breakpoint.id,
+                insertion: search.insertion,
+              })}
               resetScroll={false}
               data-module-link={brickModule.id}
             >

@@ -170,7 +170,6 @@ import shared definitions using `@qrk.sh/zerospin/src/modules/...`; Zerospin's o
 contracts use relative imports. There are no package barrels or compatibility exports.
 Canonical persisted models/contracts remain under `apps/zerospin/src/aggregates/user/`.
 
-
 Consumers bundle Meowdown and React themselves and share no editor instances.
 Import Article's stylesheet alongside `bricks.css`, retaining its font imports.
 Article's stylesheet, Storybook, and App declare
@@ -212,14 +211,14 @@ The minimum is 320px for every module except Swatch and Icon at 160px, and is
 shared across all breakpoints. Preview surfaces and placed Row cells respect it;
 neither width setting changes persisted brick state.
 
-| Module                           | Default width | Default height |
-| -------------------------------- | ------------- | -------------- |
-| Article                          | 720px         | `null`         |
-| GitHub Activity                  | 656px         | 180px          |
-| GitHub Profile                   | 360px         | 360px          |
+| Module                            | Default width | Default height |
+| --------------------------------- | ------------- | -------------- |
+| Article                           | 720px         | `null`         |
+| GitHub Activity                   | 656px         | 180px          |
+| GitHub Profile                    | 360px         | 360px          |
 | GitHub Repo, Link                 | 480px         | 180px          |
 | Figma Thumbnail, Image, Map Place | 480px         | 360px          |
-| Instagram                        | 400px         | 360px          |
+| Instagram                         | 400px         | 360px          |
 | Swatch and Icon                   | 240px         | 90px           |
 
 `defaultHeight` uses `45 | 90 | 180 | 360 | 720 | null`; `null` means natural
@@ -242,7 +241,7 @@ is no variant picker or switching command while every module has one choice.
 
 Catalog previews render authored module content at that resolved preview width.
 The App catalog keeps its module selection/insertion controls separate from live
-preview content. Ordinary links, forms, Image upload drag/drop, and module-owned
+preview content. Ordinary links, forms, Image file selection, and module-owned
 interactions remain available. Placed Bricks fill their Row cells with natural
 height rather than applying the catalog preferred width.
 
@@ -363,10 +362,10 @@ contracts from injected host models or versions.
 
 The shared controlled wall components render supplied data and action callbacks.
 App's PagePreview reads the initialized `UserUI` session and adopts the development
-canvas's direct Wall query, drop resolution and DOM drag registrations. The
+canvas's direct Wall query and layout projection. The
 URL-selected Wall renders inside WallBreakpointPane with SiteHeader, with existing
 WallPlacement edit/delete controls. Module catalog/detail routes own their scoped
-add handlers and supply draggable catalog previews to the canvas.
+add handlers for query-encoded insertion targets.
 There is no WallEditorProvider or WallViewportProvider/context. The URL owns
 `?breakpoint=sm|md|lg|xl`; the App-only Zustand viewport store owns measured width,
 with available choices derived from static `BREAKPOINTS`. PageLayout's
@@ -389,18 +388,16 @@ and global Brick deletion are ordinary App commands. Pure layout functions edit
 ordered arrays, and each command records the complete atomic change. Moves prune
 all empty containers in their affected Wall after editing; Brick deletion prunes
 only ancestors emptied by its Placement removals. Self-before moves do no cleanup.
-The Wall remains usable
-when empty; no pixel grid geometry or visibility state is persisted. Move drop
-eligibility counts Stacks that survive cleanup; catalog additions retain their
-existing capacity rules.
-Layout containers have no padding or gutters. Drag controls overlay the
-content. Layout moves use the separate drag grips.
+No pixel grid geometry or visibility state is persisted. Move validation counts
+Stacks that survive cleanup; catalog additions retain their existing capacity
+rules. Layout containers have no padding or gutters.
 `BrickAction` owns the top-right control surface for both Placements and catalog
 previews; `StackAction` owns the top-left Stack surface. They accept children and
-share `DragHandle`, leaving action behavior and selected/menu state with callers.
-Insertion boundaries appear only during dragging; the Wall renders
-no Add or plus buttons. Empty Rows/Stacks in initial scaffolds or local fixtures
-show drop placeholders; the applicable movement/deletion policy prunes them.
+leave action behavior and selected/menu state with callers. StackAction displays
+the Stack name. The Wall renders no Add or plus buttons, drag sources, drop
+targets, or insertion indicators. Empty Rows/Stacks in initial scaffolds or local
+fixtures retain their layout containers; the applicable movement/deletion policy
+prunes them.
 
 The hard replacement of the old layout tables is tracked in
 [Plan 039](../../../wiki/archive/plans/039-plan-wall-owned-layout-tree.md). Generation
@@ -408,7 +405,7 @@ request/revision checks and per-Placement spec updates remain independent of the
 structural tree. Runtime verification belongs to that plan.
 
 **Selected** means the Brick's edit form is open; **active** means DOM focus.
-Separate grip/menu controls leave links/forms interactive. Placements support
+Separate menu controls leave links/forms interactive. Placements support
 Edit and Delete Brick actions. App's initialized session and actor guards
 own persistence, errors, and authorization; no standalone Library session or
 host-binding Page factory remains.
@@ -422,13 +419,13 @@ uses the Form in its authenticated Brick detail drawer and stages complete state
 through `updateBrick`; Storybook uses the same Form with local Save/Cancel.
 Image's field groups fill the supplied column, with Save/Cancel aligned to its fields.
 
-Image also offers a single-file dropzone and picker for nonempty PNG, JPEG,
+Image also offers a single-file picker for nonempty PNG, JPEG,
 WebP, or SVG images up to 5 MiB. Selection uploads immediately; success changes
 only the draft Image URL until Save. Each host supplies
 `uploadImage(file, { signal }): Promise<string>` through `SWRConfig`.
 `ImageForm` reads that function with `useSWRConfig` and explicitly supplies it to
 `useSWRMutation`, which owns request pending/error state. Uploads start only from
-file-selection/drop handlers, with revalidation and cache population disabled.
+file-selection handlers, with revalidation and cache population disabled.
 `ImageUploadSWR.d.ts` augments SWR's exported `_internal` configuration interface
 with this optional field. Without an uploader, manual Image URL entry and Save
 remain available. No separate upload context, Effect service, layer or runner
@@ -439,7 +436,7 @@ response decoding. Storybook performs anonymous `POST /image/upload`; App's
 host performs `/upload` with its current site ID
 and fresh Clerk authorization. Both forward the form's AbortSignal into `fetch`,
 independently of Zerospin. Returned asset URLs remain publicly readable.
-Image retains file validation, local validation/save errors, picker/drop behavior,
+Image retains file validation, local validation/save errors, picker behavior,
 drafts, Save gating, and cancellation. Fields and Save stay disabled during
 upload. Cancel resets mutation state and separately aborts the request; leaving
 the brick also aborts it. Current-request guards suppress late results because
@@ -508,8 +505,10 @@ Markdown edits and canceled undo history. Leaving the Brick discards unsaved
 drafts. Changing the URL breakpoint selects a different Placement and remounts
 the form, discarding that draft and invalidating pending submissions.
 
-Native Meowdown controls retain formatting, selection, undo/redo, block dragging,
-and image resizing. Resizing writes width/height into a trailing Markdown comment.
+Native Meowdown controls retain formatting, selection, undo/redo,
+and image resizing. Drag/drop is blocked and block drag handles are disabled;
+table menus remain usable. Resizing writes width/height into a trailing Markdown
+comment.
 Portaled menus appear above the drawer; their link form cannot submit Article.
 Escape first dismisses an editor control or selection, then closes the drawer.
 `ArticleEditorControl` belongs to the editable module form; read-only previews

@@ -104,9 +104,25 @@ export function ArticleEditorControl(props: {
         value={subtitle}
         onChange={(event) => drawer.onSubtitleChange(event.target.value)}
       />
-      <div className="qrk-article-document">
+      <div
+        className="qrk-article-document"
+        onDragStartCapture={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+        }}
+        onDragOverCapture={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          event.dataTransfer.dropEffect = "none";
+        }}
+        onDropCapture={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+        }}
+      >
         <MeowdownEditor
           initialMarkdown={initialMarkdown}
+          blockHandle={false}
           mode="focus"
           handleRef={editorRef}
           onDocChange={handleDocChange}

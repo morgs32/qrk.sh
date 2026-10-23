@@ -1,21 +1,8 @@
-import { draggable } from "@atlaskit/pragmatic-drag-and-drop/adapter/element-adapter";
 import { Plus } from "lucide-react";
-import { useEffect, useRef } from "react";
 import { Button } from "../../components/ui/button";
-import { DragHandle } from "../../components/DragHandle";
 
-/** The catalog keeps interactive content; only this separate grip starts a drag. */
-export function WallModuleAction(props: { wallId: string; moduleId: string; onAdd?: () => void }) {
-  const { wallId, moduleId, onAdd } = props;
-  const gripRef = useRef<HTMLButtonElement>(null);
-  useEffect(() => {
-    const element = gripRef.current;
-    if (!element || onAdd !== undefined) return;
-    return draggable({
-      element,
-      getInitialData: () => ({ kind: "wall-module", wallId, moduleId }),
-    });
-  }, [wallId, moduleId, onAdd]);
+export function WallModuleAction(props: { moduleId: string; onAdd?: () => void }) {
+  const { moduleId, onAdd } = props;
   return onAdd ? (
     <Button
       aria-label={`Add ${moduleId} here`}
@@ -25,7 +12,5 @@ export function WallModuleAction(props: { wallId: string; moduleId: string; onAd
     >
       <Plus aria-hidden="true" />
     </Button>
-  ) : (
-    <DragHandle ref={gripRef} aria-label={`Drag ${moduleId} into Wall`} />
-  );
+  ) : null;
 }

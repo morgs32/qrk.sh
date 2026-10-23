@@ -15,8 +15,10 @@ Placement specs/revisions/generation remain separate records. Placement's direct
 `wallId` identifies its Wall and breakpoint. Canonical declarations and commands
 live in the QRK user aggregate; Wall and Brick bind directly to its Page table.
 
-Each new Page starts with four Walls, each with one Section and an empty Stack.
-Moves and Brick deletion prune empty Rows, Stacks, and Sections. Stack capacity
+Each new Page starts with four Walls whose layouts are `{ sections: [] }`.
+The first Brick drop creates the required Section, Stack, and Row. Existing
+persisted layouts are unchanged. Moves and Brick deletion prune empty Rows,
+Stacks, and Sections. Stack capacity
 is 1 / 2 / 3 / 4 per Section at sm / md / lg / xl, counted after move cleanup.
 Rows share available horizontal space subject to module minimum widths, with
 natural content height and no
@@ -68,6 +70,23 @@ Targeted catalog URLs open add
 mode without persisting a reservation. Cancelling/leaving/changing breakpoint
 clears that mode; stale or malformed targets refuse rather than append elsewhere.
 
+Drawer module previews are copy drag sources carrying
+`{ type: "drawer-brick", moduleId }`; saved Wall Bricks are not drag sources.
+The production Wall accepts these templates subject to module Page limits:
+
+- A compatible Row's top/bottom quarters create a Row before/after, shown by a
+  horizontal line across the Row. Its middle half inserts a Placement at the
+  hovered Brick's left/right boundary, shown by a vertical line.
+- An incompatible Row uses top/bottom halves to create a Row before/after.
+- An empty Row accepts its first Placement; exposed Stack background appends a
+  Row. Empty Row/Stack destinations highlight their existing area.
+- A Wall with no Sections highlights its remaining browser content area and
+  accepts its first Brick. Populated Walls expose no new Section/Stack targets
+  or layout shadows in this phase.
+
+Feedback and drop commands use the same stable insertion destination. Hover
+writes no model data; cancellation, outside drops, invalid source data, and stale
+destinations create nothing. A valid drop stages one `addBrick` command.
 Adding creates shared null Brick content and all four Placements atomically.
 The active Wall follows the target; other Walls append a new Row to the last
 Stack, creating missing parents when needed. A successful local stage opens the
@@ -83,13 +102,12 @@ Stable insertion anchors are validated before cleanup; self-before moves remain
 no-ops.
 
 Wall layout containers have zero padding and no gaps between adjacent content.
-Stack names overlay the layout. Empty persisted Rows/Stacks, including initial
-Page scaffolds, retain their layout containers until a move command cleans their
-Wall or deletion empties their ancestor path; spacing is not used to host controls.
-The production canvas and Storybook WallTree render saved layout with Edit and
-Delete controls. Drag sources, drop targets, grips, insertion indicators, and
-drop placeholders are removed. Backend add/move commands and their layout
-validation remain available independently of the canvas.
+Stack names overlay the layout. Empty persisted Rows/Stacks retain their layout
+containers until a move command cleans their Wall or deletion empties their
+ancestor path. The production canvas and Storybook WallTree render saved layout
+with Edit and Delete controls. Production PagePreview owns drawer drop targeting
+and insertion feedback; Storybook WallTree remains controlled presentation.
+Backend move commands remain available independently of the canvas.
 
 Selected means a Brick's edit form is open. Active means DOM focus, including
 keyboard focus. Controls appear on hover, focus, selection, and open menus, with

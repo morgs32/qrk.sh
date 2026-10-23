@@ -1,4 +1,5 @@
-import type { ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { draggable } from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
 
 import { BrickWrapper } from "../components/brick/BrickWrapper";
 import { BrickAction } from "../components/BrickAction";
@@ -13,6 +14,18 @@ export function ModulePreview(props: {
   moduleAction?: ReactNode;
 }) {
   const { brickModule, breakpoint, cardStyle, moduleLink, moduleAction } = props;
+  const previewRef = useRef<HTMLDivElement>(null);
+  const [dragging, setDragging] = useState(false);
+  useEffect(() => {
+    const element = previewRef.current;
+    if (element === null) throw new Error("Missing drawer Brick preview");
+    return draggable({
+      element,
+      getInitialData: () => ({ type: "drawer-brick", moduleId: brickModule.id }),
+      onDragStart: () => setDragging(true),
+      onDrop: () => setDragging(false),
+    });
+  }, [brickModule.id]);
   const maxPerPage = brickModule.maxPerPage;
   const view = brickModule.variants.default;
   const Component = view.component;
@@ -29,7 +42,21 @@ export function ModulePreview(props: {
           <p className="mb-3 mt-0 max-w-64 text-sm text-zinc-500">Limit: {maxPerPage} per page.</p>
         ) : null}
         <div
-          className={`brick-surface ${cardStyle ? "brick-surface-card" : "brick-surface-flat"} brick-hover-target group/brick relative shrink-0`}
+          ref={previewRef}
+          data-drawer-module-id={brickModule.id}
+          onMouseDownCapture={(event) => {
+            // Let the template drag take priority over interactive preview gestures.
+            event.stopPropagation();
+          }}
+          onPointerDownCapture={(event) => {
+            // Keep native image/link drags on the registered template surface.
+            event.currentTarget
+              .querySelectorAll<HTMLAnchorElement | HTMLImageElement>("a, img")
+              .forEach((child) => {
+                child.draggable = false;
+              });
+          }}
+          className={`brick-surface ${cardStyle ? "brick-surface-card" : "brick-surface-flat"} brick-hover-target group/brick relative shrink-0 cursor-grab ${dragging ? "opacity-40" : ""}`}
           style={{
             width: Math.min(view.defaultWidth, entry.previewWidth),
             minWidth: view.minWidth,

@@ -114,20 +114,7 @@ export const createPageV1 = makeAggregateContractVersion(createPage, {
         attributes: {
           pageId: id,
           breakpoint,
-          layout: {
-            sections: [
-              {
-                id: prefixId({ abbreviation: "sec" }, `${id}_${breakpoint}`),
-                stacks: [
-                  {
-                    id: prefixId({ abbreviation: "stk" }, `${id}_${breakpoint}`),
-                    name: "Stack",
-                    rows: [],
-                  },
-                ],
-              },
-            ],
-          },
+          layout: { sections: [] },
         },
       });
     }

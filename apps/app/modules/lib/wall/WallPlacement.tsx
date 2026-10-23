@@ -2,6 +2,7 @@ import { Menu } from "@base-ui/react/menu";
 import { Ellipsis } from "lucide-react";
 import { useState, type ComponentProps } from "react";
 import { cn } from "cn";
+import { DropIndicator } from "@atlaskit/pragmatic-drag-and-drop-react-drop-indicator/box";
 import { Button } from "../../components/ui/button";
 import { BrickAction } from "../../components/BrickAction";
 import type { WallTree } from "./WallTree";
@@ -12,14 +13,16 @@ export function WallPlacement(props: {
   >["sections"][number]["stacks"][number]["rows"][number]["placements"][number];
   scope: string;
   selected: boolean;
+  dropEdge?: "left" | "right" | null;
   onEditBrick: ComponentProps<typeof WallTree>["onEditBrick"];
   onRequestDelete: (brickId: string, triggerId: string) => void;
 }) {
-  const { placement, scope, selected, onEditBrick, onRequestDelete } = props;
+  const { placement, scope, selected, dropEdge, onEditBrick, onRequestDelete } = props;
   const [menuOpen, setMenuOpen] = useState(false);
   const triggerId = `${scope}-placement-menu-${placement.id}`;
   return (
     <div
+      data-wall-placement-id={placement.id}
       style={{ minWidth: placement.minWidth }}
       className={cn(
         "wall-placement group/brick relative flex-1 outline outline-1 -outline-offset-1 focus-within:outline-blue-500",
@@ -28,6 +31,15 @@ export function WallPlacement(props: {
         selected || menuOpen ? "outline-blue-500" : "outline-transparent hover:outline-zinc-300",
       )}
     >
+      {dropEdge && (
+        <span
+          aria-hidden="true"
+          data-wall-drop-indicator={dropEdge}
+          className="pointer-events-none absolute inset-y-0 inset-x-px z-30"
+        >
+          <DropIndicator edge={dropEdge} type="terminal-no-bleed" />
+        </span>
+      )}
       <BrickAction>
         <Menu.Root open={menuOpen} onOpenChange={setMenuOpen}>
           <Menu.Trigger

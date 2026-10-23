@@ -25,7 +25,6 @@ import { DropIndicator } from "@atlaskit/pragmatic-drag-and-drop-react-drop-indi
 import { isNonEmptySpec } from "@json-render/core";
 import { useEffect, useEffectEvent, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { GripVertical } from "lucide-react";
 import { pageV1 } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV1";
 import { siteV1 } from "@qrk.sh/zerospin/src/aggregates/user/models/site/SiteV1";
 import { brickV1 } from "@qrk.sh/zerospin/src/aggregates/user/models/brick/BrickV1";
@@ -38,6 +37,8 @@ import { useLiveQuery } from "@zerospin/react";
 import { Result, Schema } from "effect";
 
 import { Button } from "../../../../../../modules/components/ui/button";
+import { DragHandle } from "../../../../../../modules/components/DragHandle";
+import { StackAction } from "../../../../../../modules/components/StackAction";
 import { BrickWrapper } from "../../../../../../modules/components/brick/BrickWrapper";
 import { BREAKPOINTS } from "../../../../../../modules/lib/breakpoints";
 import { WallBreakpointPane } from "../../../../../../modules/lib/WallBreakpointPane";
@@ -470,21 +471,17 @@ export function PagePreview(props: { breakpoint: (typeof BREAKPOINTS)[number] })
                         className="group/stack relative min-h-12 min-w-0"
                       >
                         {stack.rows.some((row) => row.placements.length > 0) ? (
-                          <div className="absolute left-0 top-0 z-30 flex h-7 max-w-[calc(100%-3.5rem)] items-center gap-1 bg-background/95 text-xs text-muted-foreground opacity-0 transition-opacity group-hover/stack:opacity-100 group-focus-within/stack:opacity-100 group-data-[dragging=true]/wall:pointer-events-none group-data-[dragging=true]/wall:invisible motion-reduce:transition-none [@media(hover:none)]:opacity-100 [@media(pointer:coarse)]:opacity-100">
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              aria-label={`Drag Stack ${stack.id}`}
-                              data-stack-grip
-                              className="size-7 cursor-grab rounded-none p-0 active:cursor-grabbing"
-                            >
-                              <GripVertical className="size-4" aria-hidden="true" />
-                            </Button>
+                          <StackAction>
+                            <DragHandle aria-label={`Drag Stack ${stack.id}`} data-stack-grip />
                             <span className="min-w-0 truncate">{stack.name}</span>
-                          </div>
+                          </StackAction>
                         ) : null}
                         {stack.rows.map((row, index) => (
-                          <div key={row.id} data-wall-row={row.id} className="relative min-h-12 min-w-0">
+                          <div
+                            key={row.id}
+                            data-wall-row={row.id}
+                            className="relative min-h-12 min-w-0"
+                          >
                             <div className="flex min-w-0 items-start overflow-x-auto">
                               {row.placements.map((placement) => {
                                 const brick = placement.brick;

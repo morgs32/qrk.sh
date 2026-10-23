@@ -1,7 +1,8 @@
 import { draggable } from "@atlaskit/pragmatic-drag-and-drop/adapter/element-adapter";
-import { GripVertical, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { Button } from "../../components/ui/button";
+import { DragHandle } from "../../components/DragHandle";
 
 /** The catalog keeps interactive content; only this separate grip starts a drag. */
 export function WallModuleAction(props: { wallId: string; moduleId: string; onAdd?: () => void }) {
@@ -25,14 +26,6 @@ export function WallModuleAction(props: { wallId: string; moduleId: string; onAd
       <Plus aria-hidden="true" />
     </Button>
   ) : (
-    <Button
-      ref={gripRef}
-      aria-label={`Drag ${moduleId} into Wall`}
-      variant="ghost"
-      type="button"
-      className="size-7 cursor-grab rounded-none p-0 active:cursor-grabbing"
-    >
-      <GripVertical className="size-4" aria-hidden="true" />
-    </Button>
+    <DragHandle ref={gripRef} aria-label={`Drag ${moduleId} into Wall`} />
   );
 }

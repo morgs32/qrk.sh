@@ -1,6 +1,6 @@
 import type { ComponentProps } from "react";
-import { GripVertical } from "lucide-react";
-import { Button } from "../../components/ui/button";
+import { DragHandle } from "../../components/DragHandle";
+import { StackAction } from "../../components/StackAction";
 import { WallRow } from "./WallRow";
 import type { WallTree } from "./WallTree";
 
@@ -11,30 +11,20 @@ export function WallStack(props: {
   onEditBrick: ComponentProps<typeof WallTree>["onEditBrick"];
   onRequestDelete: ComponentProps<typeof WallRow>["onRequestDelete"];
 }) {
-  const {
-    stack,
-    scope,
-    selectedBrickId,
-    onEditBrick,
-    onRequestDelete,
-  } = props;
+  const { stack, scope, selectedBrickId, onEditBrick, onRequestDelete } = props;
   return (
     <div
       data-wall-stack={stack.id}
       className="group/stack relative min-w-0 outline outline-1 -outline-offset-1 outline-transparent hover:outline-zinc-200 focus-within:outline-zinc-200"
     >
-      <div className="absolute left-0 top-0 z-30 flex h-7 max-w-[calc(100%-3.5rem)] items-center gap-1 bg-background/95 text-xs text-muted-foreground opacity-0 transition-opacity group-hover/stack:opacity-100 group-focus-within/stack:opacity-100 group-data-[dragging=true]/wall:pointer-events-none group-data-[dragging=true]/wall:invisible motion-reduce:transition-none [@media(hover:none)]:opacity-100 [@media(pointer:coarse)]:opacity-100">
-        <Button
+      <StackAction>
+        <DragHandle
           id={`${scope}-stack-grip-${stack.id}`}
-          variant="ghost"
-          className="size-7 cursor-grab rounded-none p-0 active:cursor-grabbing"
           data-stack-grip
           aria-label={`Drag ${stack.name}`}
-        >
-          <GripVertical className="size-4" aria-hidden="true" />
-        </Button>
+        />
         <span className="min-w-0 truncate">{stack.name}</span>
-      </div>
+      </StackAction>
       {stack.rows.map((row) => (
         <WallRow
           key={row.id}

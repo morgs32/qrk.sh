@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 import { BrickWrapper } from "../components/brick/BrickWrapper";
+import { BrickAction } from "../components/BrickAction";
 import { BREAKPOINTS } from "./breakpoints";
 import { modulesHash } from "./modulesHash";
 
@@ -33,15 +34,13 @@ export function ModulePreview(props: {
         <div
           data-brick-surface=""
           data-card-style={cardStyle}
-          className="brick-hover-target group/module-preview relative shrink-0"
+          className="brick-hover-target group/brick relative shrink-0"
           style={{
             width: Math.min(view.defaultWidth, entry.previewWidth),
             minWidth: view.minWidth,
           }}
         >
-          <div className="absolute right-0 top-0 z-20 flex bg-background/95 opacity-0 shadow-sm transition-opacity group-hover/module-preview:opacity-100 group-focus-within/module-preview:opacity-100 motion-reduce:transition-none [@media(hover:none)]:opacity-100 [@media(pointer:coarse)]:opacity-100">
-            {moduleAction}
-          </div>
+          <BrickAction>{moduleAction}</BrickAction>
           <BrickWrapper
             className="brick-hover-surface"
             data-module-representative={brickModule.def.moduleId}

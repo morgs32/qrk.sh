@@ -395,6 +395,9 @@ eligibility counts Stacks that survive cleanup; catalog additions retain their
 existing capacity rules.
 Layout containers have no padding or gutters. Drag controls overlay the
 content. Layout moves use the separate drag grips.
+`BrickAction` owns the top-right control surface for both Placements and catalog
+previews; `StackAction` owns the top-left Stack surface. They accept children and
+share `DragHandle`, leaving action behavior and selected/menu state with callers.
 Insertion boundaries appear only during dragging; the Wall renders
 no Add or plus buttons. Empty Rows/Stacks in initial scaffolds or local fixtures
 show drop placeholders; the applicable movement/deletion policy prunes them.

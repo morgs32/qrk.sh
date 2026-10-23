@@ -1,7 +1,9 @@
 import { Menu } from "@base-ui/react/menu";
-import { Ellipsis, GripVertical } from "lucide-react";
+import { Ellipsis } from "lucide-react";
 import { useState, type ComponentProps } from "react";
 import { Button } from "../../components/ui/button";
+import { DragHandle } from "../../components/DragHandle";
+import { BrickAction } from "../../components/BrickAction";
 import type { WallTree } from "./WallTree";
 
 export function WallPlacement(props: {
@@ -22,19 +24,14 @@ export function WallPlacement(props: {
       data-selected={selected}
       data-menu-open={menuOpen}
       style={{ minWidth: placement.minWidth }}
-      className="group/placement relative flex-1 outline outline-1 -outline-offset-1 outline-transparent hover:outline-zinc-300 focus-within:outline-blue-500 data-[selected=true]:outline-blue-500 data-[menu-open=true]:outline-blue-500"
+      className="group/brick relative flex-1 outline outline-1 -outline-offset-1 outline-transparent hover:outline-zinc-300 focus-within:outline-blue-500 data-[selected=true]:outline-blue-500 data-[menu-open=true]:outline-blue-500"
     >
-      <div className="absolute right-0 top-0 z-20 flex bg-background/95 opacity-0 shadow-sm transition-opacity group-hover/placement:opacity-100 group-focus-within/placement:opacity-100 group-data-[selected=true]/placement:opacity-100 group-data-[menu-open=true]/placement:opacity-100 motion-reduce:transition-none [@media(hover:none)]:opacity-100 [@media(pointer:coarse)]:opacity-100">
-        <Button
+      <BrickAction>
+        <DragHandle
           id={`${scope}-placement-grip-${placement.id}`}
-          type="button"
-          variant="ghost"
           aria-label={`Drag Brick ${placement.brickId}`}
           data-placement-grip
-          className="size-7 cursor-grab rounded-none p-0 active:cursor-grabbing"
-        >
-          <GripVertical className="size-4" aria-hidden="true" />
-        </Button>
+        />
         <Menu.Root open={menuOpen} onOpenChange={setMenuOpen}>
           <Menu.Trigger
             id={triggerId}
@@ -62,7 +59,7 @@ export function WallPlacement(props: {
             </Menu.Positioner>
           </Menu.Portal>
         </Menu.Root>
-      </div>
+      </BrickAction>
       <div className="min-w-0 w-full">{placement.content}</div>
     </div>
   );

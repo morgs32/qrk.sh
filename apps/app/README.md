@@ -541,7 +541,13 @@ App supplies typed Router links to its
 `/modules/$moduleId` detail routes. The catalog lives at `/modules` under the
 page editor, with a **Bricks** breadcrumb and **Bricks** toolbar action.
 Normal catalog links remain browsing actions, with separate module drag grips.
-Catalog grips use the Wall's 28px ghost button and 16px grip icon at the top-right
+Catalog, Placement and Stack grips render the shared `DragHandle` component.
+`BrickAction` positions the catalog and Placement controls at the top-right and
+owns their hover/focus and selected/menu visibility. `StackAction` positions Stack
+controls at the top-left and hides them during Wall dragging. Both containers
+accept children; the Placement owns its dropdown and state, while the catalog
+supplies only its drag or targeted-add action.
+Catalog grips use its 28px ghost button and 16px grip icon at the top-right
 edge, with the same hover/focus reveal and touch visibility, without a dropdown.
 Drag a module grip from the catalog into the Wall to create its Brick. There are
 no Add controls in the Wall. Existing query-encoded targeted catalog URLs retain

@@ -18,7 +18,7 @@ import {
 } from "@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge";
 import { DropIndicator } from "@atlaskit/pragmatic-drag-and-drop-react-drop-indicator/box";
 import { isNonEmptySpec } from "@json-render/core";
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { brickV1 } from "@qrk.sh/zerospin/src/aggregates/user/models/brick/BrickV1";
 import { wallV1 } from "@qrk.sh/zerospin/src/aggregates/user/models/wall/WallV1";
 import { useLiveQuery } from "@zerospin/react";
@@ -48,6 +48,7 @@ export function WallEditor(props: {
 }) {
   const { wallId, selectedBrickId, onEditBrick, onBrickDeleted } = props;
   const wallRef = useRef<HTMLDivElement>(null);
+  const brickIndicatorRef = useRef<HTMLSpanElement>(null);
   const returnFocusId = useRef<string | null>(null);
   const scope = useId();
   const [deletingBrickId, setDeletingBrickId] = useState<string | null>(null);
@@ -295,6 +296,48 @@ export function WallEditor(props: {
     };
   }, [onEditBrick, session, wall]);
 
+  useLayoutEffect(() => {
+    const indicator = brickIndicatorRef.current;
+    const element = wallRef.current;
+    if (indicator === null || element === null || dropTarget?.kind !== "row") return;
+    const rowElement = element.querySelector<HTMLElement>(
+      `[data-wall-row-id="${CSS.escape(dropTarget.rowId)}"]`,
+    );
+    const placementElement = rowElement?.querySelector<HTMLElement>(
+      dropTarget.beforePlacementId === null
+        ? "[data-wall-placement-id]:last-child"
+        : `[data-wall-placement-id="${CSS.escape(dropTarget.beforePlacementId)}"]`,
+    );
+    if (!rowElement || !placementElement) {
+      indicator.hidden = true;
+      return;
+    }
+    const updateIndicator = () => {
+      if (!rowElement.isConnected || !placementElement.isConnected) {
+        indicator.hidden = true;
+        return;
+      }
+      const rowRect = rowElement.getBoundingClientRect();
+      const placementRect = placementElement.getBoundingClientRect();
+      indicator.style.left = `${placementRect.left - rowRect.left}px`;
+      indicator.style.top = `${placementRect.top - rowRect.top}px`;
+      indicator.style.width = `${placementRect.width}px`;
+      indicator.style.height = `${placementRect.height}px`;
+      indicator.hidden = false;
+    };
+    updateIndicator();
+    rowElement.addEventListener("scroll", updateIndicator, true);
+    window.addEventListener("resize", updateIndicator);
+    const resizeObserver = new ResizeObserver(updateIndicator);
+    resizeObserver.observe(rowElement);
+    resizeObserver.observe(placementElement);
+    return () => {
+      rowElement.removeEventListener("scroll", updateIndicator, true);
+      window.removeEventListener("resize", updateIndicator);
+      resizeObserver.disconnect();
+    };
+  }, [dropTarget, wall]);
+
   return (
     <>
       <div
@@ -316,7 +359,7 @@ export function WallEditor(props: {
                     <span className="min-w-0 truncate">{stack.name}</span>
                   </StackAction>
                 ) : null}
-                {stack.rows.map((row) => (
+                {stack.rows.map((row, rowIndex) => (
                   <div key={row.id} data-wall-row-id={row.id} className="relative min-w-0">
                     {dropTarget?.kind === "stack" &&
                       dropTarget.stackId === stack.id &&
@@ -324,7 +367,7 @@ export function WallEditor(props: {
                         <span
                           aria-hidden="true"
                           data-wall-drop-indicator="top"
-                          className="pointer-events-none absolute inset-x-0 inset-y-px z-30"
+                          className="pointer-events-none absolute inset-0 z-30"
                         >
                           <DropIndicator edge="top" type="terminal-no-bleed" />
                         </span>
@@ -341,16 +384,6 @@ export function WallEditor(props: {
                             key={placement.id}
                             scope={scope}
                             selected={brick.id === selectedBrickId}
-                            dropEdge={
-                              dropTarget?.kind === "row" && dropTarget.rowId === row.id
-                                ? dropTarget.beforePlacementId === placement.id
-                                  ? "left"
-                                  : dropTarget.beforePlacementId === null &&
-                                      row.placements.at(-1)?.id === placement.id
-                                    ? "right"
-                                    : null
-                                : null
-                            }
                             onEditBrick={onEditBrick}
                             onRequestDelete={(brickId, triggerId) => {
                               returnFocusId.current = triggerId;
@@ -385,20 +418,41 @@ export function WallEditor(props: {
                         );
                       })}
                     </div>
+                    {dropTarget?.kind === "row" &&
+                      dropTarget.rowId === row.id &&
+                      row.placements.length > 0 && (
+                        <span
+                          aria-hidden="true"
+                          className="pointer-events-none absolute inset-0 overflow-clip z-30"
+                        >
+                          <span
+                            ref={brickIndicatorRef}
+                            data-wall-drop-indicator={
+                              dropTarget.beforePlacementId === null ? "right" : "left"
+                            }
+                            className="absolute"
+                          >
+                            <DropIndicator
+                              edge={dropTarget.beforePlacementId === null ? "right" : "left"}
+                              type="terminal-no-bleed"
+                            />
+                          </span>
+                        </span>
+                      )}
+                    {rowIndex === stack.rows.length - 1 &&
+                      dropTarget?.kind === "stack" &&
+                      dropTarget.stackId === stack.id &&
+                      dropTarget.beforeRowId === null && (
+                        <span
+                          aria-hidden="true"
+                          data-wall-drop-indicator="bottom"
+                          className="pointer-events-none absolute inset-0 z-30"
+                        >
+                          <DropIndicator edge="bottom" type="terminal-no-bleed" />
+                        </span>
+                      )}
                   </div>
                 ))}
-                {stack.rows.length > 0 &&
-                  dropTarget?.kind === "stack" &&
-                  dropTarget.stackId === stack.id &&
-                  dropTarget.beforeRowId === null && (
-                    <span
-                      aria-hidden="true"
-                      data-wall-drop-indicator="bottom"
-                      className="pointer-events-none absolute inset-x-0 inset-y-px z-30"
-                    >
-                      <DropIndicator edge="bottom" type="terminal-no-bleed" />
-                    </span>
-                  )}
               </div>
             ))}
           </section>

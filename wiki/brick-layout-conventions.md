@@ -49,7 +49,7 @@ without mounting edit forms. Drops and deletion use ordinary commands and
 reactive queries rather than local fixture mutations.
 
 A placed Brick fills its Row cell, whose minimum width comes from its module.
-Each Row is a single flex scroll element.
+Each Row contains a flex scroll element and a sibling insertion-indicator overlay.
 It uses the containing Wall's logical breakpoint and Placement spec, regardless
 of cell width. Catalog
 preferred widths do not constrain placed content. Every module has a 320px
@@ -105,7 +105,13 @@ Stable insertion anchors are validated before cleanup; self-before moves remain
 no-ops.
 
 Wall layout containers have zero padding and no gaps between adjacent content.
-Stack names overlay the layout. Empty persisted Rows/Stacks retain their layout
+Drop indicators sit at content edges, and the final Row indicator anchors to
+the last Row rather than the stretched Stack.
+Brick insertion indicators render outside the Row's horizontal scrolling content,
+centered on measured Brick borders. The Row-owned overlay follows scrolling and
+resizing and clips to the Row viewport, so it neither widens the scroll area nor
+spills into neighboring Stacks. Drop targeting and commands are unchanged.
+Stack names overlay the layout, inset 1px inside the border. Empty persisted Rows/Stacks retain their layout
 containers until a move command cleans their Wall or deletion empties their
 ancestor path. Production PagePreview renders saved layout with Edit and Delete
 controls and owns drawer drop targeting and insertion feedback. The Wall Editor

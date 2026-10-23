@@ -22,6 +22,15 @@
   display: none;
 }
 
+[data-wall-drop-indicator] > div,
+[data-wall-drop-indicator] > div::before {
+  box-shadow: 0 0 0 1px white;
+}
+
+[data-wall-drop-indicator] > div::before {
+  background-color: white;
+}
+
 .qrk-responsive-insets {
   --qrk-inset-inline: 16px;
   --qrk-inset-block: 16px;
@@ -101,6 +110,15 @@
 /* Keep the preview surface stationary on hover. */
 .brick-hover-target > .brick-hover-surface {
   position: relative;
+}
+
+.brick-action [data-slot="button"] {
+  background-color: transparent;
+  color: inherit;
+}
+
+.brick-action [data-slot="button"]:hover {
+  background-color: #3f3f46;
 }
 
 .wall-placement:is(.is-selected, .is-menu-open) > .brick-action {

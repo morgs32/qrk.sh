@@ -376,6 +376,14 @@ saved Wall Bricks remain undraggable. Module Page limits apply before accepting
 any destination. Compatible Rows use top/bottom quarters for new Rows and their
 middle half for left/right Placement insertion. Incompatible Rows use top/bottom
 halves for new Rows. Horizontal/vertical lines mark Row/Placement insertion.
+Drop-indicator lines and terminals have a solid white outline for
+contrast against Brick content. Terminal circles have white-filled centers.
+Editor Rows and adjacent Bricks touch with no layout gaps. The final Row
+indicator anchors to the last Row rather than the stretched Stack.
+Brick insertion indicators render in a Row-owned overlay outside the horizontal
+scrolling content. They stay centered on measured Brick borders as the Row
+scrolls or resizes, and clip to its viewport without widening the scroll area
+or spilling into neighboring Stacks. Drop targeting and commands are unchanged.
 Empty Rows accept their first Placement; exposed Stack background appends a Row.
 A Wall without Sections highlights its available area and creates the first
 Section/Stack/Row on drop. Populated Walls have no new Section/Stack drop targets
@@ -419,15 +427,20 @@ only ancestors emptied by its Placement removals. Self-before moves do no cleanu
 No pixel grid geometry or visibility state is persisted. Move validation counts
 Stacks that survive cleanup; catalog additions retain their existing capacity
 rules. Layout containers have no padding or gutters.
-Each Row is a single flex scroll element. Editor styling uses
+Each Row contains a flex scroll element and a sibling insertion-indicator overlay.
+Editor styling uses
 `.brick-surface` with `.brick-surface-card` or `.brick-surface-flat`, and
 `.wall-placement` with `.is-selected` and `.is-menu-open`; Storybook scopes its
 Placement styling through `.wall-story .wall-placement`. These class hooks replace
 editor-owned data attributes. Library state, password-manager hints, and
 unrelated module attributes retain their owners.
 `BrickAction` owns the top-right control surface for both Placements and catalog
-previews; `StackAction` owns the top-left Stack surface. They accept children and
-leave action behavior and selected/menu state with callers. StackAction displays
+previews; `StackAction` owns the top-left Stack surface. Both sit 1px inside the
+border and use solid zinc-800 backgrounds with white text and icons. Buttons
+inside BrickActions have transparent backgrounds at rest and zinc-700 backgrounds
+on hover, retaining their keyboard focus feedback. This applies to placed-Brick
+menus and catalog action buttons. They accept children and leave action behavior
+and selected/menu state with callers. StackAction displays
 the Stack name. The Wall renders no Add or plus buttons. Empty persisted
 Rows/Stacks and local fixtures retain their layout containers; the applicable
 movement/deletion policy prunes them. Production PagePreview adds drop feedback

@@ -31,8 +31,11 @@ its breakpoint directly from its Wall.
 ## Frame and content rendering
 
 The shared `BrowserChrome` is a static frame accepting children, breakpoint,
-and previewWidth. It retains clipping, the 48px decorative browser bar, and the
-inset border; its dormant slide-animation lifecycle is removed. PageLayout owns
+and previewWidth. It retains clipping and the 48px decorative browser bar.
+A rounded 1px outer ring (`ring-zinc-400/50`) surrounds the whole frame without
+consuming layout width or covering the inner orange seams. The inset frame
+overlay and Wall stacking workaround are removed; the header divider remains.
+Its dormant slide-animation lifecycle is removed. PageLayout owns
 breakpoint fitting/selection. Only the URL-selected frame mounts the canvas.
 PageLayout's single `.wall-preview-viewport` root contains the editor scroll region with
 its drawer spacer, toolbar anchor, and Drawer as siblings. The inner
@@ -49,6 +52,8 @@ without mounting edit forms. Drops and deletion use ordinary commands and
 reactive queries rather than local fixture mutations.
 
 A placed Brick fills its Row cell, whose minimum width comes from its module.
+The cell adds 1px to that minimum for its two half-pixel insets, preserving the
+module's content minimum.
 Each Row contains a flex scroll element and a sibling insertion-indicator overlay.
 It uses the containing Wall's logical breakpoint and Placement spec, regardless
 of cell width. Catalog
@@ -104,11 +109,17 @@ containers remain untouched. Array order needs no sibling renumbering.
 Stable insertion anchors are validated before cleanup; self-before moves remain
 no-ops.
 
-Wall layout containers have zero padding and no gaps between adjacent content.
-Drop indicators sit at content edges, and the final Row indicator anchors to
-the last Row rather than the stretched Stack.
+The Wall background is light orange (`#E6AA80`, a 50% white tint of `#CC5500`), except for its existing empty-Wall
+drag highlight. Half-pixel padding on the content-height wrapper and each
+Placement creates condensed 1px gaps between Bricks and around the content.
+BrowserChrome's border is an outer ring, leaving the inner orange seams visible.
+There is no perimeter-border overlay or CSS gutter. Placed Bricks omit flat
+surface borders; catalog flat borders and card treatment remain.
+Target boxes still touch, so drop targeting is unchanged and indicators center
+on the shared seams. The final Row indicator anchors to the last Row rather
+than the stretched Stack.
 Brick insertion indicators render outside the Row's horizontal scrolling content,
-centered on measured Brick borders. The Row-owned overlay follows scrolling and
+centered on measured Placement boundaries. The Row-owned overlay follows scrolling and
 resizing and clips to the Row viewport, so it neither widens the scroll area nor
 spills into neighboring Stacks. Drop targeting and commands are unchanged.
 Stack names overlay the layout, inset 1px inside the border. Empty persisted Rows/Stacks retain their layout
@@ -122,6 +133,10 @@ Selected means a Brick's edit form is open. Active means DOM focus, including
 keyboard focus. Controls appear on hover, focus, selection, and open menus, with
 touch access. Edit/Delete menus are keyboard-accessible. The Delete confirmation
 supports cancellation and restores focus to its trigger or a surviving control.
+Placement interaction borders use a noninteractive `::after` overlay inset
+0.5px at z-index 19: white on hover, with blue-500 taking precedence for selection,
+an open menu, or keyboard focus. It paints above hovered content and below BrickActions while
+preserving the half-pixel padding, minimum widths, orange seams, and drop geometry.
 Container deletion, hiding, resizing, and production zoom remain outside the
 feature. The separate `/dev/page/<pageId>/<breakpoint>` route is removed; its
 historical implementation is recorded in

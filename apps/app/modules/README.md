@@ -378,10 +378,16 @@ middle half for left/right Placement insertion. Incompatible Rows use top/bottom
 halves for new Rows. Horizontal/vertical lines mark Row/Placement insertion.
 Drop-indicator lines and terminals have a solid white outline for
 contrast against Brick content. Terminal circles have white-filled centers.
-Editor Rows and adjacent Bricks touch with no layout gaps. The final Row
-indicator anchors to the last Row rather than the stretched Stack.
+The Wall background is light orange (`#E6AA80`, a 50% white tint of `#CC5500`), except for the existing empty-Wall
+drag highlight. A half-pixel inset on each Placement and the content-height Wall
+wrapper creates condensed 1px gaps between Bricks and around the content.
+BrowserChrome's border is an outer ring, leaving the inner orange seams visible.
+Each Placement adds 1px to its minimum width to preserve the module's content minimum.
+Target boxes still touch, and indicators stay centered on their shared seams.
+The final Row indicator anchors to the last Row rather than the stretched Stack.
+There is no perimeter-border overlay.
 Brick insertion indicators render in a Row-owned overlay outside the horizontal
-scrolling content. They stay centered on measured Brick borders as the Row
+scrolling content. They stay centered on measured Placement boundaries as the Row
 scrolls or resizes, and clip to its viewport without widening the scroll area
 or spilling into neighboring Stacks. Drop targeting and commands are unchanged.
 Empty Rows accept their first Placement; exposed Stack background appends a Row.
@@ -408,6 +414,9 @@ scroll anchoring/clamping and floating toolbar placement. ValidBreakpoint and
 PagePreview add no presentation wrappers; WallPreviewViewport is removed.
 BrowserChrome accepts only children, breakpoint, and previewWidth and keeps
 its clipped frame and decorative browser bar without a slide-animation lifecycle.
+A rounded 1px outer ring (`ring-zinc-400/50`) surrounds the entire frame without
+consuming layout width or covering the Wall's inner seams; no inset frame overlay
+or Wall stacking workaround remains. The browser-header divider is retained.
 Its `.wall-preview-scroll` remains separate from the editor scroll region.
 Reduced motion skips positional toolbar animation; drawer animation is unchanged.
 
@@ -426,14 +435,20 @@ all empty containers in their affected Wall after editing; Brick deletion prunes
 only ancestors emptied by its Placement removals. Self-before moves do no cleanup.
 No pixel grid geometry or visibility state is persisted. Move validation counts
 Stacks that survive cleanup; catalog additions retain their existing capacity
-rules. Layout containers have no padding or gutters.
+rules. Rows have no CSS gutters; half-pixel content and Placement insets create
+the condensed gaps.
 Each Row contains a flex scroll element and a sibling insertion-indicator overlay.
-Editor styling uses
-`.brick-surface` with `.brick-surface-card` or `.brick-surface-flat`, and
+Placed Bricks use `.brick-surface`, retaining `.brick-surface-card` for card
+treatment but omitting `.brick-surface-flat`; catalog flat borders are retained.
+Editor styling also uses
 `.wall-placement` with `.is-selected` and `.is-menu-open`; Storybook scopes its
 Placement styling through `.wall-story .wall-placement`. These class hooks replace
 editor-owned data attributes. Library state, password-manager hints, and
 unrelated module attributes retain their owners.
+Each Placement draws its interaction border with a noninteractive `::after`
+overlay, inset 0.5px at z-index 19. Hover uses white; selection, an open menu,
+and keyboard focus take precedence with blue-500. The border paints above hovered content and
+below BrickActions without changing the orange seams or drop geometry.
 `BrickAction` owns the top-right control surface for both Placements and catalog
 previews; `StackAction` owns the top-left Stack surface. Both sit 1px inside the
 border and use solid zinc-800 backgrounds with white text and icons. Buttons

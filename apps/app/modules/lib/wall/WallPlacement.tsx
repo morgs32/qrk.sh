@@ -15,15 +15,18 @@ export function WallPlacement(props: {
   const { placement, scope, selected, onEditBrick, onRequestDelete } = props;
   const [menuOpen, setMenuOpen] = useState(false);
   const triggerId = `${scope}-placement-menu-${placement.id}`;
+  // Adjacent half-pixel insets form a 1px gap while drop targets keep touching.
   return (
     <div
       data-wall-placement-id={placement.id}
-      style={{ minWidth: placement.minWidth }}
+      style={{ minWidth: placement.minWidth + 1 }}
       className={cn(
-        "wall-placement group/brick relative flex-1 outline outline-1 -outline-offset-1 focus-within:outline-blue-500",
+        "wall-placement group/brick relative flex-1 p-[0.5px] after:pointer-events-none after:absolute after:inset-[0.5px] after:z-[19] after:border after:content-[''] focus-within:after:border-blue-500",
         selected && "is-selected",
         menuOpen && "is-menu-open",
-        selected || menuOpen ? "outline-blue-500" : "outline-transparent hover:outline-zinc-300",
+        selected || menuOpen
+          ? "after:border-blue-500"
+          : "after:border-transparent [&:hover:not(:focus-within)]:after:border-white",
       )}
     >
       <BrickAction>

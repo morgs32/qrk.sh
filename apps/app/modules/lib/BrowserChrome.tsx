@@ -13,7 +13,7 @@ export function BrowserChrome(props: {
   return (
     <div
       className={cn(
-        "relative mx-auto flex h-[var(--wall-frame-height)] flex-col overflow-clip",
+        "relative mx-auto flex h-[var(--wall-frame-height)] flex-col overflow-clip ring-1 ring-zinc-400/50",
         isMobile ? "rounded-2xl" : "rounded-xl",
       )}
       style={{ width: previewWidth }}
@@ -43,13 +43,6 @@ export function BrowserChrome(props: {
         </div>
       </div>
       {children}
-      <div
-        aria-hidden="true"
-        className={cn(
-          "pointer-events-none absolute inset-0 z-10 shadow-[inset_0_0_0_1px_rgba(161,161,170,0.5)]",
-          isMobile ? "rounded-2xl" : "rounded-xl",
-        )}
-      />
     </div>
   );
 }

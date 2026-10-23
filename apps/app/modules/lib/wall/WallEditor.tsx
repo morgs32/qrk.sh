@@ -343,120 +343,124 @@ export function WallEditor(props: {
       <div
         ref={wallRef}
         tabIndex={-1}
-        className={`@container relative flex min-h-full min-w-0 flex-col bg-background outline-none ${dropTarget?.kind === "wall" ? "bg-blue-50 outline-2 outline-blue-500 -outline-offset-2" : ""}`}
+        className={`@container relative flex min-h-full min-w-0 flex-col outline-none ${dropTarget?.kind === "wall" ? "bg-blue-50 outline-2 outline-blue-500 -outline-offset-2" : "bg-[#E6AA80]"}`}
         aria-label={`${wall.breakpoint} Wall editor`}
       >
-        {sections.map((section) => (
-          <section key={section.id} className="relative grid auto-cols-fr grid-flow-col">
-            {section.stacks.map((stack) => (
-              <div
-                key={stack.id}
-                data-wall-stack-id={stack.id}
-                className={`group/stack relative min-h-12 min-w-0 ${stack.rows.length === 0 && dropTarget?.kind === "stack" && dropTarget.stackId === stack.id ? "bg-blue-50 outline outline-blue-500 -outline-offset-2" : ""}`}
-              >
-                {stack.rows.some((row) => row.placements.length > 0) ? (
-                  <StackAction>
-                    <span className="min-w-0 truncate">{stack.name}</span>
-                  </StackAction>
-                ) : null}
-                {stack.rows.map((row, rowIndex) => (
-                  <div key={row.id} data-wall-row-id={row.id} className="relative min-w-0">
-                    {dropTarget?.kind === "stack" &&
-                      dropTarget.stackId === stack.id &&
-                      dropTarget.beforeRowId === row.id && (
-                        <span
-                          aria-hidden="true"
-                          data-wall-drop-indicator="top"
-                          className="pointer-events-none absolute inset-0 z-30"
+        {sections.length > 0 && (
+          <div className="relative min-w-0 shrink-0 p-[0.5px]">
+            {sections.map((section) => (
+              <section key={section.id} className="relative grid auto-cols-fr grid-flow-col">
+                {section.stacks.map((stack) => (
+                  <div
+                    key={stack.id}
+                    data-wall-stack-id={stack.id}
+                    className={`group/stack relative min-h-12 min-w-0 ${stack.rows.length === 0 && dropTarget?.kind === "stack" && dropTarget.stackId === stack.id ? "bg-blue-50 outline outline-blue-500 -outline-offset-2" : ""}`}
+                  >
+                    {stack.rows.some((row) => row.placements.length > 0) ? (
+                      <StackAction>
+                        <span className="min-w-0 truncate">{stack.name}</span>
+                      </StackAction>
+                    ) : null}
+                    {stack.rows.map((row, rowIndex) => (
+                      <div key={row.id} data-wall-row-id={row.id} className="relative min-w-0">
+                        {dropTarget?.kind === "stack" &&
+                          dropTarget.stackId === stack.id &&
+                          dropTarget.beforeRowId === row.id && (
+                            <span
+                              aria-hidden="true"
+                              data-wall-drop-indicator="top"
+                              className="pointer-events-none absolute inset-0 z-30"
+                            >
+                              <DropIndicator edge="top" type="terminal-no-bleed" />
+                            </span>
+                          )}
+                        <div
+                          className={`relative flex min-h-12 min-w-0 items-start overflow-x-auto ${row.placements.length === 0 && dropTarget?.kind === "row" && dropTarget.rowId === row.id ? "bg-blue-50 outline outline-blue-500 -outline-offset-2" : ""}`}
                         >
-                          <DropIndicator edge="top" type="terminal-no-bleed" />
-                        </span>
-                      )}
-                    <div
-                      className={`relative flex min-h-12 min-w-0 items-start overflow-x-auto ${row.placements.length === 0 && dropTarget?.kind === "row" && dropTarget.rowId === row.id ? "bg-blue-50 outline outline-blue-500 -outline-offset-2" : ""}`}
-                    >
-                      {row.placements.map((placement) => {
-                        const brick = placement.brick;
-                        const module = modulesHash[brick.moduleId];
-                        const Component = module.component;
-                        return (
-                          <WallPlacement
-                            key={placement.id}
-                            scope={scope}
-                            selected={brick.id === selectedBrickId}
-                            onEditBrick={onEditBrick}
-                            onRequestDelete={(brickId, triggerId) => {
-                              returnFocusId.current = triggerId;
-                              setDeletingBrickId(brickId);
-                            }}
-                            placement={{
-                              id: placement.id,
-                              brickId: brick.id,
-                              minWidth: module.variants[placement.variantId].minWidth,
-                              content:
-                                brick.state === null || isNonEmptySpec(placement.spec) ? (
-                                  <div
-                                    className={`brick-surface ${wall.page.site.cardStyle ? "brick-surface-card" : "brick-surface-flat"} brick-hover-target relative min-w-0`}
-                                  >
-                                    <BrickWrapper className="brick-hover-surface h-auto">
-                                      <Component
-                                        state={brick.state}
-                                        variantId={placement.variantId}
-                                        spec={
-                                          isNonEmptySpec(placement.spec)
-                                            ? placement.spec
-                                            : module.variants[placement.variantId].spec
-                                        }
-                                      />
-                                    </BrickWrapper>
-                                  </div>
-                                ) : (
-                                  <p role="alert">Invalid Brick spec</p>
-                                ),
-                            }}
-                          />
-                        );
-                      })}
-                    </div>
-                    {dropTarget?.kind === "row" &&
-                      dropTarget.rowId === row.id &&
-                      row.placements.length > 0 && (
-                        <span
-                          aria-hidden="true"
-                          className="pointer-events-none absolute inset-0 overflow-clip z-30"
-                        >
-                          <span
-                            ref={brickIndicatorRef}
-                            data-wall-drop-indicator={
-                              dropTarget.beforePlacementId === null ? "right" : "left"
-                            }
-                            className="absolute"
-                          >
-                            <DropIndicator
-                              edge={dropTarget.beforePlacementId === null ? "right" : "left"}
-                              type="terminal-no-bleed"
-                            />
-                          </span>
-                        </span>
-                      )}
-                    {rowIndex === stack.rows.length - 1 &&
-                      dropTarget?.kind === "stack" &&
-                      dropTarget.stackId === stack.id &&
-                      dropTarget.beforeRowId === null && (
-                        <span
-                          aria-hidden="true"
-                          data-wall-drop-indicator="bottom"
-                          className="pointer-events-none absolute inset-0 z-30"
-                        >
-                          <DropIndicator edge="bottom" type="terminal-no-bleed" />
-                        </span>
-                      )}
+                          {row.placements.map((placement) => {
+                            const brick = placement.brick;
+                            const module = modulesHash[brick.moduleId];
+                            const Component = module.component;
+                            return (
+                              <WallPlacement
+                                key={placement.id}
+                                scope={scope}
+                                selected={brick.id === selectedBrickId}
+                                onEditBrick={onEditBrick}
+                                onRequestDelete={(brickId, triggerId) => {
+                                  returnFocusId.current = triggerId;
+                                  setDeletingBrickId(brickId);
+                                }}
+                                placement={{
+                                  id: placement.id,
+                                  brickId: brick.id,
+                                  minWidth: module.variants[placement.variantId].minWidth,
+                                  content:
+                                    brick.state === null || isNonEmptySpec(placement.spec) ? (
+                                      <div
+                                        className={`brick-surface ${wall.page.site.cardStyle ? "brick-surface-card" : ""} brick-hover-target relative min-w-0`}
+                                      >
+                                        <BrickWrapper className="brick-hover-surface h-auto">
+                                          <Component
+                                            state={brick.state}
+                                            variantId={placement.variantId}
+                                            spec={
+                                              isNonEmptySpec(placement.spec)
+                                                ? placement.spec
+                                                : module.variants[placement.variantId].spec
+                                            }
+                                          />
+                                        </BrickWrapper>
+                                      </div>
+                                    ) : (
+                                      <p role="alert">Invalid Brick spec</p>
+                                    ),
+                                }}
+                              />
+                            );
+                          })}
+                        </div>
+                        {dropTarget?.kind === "row" &&
+                          dropTarget.rowId === row.id &&
+                          row.placements.length > 0 && (
+                            <span
+                              aria-hidden="true"
+                              className="pointer-events-none absolute inset-0 overflow-clip z-30"
+                            >
+                              <span
+                                ref={brickIndicatorRef}
+                                data-wall-drop-indicator={
+                                  dropTarget.beforePlacementId === null ? "right" : "left"
+                                }
+                                className="absolute"
+                              >
+                                <DropIndicator
+                                  edge={dropTarget.beforePlacementId === null ? "right" : "left"}
+                                  type="terminal-no-bleed"
+                                />
+                              </span>
+                            </span>
+                          )}
+                        {rowIndex === stack.rows.length - 1 &&
+                          dropTarget?.kind === "stack" &&
+                          dropTarget.stackId === stack.id &&
+                          dropTarget.beforeRowId === null && (
+                            <span
+                              aria-hidden="true"
+                              data-wall-drop-indicator="bottom"
+                              className="pointer-events-none absolute inset-0 z-30"
+                            >
+                              <DropIndicator edge="bottom" type="terminal-no-bleed" />
+                            </span>
+                          )}
+                      </div>
+                    ))}
                   </div>
                 ))}
-              </div>
+              </section>
             ))}
-          </section>
-        ))}
+          </div>
+        )}
       </div>
       <Dialog.Root
         open={deletingBrickId !== null}

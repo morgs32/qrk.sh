@@ -3,13 +3,13 @@
 import { RedirectToSignIn, useAuth, useUser } from "@clerk/react";
 import { ZerospinError } from "@zerospin/error";
 import { ConnectedAggregateInitializer } from "@zerospin/react";
-import { makeApplicationSharedWorker } from "@zerospin/browser/makeApplicationSharedWorker";
 import { signature } from "@qrk.sh/zerospin/src/signature";
-import { Effect } from "effect";
-import { useEffect, type ReactNode } from "react";
+import { Cause, Effect, Exit } from "effect";
+import { useEffect, type ComponentProps, type ReactNode } from "react";
 import { toast } from "sonner";
 import AppError from "@/app/error";
 import { getClerkToken } from "@/lib/getClerkToken";
+import { startupTiming } from "@/lib/startupTiming";
 import workerUrl from "@/zerospin/node.worker?sharedworker&url";
 import { userApplicationLayer } from "@/zerospin/userApplicationLayer";
 import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
@@ -19,6 +19,10 @@ export default function UserLayout(props: { children: ReactNode }) {
   const { children } = props;
   const { isLoaded, user } = useUser();
   const { getToken } = useAuth();
+  useEffect(() => startupTiming.mountUserLayout(), []);
+  useEffect(() => {
+    if (isLoaded) startupTiming.clerkReady(user !== null && user !== undefined);
+  }, [isLoaded, user]);
   if (!isLoaded) return null;
   if (user === null || user === undefined) return <RedirectToSignIn />;
 
@@ -28,31 +32,54 @@ export default function UserLayout(props: { children: ReactNode }) {
     <ConnectedAggregateInitializer
       key={clerkUserId}
       definition={userSessionDefinition}
-      sharedWorker={userSharedWorker}
+      sharedWorkerUrl={workerUrl}
       credentialsSchema={signature}
       layer={userApplicationLayer}
-      renderError={(error) => <AppError error={error} />}
+      renderError={(error) => <UserStartupFailure error={error} />}
       aggregateId={aggregateId}
       expectedClaims={{ aggregateId, clerkUserId }}
       getCredentials={Effect.fn("App.getCredentials")(function* () {
-        const sessionToken = yield* getClerkToken({ getToken });
-        if (sessionToken === null) {
-          return yield* new ZerospinError({
-            code: "user-session-token-unavailable",
-            message: "The Clerk session token could not be loaded",
-          });
-        }
-        return { sessionToken };
+        const acquisition = startupTiming.credentialsStarted();
+        const credentials = Effect.gen(function* () {
+          const sessionToken = yield* getClerkToken({ getToken });
+          if (sessionToken === null) {
+            return yield* new ZerospinError({
+              code: "user-session-token-unavailable",
+              message: "The Clerk session token could not be loaded",
+            });
+          }
+          return { sessionToken };
+        });
+        if (!import.meta.env.DEV) return yield* credentials;
+        return yield* credentials.pipe(
+          Effect.withSpan("app.credentials.acquire"),
+          Effect.onExit((exit) =>
+            Effect.sync(() => {
+              startupTiming.credentialsCompleted({
+                acquisition,
+                outcome: Exit.isSuccess(exit)
+                  ? "ready"
+                  : Cause.hasInterruptsOnly(exit.cause)
+                    ? "cancelled"
+                    : "failed",
+                ...(Exit.isFailure(exit) ? { error: Cause.squash(exit.cause) } : {}),
+              });
+            }),
+          ),
+        );
       })}
     >
-      {({ session, isLoaded }) =>
-        isLoaded ? (
-          <UserUI session={session}>
-            <UserSessionFailures />
-            {children}
-          </UserUI>
-        ) : null
-      }
+      {({ session, isLoaded }) => (
+        <>
+          <UserStartupDiagnostics session={session} />
+          {isLoaded ? (
+            <UserUI session={session}>
+              <UserSessionFailures />
+              {children}
+            </UserUI>
+          ) : null}
+        </>
+      )}
     </ConnectedAggregateInitializer>
   );
 }
@@ -68,7 +95,22 @@ function UserSessionFailures() {
   return null;
 }
 
-function userSharedWorker(props: { name: string }) {
-  const { name } = props;
-  return makeApplicationSharedWorker(workerUrl, { name });
+function UserStartupDiagnostics(props: { session: ComponentProps<typeof UserUI>["session"] }) {
+  const { session } = props;
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    const observe = () => {
+      const state = session.store.getState();
+      startupTiming.observeSession({ session, ...state });
+    };
+    observe();
+    return session.store.subscribe(observe);
+  }, [session]);
+  return null;
+}
+
+function UserStartupFailure(props: { error: unknown }) {
+  const { error } = props;
+  useEffect(() => startupTiming.failed(error), [error]);
+  return <AppError error={error} />;
 }

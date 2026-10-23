@@ -347,8 +347,9 @@ identity, layout membership, and spec; it stores no pixel dimensions, `gridItem`
 ## App-owned persisted editor
 
 App's user aggregate owns the final Page and directly referenced Wall/Brick
-models and separate Placement records. A Page has sm/md/lg/xl Walls;
-`Wall.layout` owns ordered Section, named Stack, and Row nodes. Rows list
+models and separate Placement records. A new Page has sm/md/lg/xl Walls with
+`layout: { sections: [] }`; existing layouts are preserved. `Wall.layout` owns
+ordered Section, named Stack, and Row nodes. Rows list
 Placement IDs side by side. The nodes retain stable IDs without separate tables
 or numeric positions. Brick content is shared across all four Walls. Placements
 retain stable identities, direct `wallId`, and per-width specs/revisions/generation.
@@ -366,6 +367,25 @@ canvas's direct Wall query and layout projection. The
 URL-selected Wall renders inside BrowserChrome with SiteHeader, with existing
 WallPlacement edit/delete controls. Module catalog/detail routes own their scoped
 add handlers for query-encoded insertion targets.
+Drawer `ModulePreview` templates are copy drag sources carrying
+`{ type: "drawer-brick", moduleId }`. Their desktop native drag preview copies the rendered
+Brick and uses the library's pointer offset (16px horizontally, 8px vertically)
+to leave insertion feedback visible. PagePreview owns production drop targeting;
+saved Wall Bricks remain undraggable. Module Page limits apply before accepting
+any destination. Compatible Rows use top/bottom quarters for new Rows and their
+middle half for left/right Placement insertion. Incompatible Rows use top/bottom
+halves for new Rows. Horizontal/vertical lines mark Row/Placement insertion.
+Empty Rows accept their first Placement; exposed Stack background appends a Row.
+A Wall without Sections highlights its available area and creates the first
+Section/Stack/Row on drop. Populated Walls have no new Section/Stack drop targets
+or layout shadows in this phase.
+
+Hover feedback remains local. One accepted drop stages one `addBrick`, creating
+one shared null Brick and four Placements atomically. The active Wall follows the
+destination; the other Walls append a Row to the last Stack, creating missing
+parents. Successful local staging opens the Brick form. Cancellation, outside
+drops, invalid source data, and stale destinations create nothing.
+
 There is no WallEditorProvider or WallViewportProvider/context. The URL owns
 `?breakpoint=sm|md|lg|xl`; the App-only Zustand viewport store owns measured width,
 with available choices derived from static `BREAKPOINTS`. PageLayout's
@@ -383,11 +403,13 @@ Its `.wall-preview-scroll` remains separate from the editor scroll region.
 Reduced motion skips positional toolbar animation; drawer animation is unchanged.
 
 The Wall Editor story uses the existing in-memory MockAggregateInitializer and
-UserUI, seeds Wall layouts plus separate Placement records, and renders WallTree
-with host-local queries/commands. Its memory router has a canonical breakpoint
-search value, and its width control/measurement remains local to the story. It
-uses neither the App width store nor the production guard and does not mount
-PagePreview's adopted development canvas. Shared wall presentation components
+UserUI, seeds Wall layouts plus separate Placement records, and renders the
+production PagePreview above a Bricks Drawer containing ModuleFilmstrip. Its
+memory router redirects Brick-detail navigation back to the Wall, so dragging
+keeps the drawer visible without mounting edit forms. Breakpoint search and
+width control/measurement remain local to the story; it uses neither the App
+width store nor the production guard. Storybook supplies the public Clerk key
+from the App environment for PagePreview's SiteHeader provider. Shared wall presentation components
 import no App store or router. New-Brick creation, layout moves,
 and global Brick deletion are ordinary App commands. Pure layout functions edit
 ordered arrays, and each command records the complete atomic change. Moves prune
@@ -405,10 +427,10 @@ unrelated module attributes retain their owners.
 `BrickAction` owns the top-right control surface for both Placements and catalog
 previews; `StackAction` owns the top-left Stack surface. They accept children and
 leave action behavior and selected/menu state with callers. StackAction displays
-the Stack name. The Wall renders no Add or plus buttons, drag sources, drop
-targets, or insertion indicators. Empty Rows/Stacks in initial scaffolds or local
-fixtures retain their layout containers; the applicable movement/deletion policy
-prunes them.
+the Stack name. The Wall renders no Add or plus buttons. Empty persisted
+Rows/Stacks and local fixtures retain their layout containers; the applicable
+movement/deletion policy prunes them. Production PagePreview adds drop feedback
+to the existing containers; the Wall Editor story exercises the same PagePreview.
 
 The hard replacement of the old layout tables is tracked in
 [Plan 039](../../../wiki/archive/plans/039-plan-wall-owned-layout-tree.md). Generation

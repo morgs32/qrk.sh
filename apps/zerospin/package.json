@@ -2,6 +2,10 @@
   "name": "@qrk.sh/zerospin",
   "private": true,
   "type": "module",
+  "exports": {
+    "./system": "./src/system.ts",
+    "./src/*": "./src/*.ts"
+  },
   "scripts": {
     "dev": "portless",
     "dev:app": "zerospin dev --port ${PORT:-8788}",
@@ -12,22 +16,22 @@
     "@json-render/core": "^0.20.0",
     "@json-render/react": "^0.20.0",
     "@remix-run/route-pattern": "^0.22.1",
-    "@zerospin/core": "30.0.0",
-    "@zerospin/error": "30.0.0",
-    "@zerospin/logger": "30.0.0",
-    "@zerospin/sdk": "30.0.0",
-    "@zerospin/shapes": "30.0.0",
-    "@zerospin/zod": "30.0.0",
+    "@zerospin/core": "32.0.1",
+    "@zerospin/error": "32.0.1",
+    "@zerospin/logger": "32.0.1",
+    "@zerospin/sdk": "32.0.1",
+    "@zerospin/shapes": "32.0.1",
+    "@zerospin/zod": "32.0.1",
     "capnweb": "^0.12.0",
     "effect": "4.0.2",
     "es-toolkit": "^1.52.0",
-    "system-worker": "30.0.0"
+    "system-worker": "32.0.1"
   },
   "devDependencies": {
     "@effect/vitest": "4.0.2",
     "@types/node": "^25.5.2",
-    "@zerospin/cli": "30.0.0",
-    "@zerospin/dev-worker": "30.0.0",
+    "@zerospin/cli": "32.0.1",
+    "@zerospin/dev-worker": "32.0.1",
     "cloudflare": "^6.1.0",
     "drizzle-orm": "npm:@zerospin/drizzle-orm@1.0.0-rc.5-qrk.3",
     "typescript": "^6.0.2",

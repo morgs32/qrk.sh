@@ -1,0 +1,37 @@
+{
+  "name": "@qrk.sh/admin",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "portless",
+    "dev:app": "vp dev --host 127.0.0.1 --port ${PORT:-10002} --strictPort",
+    "build": "vp build",
+    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.node.json",
+    "lint": "vp lint . --react-plugin --jsx-a11y-plugin --deny-warnings",
+    "format": "vp fmt .",
+    "format:check": "vp fmt . --check",
+    "preview": "vp preview --host 127.0.0.1 --port ${PORT:-10012} --strictPort"
+  },
+  "dependencies": {
+    "@zerospin/system-diagrams": "32.0.1",
+    "react": "19.2.7",
+    "react-dom": "19.2.7"
+  },
+  "devDependencies": {
+    "@qrk.sh/zerospin": "workspace:*",
+    "@types/node": "25.5.2",
+    "@types/react": "19.2.17",
+    "@types/react-dom": "19.2.3",
+    "@vitejs/plugin-react": "6.0.3",
+    "@zerospin/sdk": "32.0.1",
+    "jiti": "2.7.0",
+    "typescript": "6.0.2",
+    "vite": "npm:@voidzero-dev/vite-plus-core@1.0.0",
+    "vite-plus": "1.0.0"
+  },
+  "portless": {
+    "name": "admin.qrk",
+    "script": "dev:app",
+    "proxy": true
+  }
+}

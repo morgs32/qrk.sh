@@ -1,13 +1,15 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import { ClerkProvider } from "@clerk/react";
 import { SpeedInsights } from "@vercel/speed-insights/react";
 import { MotionConfig } from "framer-motion";
 import { Toaster } from "@/components/ui/sonner";
+import { startupTiming } from "@/lib/startupTiming";
 
 export default function App(props: { children: ReactNode }) {
   const { children } = props;
+  useEffect(() => startupTiming.observeDocument(), []);
   const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
   if (!publishableKey) throw new Error("NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY is required");
   const webOrigin = process.env.NEXT_PUBLIC_WEB_ORIGIN;

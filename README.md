@@ -85,10 +85,10 @@ See [Modules](apps/app/modules/README.md) and [App](apps/app/README.md).
    On the first registry bootstrap, install, build, verify, and publish the
    release in Zerospin before installing QRK. Follow Zerospin's package release
    instructions. Existing registry storage survives restarts. A fresh checkout
-   requires the running registry with the locked `30.0.0` packages; hosted
+   requires the running registry with the locked `32.0.1` packages; hosted
    distribution and deployment-machine bootstrap are not configured here.
 
-2. Start the four application development servers through Portless:
+2. Start the five application development servers through Portless:
 
    ```bash
    pnpm dev
@@ -97,19 +97,22 @@ See [Modules](apps/app/modules/README.md) and [App](apps/app/README.md).
 3. Open [https://qrk.localhost/](https://qrk.localhost/).
 
 The root `portless.json` uses Portless's native monorepo discovery with the
-`dev:app` script. Only Web, App, API, and Zerospin expose that
+`dev:app` script. Only Web, App, Admin, API, and Zerospin expose that
 script, so Storybooks do not start. Each app's `dev` script runs
 `portless`; `dev:app` holds its server command. Package-level `portless` metadata
 owns its hostname. Portless selects an unused internal frontend port; API and
-Zerospin keep ports 8787 and 8788. Portless starts the four processes;
+Zerospin keep ports 8787 and 8788. Portless starts the five processes;
 Nx development targets have no startup dependencies.
 
 | App      | Development URL                                           | Direct fallback port |
 | -------- | --------------------------------------------------------- | -------------------- |
 | Web      | [qrk.localhost](https://qrk.localhost/)                   | 10000                |
 | App      | [app.qrk.localhost](https://app.qrk.localhost/)           | 10001                |
+| Admin    | [admin.qrk.localhost](https://admin.qrk.localhost/)       | 10002                |
 | API      | [api.qrk.localhost](https://api.qrk.localhost/)           | 8787                 |
 | Zerospin | [zerospin.qrk.localhost](https://zerospin.qrk.localhost/) | 8788                 |
+
+Admin displays system diagrams from metadata projected at startup/build time; restart or rebuild Admin after declaration changes. It runs locally without authentication.
 
 Web has no `web.` prefix. Sign in through Web; `/replace` redirects to the
 authenticated username at `https://app.qrk.localhost`. App is served
@@ -134,9 +137,8 @@ maintainer has authorized erasing this system's obsolete data. Source migration
 and storage reset completion are tracked separately.
 
 App's `ConnectedAggregateInitializer` receives its pure `userSessionDefinition`,
-`userApplicationLayer`, credentials schema and stable SharedWorker factory directly.
-The factory uses `makeApplicationSharedWorker` to bind the authored `node.worker.ts`
-artifact to the connected session.
+`userApplicationLayer`, credentials schema and authored `sharedWorkerUrl` directly.
+Zerospin validates the `node.worker.ts` artifact and constructs its SharedWorker.
 Zerospin chooses its name from the runtime version and persistent session identity.
 App uses Vite's `?sharedworker&url` import for the authored worker
 and `@zerospin/browser/sqlite.wasm?url` for the matching installed SQLite asset.

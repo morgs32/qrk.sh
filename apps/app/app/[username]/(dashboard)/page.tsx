@@ -5,7 +5,7 @@ import { UnderlinedLink } from "@qrk.sh/web/components/UnderlinedLink";
 
 import { makeId, stageAggregateSessionCommand } from "@zerospin/sdk/browser";
 
-import { useState } from "react";
+import { useLayoutEffect, useState } from "react";
 import { Schema } from "effect";
 import { toast } from "sonner";
 import { useLiveQuery } from "@zerospin/react";
@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/input-group";
 import { UserUI } from "@/zerospin/UserUI";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
+import { startupTiming } from "@/lib/startupTiming";
 
 const ParamsSchema = Schema.Struct({
   username: Schema.String,
@@ -58,6 +59,10 @@ export default function UsernameDashboardPage() {
       });
     },
   });
+
+  useLayoutEffect(() => {
+    startupTiming.dashboardCommitted(user !== undefined);
+  }, [session, user]);
 
   if (user === undefined) {
     return <p role="alert">User not found</p>;

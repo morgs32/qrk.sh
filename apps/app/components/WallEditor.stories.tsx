@@ -260,9 +260,7 @@ function WallStoryContent(props: { availableWidth: number | null }) {
                       content:
                         brick.state === null || isNonEmptySpec(placement.spec) ? (
                           <div
-                            data-brick-surface=""
-                            data-card-style={siteRow.cardStyle}
-                            className="brick-hover-target relative min-w-0"
+                            className={`brick-surface ${siteRow.cardStyle ? "brick-surface-card" : "brick-surface-flat"} brick-hover-target relative min-w-0`}
                           >
                             <BrickWrapper className="brick-hover-surface h-auto w-full min-w-0">
                               <Component
@@ -358,8 +356,8 @@ function WallEditorStory(props: { width: number; rowHeight: number; emptyWall: b
     });
   });
   return (
-    <div data-wall-story="" style={{ width }}>
-      <style>{`[data-wall-story] [data-wall-placement] { min-height: ${rowHeight}px; }`}</style>
+    <div className="wall-story" style={{ width }}>
+      <style>{`.wall-story .wall-placement { min-height: ${rowHeight}px; }`}</style>
       <MockAggregateInitializer
         definition={userSessionDefinition}
         claims={claims}
@@ -430,17 +428,7 @@ export const ZoomedOut: StoryObj<typeof meta> = {
             wrapperStyle={{ width: 512, height: 320 }}
             contentStyle={{ width: 1024, height: 640 }}
           >
-            <WallBreakpointPane
-              breakpoint="lg"
-              previewWidth={1024}
-              isActive
-              isOutgoing={false}
-              isOnStage
-              isTransitioning={false}
-              direction={0}
-              reducedMotion
-              onOutgoingComplete={() => {}}
-            >
+            <WallBreakpointPane breakpoint="lg" previewWidth={1024}>
               <div className="min-h-0 flex-1 overflow-auto bg-background p-8">
                 <Story />
               </div>

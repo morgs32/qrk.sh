@@ -1,6 +1,7 @@
 import { Menu } from "@base-ui/react/menu";
 import { Ellipsis } from "lucide-react";
 import { useState, type ComponentProps } from "react";
+import { cn } from "cn";
 import { Button } from "../../components/ui/button";
 import { BrickAction } from "../../components/BrickAction";
 import type { WallTree } from "./WallTree";
@@ -19,11 +20,13 @@ export function WallPlacement(props: {
   const triggerId = `${scope}-placement-menu-${placement.id}`;
   return (
     <div
-      data-wall-placement={placement.id}
-      data-selected={selected}
-      data-menu-open={menuOpen}
       style={{ minWidth: placement.minWidth }}
-      className="group/brick relative flex-1 outline outline-1 -outline-offset-1 outline-transparent hover:outline-zinc-300 focus-within:outline-blue-500 data-[selected=true]:outline-blue-500 data-[menu-open=true]:outline-blue-500"
+      className={cn(
+        "wall-placement group/brick relative flex-1 outline outline-1 -outline-offset-1 focus-within:outline-blue-500",
+        selected && "is-selected",
+        menuOpen && "is-menu-open",
+        selected || menuOpen ? "outline-blue-500" : "outline-transparent hover:outline-zinc-300",
+      )}
     >
       <BrickAction>
         <Menu.Root open={menuOpen} onOpenChange={setMenuOpen}>

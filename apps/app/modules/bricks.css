@@ -1,6 +1,6 @@
 @import "mapbox-gl/dist/mapbox-gl.css";
 
-[data-wall-preview-viewport] {
+.wall-preview-viewport {
   --wall-preview-top-gap: 32px;
   --wall-preview-toolbar-height: 38px;
   --wall-preview-toolbar-gap: 24px;
@@ -10,7 +10,7 @@
   --wall-frame-height: calc(100dvh - var(--wall-preview-top-gap) - var(--wall-preview-bottom-gap));
 }
 
-[data-wall-breakpoint] > [data-site-right-scroll] {
+.wall-preview-scroll {
   min-height: 0;
   flex: 1;
   overflow-x: clip;
@@ -18,7 +18,7 @@
   scrollbar-width: none;
 }
 
-[data-wall-breakpoint] > [data-site-right-scroll]::-webkit-scrollbar {
+.wall-preview-scroll::-webkit-scrollbar {
   display: none;
 }
 
@@ -74,12 +74,12 @@
   --ring: oklch(0.552 0.016 285.938);
 }
 
-[data-brick-surface] {
+.brick-surface {
   --brick-edge: 1px;
 }
 
 /* Shared strokes occupy the same pixels; content keeps its own clipping. */
-[data-brick-surface][data-card-style="false"]::before {
+.brick-surface-flat::before {
   content: "";
   position: absolute;
   inset: 0;
@@ -89,7 +89,7 @@
   pointer-events: none;
 }
 
-[data-brick-surface][data-card-style="true"] > .brick-hover-surface {
+.brick-surface-card > .brick-hover-surface {
   border-radius: 8px;
   background: white;
   box-shadow:
@@ -103,21 +103,8 @@
   position: relative;
 }
 
-/* Paint the selection border above opaque module content without catching input. */
-.brick-hover-target > .brick-hover-surface::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  z-index: 20;
-  box-shadow: inset 0 0 0 calc(var(--brick-hover-active, 0) * 2px) #282824;
-  pointer-events: none;
-}
-
-.brick-hover-target[data-selected="true"] {
-  --brick-hover-active: 1;
-
-  z-index: 1;
+.wall-placement:is(.is-selected, .is-menu-open) > .brick-action {
+  opacity: 1;
 }
 
 @media (hover: hover) and (pointer: fine) {

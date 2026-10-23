@@ -107,10 +107,8 @@ export function Drawer(props: {
     <motion.div
       ref={surface}
       key={`${side}-drawer`}
-      data-drawer={side}
       role="dialog"
       aria-label={ariaLabel}
-      data-state={open === undefined ? undefined : open ? "open" : "closed"}
       aria-hidden={open === false}
       inert={open === false}
       onFocusCapture={() => {

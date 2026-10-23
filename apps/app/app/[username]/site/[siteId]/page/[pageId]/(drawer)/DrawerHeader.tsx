@@ -96,10 +96,7 @@ export function DrawerHeader() {
   const moduleLabel = moduleId === undefined ? undefined : modulesHash[moduleId].label;
 
   return (
-    <header
-      data-testid="drawer-navbar"
-      className="flex h-full min-w-0 shrink-0 items-center gap-4 overflow-x-auto whitespace-nowrap px-4 pr-16"
-    >
+    <header className="flex h-full min-w-0 shrink-0 items-center gap-4 overflow-x-auto whitespace-nowrap px-4 pr-16">
       {isSiteSettings || isPageSettings ? (
         <div className="flex min-w-0 items-center gap-2">
           {isSiteSettings ? (

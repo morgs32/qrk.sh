@@ -208,7 +208,6 @@ export function ModulePlayground(props: {
                           entry={entry}
                           moduleState={moduleState}
                           cardStyle={cardStyle}
-                          moduleId={moduleId}
                           specs={specs}
                           className={index === 0 ? undefined : "mt-10"}
                         />
@@ -216,7 +215,7 @@ export function ModulePlayground(props: {
                     </OrderedBody>
                   </OrderedSection>
                   <OrderedSection className="mt-10" label="Brick Definition">
-                    <div className="overflow-auto bg-white py-4" data-testid="module-data-result">
+                    <div className="overflow-auto bg-white py-4">
                       <JsonView
                         shouldExpandNode={collapseAllNested}
                         data={{ ...brick.def, state: moduleState }}

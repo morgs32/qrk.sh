@@ -80,10 +80,8 @@ export function BrickDetail() {
     navigationPending.current = false;
     currentPlacementId.current = placementId;
     const unsubscribe = router.subscribe("onBeforeNavigate", (event) => {
-      if (
-        !event.pathChanged &&
-        event.fromLocation?.searchStr === event.toLocation.searchStr
-      ) return;
+      if (!event.pathChanged && event.fromLocation?.searchStr === event.toLocation.searchStr)
+        return;
       navigationPending.current = true;
       setEditorEpoch((epoch) => epoch + 1);
     });
@@ -128,14 +126,14 @@ export function BrickDetail() {
         entry === undefined ||
         view === undefined ||
         spec === undefined ? (
-          <div className="px-6 pt-6" data-testid="brick-not-found">
+          <div className="px-6 pt-6">
             <h1 className="mb-2 mt-8 text-4xl tracking-tight">Brick not found</h1>
             <p className="text-muted-foreground">
               This brick is not available in this page's current session.
             </p>
           </div>
         ) : (
-          <section data-testid="brick-detail-pane">
+          <section>
             {Form !== undefined ? (
               <div className="mx-auto mt-8 w-full max-w-3xl px-6">
                 <Form
@@ -156,7 +154,8 @@ export function BrickDetail() {
                     });
                   }}
                   onCancel={() => {
-                    if (navigationPending.current || currentPlacementId.current !== placement.id) return;
+                    if (navigationPending.current || currentPlacementId.current !== placement.id)
+                      return;
                     setEditorEpoch((epoch) => epoch + 1);
                   }}
                 />
@@ -164,18 +163,13 @@ export function BrickDetail() {
             ) : (
               <div className="mt-8 overflow-auto">
                 <div
-                  data-brick-surface=""
-                  data-card-style={site.cardStyle}
-                  className="brick-hover-target relative shrink-0"
+                  className={`brick-surface ${site.cardStyle ? "brick-surface-card" : "brick-surface-flat"} brick-hover-target relative shrink-0`}
                   style={{
                     width: Math.min(view.defaultWidth, entry.previewWidth),
                     minWidth: view.minWidth,
                   }}
                 >
-                  <BrickWrapper
-                    className="brick-hover-surface"
-                    data-testid="selected-brick-preview"
-                  >
+                  <BrickWrapper className="brick-hover-surface">
                     <BrickComponent
                       variantId={placement.variantId}
                       state={brickRow.state}

@@ -158,47 +158,41 @@ export default function PageLayout(props: { children: ReactNode }) {
 
   return (
     <SWRConfig value={{ uploadImage }}>
-      <div data-wall-preview-viewport className="flex h-full flex-col overflow-hidden">
+      <div className="wall-preview-viewport relative flex h-full min-h-0 min-w-0 flex-col overflow-hidden">
         <title>
           {pageTitle === "" ? `[Editing] ${siteName}` : `[Editing] ${siteName} - ${pageTitle}`}
         </title>
-        <div data-editor-split className="relative min-h-0 flex-1 overflow-hidden">
-          <div className="relative h-full min-h-0 min-w-0 overflow-hidden">
-            <div
-              ref={scrollRef}
-              data-testid="preview-region"
-              className="relative h-full min-h-0 min-w-0 overflow-x-hidden overflow-y-auto pt-[var(--wall-preview-top-gap)] pb-[var(--wall-preview-bottom-gap)]"
-            >
-              <div className="relative">
-                <MainColumns />
-              </div>
-              <div ref={drawerSpace} data-editor-drawer-space aria-hidden />
-            </div>
-            <div
-              className="pointer-events-none fixed inset-x-0 z-80 flex justify-center px-2"
-              style={{
-                bottom: drawerOpen
-                  ? "calc(50dvh + var(--wall-preview-toolbar-gap))"
-                  : "var(--wall-preview-toolbar-gap)",
-                transition: reducedMotion ? "none" : "bottom 300ms cubic-bezier(0, 0, 0.2, 1)",
-              }}
-            >
-              <Toolbars />
-            </div>
+        <div
+          ref={scrollRef}
+          className="relative h-full min-h-0 min-w-0 overflow-x-hidden overflow-y-auto pt-[var(--wall-preview-top-gap)] pb-[var(--wall-preview-bottom-gap)]"
+        >
+          <div className="relative">
+            <MainColumns />
           </div>
-          <Drawer
-            side="bottom"
-            open={drawerOpen}
-            animated={
-              drawerOpen ||
-              (typeof document !== "undefined" &&
-                typeof document.startViewTransition === "function")
-            }
-            aria-label="Workspace drawer"
-          >
-            {breakpoint === undefined ? null : children}
-          </Drawer>
+          <div ref={drawerSpace} aria-hidden />
         </div>
+        <div
+          className="pointer-events-none fixed inset-x-0 z-80 flex justify-center px-2"
+          style={{
+            bottom: drawerOpen
+              ? "calc(50dvh + var(--wall-preview-toolbar-gap))"
+              : "var(--wall-preview-toolbar-gap)",
+            transition: reducedMotion ? "none" : "bottom 300ms cubic-bezier(0, 0, 0.2, 1)",
+          }}
+        >
+          <Toolbars />
+        </div>
+        <Drawer
+          side="bottom"
+          open={drawerOpen}
+          animated={
+            drawerOpen ||
+            (typeof document !== "undefined" && typeof document.startViewTransition === "function")
+          }
+          aria-label="Workspace drawer"
+        >
+          {breakpoint === undefined ? null : children}
+        </Drawer>
       </div>
     </SWRConfig>
   );

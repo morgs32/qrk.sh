@@ -37,7 +37,7 @@ export default function ModuleRoute() {
 
   if (Result.isFailure(decoded) || Result.isFailure(decodedPageId)) {
     return (
-      <div className="p-6" data-testid="module-not-found">
+      <div className="p-6">
         <h1>Module not found</h1>
       </div>
     );
@@ -146,16 +146,10 @@ function ModuleRouteBody(props: {
                   <div>
                     <p className="m-0 mb-2 font-mono text-neutral-500">Component</p>
                     <div
-                      data-brick-surface=""
-                      data-card-style={site.cardStyle}
-                      className="brick-hover-target relative shrink-0"
+                      className={`brick-surface ${site.cardStyle ? "brick-surface-card" : "brick-surface-flat"} brick-hover-target relative shrink-0`}
                       style={{ width: previewWidth, minWidth: view.minWidth }}
                     >
-                      <BrickWrapper
-                        className="brick-hover-surface"
-                        data-brick-full-view={brickModule.def.moduleId}
-                        data-testid="component-preview"
-                      >
+                      <BrickWrapper className="brick-hover-surface">
                         <Component state={brickModule.defaultState} />
                       </BrickWrapper>
                     </div>
@@ -163,16 +157,10 @@ function ModuleRouteBody(props: {
                   <div>
                     <p className="m-0 mb-2 font-mono text-neutral-500">JsonRender</p>
                     <div
-                      data-brick-surface=""
-                      data-card-style={site.cardStyle}
-                      className="brick-hover-target relative shrink-0"
+                      className={`brick-surface ${site.cardStyle ? "brick-surface-card" : "brick-surface-flat"} brick-hover-target relative shrink-0`}
                       style={{ width: previewWidth, minWidth: view.minWidth }}
                     >
-                      <BrickWrapper
-                        className="brick-hover-surface"
-                        data-brick-full-view={brickModule.def.moduleId}
-                        data-testid="json-render-preview"
-                      >
+                      <BrickWrapper className="brick-hover-surface">
                         <JsonRender
                           variantId="default"
                           state={brickModule.defaultState}

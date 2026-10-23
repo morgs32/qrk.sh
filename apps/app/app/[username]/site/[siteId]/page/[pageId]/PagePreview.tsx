@@ -69,102 +69,87 @@ export function PagePreview(props: { breakpoint: (typeof BREAKPOINTS)[number] })
   }
 
   return (
-    <div className="w-full" data-testid="page-preview">
-      <div className="relative w-full" data-testid="page-preview-layout">
-        <WallBreakpointPane
-          breakpoint={breakpoint.id}
-          previewWidth={breakpoint.previewWidth}
-          isActive
-          isOutgoing={false}
-          isOnStage
-          isTransitioning={false}
-          direction={0}
-          reducedMotion={false}
-          onOutgoingComplete={() => {}}
+    <>
+      <WallBreakpointPane breakpoint={breakpoint.id} previewWidth={breakpoint.previewWidth}>
+        <div
+          className="wall-preview-scroll min-h-0 flex-1 overflow-y-auto bg-white"
+          role="region"
+          aria-label={`${breakpoint.id} page preview`}
         >
-          <div
-            className="min-h-0 flex-1 overflow-y-auto bg-white"
-            data-site-right-scroll
-            role="region"
-            aria-label={`${breakpoint.id} page preview`}
-          >
-            <div className="@container grid min-h-full grid-rows-[auto_1fr]">
-              <SiteHeader />
-              <div
-                ref={wallRef}
-                data-wall-editor={wall.id}
-                tabIndex={-1}
-                className="@container relative flex min-h-80 min-w-0 flex-col bg-background outline-none"
-                aria-label={`${breakpoint.id} Wall editor`}
-              >
-                {sections.map((section) => (
-                  <section key={section.id} className="relative grid auto-cols-fr grid-flow-col">
-                    {section.stacks.map((stack) => (
-                      <div key={stack.id} className="group/stack relative min-h-12 min-w-0">
-                        {stack.rows.some((row) => row.placements.length > 0) ? (
-                          <StackAction>
-                            <span className="min-w-0 truncate">{stack.name}</span>
-                          </StackAction>
-                        ) : null}
-                        {stack.rows.map((row) => (
-                          <div key={row.id} className="relative min-h-12 min-w-0">
-                            <div className="flex min-w-0 items-start overflow-x-auto">
-                              {row.placements.map((placement) => {
-                                const brick = placement.brick;
-                                const module = modulesHash[brick.moduleId];
-                                const Component = module.component;
-                                return (
-                                  <WallPlacement
-                                    key={placement.id}
-                                    scope={scope}
-                                    selected={brick.id === selectedBrickId}
-                                    onEditBrick={editBrick}
-                                    onRequestDelete={(brickId, triggerId) => {
-                                      returnFocusId.current = triggerId;
-                                      setDeletingBrickId(brickId);
-                                    }}
-                                    placement={{
-                                      id: placement.id,
-                                      brickId: brick.id,
-                                      minWidth: module.variants[placement.variantId].minWidth,
-                                      content:
-                                        brick.state === null || isNonEmptySpec(placement.spec) ? (
-                                          <div
-                                            data-brick-surface=""
-                                            data-card-style={wall.page.site.cardStyle}
-                                            className="brick-hover-target relative min-w-0"
-                                          >
-                                            <BrickWrapper className="brick-hover-surface h-auto">
-                                              <Component
-                                                state={brick.state}
-                                                variantId={placement.variantId}
-                                                spec={
-                                                  isNonEmptySpec(placement.spec)
-                                                    ? placement.spec
-                                                    : module.variants[placement.variantId].spec
-                                                }
-                                              />
-                                            </BrickWrapper>
-                                          </div>
-                                        ) : (
-                                          <p role="alert">Invalid Brick spec</p>
-                                        ),
-                                    }}
-                                  />
-                                );
-                              })}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ))}
-                  </section>
-                ))}
-              </div>
+          <div className="@container grid min-h-full grid-rows-[auto_1fr]">
+            <SiteHeader />
+            <div
+              ref={wallRef}
+              tabIndex={-1}
+              className="@container relative flex min-h-80 min-w-0 flex-col bg-background outline-none"
+              aria-label={`${breakpoint.id} Wall editor`}
+            >
+              {sections.map((section) => (
+                <section key={section.id} className="relative grid auto-cols-fr grid-flow-col">
+                  {section.stacks.map((stack) => (
+                    <div key={stack.id} className="group/stack relative min-h-12 min-w-0">
+                      {stack.rows.some((row) => row.placements.length > 0) ? (
+                        <StackAction>
+                          <span className="min-w-0 truncate">{stack.name}</span>
+                        </StackAction>
+                      ) : null}
+                      {stack.rows.map((row) => (
+                        <div
+                          key={row.id}
+                          className="relative flex min-h-12 min-w-0 items-start overflow-x-auto"
+                        >
+                          {row.placements.map((placement) => {
+                            const brick = placement.brick;
+                            const module = modulesHash[brick.moduleId];
+                            const Component = module.component;
+                            return (
+                              <WallPlacement
+                                key={placement.id}
+                                scope={scope}
+                                selected={brick.id === selectedBrickId}
+                                onEditBrick={editBrick}
+                                onRequestDelete={(brickId, triggerId) => {
+                                  returnFocusId.current = triggerId;
+                                  setDeletingBrickId(brickId);
+                                }}
+                                placement={{
+                                  id: placement.id,
+                                  brickId: brick.id,
+                                  minWidth: module.variants[placement.variantId].minWidth,
+                                  content:
+                                    brick.state === null || isNonEmptySpec(placement.spec) ? (
+                                      <div
+                                        className={`brick-surface ${wall.page.site.cardStyle ? "brick-surface-card" : "brick-surface-flat"} brick-hover-target relative min-w-0`}
+                                      >
+                                        <BrickWrapper className="brick-hover-surface h-auto">
+                                          <Component
+                                            state={brick.state}
+                                            variantId={placement.variantId}
+                                            spec={
+                                              isNonEmptySpec(placement.spec)
+                                                ? placement.spec
+                                                : module.variants[placement.variantId].spec
+                                            }
+                                          />
+                                        </BrickWrapper>
+                                      </div>
+                                    ) : (
+                                      <p role="alert">Invalid Brick spec</p>
+                                    ),
+                                }}
+                              />
+                            );
+                          })}
+                        </div>
+                      ))}
+                    </div>
+                  ))}
+                </section>
+              ))}
             </div>
           </div>
-        </WallBreakpointPane>
-      </div>
+        </div>
+      </WallBreakpointPane>
       <Dialog.Root
         open={deletingBrickId !== null}
         onOpenChange={(open) => {
@@ -220,6 +205,6 @@ export function PagePreview(props: { breakpoint: (typeof BREAKPOINTS)[number] })
           </Dialog.Popup>
         </Dialog.Portal>
       </Dialog.Root>
-    </div>
+    </>
   );
 }

@@ -1,6 +1,6 @@
 # Brick preview and editor conventions
 
-**updated:** 2026-10-22
+**updated:** 2026-10-23
 
 ## App owns saved editing
 
@@ -28,9 +28,16 @@ its breakpoint directly from its Wall.
 
 ## Frame and content rendering
 
-The shared `WallBreakpointPane` retains the 48px decorative browser bar,
-breakpoint fitting/selection, and reduced-motion behavior. Only the URL-selected
-frame mounts the canvas. App's `PagePreview` queries the Wall with separate
+The shared `WallBreakpointPane` is a static frame accepting children, breakpoint,
+and previewWidth. It retains clipping, the 48px decorative browser bar, and the
+inset border; its dormant slide-animation lifecycle is removed. PageLayout owns
+breakpoint fitting/selection. Only the URL-selected frame mounts the canvas.
+PageLayout's single `.wall-preview-viewport` root contains the editor scroll region with
+its drawer spacer, toolbar anchor, and Drawer as siblings. The inner
+`.wall-preview-scroll` remains a separate scroll owner. MainColumns and PagePreview
+add no presentation wrappers. Drawer spacing, scroll anchoring, toolbar
+positioning, and drawer animation keep their existing behavior.
+App's `PagePreview` queries the Wall with separate
 Placements/Bricks through `UserUI.useSession()` and resolves layout references
 through `makeWallLayoutView`. App initializes a connected session; Storybook
 initializes a real local mock with complete seed resources and renders the
@@ -39,6 +46,7 @@ control supply route/visual inputs; editing and deletion use ordinary commands
 and reactive queries rather than local fixture mutations.
 
 A placed Brick fills its Row cell, whose minimum width comes from its module.
+Each Row is a single flex scroll element.
 It uses the containing Wall's logical breakpoint and Placement spec, regardless
 of cell width. Catalog
 preferred widths do not constrain placed content. Every module has a 320px

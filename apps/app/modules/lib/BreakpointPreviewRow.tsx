@@ -8,14 +8,13 @@ import { modulesHash } from "./modulesHash";
 
 export function BreakpointPreviewRow(props: {
   entry: (typeof BREAKPOINTS)[number];
-  moduleId: keyof typeof modulesHash;
   brick: (typeof modulesHash)[keyof typeof modulesHash];
   moduleState: unknown;
   cardStyle: boolean;
   className?: string;
   specs: Record<(typeof BREAKPOINTS)[number]["id"], Spec>;
 }) {
-  const { entry, moduleId, brick, moduleState, cardStyle, className, specs } = props;
+  const { entry, brick, moduleState, cardStyle, className, specs } = props;
   const maxPerPage = brick.maxPerPage;
   const view = brick.variants.default;
   const Component = view.component;
@@ -32,16 +31,10 @@ export function BreakpointPreviewRow(props: {
           <div>
             <p className="m-0 mb-2 font-mono text-neutral-500">Component</p>
             <div
-              data-brick-surface=""
-              data-card-style={cardStyle}
-              className="brick-hover-target relative shrink-0"
+              className={`brick-surface ${cardStyle ? "brick-surface-card" : "brick-surface-flat"} brick-hover-target relative shrink-0`}
               style={{ width: previewWidth, minWidth: view.minWidth }}
             >
-              <BrickWrapper
-                className="brick-hover-surface"
-                data-module-brick={moduleId}
-                data-testid="component-preview"
-              >
+              <BrickWrapper className="brick-hover-surface">
                 <Component state={moduleState} />
               </BrickWrapper>
             </div>
@@ -49,16 +42,10 @@ export function BreakpointPreviewRow(props: {
           <div>
             <p className="m-0 mb-2 font-mono text-neutral-500">JsonRender</p>
             <div
-              data-brick-surface=""
-              data-card-style={cardStyle}
-              className="brick-hover-target relative shrink-0"
+              className={`brick-surface ${cardStyle ? "brick-surface-card" : "brick-surface-flat"} brick-hover-target relative shrink-0`}
               style={{ width: previewWidth, minWidth: view.minWidth }}
             >
-              <BrickWrapper
-                className="brick-hover-surface"
-                data-module-brick={moduleId}
-                data-testid="json-render-preview"
-              >
+              <BrickWrapper className="brick-hover-surface">
                 <JsonRender variantId="default" state={moduleState} spec={specs[entry.id]} />
               </BrickWrapper>
             </div>

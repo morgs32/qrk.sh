@@ -23,7 +23,6 @@ export function SiteHeader() {
   });
   return (
     <header
-      data-testid="site-navbar"
       className={cn(
         "qrk-responsive-insets z-50 flex h-16 shrink-0 items-center justify-between border-b border-border bg-background [padding-inline:var(--qrk-inset-inline)]",
         site?.stickyNavbar && "sticky top-0",

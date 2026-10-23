@@ -108,7 +108,6 @@ export function Modules() {
                 insertion: search.insertion,
               })}
               resetScroll={false}
-              data-module-link={brickModule.id}
             >
               {brickModule.label}
             </Link>

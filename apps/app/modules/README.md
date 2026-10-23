@@ -373,9 +373,14 @@ with available choices derived from static `BREAKPOINTS`. PageLayout's
 and replaces a missing/non-fitting URL choice after measurement. Below 360px it
 shows insufficient space without choosing a fallback Wall. Width growth enables
 choices while keeping the current URL selection. The separate development URL is
-removed. PageLayout directly owns the scroll region, open/closed drawer trailing
-space, scroll anchoring/clamping and floating toolbar placement; WallPreviewViewport
-is removed. Reduced motion skips positional toolbar animation.
+removed. PageLayout's single `.wall-preview-viewport` root contains the editor
+scroll region and drawer spacer, toolbar anchor, and Drawer as siblings. It owns
+scroll anchoring/clamping and floating toolbar placement. MainColumns and
+PagePreview add no presentation wrappers; WallPreviewViewport is removed.
+WallBreakpointPane accepts only children, breakpoint, and previewWidth and keeps
+its clipped frame and decorative browser bar without a slide-animation lifecycle.
+Its `.wall-preview-scroll` remains separate from the editor scroll region.
+Reduced motion skips positional toolbar animation; drawer animation is unchanged.
 
 The Wall Editor story uses the existing in-memory MockAggregateInitializer and
 UserUI, seeds Wall layouts plus separate Placement records, and renders WallTree
@@ -391,6 +396,12 @@ only ancestors emptied by its Placement removals. Self-before moves do no cleanu
 No pixel grid geometry or visibility state is persisted. Move validation counts
 Stacks that survive cleanup; catalog additions retain their existing capacity
 rules. Layout containers have no padding or gutters.
+Each Row is a single flex scroll element. Editor styling uses
+`.brick-surface` with `.brick-surface-card` or `.brick-surface-flat`, and
+`.wall-placement` with `.is-selected` and `.is-menu-open`; Storybook scopes its
+Placement styling through `.wall-story .wall-placement`. These class hooks replace
+editor-owned data attributes. Library state, password-manager hints, and
+unrelated module attributes retain their owners.
 `BrickAction` owns the top-right control surface for both Placements and catalog
 previews; `StackAction` owns the top-left Stack surface. They accept children and
 leave action behavior and selected/menu state with callers. StackAction displays

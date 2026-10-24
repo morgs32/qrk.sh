@@ -16,6 +16,8 @@ import { swatchAndIconV1 } from "@qrk.sh/zerospin/src/modules/swatchAndIcon/swat
 import { modulesHash } from "../modules/lib/modulesHash";
 import { UserUI } from "@/zerospin/UserUI";
 import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
+import "./WallEditorLargeIndicators.stories.css";
+import "./WallEditorHaloIndicators.stories.css";
 
 const { user, site, page, wall, brick, placement } = userSessionDefinition.models;
 const userId = prefixId(user, "story");
@@ -140,8 +142,12 @@ function makeResources(emptyWall: boolean) {
   };
 }
 
-function WallEditorStory(props: { emptyWall: boolean }) {
-  const { emptyWall } = props;
+function WallEditorStory(props: {
+  emptyWall: boolean;
+  largeDropIndicators: boolean;
+  haloDropIndicators: boolean;
+}) {
+  const { emptyWall, largeDropIndicators, haloDropIndicators } = props;
   const [resources] = useState(() => makeResources(emptyWall));
   const [breakpoint, setBreakpoint] = useState<(typeof BREAKPOINTS)[number]>(BREAKPOINTS[0]);
   const wallId = prefixId(wall, `story-${breakpoint.id}`);
@@ -163,9 +169,17 @@ function WallEditorStory(props: { emptyWall: boolean }) {
       {({ session, isLoaded }) =>
         isLoaded ? (
           <UserUI session={session}>
-            <div className="flex h-dvh min-h-0 flex-col overflow-hidden bg-zinc-100 text-zinc-900 antialiased">
+            <div
+              className={`flex h-dvh min-h-0 flex-col overflow-hidden bg-zinc-100 text-zinc-900 antialiased ${haloDropIndicators ? "wall-large-drop-indicators wall-halo-drop-indicators" : largeDropIndicators ? "wall-large-drop-indicators" : ""}`}
+            >
               <header className="flex h-14 shrink-0 items-center justify-between gap-4 border-b border-zinc-200 bg-white px-6">
-                <h1 className="text-sm font-medium tracking-tight">Wall editor</h1>
+                <h1 className="text-sm font-medium tracking-tight">
+                  {haloDropIndicators
+                    ? "Wall editor · Halo drop indicators"
+                    : largeDropIndicators
+                      ? "Wall editor · Large drop indicators"
+                      : "Wall editor"}
+                </h1>
                 <div
                   aria-label="Preview breakpoint"
                   className="flex items-center gap-1 rounded-lg border border-zinc-200 bg-zinc-50 p-1"
@@ -240,13 +254,30 @@ function WallEditorStory(props: { emptyWall: boolean }) {
 const meta = {
   title: "App/Studio/Wall Editor",
   parameters: { layout: "fullscreen" },
-  args: { emptyWall: false },
-  render: function Render(props: { emptyWall: boolean }) {
-    const { emptyWall } = props;
-    return <WallEditorStory key={String(emptyWall)} emptyWall={emptyWall} />;
+  args: { emptyWall: false, largeDropIndicators: false, haloDropIndicators: false },
+  render: function Render(props: {
+    emptyWall: boolean;
+    largeDropIndicators: boolean;
+    haloDropIndicators: boolean;
+  }) {
+    const { emptyWall, largeDropIndicators, haloDropIndicators } = props;
+    return (
+      <WallEditorStory
+        key={String(emptyWall)}
+        emptyWall={emptyWall}
+        largeDropIndicators={largeDropIndicators}
+        haloDropIndicators={haloDropIndicators}
+      />
+    );
   },
-} satisfies Meta<{ emptyWall: boolean }>;
+} satisfies Meta<{
+  emptyWall: boolean;
+  largeDropIndicators: boolean;
+  haloDropIndicators: boolean;
+}>;
 
 export default meta;
 export const Default: StoryObj<typeof meta> = {};
 export const EmptyWall: StoryObj<typeof meta> = { args: { emptyWall: true } };
+export const LargeDropIndicators: StoryObj<typeof meta> = { args: { largeDropIndicators: true } };
+export const HaloDropIndicators: StoryObj<typeof meta> = { args: { haloDropIndicators: true } };

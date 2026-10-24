@@ -331,9 +331,10 @@ horizontally when those minimums do not fit. Content or preview dimension change
 do not write model geometry.
 
 The current Placement spec schema requires a nonempty root, at least one
-structured element, and a root that exists in the element map. The versioned
-manual spec contracts also check module component types and props. The current
-hard-cutover baseline binds these strict declarations directly.
+structured element, and a root that exists in the element map. The external
+generation continuation also checks module component types and props before
+recording a generated spec. The current hard-cutover baseline binds
+these strict declarations directly.
 The spec primitive applies validation to model operations and query decoding,
 so consumers do not need an empty-spec rendering fallback. The root-membership
 filter runs in Effect and is not represented in generic JSON Schema.
@@ -419,6 +420,24 @@ consuming layout width or covering the Wall's inner seams; no inset frame overla
 or Wall stacking workaround remains. The browser-header divider is retained.
 Its `.wall-preview-scroll` remains separate from the editor scroll region.
 Reduced motion skips positional toolbar animation; drawer animation is unchanged.
+
+The separate **Wall Editor / Large drop indicators** story
+(`app-studio-wall-editor--large-drop-indicators`) keeps the same mock fixture,
+targeting, and drop commands. Its private `largeDropIndicators` arg adds
+`.wall-large-drop-indicators` and Storybook-only CSS: translucent blue rectangles
+center on insertion seams, 20px wide vertically or 20px tall horizontally, with
+no terminal circles or white shadows. Its placed content reaches the chrome edges,
+while the shared 1px gaps between Bricks remain. Default and EmptyWall retain thin lines;
+the prototype adds no production WallEditor prop or behavior.
+
+**Wall Editor / Halo drop indicators**
+(`app-studio-wall-editor--halo-drop-indicators`) keeps the large prototype's 20px
+geometry, fixtures, and targeting. Its private `haloDropIndicators` arg layers
+Storybook-only halo styling over the large-indicator styling: 50% white fill,
+3px corners, a 1px blue perimeter with a 90% white 1px inner separator, and a
+30% blue halo with 10px blur and 2px spread. Existing Row/frame clipping may cut
+off the outer glow at edges. The plain Large, Default, and EmptyWall stories
+remain available; production WallEditor is unchanged.
 
 The Wall Editor story uses the existing in-memory MockAggregateInitializer and
 UserUI, seeds Wall layouts plus separate Placement records, and renders the

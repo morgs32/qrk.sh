@@ -13,19 +13,8 @@ import { moveStackV1 as moveStack } from "@qrk.sh/zerospin/src/aggregates/user/c
 import { deleteBrickV1 as deleteBrick } from "@qrk.sh/zerospin/src/aggregates/user/contracts/wall/DeleteBrickContractV1";
 import { updateBrickV1 as updateBrick } from "@qrk.sh/zerospin/src/aggregates/user/contracts/brick/UpdateBrickV1";
 import { generateBrickSpecV1 as generateBrickSpec } from "@qrk.sh/zerospin/src/aggregates/user/contracts/brick/GenerateBrickSpecV1";
-import { updateArticleSpecAtBreakpointV1 as updateArticleSpecAtBreakpoint } from "@qrk.sh/zerospin/src/aggregates/user/contracts/brick/UpdateArticleSpecAtBreakpointV1";
-import { updateFigmaThumbnailSpecAtBreakpointV1 as updateFigmaThumbnailSpecAtBreakpoint } from "@qrk.sh/zerospin/src/aggregates/user/contracts/brick/UpdateFigmaThumbnailSpecAtBreakpointV1";
-import { updateGithubActivitySpecAtBreakpointV1 as updateGithubActivitySpecAtBreakpoint } from "@qrk.sh/zerospin/src/aggregates/user/contracts/brick/UpdateGithubActivitySpecAtBreakpointV1";
-import { updateGithubProfileSpecAtBreakpointV1 as updateGithubProfileSpecAtBreakpoint } from "@qrk.sh/zerospin/src/aggregates/user/contracts/brick/UpdateGithubProfileSpecAtBreakpointV1";
-import { updateGithubRepoSpecAtBreakpointV1 as updateGithubRepoSpecAtBreakpoint } from "@qrk.sh/zerospin/src/aggregates/user/contracts/brick/UpdateGithubRepoSpecAtBreakpointV1";
-import { updateImageSpecAtBreakpointV1 as updateImageSpecAtBreakpoint } from "@qrk.sh/zerospin/src/aggregates/user/contracts/brick/UpdateImageSpecAtBreakpointV1";
-import { updateInstagramSpecAtBreakpointV1 as updateInstagramSpecAtBreakpoint } from "@qrk.sh/zerospin/src/aggregates/user/contracts/brick/UpdateInstagramSpecAtBreakpointV1";
-import { updateLinkSpecAtBreakpointV1 as updateLinkSpecAtBreakpoint } from "@qrk.sh/zerospin/src/aggregates/user/contracts/brick/UpdateLinkSpecAtBreakpointV1";
-import { updateMapPlaceSpecAtBreakpointV1 as updateMapPlaceSpecAtBreakpoint } from "@qrk.sh/zerospin/src/aggregates/user/contracts/brick/UpdateMapPlaceSpecAtBreakpointV1";
-import { updateSwatchAndIconSpecAtBreakpointV1 as updateSwatchAndIconSpecAtBreakpoint } from "@qrk.sh/zerospin/src/aggregates/user/contracts/brick/UpdateSwatchAndIconSpecAtBreakpointV1";
 import { publishSiteV1 as publishSite } from "@qrk.sh/zerospin/src/aggregates/user/contracts/publishSite/PublishSiteV1";
 import { publishPageV1 as publishPage } from "@qrk.sh/zerospin/src/aggregates/user/contracts/publishPage/PublishPageV1";
-import { publishPageUpdatesV1 as publishPageUpdates } from "@qrk.sh/zerospin/src/aggregates/user/contracts/publishPageUpdates/PublishPageUpdatesV1";
 import { unpublishSiteV1 as unpublishSite } from "@qrk.sh/zerospin/src/aggregates/user/contracts/unpublishSite/UnpublishSiteV1";
 import { createPageV1 as createPage } from "@qrk.sh/zerospin/src/aggregates/user/contracts/createPage/CreatePageV1";
 import { createSiteV1 as createSite } from "@qrk.sh/zerospin/src/aggregates/user/contracts/createSite/CreateSiteV1";
@@ -58,19 +47,8 @@ export const userSessionDefinition = makeAggregateSessionDefinition({
     deleteBrick,
     updateBrick,
     generateBrickSpec,
-    updateArticleSpecAtBreakpoint,
-    updateFigmaThumbnailSpecAtBreakpoint,
-    updateGithubActivitySpecAtBreakpoint,
-    updateGithubProfileSpecAtBreakpoint,
-    updateGithubRepoSpecAtBreakpoint,
-    updateImageSpecAtBreakpoint,
-    updateInstagramSpecAtBreakpoint,
-    updateLinkSpecAtBreakpoint,
-    updateMapPlaceSpecAtBreakpoint,
-    updateSwatchAndIconSpecAtBreakpoint,
     publishSite,
     publishPage,
-    publishPageUpdates,
     unpublishSite,
     createPage,
     createSite,

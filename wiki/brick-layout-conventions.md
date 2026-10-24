@@ -127,6 +127,18 @@ containers until a move command cleans their Wall or deletion empties their
 ancestor path. Production PagePreview renders saved layout with Edit and Delete
 controls and owns drawer drop targeting and insertion feedback. The Wall Editor
 story uses this preview while omitting the Brick Details panel.
+The separate `app-studio-wall-editor--large-drop-indicators` prototype keeps its
+mock fixture, targeting, and commands while using Storybook-only CSS for 20px
+translucent blue rectangles centered on insertion seams, without terminal circles
+or white shadows. Its placed content reaches the chrome edges while retaining
+the shared 1px gaps between Bricks. A private story arg scopes the styling; Default and EmptyWall
+retain thin lines, and production WallEditor has no new prop or behavior.
+The separate `app-studio-wall-editor--halo-drop-indicators` story layers a private
+Storybook-only halo treatment over the large prototype's same 20px geometry and
+targeting: 50% white fill, 3px corners, a 1px blue perimeter and 90% white inner
+separator, plus a 30% blue halo with 10px blur and 2px spread. Existing Row/frame
+clipping may truncate the outer glow. Plain Large, Default, and EmptyWall remain
+available; production WallEditor is unchanged.
 Backend move commands remain available independently of the canvas.
 
 Selected means a Brick's edit form is open. Active means DOM focus, including

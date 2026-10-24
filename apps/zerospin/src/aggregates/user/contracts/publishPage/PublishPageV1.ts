@@ -95,9 +95,9 @@ export const publishPageV1 = makeAggregateContractVersion(publishPage, {
         status: 403,
       });
     }
-    if (!site.isPublished || page.isPublished !== false) {
+    if (!site.isPublished) {
       return yield* failures.publishPageUnavailable.make({
-        message: "Publishing a page requires an unpublished page in a published site",
+        message: "Publishing a page requires a published site",
         status: 409,
       });
     }

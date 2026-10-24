@@ -15,7 +15,7 @@ import { system } from '../src/system';
 import { userAggregateV1 } from '../src/aggregates/user/UserV1';
 import { generateBrickSpecServerV1 } from '../src/aggregates/user/contracts/brick/GenerateBrickSpecServerV1';
 import { generateBrickSpecExternalV1 } from '../src/aggregates/user/contracts/brick/GenerateBrickSpecExternalV1';
-import { updateSwatchAndIconSpecAtBreakpointV1 } from '../src/aggregates/user/contracts/brick/UpdateSwatchAndIconSpecAtBreakpointV1';
+import { publishPageV1 } from '../src/aggregates/user/contracts/publishPage/PublishPageV1';
 import { makePlacementId } from '../src/modules/lib/makePlacementId';
 import { swatchAndIconV1 } from '../src/modules/swatchAndIcon/swatchAndIconV1';
 
@@ -52,7 +52,7 @@ const generatedSpec = {
 
 // Method-level seam: initial seed precedes execution; every later write replays
 // operations emitted by the actual contracts. The System harness has no seed API.
-const openGenerationDb = () => Effect.gen(function* () {
+const openGenerationDb = (siteIsPublished = false) => Effect.gen(function* () {
   const config = makeResourceDbConfig({ models: userAggregateV1.models });
   const db = yield* openHarnessDb(config);
   const readDb = makeContractReadDb({ db, models: userAggregateV1.models });
@@ -64,7 +64,7 @@ const openGenerationDb = () => Effect.gen(function* () {
     tx.insert(config.schema.site).values({
       ...timestamps, id: 'sit_one', userId: 'usr_one', slug: null, name: null,
       description: null, logoUrl: null, faviconLightUrl: null, faviconDarkUrl: null,
-      isPublished: false, stickyNavbar: true, cardStyle: false,
+      isPublished: siteIsPublished, stickyNavbar: true, cardStyle: false,
     }).run();
     tx.insert(config.schema.page).values({
       ...timestamps, id: 'pag_one', siteId: 'sit_one', slug: null, title: null,
@@ -157,32 +157,51 @@ it.effect('records canonical generation inputs and commits the validated externa
       });
   }));
 
-it.effect('ignores superseded requests and results arriving after a spec edit', () =>
+it.effect('ignores superseded generation requests', () =>
   Effect.gen(function* () {
-    const { db, replay, start } = yield* openGenerationDb();
+    const { db, start } = yield* openGenerationDb();
     const first = yield* start('req_old');
-    const latest = yield* start('req_new');
+    yield* start('req_new');
     const superseded = yield* generateBrickSpecExternalV1.evaluate({
       aggregateId: 'acct_harness', claims: null, payload: first.payload, db,
       externalOutcome: { _tag: 'Success', success: { _tag: 'Right', right: generatedSpec }, recordedAt },
     });
     expect(superseded.operations).toEqual([]);
-    const edited = yield* updateSwatchAndIconSpecAtBreakpointV1.evaluate({
-      aggregateId: 'acct_harness', claims: null, db,
-      payload: { brickId: 'brk_one', breakpoint: 'lg', spec: generatedSpec },
-    });
-    const update = edited.operations[0];
-    if (update?.operationName !== 'update') expect.fail('Expected user-authored spec update');
-    yield* replay(update);
-    const stale = yield* generateBrickSpecExternalV1.evaluate({
-      aggregateId: 'acct_harness', claims: null, payload: latest.payload, db,
-      externalOutcome: { _tag: 'Success', success: { _tag: 'Right', right: swatchAndIconV1.defaultSpec }, recordedAt },
-    });
-    expect(stale.operations).toEqual([]);
-    expect(yield* sdk.findFirst({ db, model: userAggregateV1.models.placement,
-      where: { id: { eq: placementId } } })).toMatchObject({
-        spec: generatedSpec, specRevision: 1, generation: { status: 'superseded' },
+  }));
+
+it.effect('publishes a page and replaces its published snapshot through the same contract', () =>
+  Effect.gen(function* () {
+    const { db, replay } = yield* openGenerationDb(true);
+    for (const snapshotId of ['psn_first', 'psn_updates'] as const) {
+      const published = yield* publishPageV1.evaluate({
+        aggregateId: 'acct_harness', claims: { aggregateId: 'acct_harness', clerkUserId: 'user_one' }, db,
+        payload: { pageId: 'pag_one', snapshotId },
       });
+      for (const operation of published.operations) yield* replay(operation);
+      expect(yield* sdk.findFirst({ db, model: userAggregateV1.models.page,
+        where: { id: { eq: 'pag_one' } } })).toMatchObject({
+          isPublished: true, publishedSnapshotId: snapshotId,
+        });
+    }
+    expect(yield* sdk.findMany({ db, model: userAggregateV1.models.pageSnapshot,
+      where: { pageId: { eq: 'pag_one' } } })).toHaveLength(2);
+  }));
+
+it.effect('rejects page publication for another identity or an unpublished site', () =>
+  Effect.gen(function* () {
+    const { db } = yield* openGenerationDb();
+    for (const [clerkUserId, code] of [
+      ['user_other', 'publish-page-user-mismatch'],
+      ['user_one', 'publish-page-unavailable'],
+    ]) {
+      const rejected = yield* publishPageV1.evaluate({
+        aggregateId: 'acct_harness', claims: { aggregateId: 'acct_harness', clerkUserId }, db,
+        payload: { pageId: 'pag_one', snapshotId: 'psn_rejected' },
+      }).pipe(Effect.flip);
+      expect(rejected).toMatchObject({ code });
+    }
+    expect(yield* sdk.findMany({ db, model: userAggregateV1.models.pageSnapshot,
+      where: { pageId: { eq: 'pag_one' } } })).toEqual([]);
   }));
 
 it.effect('turns recorded request failures, provider rejections and invalid specs into failed generation', () =>

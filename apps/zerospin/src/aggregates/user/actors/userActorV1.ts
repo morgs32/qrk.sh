@@ -17,19 +17,8 @@ import { moveStackV1 as moveStack } from "../contracts/wall/MoveStackContractV1"
 import { deleteBrickV1 as deleteBrick } from "../contracts/wall/DeleteBrickContractV1";
 import { updateBrickV1 as updateBrick } from "../contracts/brick/UpdateBrickV1";
 import { generateBrickSpecServerV1 as generateBrickSpec } from "../contracts/brick/GenerateBrickSpecServerV1";
-import { updateArticleSpecAtBreakpointV1 as updateArticleSpecAtBreakpoint } from "../contracts/brick/UpdateArticleSpecAtBreakpointV1";
-import { updateFigmaThumbnailSpecAtBreakpointV1 as updateFigmaThumbnailSpecAtBreakpoint } from "../contracts/brick/UpdateFigmaThumbnailSpecAtBreakpointV1";
-import { updateGithubActivitySpecAtBreakpointV1 as updateGithubActivitySpecAtBreakpoint } from "../contracts/brick/UpdateGithubActivitySpecAtBreakpointV1";
-import { updateGithubProfileSpecAtBreakpointV1 as updateGithubProfileSpecAtBreakpoint } from "../contracts/brick/UpdateGithubProfileSpecAtBreakpointV1";
-import { updateGithubRepoSpecAtBreakpointV1 as updateGithubRepoSpecAtBreakpoint } from "../contracts/brick/UpdateGithubRepoSpecAtBreakpointV1";
-import { updateImageSpecAtBreakpointV1 as updateImageSpecAtBreakpoint } from "../contracts/brick/UpdateImageSpecAtBreakpointV1";
-import { updateInstagramSpecAtBreakpointV1 as updateInstagramSpecAtBreakpoint } from "../contracts/brick/UpdateInstagramSpecAtBreakpointV1";
-import { updateLinkSpecAtBreakpointV1 as updateLinkSpecAtBreakpoint } from "../contracts/brick/UpdateLinkSpecAtBreakpointV1";
-import { updateMapPlaceSpecAtBreakpointV1 as updateMapPlaceSpecAtBreakpoint } from "../contracts/brick/UpdateMapPlaceSpecAtBreakpointV1";
-import { updateSwatchAndIconSpecAtBreakpointV1 as updateSwatchAndIconSpecAtBreakpoint } from "../contracts/brick/UpdateSwatchAndIconSpecAtBreakpointV1";
 import { publishSiteV1 as publishSite } from "../contracts/publishSite/PublishSiteV1";
 import { publishPageV1 as publishPage } from "../contracts/publishPage/PublishPageV1";
-import { publishPageUpdatesV1 as publishPageUpdates } from "../contracts/publishPageUpdates/PublishPageUpdatesV1";
 import { Effect } from "effect";
 import type { CuidFactory } from "@zerospin/shapes";
 import type { IAnyError } from "@zerospin/error";
@@ -105,19 +94,8 @@ export const userActorV1 = makeAggregateActorVersion(defineAggregateActor({ name
     deleteBrick,
     updateBrick,
     generateBrickSpec,
-    updateArticleSpecAtBreakpoint,
-    updateFigmaThumbnailSpecAtBreakpoint,
-    updateGithubActivitySpecAtBreakpoint,
-    updateGithubProfileSpecAtBreakpoint,
-    updateGithubRepoSpecAtBreakpoint,
-    updateImageSpecAtBreakpoint,
-    updateInstagramSpecAtBreakpoint,
-    updateLinkSpecAtBreakpoint,
-    updateMapPlaceSpecAtBreakpoint,
-    updateSwatchAndIconSpecAtBreakpoint,
     publishSite,
     publishPage,
-    publishPageUpdates,
     updateSiteSettings,
     updatePageSettings,
     createSite,

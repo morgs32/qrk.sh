@@ -163,7 +163,7 @@ export function DrawerHeader() {
               const snapshotId = session.runSync(makeId(PageSnapshot));
               stageAggregateSessionCommand({
                 session,
-                contractName: canPublishPage ? "publishPage" : "publishPageUpdates",
+                contractName: "publishPage",
                 payload: { pageId: params.pageId, snapshotId },
               });
             }}

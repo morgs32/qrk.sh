@@ -376,25 +376,29 @@ to leave insertion feedback visible. PagePreview owns production drop targeting;
 saved Wall Bricks remain undraggable. Module Page limits apply before accepting
 any destination. Compatible Rows use top/bottom quarters for new Rows and their
 middle half for left/right Placement insertion. Incompatible Rows use top/bottom
-halves for new Rows. Horizontal/vertical lines mark Row/Placement insertion.
-Drop-indicator lines and terminals have a solid white outline for
-contrast against Brick content. Terminal circles have white-filled centers.
+halves for new Rows.
+Insertion feedback opens temporary space using a blue-edged copy of the drawer's
+existing `.brick-hover-surface` at 40% opacity, without rerendering its module or
+reading providers. It occupies a Placement slot in a compatible Row, a new Row
+in a Stack, or the first slot in an empty Wall. Its content is inert and ignores
+pointer events; its host accepts drops at the visible slot's stable
+before-Placement or before-Row destination. No thin-line or rectangle indicator
+variants remain.
+Each Row's instruction height is captured at drag start while its top follows
+the current Row, preventing a taller shadow from changing combine/reorder
+targeting. Temporary space clears on drop, cancellation, or outside movement
+without persisted fake Rows. Capacity checks and the existing drop command path
+apply to the shadow's destination.
 The Wall background is light orange (`#E6AA80`, a 50% white tint of `#CC5500`), except for the existing empty-Wall
 drag highlight. A half-pixel inset on each Placement and the content-height Wall
 wrapper creates condensed 1px gaps between Bricks and around the content.
 BrowserChrome's border is an outer ring, leaving the inner orange seams visible.
 Each Placement adds 1px to its minimum width to preserve the module's content minimum.
-Target boxes still touch, and indicators stay centered on their shared seams.
-The final Row indicator anchors to the last Row rather than the stretched Stack.
-There is no perimeter-border overlay.
-Brick insertion indicators render in a Row-owned overlay outside the horizontal
-scrolling content. They stay centered on measured Placement boundaries as the Row
-scrolls or resizes, and clip to its viewport without widening the scroll area
-or spilling into neighboring Stacks. Drop targeting and commands are unchanged.
+Target boxes still touch. There is no perimeter-border overlay.
 Empty Rows accept their first Placement; exposed Stack background appends a Row.
 A Wall without Sections highlights its available area and creates the first
 Section/Stack/Row on drop. Populated Walls have no new Section/Stack drop targets
-or layout shadows in this phase.
+outside the existing layout.
 
 Hover feedback remains local. One accepted drop stages one `addBrick`, creating
 one shared null Brick and four Placements atomically. The active Wall follows the
@@ -421,23 +425,10 @@ or Wall stacking workaround remains. The browser-header divider is retained.
 Its `.wall-preview-scroll` remains separate from the editor scroll region.
 Reduced motion skips positional toolbar animation; drawer animation is unchanged.
 
-The separate **Wall Editor / Large drop indicators** story
-(`app-studio-wall-editor--large-drop-indicators`) keeps the same mock fixture,
-targeting, and drop commands. Its private `largeDropIndicators` arg adds
-`.wall-large-drop-indicators` and Storybook-only CSS: translucent blue rectangles
-center on insertion seams, 20px wide vertically or 20px tall horizontally, with
-no terminal circles or white shadows. Its placed content reaches the chrome edges,
-while the shared 1px gaps between Bricks remain. Default and EmptyWall retain thin lines;
-the prototype adds no production WallEditor prop or behavior.
-
-**Wall Editor / Halo drop indicators**
-(`app-studio-wall-editor--halo-drop-indicators`) keeps the large prototype's 20px
-geometry, fixtures, and targeting. Its private `haloDropIndicators` arg layers
-Storybook-only halo styling over the large-indicator styling: 50% white fill,
-3px corners, a 1px blue perimeter with a 90% white 1px inner separator, and a
-30% blue halo with 10px blur and 2px spread. Existing Row/frame clipping may cut
-off the outer glow at edges. The plain Large, Default, and EmptyWall stories
-remain available; production WallEditor is unchanged.
+**Wall Editor / Default** and **Empty wall** exercise the same shadow feedback
+used by production WallEditor. The separate Large, Halo, and Shadow prototype
+stories, styling, and prototype flags are removed. The user chose the shadow
+approach; visual verification remains with the user.
 
 The Wall Editor story uses the existing in-memory MockAggregateInitializer and
 UserUI, seeds Wall layouts plus separate Placement records, and renders the
@@ -456,7 +447,8 @@ No pixel grid geometry or visibility state is persisted. Move validation counts
 Stacks that survive cleanup; catalog additions retain their existing capacity
 rules. Rows have no CSS gutters; half-pixel content and Placement insets create
 the condensed gaps.
-Each Row contains a flex scroll element and a sibling insertion-indicator overlay.
+Each Row contains a flex scroll element with Placements and any temporary
+insertion shadow.
 The outer Row uses `flow-root` to contain the scroller's -0.5px margin. Its
 0.5px padding and 49px minimum height allow seam-covering borders through the
 scroll clip while preserving content positions, widths, scroll range, and the

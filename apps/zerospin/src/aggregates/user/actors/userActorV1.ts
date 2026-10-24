@@ -19,17 +19,28 @@ import { updateBrickV1 as updateBrick } from "../contracts/brick/UpdateBrickV1";
 import { generateBrickSpecServerV1 as generateBrickSpec } from "../contracts/brick/GenerateBrickSpecServerV1";
 import { publishSiteV1 as publishSite } from "../contracts/publishSite/PublishSiteV1";
 import { publishPageV1 as publishPage } from "../contracts/publishPage/PublishPageV1";
-import { Effect } from "effect";
-import type { CuidFactory } from "@zerospin/shapes";
+import { Effect, Schema } from "effect";
+import { verifyToken } from "@clerk/backend";
+import { mapParseError, prettyUnknownFailure } from "@zerospin/error";
+
 import type { IAnyError } from "@zerospin/error";
 import { sql } from "drizzle-orm";
-import { defineAggregateActor, makeAggregateActorVersion, makeQueryDbVersion } from "@zerospin/sdk";
-import { provisionAuthenticatedUser } from "./provisionAuthenticatedUser";
+import {
+  CuidFactory,
+  defineAggregateActor,
+  makeAggregateActorVersion,
+  makeQueryDbVersion,
+  makeId,
+  prefixId,
+  resolveFailure,
+  makeZerospinError,
+  ZerospinError,
+} from "@zerospin/sdk";
 import { RoutePattern } from "@remix-run/route-pattern";
 import { makeActorIdentity } from "@zerospin/sdk";
 import { userClaims } from "../../../claims";
 import { signature } from "../../../signature";
-import { userProvisionerV1 } from "./userProvisionerV1";
+import { createUserV1 } from "../contracts/createUser/CreateUserV1";
 
 const identity = makeActorIdentity({
   claims: userClaims,
@@ -53,10 +64,39 @@ export const userActorV1 = makeAggregateActorVersion(defineAggregateActor({ name
   identity,
   authentication: {
     credentialsSchema: signature,
-    authenticate: (props) => {
-      const { aggregateId, credentials } = props;
-      return userProvisionerV1.authentication.authenticate({ aggregateId, credentials });
-    },
+    authenticate: Effect.fn("userActor.authenticate")(function* (props) {
+      const { credentials } = props;
+      const { env } = yield* Effect.promise(() => import("cloudflare:workers"));
+      const { CLERK_SECRET_KEY, CLERK_AUTHORIZED_PARTY } = yield* Schema.decodeUnknownEffect(
+        Schema.Struct({
+          CLERK_SECRET_KEY: Schema.NonEmptyString,
+          CLERK_AUTHORIZED_PARTY: Schema.NonEmptyString,
+        }),
+      )(env).pipe(
+        mapParseError({
+          code: "clerk-authentication-binding-unavailable",
+          prefix: "Clerk authentication bindings are unavailable",
+        }),
+      );
+      const verifiedToken = yield* Effect.tryPromise({
+        try: () =>
+          verifyToken(credentials.sessionToken, {
+            secretKey: CLERK_SECRET_KEY,
+            authorizedParties: [CLERK_AUTHORIZED_PARTY],
+          }),
+        catch: (cause) =>
+          new ZerospinError({
+            code: "user-session-token-invalid",
+            message: "The Clerk session token could not be verified",
+            cause: prettyUnknownFailure(cause),
+            status: 401,
+          }),
+      });
+      return {
+        aggregateId: verifiedToken.sub,
+        clerkUserId: verifiedToken.sub,
+      };
+    }),
   },
   exposedModels: {
     wall: Wall,
@@ -72,18 +112,50 @@ export const userActorV1 = makeAggregateActorVersion(defineAggregateActor({ name
     IAnyError,
     CuidFactory
   > {
-    const { aggregateId, claims } = props;
-    const { default: config } = yield* Effect.promise(() => import("config"));
-    const { AggregateChain } = yield* Effect.promise(() => import("system-worker"));
-    const chain = yield* AggregateChain.getRepo({
-      key: { systemId: config.systemId, aggregateId, aggregateName: "user" },
+    const { claims, db, executeCommand } = props;
+    const existingUser = db.query.user
+      .findFirst({
+        where: { clerkUserId: { eq: claims.clerkUserId } },
+      })
+      .sync();
+    if (existingUser !== undefined) return;
+
+    const makeCuid = yield* CuidFactory;
+    const id = prefixId({ abbreviation: "cmd" }, yield* makeCuid());
+    const receipt = yield* executeCommand({
+      id,
+      commandName: createUserV1.commandName,
+      contractVersion: createUserV1.version,
+      payload: {
+        id: yield* makeId(User),
+        clerkUserId: claims.clerkUserId,
+        username: null,
+        displayName: null,
+      },
     });
-    yield* provisionAuthenticatedUser({
-      chain,
-      aggregateId,
-      aggregateVersion: 1,
-      claims,
-    });
+    if (receipt.outcome.result._tag === "Failure") {
+      const failure = yield* resolveFailure(createUserV1, receipt.outcome.result.failure);
+      if (
+        !(
+          "scope" in failure &&
+          failure.scope === "contract" &&
+          failure.code === "user-already-exists"
+        )
+      ) {
+        return yield* makeZerospinError(receipt.outcome.result.failure);
+      }
+    }
+    const provisionedUser = db.query.user
+      .findFirst({
+        where: { clerkUserId: { eq: claims.clerkUserId } },
+      })
+      .sync();
+    if (provisionedUser === undefined) {
+      return yield* makeZerospinError({
+        code: "user-provisioning-failed",
+        message: "User provisioning completed without an authenticated user row",
+      });
+    }
   }),
 
   contracts: {

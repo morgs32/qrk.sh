@@ -1,6 +1,6 @@
 # Brick preview and editor conventions
 
-**updated:** 2026-10-23
+**updated:** 2026-10-24
 
 ## App owns saved editing
 
@@ -54,7 +54,8 @@ reactive queries rather than local fixture mutations.
 A placed Brick fills its Row cell, whose minimum width comes from its module.
 The cell adds 1px to that minimum for its two half-pixel insets, preserving the
 module's content minimum.
-Each Row contains a flex scroll element and a sibling insertion-indicator overlay.
+Each Row contains a flex scroll element with Placements and any temporary
+insertion shadow.
 It uses the containing Wall's logical breakpoint and Placement spec, regardless
 of cell width. Catalog
 preferred widths do not constrain placed content. Every module has a 320px
@@ -82,15 +83,24 @@ Brick, offset from the pointer by 16px horizontally and 8px vertically with the
 library's `pointerOutsideOfPreview` helper. Saved Wall Bricks are not drag sources.
 The production Wall accepts these templates subject to module Page limits:
 
-- A compatible Row's top/bottom quarters create a Row before/after, shown by a
-  horizontal line across the Row. Its middle half inserts a Placement at the
-  hovered Brick's left/right boundary, shown by a vertical line.
+- A compatible Row's top/bottom quarters create a Row before/after. Its middle
+  half inserts a Placement at the hovered Brick's left/right boundary.
 - An incompatible Row uses top/bottom halves to create a Row before/after.
 - An empty Row accepts its first Placement; exposed Stack background appends a
   Row. Empty Row/Stack destinations highlight their existing area.
 - A Wall with no Sections highlights its remaining browser content area and
   accepts its first Brick. Populated Walls expose no new Section/Stack targets
-  or layout shadows in this phase.
+  outside the existing layout.
+
+Insertion feedback opens temporary space using a blue-edged, 40%-opacity copy
+of the drawer's existing `.brick-hover-surface`, without rerendering its module
+or reading providers. The shadow occupies a Placement slot in a Row, a new Row
+in a Stack, or the first slot in an empty Wall. Its content is inert and ignores
+pointer events; its host accepts drops at the visible slot's stable
+before-Placement or before-Row destination. Each Row's instruction height is
+captured at drag start while its top follows the current Row, preventing a
+taller shadow from switching combine/reorder targeting. Temporary space clears
+on drop, cancellation, or outside movement without persisted fake Rows.
 
 Feedback and drop commands use the same stable insertion destination. Hover
 writes no model data; cancellation, outside drops, invalid source data, and stale
@@ -115,30 +125,19 @@ Placement creates condensed 1px gaps between Bricks and around the content.
 BrowserChrome's border is an outer ring, leaving the inner orange seams visible.
 There is no perimeter-border overlay or CSS gutter. Placed Bricks omit flat
 surface borders; catalog flat borders and card treatment remain.
-Target boxes still touch, so drop targeting is unchanged and indicators center
-on the shared seams. The final Row indicator anchors to the last Row rather
-than the stretched Stack.
-Brick insertion indicators render outside the Row's horizontal scrolling content,
-centered on measured Placement boundaries. The Row-owned overlay follows scrolling and
-resizing and clips to the Row viewport, so it neither widens the scroll area nor
-spills into neighboring Stacks. Drop targeting and commands are unchanged.
+Target boxes still touch; the shadow temporarily participates in layout at its
+insertion destination. Capacity checks and the existing drop command path apply
+to that destination.
 Stack names overlay the layout, inset 1px inside the border. Empty persisted Rows/Stacks retain their layout
 containers until a move command cleans their Wall or deletion empties their
 ancestor path. Production PagePreview renders saved layout with Edit and Delete
 controls and owns drawer drop targeting and insertion feedback. The Wall Editor
 story uses this preview while omitting the Brick Details panel.
-The separate `app-studio-wall-editor--large-drop-indicators` prototype keeps its
-mock fixture, targeting, and commands while using Storybook-only CSS for 20px
-translucent blue rectangles centered on insertion seams, without terminal circles
-or white shadows. Its placed content reaches the chrome edges while retaining
-the shared 1px gaps between Bricks. A private story arg scopes the styling; Default and EmptyWall
-retain thin lines, and production WallEditor has no new prop or behavior.
-The separate `app-studio-wall-editor--halo-drop-indicators` story layers a private
-Storybook-only halo treatment over the large prototype's same 20px geometry and
-targeting: 50% white fill, 3px corners, a 1px blue perimeter and 90% white inner
-separator, plus a 30% blue halo with 10px blur and 2px spread. Existing Row/frame
-clipping may truncate the outer glow. Plain Large, Default, and EmptyWall remain
-available; production WallEditor is unchanged.
+The Wall Editor's Default and EmptyWall stories exercise the canonical shadow
+feedback used by production WallEditor. The separate Large, Halo, and Shadow
+prototype stories, styling, and prototype flags are removed, along with thin
+drop indicators. The user chose the shadow approach; visual verification
+remains with the user.
 Backend move commands remain available independently of the canvas.
 
 Selected means a Brick's edit form is open. Active means DOM focus, including

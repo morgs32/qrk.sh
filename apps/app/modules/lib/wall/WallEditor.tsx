@@ -9,16 +9,11 @@ import {
   monitorForElements,
 } from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
 import {
-  attachInstruction,
-  extractInstruction,
-} from "@atlaskit/pragmatic-drag-and-drop-hitbox/list-item";
-import {
   attachClosestEdge,
   extractClosestEdge,
 } from "@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge";
-import { DropIndicator } from "@atlaskit/pragmatic-drag-and-drop-react-drop-indicator/box";
 import { isNonEmptySpec } from "@json-render/core";
-import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { brickV1 } from "@qrk.sh/zerospin/src/aggregates/user/models/brick/BrickV1";
 import { wallV1 } from "@qrk.sh/zerospin/src/aggregates/user/models/wall/WallV1";
 import { useLiveQuery } from "@zerospin/react";
@@ -48,11 +43,16 @@ export function WallEditor(props: {
 }) {
   const { wallId, selectedBrickId, onEditBrick, onBrickDeleted } = props;
   const wallRef = useRef<HTMLDivElement>(null);
-  const brickIndicatorRef = useRef<HTMLSpanElement>(null);
+  const shadowTargetRef = useRef<typeof wallInsertionTargetSchema.Type | null>(null);
+  const shadowRowHeights = useRef(new Map<HTMLElement, number>());
   const returnFocusId = useRef<string | null>(null);
   const scope = useId();
   const [deletingBrickId, setDeletingBrickId] = useState<string | null>(null);
   const [dropTarget, setDropTarget] = useState<typeof wallInsertionTargetSchema.Type | null>(null);
+  const [shadowSource, setShadowSource] = useState<{
+    element: HTMLElement;
+    moduleId: keyof typeof modulesHash;
+  } | null>(null);
   const session = UserUI.useSession();
   const { data: wall } = useLiveQuery({
     session,
@@ -68,6 +68,42 @@ export function WallEditor(props: {
   });
   const { sections } = makeWallLayoutView({ wall });
 
+  useLayoutEffect(() => {
+    // The ghost's drop payload follows its committed, visible position.
+    shadowTargetRef.current = dropTarget;
+  }, [dropTarget]);
+
+  const setShadowElement = useCallback(
+    (element: HTMLDivElement | null) => {
+      if (element === null || shadowSource === null) return;
+      const surface = shadowSource.element.querySelector<HTMLElement>(".brick-hover-surface");
+      const content = element.firstElementChild;
+      if (surface === null || !(content instanceof HTMLElement))
+        throw new Error("Missing drawer Brick shadow surface");
+      content.replaceChildren(surface.cloneNode(true));
+      return dropTargetForElements({
+        element,
+        canDrop: ({ source }) => {
+          if (
+            shadowTargetRef.current === null ||
+            !Schema.is(DrawerBrickData)(source.data) ||
+            source.data.moduleId !== shadowSource.moduleId
+          )
+            return false;
+          const module = modulesHash[source.data.moduleId];
+          return (
+            module.maxPerPage === undefined ||
+            wall.placements.filter((placement) => placement.brick.moduleId === module.id).length <
+              module.maxPerPage
+          );
+        },
+        getData: () => shadowTargetRef.current ?? {},
+        getDropEffect: () => "copy",
+      });
+    },
+    [shadowSource, wall],
+  );
+
   useEffect(() => {
     const element = wallRef.current;
     if (element === null) throw new Error("Missing Wall editor");
@@ -75,6 +111,14 @@ export function WallEditor(props: {
     const cleanups = [
       monitorForElements({
         canMonitor: ({ source }) => Schema.is(DrawerBrickData)(source.data),
+        onDragStart: ({ source }) => {
+          if (!Schema.is(DrawerBrickData)(source.data)) return;
+          shadowRowHeights.current.clear();
+          element.querySelectorAll<HTMLElement>("[data-wall-row-id]").forEach((rowElement) => {
+            shadowRowHeights.current.set(rowElement, rowElement.getBoundingClientRect().height);
+          });
+          setShadowSource({ element: source.element, moduleId: source.data.moduleId });
+        },
         onDrag: ({ location }) => {
           const target = Schema.decodeUnknownResult(wallInsertionTargetSchema)(
             location.current.dropTargets[0]?.data,
@@ -93,6 +137,8 @@ export function WallEditor(props: {
         },
         onDrop: ({ source, location }) => {
           setDropTarget(null);
+          setShadowSource(null);
+          shadowRowHeights.current.clear();
           const data = Schema.decodeUnknownResult(DrawerBrickData)(source.data);
           const target = Schema.decodeUnknownResult(wallInsertionTargetSchema)(
             location.current.dropTargets[0]?.data,
@@ -188,26 +234,23 @@ export function WallEditor(props: {
               },
               getData: ({ source, input }) => {
                 const data = Schema.decodeUnknownSync(DrawerBrickData)(source.data);
-                const instruction = extractInstruction(
-                  attachInstruction(
-                    {},
-                    {
-                      element: rowElement,
-                      input,
-                      operations: {
-                        "reorder-before": "available",
-                        "reorder-after": "available",
-                        combine: canShareRow({
-                          incomingVariant: modulesHash[data.moduleId].variants.default,
-                          existingVariants,
-                        })
-                          ? "available"
-                          : "not-available",
-                      },
-                    },
-                  ),
-                );
-                if (row.placements.length === 0 || instruction?.operation === "combine") {
+                const canCombine = canShareRow({
+                  incomingVariant: modulesHash[data.moduleId].variants.default,
+                  existingVariants,
+                });
+                const rect = rowElement.getBoundingClientRect();
+                const height = shadowRowHeights.current.get(rowElement) ?? rect.height;
+                // A tall ghost must not move the Row's original insertion zones.
+                const operation = canCombine
+                  ? input.clientY <= rect.top + height / 4
+                    ? "reorder-before"
+                    : input.clientY >= rect.top + (3 * height) / 4
+                      ? "reorder-after"
+                      : "combine"
+                  : input.clientY < rect.top + height / 2
+                    ? "reorder-before"
+                    : "reorder-after";
+                if (row.placements.length === 0 || operation === "combine") {
                   return { wallId: wall.id, kind: "row", rowId: row.id, beforePlacementId: null };
                 }
                 return {
@@ -215,7 +258,7 @@ export function WallEditor(props: {
                   kind: "stack",
                   stackId: stack.id,
                   beforeRowId:
-                    instruction?.operation === "reorder-before"
+                    operation === "reorder-before"
                       ? row.id
                       : (stack.rows[rowIndex + 1]?.id ?? null),
                 };
@@ -240,26 +283,16 @@ export function WallEditor(props: {
                       module.maxPerPage
                   )
                     return false;
+                  const canCombine = canShareRow({
+                    incomingVariant: module.variants.default,
+                    existingVariants,
+                  });
+                  const rect = rowElement.getBoundingClientRect();
+                  const height = shadowRowHeights.current.get(rowElement) ?? rect.height;
                   return (
-                    extractInstruction(
-                      attachInstruction(
-                        {},
-                        {
-                          element: rowElement,
-                          input,
-                          operations: {
-                            "reorder-before": "available",
-                            "reorder-after": "available",
-                            combine: canShareRow({
-                              incomingVariant: module.variants.default,
-                              existingVariants,
-                            })
-                              ? "available"
-                              : "not-available",
-                          },
-                        },
-                      ),
-                    )?.operation === "combine"
+                    canCombine &&
+                    input.clientY > rect.top + height / 4 &&
+                    input.clientY < rect.top + (3 * height) / 4
                   );
                 },
                 getData: ({ input, element }) => {
@@ -293,50 +326,31 @@ export function WallEditor(props: {
     return () => {
       combine(...cleanups)();
       setDropTarget(null);
+      setShadowSource(null);
+      shadowRowHeights.current.clear();
     };
   }, [onEditBrick, session, wall]);
 
-  useLayoutEffect(() => {
-    const indicator = brickIndicatorRef.current;
-    const element = wallRef.current;
-    if (indicator === null || element === null || dropTarget?.kind !== "row") return;
-    const rowElement = element.querySelector<HTMLElement>(
-      `[data-wall-row-id="${CSS.escape(dropTarget.rowId)}"]`,
-    );
-    const placementElement = rowElement?.querySelector<HTMLElement>(
-      dropTarget.beforePlacementId === null
-        ? "[data-wall-placement-id]:last-child"
-        : `[data-wall-placement-id="${CSS.escape(dropTarget.beforePlacementId)}"]`,
-    );
-    if (!rowElement || !placementElement) {
-      indicator.hidden = true;
-      return;
-    }
-    const updateIndicator = () => {
-      if (!rowElement.isConnected || !placementElement.isConnected) {
-        indicator.hidden = true;
-        return;
-      }
-      const rowRect = rowElement.getBoundingClientRect();
-      const placementRect = placementElement.getBoundingClientRect();
-      indicator.style.left = `${placementRect.left - rowRect.left}px`;
-      indicator.style.top = `${placementRect.top - rowRect.top}px`;
-      indicator.style.width = `${placementRect.width}px`;
-      indicator.style.height = `${placementRect.height}px`;
-      indicator.hidden = false;
-    };
-    updateIndicator();
-    rowElement.addEventListener("scroll", updateIndicator, true);
-    window.addEventListener("resize", updateIndicator);
-    const resizeObserver = new ResizeObserver(updateIndicator);
-    resizeObserver.observe(rowElement);
-    resizeObserver.observe(placementElement);
-    return () => {
-      rowElement.removeEventListener("scroll", updateIndicator, true);
-      window.removeEventListener("resize", updateIndicator);
-      resizeObserver.disconnect();
-    };
-  }, [dropTarget, wall]);
+  const shadow =
+    shadowSource !== null && dropTarget !== null ? (
+      <div
+        ref={setShadowElement}
+        aria-hidden="true"
+        className={`wall-shadow-placeholder relative min-h-12 min-w-0 shrink-0 p-[0.5px] ${dropTarget.kind === "row" ? "flex-1" : "overflow-x-auto"}`}
+        style={{
+          minWidth:
+            dropTarget.kind === "row"
+              ? modulesHash[shadowSource.moduleId].variants.default.minWidth + 1
+              : undefined,
+        }}
+      >
+        <div
+          inert
+          className="pointer-events-none opacity-40"
+          style={{ minWidth: modulesHash[shadowSource.moduleId].variants.default.minWidth }}
+        />
+      </div>
+    ) : null;
 
   return (
     <>
@@ -361,106 +375,82 @@ export function WallEditor(props: {
                         <span className="min-w-0 truncate">{stack.name}</span>
                       </StackAction>
                     ) : null}
-                    {stack.rows.map((row, rowIndex) => (
-                      <div key={row.id} data-wall-row-id={row.id} className="relative flow-root min-w-0">
+                    {stack.rows.map((row) => (
+                      <Fragment key={row.id}>
                         {dropTarget?.kind === "stack" &&
                           dropTarget.stackId === stack.id &&
-                          dropTarget.beforeRowId === row.id && (
-                            <span
-                              aria-hidden="true"
-                              data-wall-drop-indicator="top"
-                              className="pointer-events-none absolute inset-0 z-30"
-                            >
-                              <DropIndicator edge="top" type="terminal-no-bleed" />
-                            </span>
-                          )}
-                        <div
-                          className={`relative -m-[0.5px] flex min-h-[49px] min-w-0 items-start overflow-x-auto p-[0.5px] ${row.placements.length === 0 && dropTarget?.kind === "row" && dropTarget.rowId === row.id ? "bg-blue-50 outline outline-blue-500 -outline-offset-2" : ""}`}
-                        >
-                          {row.placements.map((placement) => {
-                            const brick = placement.brick;
-                            const module = modulesHash[brick.moduleId];
-                            const Component = module.component;
-                            return (
-                              <WallPlacement
-                                key={placement.id}
-                                scope={scope}
-                                selected={brick.id === selectedBrickId}
-                                onEditBrick={onEditBrick}
-                                onRequestDelete={(brickId, triggerId) => {
-                                  returnFocusId.current = triggerId;
-                                  setDeletingBrickId(brickId);
-                                }}
-                                placement={{
-                                  id: placement.id,
-                                  brickId: brick.id,
-                                  minWidth: module.variants[placement.variantId].minWidth,
-                                  content:
-                                    brick.state === null || isNonEmptySpec(placement.spec) ? (
-                                      <div
-                                        className={`brick-surface ${wall.page.site.cardStyle ? "brick-surface-card" : ""} brick-hover-target relative min-w-0`}
-                                      >
-                                        <BrickWrapper className="brick-hover-surface h-auto">
-                                          <Component
-                                            state={brick.state}
-                                            variantId={placement.variantId}
-                                            spec={
-                                              isNonEmptySpec(placement.spec)
-                                                ? placement.spec
-                                                : module.variants[placement.variantId].spec
-                                            }
-                                          />
-                                        </BrickWrapper>
-                                      </div>
-                                    ) : (
-                                      <p role="alert">Invalid Brick spec</p>
-                                    ),
-                                }}
-                              />
-                            );
-                          })}
+                          dropTarget.beforeRowId === row.id &&
+                          shadow}
+                        <div data-wall-row-id={row.id} className="relative flow-root min-w-0">
+                          <div
+                            className={`relative -m-[0.5px] flex min-h-[49px] min-w-0 items-start overflow-x-auto p-[0.5px] ${row.placements.length === 0 && dropTarget?.kind === "row" && dropTarget.rowId === row.id ? "bg-blue-50 outline outline-blue-500 -outline-offset-2" : ""}`}
+                          >
+                            {row.placements.map((placement) => {
+                              const brick = placement.brick;
+                              const module = modulesHash[brick.moduleId];
+                              const Component = module.component;
+                              return (
+                                <Fragment key={placement.id}>
+                                  {dropTarget?.kind === "row" &&
+                                    dropTarget.rowId === row.id &&
+                                    dropTarget.beforePlacementId === placement.id &&
+                                    shadow}
+                                  <WallPlacement
+                                    scope={scope}
+                                    selected={brick.id === selectedBrickId}
+                                    onEditBrick={onEditBrick}
+                                    onRequestDelete={(brickId, triggerId) => {
+                                      returnFocusId.current = triggerId;
+                                      setDeletingBrickId(brickId);
+                                    }}
+                                    placement={{
+                                      id: placement.id,
+                                      brickId: brick.id,
+                                      minWidth: module.variants[placement.variantId].minWidth,
+                                      content:
+                                        brick.state === null || isNonEmptySpec(placement.spec) ? (
+                                          <div
+                                            className={`brick-surface ${wall.page.site.cardStyle ? "brick-surface-card" : ""} brick-hover-target relative min-w-0`}
+                                          >
+                                            <BrickWrapper className="brick-hover-surface h-auto">
+                                              <Component
+                                                state={brick.state}
+                                                variantId={placement.variantId}
+                                                spec={
+                                                  isNonEmptySpec(placement.spec)
+                                                    ? placement.spec
+                                                    : module.variants[placement.variantId].spec
+                                                }
+                                              />
+                                            </BrickWrapper>
+                                          </div>
+                                        ) : (
+                                          <p role="alert">Invalid Brick spec</p>
+                                        ),
+                                    }}
+                                  />
+                                </Fragment>
+                              );
+                            })}
+                            {dropTarget?.kind === "row" &&
+                              dropTarget.rowId === row.id &&
+                              dropTarget.beforePlacementId === null &&
+                              shadow}
+                          </div>
                         </div>
-                        {dropTarget?.kind === "row" &&
-                          dropTarget.rowId === row.id &&
-                          row.placements.length > 0 && (
-                            <span
-                              aria-hidden="true"
-                              className="pointer-events-none absolute inset-0 overflow-clip z-30"
-                            >
-                              <span
-                                ref={brickIndicatorRef}
-                                data-wall-drop-indicator={
-                                  dropTarget.beforePlacementId === null ? "right" : "left"
-                                }
-                                className="absolute"
-                              >
-                                <DropIndicator
-                                  edge={dropTarget.beforePlacementId === null ? "right" : "left"}
-                                  type="terminal-no-bleed"
-                                />
-                              </span>
-                            </span>
-                          )}
-                        {rowIndex === stack.rows.length - 1 &&
-                          dropTarget?.kind === "stack" &&
-                          dropTarget.stackId === stack.id &&
-                          dropTarget.beforeRowId === null && (
-                            <span
-                              aria-hidden="true"
-                              data-wall-drop-indicator="bottom"
-                              className="pointer-events-none absolute inset-0 z-30"
-                            >
-                              <DropIndicator edge="bottom" type="terminal-no-bleed" />
-                            </span>
-                          )}
-                      </div>
+                      </Fragment>
                     ))}
+                    {dropTarget?.kind === "stack" &&
+                      dropTarget.stackId === stack.id &&
+                      dropTarget.beforeRowId === null &&
+                      shadow}
                   </div>
                 ))}
               </section>
             ))}
           </div>
         )}
+        {sections.length === 0 && dropTarget?.kind === "wall" && shadow}
       </div>
       <Dialog.Root
         open={deletingBrickId !== null}

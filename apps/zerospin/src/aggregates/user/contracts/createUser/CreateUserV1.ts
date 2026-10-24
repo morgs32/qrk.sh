@@ -1,8 +1,13 @@
 import { user as userIdentity } from "../../models/user/user";
 
-import { modelId, makeAggregateContractVersion, primitives } from "@zerospin/sdk/browser";
+import {
+  modelId,
+  makeAggregateContractVersion,
+  primitives,
+  findFirst,
+} from "@zerospin/sdk/browser";
 
-import { AggregateError } from "@zerospin/error";
+import { ContractError } from "@zerospin/error";
 
 import { Effect } from "effect";
 
@@ -26,9 +31,22 @@ export const createUserV1 = makeAggregateContractVersion(createUser, {
   payload: createUserPayload,
   models: { user: User },
   failures: {
-    userAlreadyExists: AggregateError.schema({ code: "user-already-exists" }),
-    createUserIdentityMismatch: AggregateError.schema({ code: "create-user-identity-mismatch" }),
+    userAlreadyExists: ContractError.schema({ code: "user-already-exists" }),
   },
+  guard: Effect.fn("createUser.guard")(function* (props) {
+    const { db, payload, failures } = props;
+    const existingUser = yield* findFirst({
+      db,
+      model: User,
+      where: { clerkUserId: { eq: payload.clerkUserId } },
+    });
+    if (existingUser !== undefined) {
+      return yield* failures.userAlreadyExists.make({
+        message: `A user already exists for Clerk user ${payload.clerkUserId}`,
+        status: 409,
+      });
+    }
+  }),
   program: (props) => {
     const { operations, payload } = props;
     return Effect.gen(function* () {

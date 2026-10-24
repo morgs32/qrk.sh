@@ -22,13 +22,15 @@
   display: none;
 }
 
-[data-wall-drop-indicator] > div,
-[data-wall-drop-indicator] > div::before {
-  box-shadow: 0 0 0 1px white;
-}
-
-[data-wall-drop-indicator] > div::before {
-  background-color: white;
+/* The translucent Brick occupies insertion space and keeps its host targetable. */
+.wall-shadow-placeholder::after {
+  content: "";
+  position: absolute;
+  inset: 0.5px;
+  border: 1px solid rgb(24 104 219 / 75%);
+  border-radius: 3px;
+  z-index: 19;
+  pointer-events: none;
 }
 
 .qrk-responsive-insets {

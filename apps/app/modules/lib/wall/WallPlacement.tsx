@@ -59,7 +59,7 @@ export function WallPlacement(props: {
           </Menu.Portal>
         </Menu.Root>
       </BrickAction>
-      <div className="min-w-0 w-full">{placement.content}</div>
+      <div className="wall-placement-content relative min-w-0 w-full">{placement.content}</div>
     </div>
   );
 }

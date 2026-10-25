@@ -386,7 +386,7 @@ export function WallEditor(props: {
                           shadow}
                         <div data-wall-row-id={row.id} className="relative flow-root min-w-0">
                           <div
-                            className={`relative -m-[0.5px] flex min-h-[49px] min-w-0 items-start overflow-x-auto p-[0.5px] ${row.placements.length === 0 && dropTarget?.kind === "row" && dropTarget.rowId === row.id ? "bg-blue-50 outline outline-blue-500 -outline-offset-2" : ""}`}
+                            className={`relative -m-[0.5px] flex min-h-[49px] min-w-0 items-start p-[0.5px] ${row.placements.length === 0 && dropTarget?.kind === "row" && dropTarget.rowId === row.id ? "bg-blue-50 outline outline-blue-500 -outline-offset-2" : ""}`}
                           >
                             {row.placements.map((placement) => {
                               const brick = placement.brick;

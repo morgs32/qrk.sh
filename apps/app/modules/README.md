@@ -133,7 +133,7 @@ the surface toward it; direction updates on scroll, resize, layout changes, and
 pointer entry or focus. Each option has browser chrome around a clipped viewport,
 with the bricks flush against its edges. Reduced motion removes lift and
 animation. These treatments remain available for comparison; the shared brick
-drawer previews use the Bold shadow treatment; placed Bricks retain their interaction borders.
+drawer previews and wall Bricks use the Bold shadow treatment; placed Bricks retain their interaction borders.
 
 ## Public exports and shared UI
 
@@ -427,12 +427,14 @@ No pixel grid geometry or visibility state is persisted. Move validation counts
 Stacks that survive cleanup; catalog additions retain their existing capacity
 rules. Rows have no CSS gutters; half-gap Placement insets create the configured
 gaps, and the Wall wrapper cancels the outer inset.
-Each Row contains a flex scroll element with Placements and any temporary
-insertion shadow.
-The outer Row uses `flow-root` to contain the scroller's -0.5px margin. Its
-0.5px padding and 49px minimum height allow seam-covering borders through the
-scroll clip while preserving content positions, widths, scroll range, and the
-Row's 48px outer minimum height.
+Each Row contains a flex element with Placements and any temporary insertion
+shadow. Rows allow visible overflow so hover lift and shadows can cross adjacent
+Rows; the preview viewport owns scrolling and outer clipping.
+The outer Row uses `flow-root` to contain the flex element's -0.5px margin.
+Its 0.5px padding and 49px minimum height preserve the Row's 48px outer minimum height.
+Wall Brick content uses the same 5px lift, 10px shadow, 2px dark edge, and reduced-motion
+behavior as drawer previews. Placement hitboxes stay stationary, with blue focus,
+selection, and open-menu borders retained.
 Placed Bricks use `.brick-surface`, retaining `.brick-surface-card` for card
 treatment but omitting `.brick-surface-flat`; catalog flat borders are retained.
 Editor styling also uses

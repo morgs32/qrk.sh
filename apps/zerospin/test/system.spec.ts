@@ -13,8 +13,9 @@ import { vi } from 'vitest';
 
 import { system } from '../src/system';
 import { userAggregateV1 } from '../src/aggregates/user/UserV1';
-import { generateBrickSpecServerV1 } from '../src/aggregates/user/contracts/brick/GenerateBrickSpecServerV1';
+import { generateBrickSpecV1 } from '../src/aggregates/user/contracts/brick/GenerateBrickSpecV1';
 import { generateBrickSpecExternalV1 } from '../src/aggregates/user/contracts/brick/GenerateBrickSpecExternalV1';
+import { generateBrickSpecExternalDefinitionV1 } from '../src/aggregates/user/contracts/brick/GenerateBrickSpecExternalDefinitionV1';
 import { publishPageV1 } from '../src/aggregates/user/contracts/publishPage/PublishPageV1';
 import { createSiteV1 } from '../src/aggregates/user/contracts/createSite/CreateSiteV1';
 import { updateSiteSettingsV1 } from '../src/aggregates/user/contracts/updateSiteSettings/UpdateSiteSettingsV1';
@@ -93,7 +94,7 @@ const openGenerationDb = (siteIsPublished = false) => Effect.gen(function* () {
     });
   })(db);
   const start = (requestId: string) => Effect.gen(function* () {
-    const requested = yield* generateBrickSpecServerV1.evaluate({
+    const requested = yield* generateBrickSpecV1.evaluate({
       aggregateId: 'acct_harness', claims: null, db: readDb,
       payload: { brickId: 'brk_one', breakpoint: 'lg', requestId, prompt: '  Make it green  ' },
     });
@@ -159,9 +160,9 @@ it.effect('records canonical generation inputs and commits the validated externa
   Effect.gen(function* () {
     const { db, replay, start } = yield* openGenerationDb();
     const external = yield* start('req_one');
-    expect(userAggregateV1.contracts.generateBrickSpec).toBe(generateBrickSpecServerV1);
+    expect(userAggregateV1.contracts.generateBrickSpec).toBe(generateBrickSpecV1);
     expect(userAggregateV1.contracts.generateBrickSpecExternal).toBe(generateBrickSpecExternalV1);
-    expect(external.contract).toBe(generateBrickSpecExternalV1);
+    expect(external.contract).toBe(generateBrickSpecExternalDefinitionV1);
     expect(external.payload).toEqual({
       brickId: 'brk_one', breakpoint: 'lg', moduleId: 'swatch-and-icon', requestId: 'req_one',
       prompt: 'Make it green', baseStateRevision: 0, baseSpecRevision: 0,

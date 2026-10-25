@@ -16,7 +16,7 @@ import { movePlacementV1 as movePlacement } from "../contracts/wall/MovePlacemen
 import { moveStackV1 as moveStack } from "../contracts/wall/MoveStackContractV1";
 import { deleteBrickV1 as deleteBrick } from "../contracts/wall/DeleteBrickContractV1";
 import { updateBrickV1 as updateBrick } from "../contracts/brick/UpdateBrickV1";
-import { generateBrickSpecServerV1 as generateBrickSpec } from "../contracts/brick/GenerateBrickSpecServerV1";
+import { generateBrickSpecV1 as generateBrickSpec } from "../contracts/brick/GenerateBrickSpecV1";
 import { publishSiteV1 as publishSite } from "../contracts/publishSite/PublishSiteV1";
 import { publishPageV1 as publishPage } from "../contracts/publishPage/PublishPageV1";
 import { Effect, Schema } from "effect";
@@ -122,7 +122,7 @@ export const userActorV1 = makeAggregateActorVersion(defineAggregateActor({ name
 
     const makeCuid = yield* CuidFactory;
     const id = prefixId({ abbreviation: "cmd" }, yield* makeCuid());
-    const receipt = yield* executeCommand({
+    const outcome = yield* executeCommand({
       id,
       commandName: createUserV1.commandName,
       contractVersion: createUserV1.version,
@@ -133,8 +133,8 @@ export const userActorV1 = makeAggregateActorVersion(defineAggregateActor({ name
         displayName: null,
       },
     });
-    if (receipt.outcome.result._tag === "Failure") {
-      const failure = yield* resolveFailure(createUserV1, receipt.outcome.result.failure);
+    if (outcome.result._tag === "Failure") {
+      const failure = yield* resolveFailure(createUserV1, outcome.result.failure);
       if (
         !(
           "scope" in failure &&
@@ -142,7 +142,7 @@ export const userActorV1 = makeAggregateActorVersion(defineAggregateActor({ name
           failure.code === "user-already-exists"
         )
       ) {
-        return yield* makeZerospinError(receipt.outcome.result.failure);
+        return yield* makeZerospinError(outcome.result.failure);
       }
     }
     const provisionedUser = db.query.user

@@ -2,7 +2,8 @@
   "private": true,
   "scripts": {
     "dev": "PORTLESS_PORT=443 PORTLESS_HTTPS=1 PORTLESS_WILDCARD=1 portless",
-    "list": "portless list"
+    "list": "portless list",
+    "studio": "pnpm --filter @qrk.sh/zerospin studio"
   },
   "dependencies": {
     "framer-motion": "13.2.0"

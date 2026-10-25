@@ -24,6 +24,8 @@ import { Effect } from "effect";
 
 import { makePlacementId } from "../../../../modules/lib/makePlacementId";
 
+import { generateBrickSpecExternalDefinitionV1 } from "./GenerateBrickSpecExternalDefinitionV1";
+
 export const generateBrickSpecV1 = makeAggregateContractVersion(
   defineAggregateContract("generateBrickSpec"),
   {
@@ -35,6 +37,7 @@ export const generateBrickSpecV1 = makeAggregateContractVersion(
     },
     operations: {
       updatePlacement: placement.operations.update,
+      generateSpec: generateBrickSpecExternalDefinitionV1.externalOperation,
     },
     payload: {
       brickId: modelId({ model: brickIdentity }),
@@ -105,6 +108,19 @@ export const generateBrickSpecV1 = makeAggregateContractVersion(
             status: "generating",
             error: null,
           },
+        },
+      });
+      yield* operations.generateSpec({
+        payload: {
+          brickId: brickRow.id,
+          breakpoint: payload.breakpoint,
+          moduleId: brickRow.moduleId,
+          requestId: payload.requestId,
+          prompt: payload.prompt.trim(),
+          baseStateRevision: brickRow.stateRevision,
+          baseSpecRevision: placementRow.specRevision,
+          state: brickRow.state,
+          currentSpec: placementRow.spec,
         },
       });
     }),

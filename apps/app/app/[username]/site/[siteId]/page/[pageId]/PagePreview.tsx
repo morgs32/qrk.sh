@@ -48,7 +48,7 @@ export function PagePreview(props: { breakpoint: (typeof BREAKPOINTS)[number] })
         aria-label={`${breakpoint.id} page preview`}
       >
         <div className="@container grid min-h-full grid-rows-[auto_1fr]">
-          <SiteHeader />
+          <SiteHeader siteId={siteId} />
           <WallEditor
             key={wall.id}
             wallId={wall.id}

@@ -1,57 +1,27 @@
 "use client";
 
-import { Suspense } from "react";
-import { useUser } from "@clerk/react";
+import type { IInferModelRow } from "@zerospin/core/models/types";
 import { useLiveQuery } from "@zerospin/react";
-import { Schema } from "effect";
+import { siteV1 } from "@qrk.sh/zerospin/src/aggregates/user/models/site/SiteV1";
 import { cn } from "cn";
-import { Skeleton } from "@/components/ui/skeleton";
 import { UserUI } from "@/zerospin/UserUI";
-import { useValidatedParams } from "@/hooks/useValidatedParams";
-import { Wordmark } from "./Wordmark";
 
-const ParamsSchema = Schema.Struct({ siteId: Schema.TemplateLiteral(["sit_", Schema.String]) });
-
-export function SiteHeader() {
-  const { isLoaded, user } = useUser();
-  const { siteId } = useValidatedParams(ParamsSchema);
+export function SiteHeader(props: { siteId: IInferModelRow<typeof siteV1>["id"] }) {
+  const { siteId } = props;
   const session = UserUI.useSession();
   const { data: site } = useLiveQuery({
     session,
     key: siteId,
-    query: (db, id) => db.query.site.findFirst({ where: { id: { eq: id } } }),
+    query: (db, id) => db.query.site.findFirstOrThrow({ where: { id: { eq: id } } }),
   });
   return (
     <header
       className={cn(
         "qrk-responsive-insets z-50 flex h-16 shrink-0 items-center justify-between border-b border-border bg-background [padding-inline:var(--qrk-inset-inline)]",
-        site?.stickyNavbar && "sticky top-0",
+        site.stickyNavbar && "sticky top-0",
       )}
     >
-      {isLoaded && user ? (
-        <Suspense fallback={<Skeleton className="h-5 w-32" aria-label="Loading site name" />}>
-          <Wordmark />
-        </Suspense>
-      ) : (
-        <Skeleton className="h-5 w-32" aria-label="Loading site name" />
-      )}
-      {/* <nav className="flex items-center gap-6">
-        <Link to="/work" className="text-xs transition-opacity hover:opacity-70">
-          Work
-        </Link>
-        <Link to="/about" className="text-xs transition-opacity hover:opacity-70">
-          About
-        </Link>
-        <Link to="/follow" className="text-xs transition-opacity hover:opacity-70">
-          Follow
-        </Link>
-      </nav> */}
-      {/* <button
-        type="button"
-        className="rounded-full bg-foreground px-3 py-1.5 text-[10px] text-background transition-opacity hover:opacity-90"
-      >
-        START A PROJECT
-      </button> */}
+      <span className="text-sm font-medium">{site.name}</span>
     </header>
   );
 }

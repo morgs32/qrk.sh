@@ -30,7 +30,9 @@ Verified on 2026-10-21: App and API builds and the consolidated App Storybook
 build pass. Chrome checks covered Link configuration, Article rendering/editing
 and local save, Map Place tiles in Component/JsonRender previews, and wall-editor
 Swatch editing with the saved value retained after closing/reopening the form.
-The wall story supplies `stickyNavbar: true` for its required SiteV3 fixture field.
+The wall story exposes `stickyNavbar` as a boolean control (default `true`) on its
+Site fixture. It shares SiteHeader with App: the site name is plain text, and the
+navbar sticks within the preview only when the Site setting is enabled.
 Wall checks use the existing in-memory mock session; no backend integration test,
 persisted-data reset, or deployment was performed. All 13 former Library story
 files are retained, and Nx discovers no Library project or dependency cycle.
@@ -341,7 +343,10 @@ contracts from injected host models or versions.
 The shared controlled wall components render supplied data and action callbacks.
 App's PagePreview reads the initialized `UserUI` session and adopts the development
 canvas's direct Wall query and layout projection. The
-URL-selected Wall renders inside BrowserChrome with SiteHeader, with existing
+URL-selected Wall renders inside BrowserChrome with SiteHeader receiving the
+explicit site ID. SiteHeader reads the required Site from UserUI without Clerk or
+route dependencies. It renders above the Wall in the shared preview scroll
+container, with existing
 WallPlacement edit/delete controls. Module catalog/detail routes own their scoped
 add handlers for query-encoded insertion targets.
 Drawer `ModulePreview` templates are copy drag sources carrying

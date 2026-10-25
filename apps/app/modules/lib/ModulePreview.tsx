@@ -48,7 +48,7 @@ export function ModulePreview(props: {
       <h2 className="sticky top-0 z-10 m-0 shrink-0 bg-inherit px-8 py-4 font-normal">
         {moduleLink}
       </h2>
-      <div className="px-8 pb-16">
+      <div className="px-8 pb-16 pt-2">
         {maxPerPage !== undefined ? (
           <p className="mb-3 mt-0 max-w-64 text-sm text-zinc-500">Limit: {maxPerPage} per page.</p>
         ) : null}

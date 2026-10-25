@@ -133,7 +133,7 @@ the surface toward it; direction updates on scroll, resize, layout changes, and
 pointer entry or focus. Each option has browser chrome around a clipped viewport,
 with the bricks flush against its edges. Reduced motion removes lift and
 animation. These treatments remain available for comparison; the shared brick
-UI uses an immediate dark border.
+drawer previews use the Bold shadow treatment; placed Bricks retain their interaction borders.
 
 ## Public exports and shared UI
 
@@ -160,6 +160,9 @@ transitions and drawer lifecycle.
 `renderModuleLink`. Columns scroll vertically inside a horizontal strip, with
 headings pinned above their previews. App supplies catalog/insertion actions;
 Storybook supplies its own module examples. Live preview content stays interactive.
+Drawer previews lift 5px up and left on hover with a 10px solid dark shadow and
+2px edge, matching the Bold shadow study's 180ms transition. Reduced motion
+keeps the edge and shadow without movement or animation.
 
 Card styling is an ordinary boolean presentation prop on shared previews;
 BrickCardStyleContext is removed. Module playgrounds own a local checkbox
@@ -438,9 +441,9 @@ Placement styling through `.wall-story .wall-placement`. These class hooks repla
 editor-owned data attributes. Library state, password-manager hints, and
 unrelated module attributes retain their owners.
 Each Placement draws its interaction border with a noninteractive `::after`
-overlay outset 0.5px, centering its stroke between adjacent Placement boxes. White hover
-borders use z-index 18; blue-500 selection, open-menu, and keyboard-focus borders
-use z-index 19 so blue wins across neighboring seams. Both remain below action
+overlay outset 0.5px, centering its stroke between adjacent Placement boxes. Idle
+and hovered Placements keep transparent borders; blue-500 selection, open-menu,
+and keyboard-focus borders use z-index 19. These remain below action
 tabs at z-index 20 without changing Placement padding, minimum widths, or drop geometry.
 `BrickAction` owns the top-right control surface for both Placements and catalog
 previews; `StackAction` owns the top-left Stack surface. Both sit 1px inside the

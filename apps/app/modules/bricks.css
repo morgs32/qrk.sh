@@ -151,6 +151,25 @@
   }
 }
 
+.brick-drag-preview > [data-drawer-module-id] {
+  transform: none;
+  box-shadow: none;
+  transition: none;
+}
+
+.brick-drag-preview > [data-drawer-module-id] > .brick-hover-surface {
+  box-shadow: none;
+}
+
+.brick-drag-preview > [data-drawer-module-id]::after {
+  opacity: 1;
+  transition: none;
+}
+
+.brick-drag-preview .brick-action {
+  display: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   [data-drawer-module-id],
   [data-drawer-module-id]::after,

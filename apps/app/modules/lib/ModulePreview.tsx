@@ -29,6 +29,11 @@ export function ModulePreview(props: {
           nativeSetDragImage,
           getOffset: pointerOutsideOfPreview({ x: "16px", y: "8px" }),
           render: ({ container }) => {
+            const appearance = getComputedStyle(element);
+            container.classList.add("qrk-bricks", "brick-drag-preview");
+            container.classList.toggle("dark", element.closest(".dark") !== null);
+            container.style.font = appearance.font;
+            container.style.color = appearance.color;
             container.append(element.cloneNode(true));
           },
         });

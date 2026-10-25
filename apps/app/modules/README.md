@@ -347,7 +347,10 @@ add handlers for query-encoded insertion targets.
 Drawer `ModulePreview` templates are copy drag sources carrying
 `{ type: "drawer-brick", moduleId }`. Their desktop native drag preview copies the rendered
 Brick and uses the library's pointer offset (16px horizontally, 8px vertically)
-to leave insertion feedback visible. PagePreview owns production drop targeting;
+to leave insertion feedback visible. Its detached container retains the source's
+font, text color, and Brick theme. The floating copy keeps the drawer's 2px dark
+edge without relying on hover, removes outer and card shadows, and hides action
+controls. PagePreview owns production drop targeting;
 saved Wall Bricks remain undraggable. Module Page limits apply before accepting
 any destination. Compatible Rows use top/bottom quarters for new Rows and their
 middle half for left/right Placement insertion. Incompatible Rows use top/bottom

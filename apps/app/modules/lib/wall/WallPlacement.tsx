@@ -28,38 +28,40 @@ export function WallPlacement(props: {
         selected || menuOpen ? "after:z-[19] after:border-blue-500" : "after:border-transparent",
       )}
     >
-      <BrickAction>
-        <Menu.Root open={menuOpen} onOpenChange={setMenuOpen}>
-          <Menu.Trigger
-            id={triggerId}
-            render={<Button variant="ghost" className="size-7 rounded-none p-0" />}
-            aria-label={`Brick ${placement.brickId} actions`}
-          >
-            <Ellipsis className="size-4" aria-hidden="true" />
-          </Menu.Trigger>
-          <Menu.Portal>
-            <Menu.Positioner side="bottom" align="end" sideOffset={4} className="z-[90]">
-              <Menu.Popup className="min-w-36 border bg-background p-1 text-sm text-foreground shadow-md outline-none">
-                {onEditBrick && (
+      <div className="wall-placement-content relative z-20 min-w-0 w-full">
+        <BrickAction>
+          <Menu.Root open={menuOpen} onOpenChange={setMenuOpen}>
+            <Menu.Trigger
+              id={triggerId}
+              render={<Button variant="ghost" className="size-7 rounded-none p-0" />}
+              aria-label={`Brick ${placement.brickId} actions`}
+            >
+              <Ellipsis className="size-4" aria-hidden="true" />
+            </Menu.Trigger>
+            <Menu.Portal>
+              <Menu.Positioner side="bottom" align="end" sideOffset={4} className="z-[90]">
+                <Menu.Popup className="min-w-36 border bg-background p-1 text-sm text-foreground shadow-md outline-none">
+                  {onEditBrick && (
+                    <Menu.Item
+                      className="cursor-pointer px-3 py-2 outline-none data-[highlighted]:bg-muted"
+                      onClick={() => onEditBrick(placement.brickId)}
+                    >
+                      Edit
+                    </Menu.Item>
+                  )}
                   <Menu.Item
-                    className="cursor-pointer px-3 py-2 outline-none data-[highlighted]:bg-muted"
-                    onClick={() => onEditBrick(placement.brickId)}
+                    className="cursor-pointer px-3 py-2 text-destructive outline-none data-[highlighted]:bg-muted"
+                    onClick={() => onRequestDelete(placement.brickId, triggerId)}
                   >
-                    Edit
+                    Delete Brick
                   </Menu.Item>
-                )}
-                <Menu.Item
-                  className="cursor-pointer px-3 py-2 text-destructive outline-none data-[highlighted]:bg-muted"
-                  onClick={() => onRequestDelete(placement.brickId, triggerId)}
-                >
-                  Delete Brick
-                </Menu.Item>
-              </Menu.Popup>
-            </Menu.Positioner>
-          </Menu.Portal>
-        </Menu.Root>
-      </BrickAction>
-      <div className="wall-placement-content relative min-w-0 w-full">{placement.content}</div>
+                </Menu.Popup>
+              </Menu.Positioner>
+            </Menu.Portal>
+          </Menu.Root>
+        </BrickAction>
+        {placement.content}
+      </div>
     </div>
   );
 }

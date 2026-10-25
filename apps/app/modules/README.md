@@ -441,8 +441,11 @@ Rows; the preview viewport owns scrolling and outer clipping.
 The outer Row uses `flow-root` to contain the flex element's -0.5px margin.
 Its 0.5px padding and 49px minimum height preserve the Row's 48px outer minimum height.
 Wall Brick content uses the same 5px lift, 10px shadow, 2px dark edge, and reduced-motion
-behavior as drawer previews. Placement hitboxes stay stationary, with blue focus,
-selection, and open-menu borders retained.
+behavior as drawer previews. Placed BrickActions live inside the moving content
+wrapper, keeping their 1px top-right inset throughout the hover lift. Placement
+hitboxes and blue focus, selection, and open-menu borders stay stationary. Each
+Placement isolates its stacking context; moving content sits above the stationary
+border overlay, and its actions sit above the content's decorative edge.
 Placed Bricks use `.brick-surface`, retaining `.brick-surface-card` for card
 treatment but omitting `.brick-surface-flat`; catalog flat borders are retained.
 Editor styling also uses

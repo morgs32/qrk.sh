@@ -1,5 +1,6 @@
 "use client";
 
+import "@fontsource/silkscreen/400.css";
 import { Dialog } from "@base-ui/react/dialog";
 import type { IInferModelRow } from "@zerospin/core/models/types";
 import { makeId, makeIdSchema, stageAggregateSessionCommand } from "@zerospin/sdk/browser";
@@ -67,6 +68,7 @@ export function WallEditor(props: {
       }),
   });
   const { sections } = makeWallLayoutView({ wall });
+  const { brickGap } = wall.page.site;
 
   useLayoutEffect(() => {
     // The ghost's drop payload follows its committed, visible position.
@@ -336,11 +338,12 @@ export function WallEditor(props: {
       <div
         ref={setShadowElement}
         aria-hidden="true"
-        className={`wall-shadow-placeholder relative min-h-12 min-w-0 shrink-0 p-[0.5px] ${dropTarget.kind === "row" ? "flex-1" : "overflow-x-auto"}`}
+        className={`wall-shadow-placeholder relative min-h-12 min-w-0 shrink-0 ${dropTarget.kind === "row" ? "flex-1" : "overflow-x-auto"}`}
         style={{
+          padding: brickGap / 2,
           minWidth:
             dropTarget.kind === "row"
-              ? modulesHash[shadowSource.moduleId].variants.default.minWidth + 1
+              ? modulesHash[shadowSource.moduleId].variants.default.minWidth + brickGap
               : undefined,
         }}
       >
@@ -361,7 +364,7 @@ export function WallEditor(props: {
         aria-label={`${wall.breakpoint} Wall editor`}
       >
         {sections.length > 0 && (
-          <div className="relative -m-[0.5px] min-w-0 shrink-0">
+          <div className="relative min-w-0 shrink-0" style={{ margin: -brickGap / 2 }}>
             {sections.map((section) => (
               <section key={section.id} className="relative grid auto-cols-fr grid-flow-col">
                 {section.stacks.map((stack) => (
@@ -397,6 +400,7 @@ export function WallEditor(props: {
                                     shadow}
                                   <WallPlacement
                                     scope={scope}
+                                    brickGap={brickGap}
                                     selected={brick.id === selectedBrickId}
                                     onEditBrick={onEditBrick}
                                     onRequestDelete={(brickId, triggerId) => {
@@ -451,6 +455,9 @@ export function WallEditor(props: {
           </div>
         )}
         {sections.length === 0 && dropTarget?.kind === "wall" && shadow}
+        <p className="mt-auto shrink-0 border-t border-zinc-200 bg-white px-3 py-1 text-right text-[10px] leading-4 text-black/60">
+          powered by <span style={{ fontFamily: "Silkscreen, monospace" }}>qrk.sh</span>
+        </p>
       </div>
       <Dialog.Root
         open={deletingBrickId !== null}

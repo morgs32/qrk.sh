@@ -23,7 +23,7 @@ const siteId = prefixId(site, "story");
 const pageId = prefixId(page, "story");
 const claims = { aggregateId: "wall-story", clerkUserId: "wall-story" };
 
-function makeResources(emptyWall: boolean) {
+function makeResources(emptyWall: boolean, brickGap: number) {
   const timestamps = {
     createdAt: new Date("2026-10-20T00:00:00.000Z"),
     updatedAt: new Date("2026-10-20T00:00:00.000Z"),
@@ -72,6 +72,7 @@ function makeResources(emptyWall: boolean) {
         faviconDarkUrl: null,
         isPublished: false,
         cardStyle: false,
+        brickGap,
         stickyNavbar: true,
       }),
     ],
@@ -140,9 +141,9 @@ function makeResources(emptyWall: boolean) {
   };
 }
 
-function WallEditorStory(props: { emptyWall: boolean }) {
-  const { emptyWall } = props;
-  const [resources] = useState(() => makeResources(emptyWall));
+function WallEditorStory(props: { emptyWall: boolean; brickGap: number }) {
+  const { emptyWall, brickGap } = props;
+  const [resources] = useState(() => makeResources(emptyWall, brickGap));
   const [breakpoint, setBreakpoint] = useState<(typeof BREAKPOINTS)[number]>(BREAKPOINTS[0]);
   const wallId = prefixId(wall, `story-${breakpoint.id}`);
 
@@ -241,12 +242,18 @@ const meta = {
   parameters: { layout: "fullscreen" },
   args: {
     emptyWall: false,
+    brickGap: 1,
   },
-  render: function Render(props: { emptyWall: boolean }) {
-    const { emptyWall } = props;
-    return <WallEditorStory key={String(emptyWall)} emptyWall={emptyWall} />;
+  argTypes: {
+    brickGap: { control: { type: "range", min: 0, max: 12, step: 1 } },
   },
-} satisfies Meta<{ emptyWall: boolean }>;
+  render: function Render(props: { emptyWall: boolean; brickGap: number }) {
+    const { emptyWall, brickGap } = props;
+    return (
+      <WallEditorStory key={`${emptyWall}-${brickGap}`} emptyWall={emptyWall} brickGap={brickGap} />
+    );
+  },
+} satisfies Meta<{ emptyWall: boolean; brickGap: number }>;
 
 export default meta;
 export const Default: StoryObj<typeof meta> = {};

@@ -47,10 +47,12 @@ export const updateSiteSettingsV1 = makeAggregateContractVersion(updateSiteSetti
       code: "update-site-settings-user-mismatch",
     }),
     updateSiteSettingsNotFound: ContractError.schema({ code: "update-site-settings-not-found" }),
+    siteBrickGapInvalid: ContractError.schema({ code: "site-brick-gap-invalid" }),
   },
   payload: {
     ...updateSiteSettingsPayload,
     cardStyle: primitives.boolean({ defaultValue: false }),
+    brickGap: primitives.integer({ defaultValue: 1 }),
     stickyNavbar: primitives.boolean({ defaultValue: true }),
   },
   models: {
@@ -92,6 +94,13 @@ export const updateSiteSettingsV1 = makeAggregateContractVersion(updateSiteSetti
         status: 403,
       });
     }
+
+    if (payload.brickGap < 0 || payload.brickGap > 12) {
+      return yield* failures.siteBrickGapInvalid.make({
+        message: "Brick gap must be a whole number from 0 to 12 pixels",
+        status: 400,
+      });
+    }
   }),
   program: Effect.fn("updateSiteSettingsV1")(function* (props) {
     const { operations, payload } = props;
@@ -104,6 +113,7 @@ export const updateSiteSettingsV1 = makeAggregateContractVersion(updateSiteSetti
         faviconLightUrl: payload.faviconLightUrl,
         faviconDarkUrl: payload.faviconDarkUrl,
         cardStyle: payload.cardStyle,
+        brickGap: payload.brickGap,
         stickyNavbar: payload.stickyNavbar,
       },
     });

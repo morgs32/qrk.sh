@@ -81,6 +81,7 @@ export function SiteSettings(props: {
     faviconLightUrl: string;
     faviconDarkUrl: string;
     cardStyle: boolean;
+    brickGap: number;
     stickyNavbar: boolean;
     isPublished: boolean;
   };
@@ -100,6 +101,7 @@ export function SiteSettings(props: {
     faviconLightUrl: site.faviconLightUrl,
     faviconDarkUrl: site.faviconDarkUrl,
     cardStyle: site.cardStyle,
+    brickGap: site.brickGap,
     stickyNavbar: site.stickyNavbar,
   }));
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -110,6 +112,7 @@ export function SiteSettings(props: {
     faviconLightUrl: site.faviconLightUrl,
     faviconDarkUrl: site.faviconDarkUrl,
     cardStyle: site.cardStyle,
+    brickGap: site.brickGap,
     stickyNavbar: site.stickyNavbar,
   });
   const logoInputRef = useRef<HTMLInputElement>(null);
@@ -183,6 +186,7 @@ export function SiteSettings(props: {
             faviconLightUrl: fields.faviconLightUrl.length > 0 ? fields.faviconLightUrl : null,
             faviconDarkUrl: fields.faviconDarkUrl.length > 0 ? fields.faviconDarkUrl : null,
             cardStyle: fields.cardStyle,
+            brickGap: fields.brickGap,
             stickyNavbar: fields.stickyNavbar,
           },
         });
@@ -199,6 +203,29 @@ export function SiteSettings(props: {
             checked={fields.cardStyle}
             onCheckedChange={(cardStyle) => setFields({ ...fields, cardStyle })}
           />
+        </div>
+
+        <div className="flex items-center justify-between gap-4">
+          <FieldLabel
+            htmlFor="site-brick-gap"
+            description="Space between bricks, from 0 to 12 pixels"
+          >
+            Brick gap
+          </FieldLabel>
+          <div className="flex items-center gap-3">
+            <input
+              id="site-brick-gap"
+              type="range"
+              min={0}
+              max={12}
+              step={1}
+              value={fields.brickGap}
+              onChange={(event) => setFields({ ...fields, brickGap: Number(event.target.value) })}
+            />
+            <output htmlFor="site-brick-gap" className="w-10 text-right text-sm tabular-nums">
+              {fields.brickGap}px
+            </output>
+          </div>
         </div>
 
         <div className="flex items-center justify-between gap-4">

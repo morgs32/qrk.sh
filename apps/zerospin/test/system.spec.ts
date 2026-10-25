@@ -16,6 +16,8 @@ import { userAggregateV1 } from '../src/aggregates/user/UserV1';
 import { generateBrickSpecServerV1 } from '../src/aggregates/user/contracts/brick/GenerateBrickSpecServerV1';
 import { generateBrickSpecExternalV1 } from '../src/aggregates/user/contracts/brick/GenerateBrickSpecExternalV1';
 import { publishPageV1 } from '../src/aggregates/user/contracts/publishPage/PublishPageV1';
+import { createSiteV1 } from '../src/aggregates/user/contracts/createSite/CreateSiteV1';
+import { updateSiteSettingsV1 } from '../src/aggregates/user/contracts/updateSiteSettings/UpdateSiteSettingsV1';
 import { makePlacementId } from '../src/modules/lib/makePlacementId';
 import { swatchAndIconV1 } from '../src/modules/swatchAndIcon/swatchAndIconV1';
 
@@ -64,7 +66,7 @@ const openGenerationDb = (siteIsPublished = false) => Effect.gen(function* () {
     tx.insert(config.schema.site).values({
       ...timestamps, id: 'sit_one', userId: 'usr_one', slug: null, name: null,
       description: null, logoUrl: null, faviconLightUrl: null, faviconDarkUrl: null,
-      isPublished: siteIsPublished, stickyNavbar: true, cardStyle: false,
+      isPublished: siteIsPublished, stickyNavbar: true, cardStyle: false, brickGap: 1,
     }).run();
     tx.insert(config.schema.page).values({
       ...timestamps, id: 'pag_one', siteId: 'sit_one', slug: null, title: null,
@@ -105,6 +107,53 @@ const openGenerationDb = (siteIsPublished = false) => Effect.gen(function* () {
   });
   return { db: readDb, replay, start };
 });
+
+it.effect('defaults new sites to a 1px gap and saves gaps from 0 to 12 pixels', () =>
+  Effect.gen(function* () {
+    const { db, replay } = yield* openGenerationDb();
+    const created = yield* createSiteV1.evaluate({
+      aggregateId: 'acct_harness', claims: { clerkUserId: 'user_one' }, db,
+      payload: { id: 'sit_gap', userId: 'usr_one', slug: 'gap', name: null, description: null },
+    });
+    for (const operation of created.operations) yield* replay(operation);
+    expect(yield* sdk.findFirst({ db, model: userAggregateV1.models.site,
+      where: { id: { eq: 'sit_gap' } } })).toMatchObject({ brickGap: 1 });
+
+    for (const brickGap of [0, 6, 12]) {
+      const saved = yield* updateSiteSettingsV1.evaluate({
+        aggregateId: 'acct_harness', claims: { clerkUserId: 'user_one' }, db,
+        payload: { id: 'sit_gap', name: null, description: null, logoUrl: null,
+          faviconLightUrl: null, faviconDarkUrl: null, cardStyle: false,
+          stickyNavbar: true, brickGap },
+      });
+      for (const operation of saved.operations) yield* replay(operation);
+      expect(yield* sdk.findFirst({ db, model: userAggregateV1.models.site,
+        where: { id: { eq: 'sit_gap' } } })).toMatchObject({ brickGap });
+    }
+
+    for (const brickGap of [-1, 13]) {
+      const rejected = yield* updateSiteSettingsV1.evaluate({
+        aggregateId: 'acct_harness', claims: { clerkUserId: 'user_one' }, db,
+        payload: { id: 'sit_gap', name: null, description: null, logoUrl: null,
+          faviconLightUrl: null, faviconDarkUrl: null, cardStyle: false,
+          stickyNavbar: true, brickGap },
+      }).pipe(Effect.flip);
+      expect(rejected).toMatchObject({ code: 'site-brick-gap-invalid' });
+    }
+    expect(yield* sdk.findFirst({ db, model: userAggregateV1.models.site,
+      where: { id: { eq: 'sit_gap' } } })).toMatchObject({ brickGap: 12 });
+  }));
+
+it.effect('rejects fractional brick gaps at command construction', () =>
+  Effect.gen(function* () {
+    const result = yield* sdk.makeAggregateCommand(userAggregateV1, {
+      aggregateId: 'acct_harness', contractName: 'updateSiteSettings',
+      payload: { id: 'sit_gap', name: null, description: null, logoUrl: null,
+        faviconLightUrl: null, faviconDarkUrl: null, cardStyle: false,
+        stickyNavbar: true, brickGap: 1.5 },
+    }).pipe(Effect.exit);
+    expect(result._tag).toBe('Failure');
+  }).pipe(Effect.provide(sdk.NanoIdFactory)));
 
 it.effect('records canonical generation inputs and commits the validated external spec', () =>
   Effect.gen(function* () {

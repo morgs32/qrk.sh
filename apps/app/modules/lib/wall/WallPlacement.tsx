@@ -8,20 +8,21 @@ import { BrickAction } from "../../components/BrickAction";
 export function WallPlacement(props: {
   placement: { id: string; brickId: string; minWidth: number; content: ReactNode };
   scope: string;
+  brickGap: number;
   selected: boolean;
   onEditBrick?: (brickId: string) => void;
   onRequestDelete: (brickId: string, triggerId: string) => void;
 }) {
-  const { placement, scope, selected, onEditBrick, onRequestDelete } = props;
+  const { placement, scope, brickGap, selected, onEditBrick, onRequestDelete } = props;
   const [menuOpen, setMenuOpen] = useState(false);
   const triggerId = `${scope}-placement-menu-${placement.id}`;
-  // Adjacent half-pixel insets form a 1px gap while drop targets keep touching.
+  // Adjacent half-gap insets preserve touching drop targets at every gap size.
   return (
     <div
       data-wall-placement-id={placement.id}
-      style={{ minWidth: placement.minWidth + 1 }}
+      style={{ minWidth: placement.minWidth + brickGap, padding: brickGap / 2 }}
       className={cn(
-        "wall-placement group/brick relative flex-1 p-[0.5px] after:pointer-events-none after:absolute after:-inset-[0.5px] after:z-[18] after:border after:content-[''] focus-within:after:z-[19] focus-within:after:border-blue-500",
+        "wall-placement group/brick relative flex-1 after:pointer-events-none after:absolute after:-inset-[0.5px] after:z-[18] after:border after:content-[''] focus-within:after:z-[19] focus-within:after:border-blue-500",
         selected && "is-selected",
         menuOpen && "is-menu-open",
         selected || menuOpen

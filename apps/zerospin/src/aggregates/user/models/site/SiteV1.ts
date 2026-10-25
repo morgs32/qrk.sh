@@ -38,6 +38,7 @@ export const siteV1 = makeModelVersion(site, {
     isPublished: primitives.boolean({ defaultValue: false }),
     stickyNavbar: primitives.boolean({ defaultValue: true }),
     cardStyle: primitives.boolean({ defaultValue: false }),
+    brickGap: primitives.integer({ defaultValue: 1 }),
   },
   indexes: [],
   version: 1,

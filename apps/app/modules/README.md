@@ -361,12 +361,16 @@ the current Row, preventing a taller shadow from changing combine/reorder
 targeting. Temporary space clears on drop, cancellation, or outside movement
 without persisted fake Rows. Capacity checks and the existing drop command path
 apply to the shadow's destination.
+The Wall ends with a thin white, right-aligned “powered by qrk.sh” footer with a
+top border and `qrk.sh` in Silkscreen. It sits at the bottom of short Walls and follows content on long Walls.
 The Wall background is light orange (`#E6AA80`, a 50% white tint of `#CC5500`), except for the existing empty-Wall
-drag highlight. A half-pixel inset on each Placement creates condensed 1px gaps
-between Bricks. The content-height Wall wrapper offsets the outer inset so Bricks
-sit flush with the Wall edges.
+drag highlight. `Site.brickGap` sets the space between Bricks in whole pixels
+from 0 to 12, defaulting to 1. SiteSettings saves it through `updateSiteSettings`,
+whose guard rejects values outside that range. Each Placement and insertion
+shadow uses half the gap as padding. The content-height Wall wrapper offsets
+the outer inset so Bricks sit flush with the Wall edges at every gap size.
 BrowserChrome's border is an outer ring, leaving the inner orange seams visible.
-Each Placement adds 1px to its minimum width to preserve the module's content minimum.
+Each Placement adds the configured gap to its minimum width to preserve the module's content minimum.
 Target boxes still touch. There is no perimeter-border overlay.
 Empty Rows accept their first Placement; exposed Stack background appends a Row.
 A Wall without Sections highlights its available area and creates the first
@@ -418,7 +422,7 @@ all empty containers in their affected Wall after editing; Brick deletion prunes
 only ancestors emptied by its Placement removals. Self-before moves do no cleanup.
 No pixel grid geometry or visibility state is persisted. Move validation counts
 Stacks that survive cleanup; catalog additions retain their existing capacity
-rules. Rows have no CSS gutters; half-pixel Placement insets create the condensed
+rules. Rows have no CSS gutters; half-gap Placement insets create the configured
 gaps, and the Wall wrapper cancels the outer inset.
 Each Row contains a flex scroll element with Placements and any temporary
 insertion shadow.
@@ -434,7 +438,7 @@ Placement styling through `.wall-story .wall-placement`. These class hooks repla
 editor-owned data attributes. Library state, password-manager hints, and
 unrelated module attributes retain their owners.
 Each Placement draws its interaction border with a noninteractive `::after`
-overlay outset 0.5px, centering its stroke on the shared 1px seam. White hover
+overlay outset 0.5px, centering its stroke between adjacent Placement boxes. White hover
 borders use z-index 18; blue-500 selection, open-menu, and keyboard-focus borders
 use z-index 19 so blue wins across neighboring seams. Both remain below action
 tabs at z-index 20 without changing Placement padding, minimum widths, or drop geometry.

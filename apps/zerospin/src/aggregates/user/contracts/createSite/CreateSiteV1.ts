@@ -112,6 +112,7 @@ export const createSiteV1 = makeAggregateContractVersion(createSite, {
         faviconDarkUrl: null,
         isPublished: false,
         cardStyle: false,
+        brickGap: 1,
         stickyNavbar: true,
       },
     });

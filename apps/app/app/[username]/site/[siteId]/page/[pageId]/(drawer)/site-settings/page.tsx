@@ -32,6 +32,7 @@ export default function Page() {
           faviconLightUrl: site.faviconLightUrl ?? "",
           faviconDarkUrl: site.faviconDarkUrl ?? "",
           cardStyle: site.cardStyle,
+          brickGap: site.brickGap,
           stickyNavbar: site.stickyNavbar,
           isPublished: site.isPublished,
         }}

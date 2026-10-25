@@ -7,6 +7,7 @@ import { Laptop, Monitor, MoveHorizontal, Smartphone, Tablet } from "lucide-reac
 
 import { Drawer } from "../modules/lib/Drawer";
 import { ModuleFilmstrip } from "../modules/lib/ModuleFilmstrip";
+import { SiteHeader } from "../app/[username]/site/[siteId]/SiteHeader";
 import { BrowserChrome } from "../modules/lib/BrowserChrome";
 import { WallEditor } from "../modules/lib/wall/WallEditor";
 import { Button } from "../modules/components/ui/button";
@@ -23,7 +24,7 @@ const siteId = prefixId(site, "story");
 const pageId = prefixId(page, "story");
 const claims = { aggregateId: "wall-story", clerkUserId: "wall-story" };
 
-function makeResources(emptyWall: boolean, brickGap: number) {
+function makeResources(emptyWall: boolean, brickGap: number, stickyNavbar: boolean) {
   const timestamps = {
     createdAt: new Date("2026-10-20T00:00:00.000Z"),
     updatedAt: new Date("2026-10-20T00:00:00.000Z"),
@@ -73,7 +74,7 @@ function makeResources(emptyWall: boolean, brickGap: number) {
         isPublished: false,
         cardStyle: false,
         brickGap,
-        stickyNavbar: true,
+        stickyNavbar,
       }),
     ],
     page: [
@@ -141,9 +142,9 @@ function makeResources(emptyWall: boolean, brickGap: number) {
   };
 }
 
-function WallEditorStory(props: { emptyWall: boolean; brickGap: number }) {
-  const { emptyWall, brickGap } = props;
-  const [resources] = useState(() => makeResources(emptyWall, brickGap));
+function WallEditorStory(props: { emptyWall: boolean; brickGap: number; stickyNavbar: boolean }) {
+  const { emptyWall, brickGap, stickyNavbar } = props;
+  const [resources] = useState(() => makeResources(emptyWall, brickGap, stickyNavbar));
   const [breakpoint, setBreakpoint] = useState<(typeof BREAKPOINTS)[number]>(BREAKPOINTS[0]);
   const wallId = prefixId(wall, `story-${breakpoint.id}`);
 
@@ -202,7 +203,10 @@ function WallEditorStory(props: { emptyWall: boolean; brickGap: number }) {
                       role="region"
                       aria-label={`${breakpoint.id} page preview`}
                     >
-                      <WallEditor key={wallId} wallId={wallId} />
+                      <div className="@container grid min-h-full grid-rows-[auto_1fr]">
+                        <SiteHeader siteId={siteId} />
+                        <WallEditor key={wallId} wallId={wallId} />
+                      </div>
                     </div>
                   </BrowserChrome>
                 </div>
@@ -243,17 +247,24 @@ const meta = {
   args: {
     emptyWall: false,
     brickGap: 1,
+    stickyNavbar: true,
   },
   argTypes: {
+    stickyNavbar: { control: "boolean" },
     brickGap: { control: { type: "range", min: 0, max: 12, step: 1 } },
   },
-  render: function Render(props: { emptyWall: boolean; brickGap: number }) {
-    const { emptyWall, brickGap } = props;
+  render: function Render(props: { emptyWall: boolean; brickGap: number; stickyNavbar: boolean }) {
+    const { emptyWall, brickGap, stickyNavbar } = props;
     return (
-      <WallEditorStory key={`${emptyWall}-${brickGap}`} emptyWall={emptyWall} brickGap={brickGap} />
+      <WallEditorStory
+        key={`${emptyWall}-${brickGap}-${stickyNavbar}`}
+        emptyWall={emptyWall}
+        brickGap={brickGap}
+        stickyNavbar={stickyNavbar}
+      />
     );
   },
-} satisfies Meta<{ emptyWall: boolean; brickGap: number }>;
+} satisfies Meta<{ emptyWall: boolean; brickGap: number; stickyNavbar: boolean }>;
 
 export default meta;
 export const Default: StoryObj<typeof meta> = {};

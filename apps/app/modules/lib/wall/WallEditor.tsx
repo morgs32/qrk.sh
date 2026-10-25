@@ -361,7 +361,7 @@ export function WallEditor(props: {
         aria-label={`${wall.breakpoint} Wall editor`}
       >
         {sections.length > 0 && (
-          <div className="relative min-w-0 shrink-0 p-[0.5px]">
+          <div className="relative -m-[0.5px] min-w-0 shrink-0">
             {sections.map((section) => (
               <section key={section.id} className="relative grid auto-cols-fr grid-flow-col">
                 {section.stacks.map((stack) => (

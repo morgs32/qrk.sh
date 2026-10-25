@@ -119,39 +119,11 @@ of that spec. Requests retain loading and error presentation. API credentials st
 server-owned. Story remount restores its declared fixture, and no Storybook action
 creates a Page, Brick, or Placement in App.
 
-**Modules / Article / Meowdown spike** pairs an editable Markdown fixture with
-live Markdown output. Its **Hide / Hybrid / Show** radio control changes syntax
-visibility while preserving edits. This story uses local state only.
-It shares Article's production typography and ordered/nested-list spacing.
-
-**Modules / Article / Renderer comparison** shows the current Meowdown article
-view beside HTML returned by `@tanstack/markdown/html`'s `renderHtml`. A shared
-Meowdown editor updates both previews; expandable panels expose the Markdown
-source and generated HTML. The fixture includes ordinary article syntax,
-image-size comments, raw HTML, and Meowdown extensions so rendering differences
-remain visible. TanStack uses escaped raw HTML, with frontmatter extraction and
-heading IDs disabled. Storybook invokes the synchronous HTML API in the browser;
-the same API can generate body HTML in a server process without React or a DOM.
-This comparison retains the production Meowdown editor and article renderer.
-
-To generate the comparison fixture's body HTML in Node, without React or a DOM:
-
-```sh
-cd apps/app
-node --input-type=module <<'JS'
-import { renderHtml } from '@tanstack/markdown/html';
-import { articleRendererComparisonMarkdown } from './modules/article/articleRendererComparisonMarkdown.ts';
-process.stdout.write(renderHtml(articleRendererComparisonMarkdown, {
-  allowHtml: false,
-  frontmatter: false,
-  headingIds: false,
-  headingAnchors: false,
-}));
-JS
-```
-
-This command uses Node's native TypeScript support (verified with Node 24).
-The result is a body fragment; full page composition and publication are separate.
+**Modules / Article** keeps **Playground** and **Unconfigured** for module previews,
+plus **Form** and **Save Failure** for the production Meowdown form. The form stories
+use local state and expose saved Article JSON, save/cancel status, and simulated
+save rejection. The exploratory editor spike and renderer comparison have been
+removed following the Meowdown decision.
 
 **Modules / Brick hover transitions** compares background tint with five hard-shadow
 options: the original, tight, bold, tinted, and position-aware shadows. Hover or
@@ -390,8 +362,9 @@ targeting. Temporary space clears on drop, cancellation, or outside movement
 without persisted fake Rows. Capacity checks and the existing drop command path
 apply to the shadow's destination.
 The Wall background is light orange (`#E6AA80`, a 50% white tint of `#CC5500`), except for the existing empty-Wall
-drag highlight. A half-pixel inset on each Placement and the content-height Wall
-wrapper creates condensed 1px gaps between Bricks and around the content.
+drag highlight. A half-pixel inset on each Placement creates condensed 1px gaps
+between Bricks. The content-height Wall wrapper offsets the outer inset so Bricks
+sit flush with the Wall edges.
 BrowserChrome's border is an outer ring, leaving the inner orange seams visible.
 Each Placement adds 1px to its minimum width to preserve the module's content minimum.
 Target boxes still touch. There is no perimeter-border overlay.
@@ -445,8 +418,8 @@ all empty containers in their affected Wall after editing; Brick deletion prunes
 only ancestors emptied by its Placement removals. Self-before moves do no cleanup.
 No pixel grid geometry or visibility state is persisted. Move validation counts
 Stacks that survive cleanup; catalog additions retain their existing capacity
-rules. Rows have no CSS gutters; half-pixel content and Placement insets create
-the condensed gaps.
+rules. Rows have no CSS gutters; half-pixel Placement insets create the condensed
+gaps, and the Wall wrapper cancels the outer inset.
 Each Row contains a flex scroll element with Placements and any temporary
 insertion shadow.
 The outer Row uses `flow-root` to contain the scroller's -0.5px margin. Its

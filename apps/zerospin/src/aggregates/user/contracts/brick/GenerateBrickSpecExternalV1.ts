@@ -1,49 +1,21 @@
-import { makeAggregateExternalContract, findFirst, modelId } from "@zerospin/sdk";
+import { makeAggregateExternalContract, findFirst } from "@zerospin/sdk";
 import { makeZerospinError } from "@zerospin/error";
-import { primitives } from "@zerospin/shapes";
 import { newHttpBatchRpcSession } from "capnweb";
 import { Effect, Schema } from "effect";
 
 import { backendLibrary as library } from "../../../../modules/backendLibrary";
 import { makeModuleSpecDocumentSchema } from "../../../../modules/make/makeModuleSpecDocumentSchema";
 import { makePlacementId } from "../../../../modules/lib/makePlacementId";
-import { brick as brickIdentity } from "../../models/brick/brick";
 import { brickV1 as brick } from "../../models/brick/BrickV1";
 import { placementV1 as placement } from "../../models/placement/PlacementV1";
 import { wallV1 as wall } from "../../models/wall/WallV1";
 
-const libraryGenerateSpecResponse = Schema.Union([
-  Schema.Struct({
-    _tag: Schema.Literal("Left"),
-    left: Schema.Struct({
-      code: Schema.String,
-      message: Schema.String,
-      retryable: Schema.optionalKey(Schema.Boolean),
-    }),
-  }),
-  Schema.Struct({ _tag: Schema.Literal("Right"), right: Schema.Unknown }),
-]);
+import { generateBrickSpecExternalDefinitionV1, libraryGenerateSpecResponse } from "./GenerateBrickSpecExternalDefinitionV1";
 
-export const generateBrickSpecExternalV1 = makeAggregateExternalContract({
-  name: "generateBrickSpecExternal",
-  version: 1,
+export const generateBrickSpecExternalV1 = makeAggregateExternalContract(generateBrickSpecExternalDefinitionV1, {
   models: { brick, placement, wall },
   operations: { updatePlacement: placement.operations.update },
-  payload: {
-    brickId: modelId({ model: brickIdentity }),
-    breakpoint: wall.attributes.breakpoint,
-    moduleId: brick.attributes.moduleId,
-    requestId: primitives.text(),
-    prompt: primitives.text(),
-    baseStateRevision: primitives.integer(),
-    baseSpecRevision: primitives.integer(),
-    state: brick.attributes.state,
-    currentSpec: placement.attributes.spec,
-  },
-  external: {
-    response: libraryGenerateSpecResponse,
-    timeoutMs: 30_000,
-    request: Effect.fn("generateBrickSpecExternal.request")(function* (props) {
+  request: Effect.fn("generateBrickSpecExternal.request")(function* (props) {
       const { payload } = props;
       const { env } = yield* Effect.promise(() => import("cloudflare:workers"));
       const { QRK_LIBRARY_API_URL } = yield* Schema.decodeUnknownEffect(
@@ -112,7 +84,6 @@ export const generateBrickSpecExternalV1 = makeAggregateExternalContract({
         ),
       );
     }),
-  },
   program: Effect.fn("generateBrickSpecExternal.program")(function* (props) {
     const { db, payload, externalOutcome, operations } = props;
     const brickRow = yield* findFirst({

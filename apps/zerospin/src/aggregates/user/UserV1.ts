@@ -11,7 +11,7 @@ import { movePlacementV1 as movePlacement } from "./contracts/wall/MovePlacement
 import { moveStackV1 as moveStack } from "./contracts/wall/MoveStackContractV1";
 import { deleteBrickV1 as deleteBrick } from "./contracts/wall/DeleteBrickContractV1";
 import { updateBrickV1 as updateBrick } from "./contracts/brick/UpdateBrickV1";
-import { generateBrickSpecServerV1 as generateBrickSpec } from "./contracts/brick/GenerateBrickSpecServerV1";
+import { generateBrickSpecV1 as generateBrickSpec } from "./contracts/brick/GenerateBrickSpecV1";
 import { generateBrickSpecExternalV1 as generateBrickSpecExternal } from "./contracts/brick/GenerateBrickSpecExternalV1";
 import { publishSiteV1 as publishSite } from "./contracts/publishSite/PublishSiteV1";
 import { publishPageV1 as publishPage } from "./contracts/publishPage/PublishPageV1";

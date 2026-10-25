@@ -13,7 +13,7 @@
     "preview": "vp preview --host 127.0.0.1 --port ${PORT:-10012} --strictPort"
   },
   "dependencies": {
-    "@zerospin/system-diagrams": "33.0.4",
+    "@zerospin/system-diagrams": "36.0.0",
     "react": "19.2.7",
     "react-dom": "19.2.7"
   },
@@ -23,7 +23,7 @@
     "@types/react": "19.2.17",
     "@types/react-dom": "19.2.3",
     "@vitejs/plugin-react": "6.0.3",
-    "@zerospin/sdk": "33.0.4",
+    "@zerospin/sdk": "36.0.0",
     "jiti": "2.7.0",
     "typescript": "6.0.2",
     "vite": "npm:@voidzero-dev/vite-plus-core@1.0.0",

@@ -13,6 +13,7 @@ import { brickV1 } from "@qrk.sh/zerospin/src/aggregates/user/models/brick/Brick
 import { makeEffectSchema } from "@zerospin/shapes";
 import { Result, Schema } from "effect";
 import { pageV1 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV1";
+import { siteV1 as Site } from "@qrk.sh/zerospin/src/aggregates/user/models/site/SiteV1";
 import { BREAKPOINTS } from "../../../../../../../../../../modules/lib/breakpoints";
 
 import { CodeText } from "@/app/[username]/site/[siteId]/page/[pageId]/Modules/CodeText";
@@ -21,6 +22,7 @@ import { BrickWrapper } from "../../../../../../../../../../modules/components/b
 import NotFound from "@/app/not-found";
 
 const PageIdSchema = makeIdSchema(Page);
+const SiteIdSchema = makeIdSchema(Site);
 
 export default function ModuleRoute() {
   const params = useParams({
@@ -34,6 +36,7 @@ export default function ModuleRoute() {
     makeEffectSchema({ moduleId: brickV1.attributes.moduleId }),
   )({ moduleId: moduleId });
   const decodedPageId = Schema.decodeUnknownResult(PageIdSchema)(pageId);
+  const decodedSiteId = Schema.decodeUnknownResult(SiteIdSchema)(siteId);
 
   if (Result.isFailure(decoded) || Result.isFailure(decodedPageId)) {
     return (
@@ -43,15 +46,24 @@ export default function ModuleRoute() {
     );
   }
 
+  if (Result.isFailure(decodedSiteId)) return <NotFound />;
+
   const brickModule = modulesHash[decoded.success.moduleId];
-  return <ModuleRouteBody brickModule={brickModule} pageId={decodedPageId.success} />;
+  return (
+    <ModuleRouteBody
+      brickModule={brickModule}
+      pageId={decodedPageId.success}
+      siteId={decodedSiteId.success}
+    />
+  );
 }
 
 function ModuleRouteBody(props: {
   brickModule: (typeof modulesHash)[keyof typeof modulesHash];
   pageId: typeof PageIdSchema.Type;
+  siteId: typeof SiteIdSchema.Type;
 }) {
-  const { brickModule, pageId } = props;
+  const { brickModule, pageId, siteId } = props;
   const params = useParams({ from: "/$username/site/$siteId/page/$pageId" });
   const search = useSearch({ from: "/$username/site/$siteId/page/$pageId" });
   const breakpoint = BREAKPOINTS.find((entry) => entry.id === search.breakpoint);
@@ -59,12 +71,12 @@ function ModuleRouteBody(props: {
   const session = UserUI.useSession();
   const { data: site } = useLiveQuery({
     session,
-    key: params.siteId,
+    key: siteId,
     query: (db, id) => db.query.site.findFirst({ where: { id: { eq: id } } }),
   });
   const { data: walls } = useLiveQuery({
     session,
-    key: { pageId, siteId: params.siteId },
+    key: { pageId, siteId },
     query: (db, key) =>
       db.query.wall.findMany({
         where: { pageId: { eq: key.pageId }, page: { siteId: { eq: key.siteId } } },

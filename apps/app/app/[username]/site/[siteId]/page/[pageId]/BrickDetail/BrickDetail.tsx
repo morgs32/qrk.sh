@@ -5,6 +5,7 @@ import { makePlacementId } from "@qrk.sh/zerospin/src/modules/lib/makePlacementI
 import { brickV1 } from "@qrk.sh/zerospin/src/aggregates/user/models/brick/BrickV1";
 import { UserUI } from "@/zerospin/UserUI";
 import { pageV1 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV1";
+import { siteV1 as Site } from "@qrk.sh/zerospin/src/aggregates/user/models/site/SiteV1";
 import { BREAKPOINTS } from "../../../../../../../modules/lib/breakpoints";
 import { useLocation, useRouter, useSearch } from "@tanstack/react-router";
 import { isNonEmptySpec } from "@json-render/core";
@@ -19,7 +20,7 @@ import NotFound from "@/app/not-found";
 
 const ParamsSchema = Schema.Struct({
   username: Schema.String,
-  siteId: Schema.String,
+  siteId: makeIdSchema(Site),
   pageId: makeIdSchema(Page),
   brickId: Schema.String,
 });

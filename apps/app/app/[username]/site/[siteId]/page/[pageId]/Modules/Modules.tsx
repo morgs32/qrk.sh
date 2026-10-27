@@ -11,6 +11,7 @@ import { BREAKPOINTS } from "../../../../../../../modules/lib/breakpoints";
 import { brickV1 } from "@qrk.sh/zerospin/src/aggregates/user/models/brick/BrickV1";
 import { wallInsertionTargetSchema } from "@qrk.sh/zerospin/src/aggregates/user/layout/wallTargetSchemas";
 import { pageV1 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV1";
+import { siteV1 as Site } from "@qrk.sh/zerospin/src/aggregates/user/models/site/SiteV1";
 import { Schema } from "effect";
 
 import { useValidatedParams } from "@/hooks/useValidatedParams";
@@ -18,7 +19,7 @@ import NotFound from "@/app/not-found";
 
 const ParamsSchema = Schema.Struct({
   username: Schema.String,
-  siteId: Schema.String,
+  siteId: makeIdSchema(Site),
   pageId: makeIdSchema(Page),
 });
 

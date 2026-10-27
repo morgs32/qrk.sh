@@ -4,5 +4,5 @@ import { userSessionDefinition } from "./userSessionDefinition";
 
 makeSharedWorker({
   sqliteWasmUrl,
-  aggregateSessions: [{ sessionDefinition: userSessionDefinition }],
+  sessionDefinition: userSessionDefinition,
 });

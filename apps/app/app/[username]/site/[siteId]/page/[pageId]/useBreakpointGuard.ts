@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, type RefCallback } from "react";
 import { useNavigate, useSearch } from "@tanstack/react-router";
-import { BREAKPOINTS } from "../../../../../../modules/lib/breakpoints";
+import { BREAKPOINTS, PREVIEW_BORDER_WIDTH } from "../../../../../../modules/lib/breakpoints";
 import { useEditorViewportStore } from "@/stores/useEditorViewportStore";
 
 /** Measure this preview and keep its URL breakpoint within the available width. */
@@ -20,7 +20,10 @@ export function useBreakpointGuard() {
     const measure = () => {
       if (!attached) return;
       hasCurrentMeasurement.current = true;
-      useEditorViewportStore.getState().setAvailableWidth(element.getBoundingClientRect().width);
+      // Exclude the scrollbar and reserve both frame borders.
+      useEditorViewportStore
+        .getState()
+        .setAvailableWidth(Math.max(0, element.clientWidth - 2 * PREVIEW_BORDER_WIDTH));
     };
     measure();
     const observer = new ResizeObserver(measure);
@@ -37,7 +40,9 @@ export function useBreakpointGuard() {
     if (!hasCurrentMeasurement.current) return;
     const measuredWidth = useEditorViewportStore.getState().availableWidth;
     if (measuredWidth === null) return;
-    const largestFitting = BREAKPOINTS.filter((entry) => entry.previewWidth <= measuredWidth).at(-1);
+    const largestFitting = BREAKPOINTS.filter((entry) => entry.previewWidth <= measuredWidth).at(
+      -1,
+    );
     if (largestFitting === undefined) return;
     if (breakpoint !== undefined && breakpoint.previewWidth <= measuredWidth) return;
     void navigate({

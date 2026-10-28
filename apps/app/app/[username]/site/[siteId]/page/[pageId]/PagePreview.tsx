@@ -7,7 +7,7 @@ import { siteV1 } from "@qrk.sh/zerospin/src/aggregates/user/models/site/SiteV1"
 import { useLiveQuery } from "@zerospin/react";
 import { Schema } from "effect";
 
-import { BREAKPOINTS } from "../../../../../../modules/lib/breakpoints";
+import { BREAKPOINTS, PREVIEW_BORDER_WIDTH } from "../../../../../../modules/lib/breakpoints";
 import { BrowserChrome } from "../../../../../../modules/lib/BrowserChrome";
 import { WallEditor } from "../../../../../../modules/lib/wall/WallEditor";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
@@ -40,47 +40,52 @@ export function PagePreview(props: { breakpoint: (typeof BREAKPOINTS)[number] })
       }),
   });
 
+  const previewStyle = {
+    "--wall-preview-width": `${breakpoint.previewWidth}px`,
+    "--wall-preview-border-width": `${PREVIEW_BORDER_WIDTH}px`,
+    minHeight: "var(--wall-frame-height)",
+  };
+
   return (
-    <BrowserChrome breakpoint={breakpoint.id} previewWidth={breakpoint.previewWidth}>
-      <div
-        className="wall-preview-scroll isolate min-h-0 flex-1 overflow-y-auto bg-white"
-        role="region"
-        aria-label={`${breakpoint.id} page preview`}
-      >
-        <div className="@container grid min-h-full grid-rows-[auto_1fr]">
-          <SiteHeader siteId={siteId} />
-          <WallEditor
-            key={wall.id}
-            wallId={wall.id}
-            selectedBrickId={selectedBrickId}
-            onEditBrick={(brickId) => {
-              void navigate({
-                to: "/$username/site/$siteId/page/$pageId/brick/$brickId",
-                params: { ...params, brickId },
-                search: (previous) => ({
-                  ...previous,
-                  breakpoint: breakpoint.id,
-                  insertion: undefined,
-                }),
-                resetScroll: false,
-              });
-            }}
-            onBrickDeleted={(brickId) => {
-              if (selectedBrickId !== brickId) return;
-              void navigate({
-                to: "/$username/site/$siteId/page/$pageId",
-                params,
-                search: (previous) => ({
-                  ...previous,
-                  breakpoint: breakpoint.id,
-                  insertion: undefined,
-                }),
-                resetScroll: false,
-              });
-            }}
-          />
-        </div>
-      </div>
-    </BrowserChrome>
+    <div
+      className="wall-preview-frame relative isolate flex w-full flex-col"
+      style={previewStyle}
+      data-breakpoint={breakpoint.id}
+      role="region"
+      aria-label={`${breakpoint.id} page preview`}
+    >
+      <BrowserChrome breakpoint={breakpoint.id} />
+      <SiteHeader siteId={siteId} />
+      <WallEditor
+        key={wall.id}
+        wallId={wall.id}
+        selectedBrickId={selectedBrickId}
+        onEditBrick={(brickId) => {
+          void navigate({
+            to: "/$username/site/$siteId/page/$pageId/brick/$brickId",
+            params: { ...params, brickId },
+            search: (previous) => ({
+              ...previous,
+              breakpoint: breakpoint.id,
+              insertion: undefined,
+            }),
+            resetScroll: false,
+          });
+        }}
+        onBrickDeleted={(brickId) => {
+          if (selectedBrickId !== brickId) return;
+          void navigate({
+            to: "/$username/site/$siteId/page/$pageId",
+            params,
+            search: (previous) => ({
+              ...previous,
+              breakpoint: breakpoint.id,
+              insertion: undefined,
+            }),
+            resetScroll: false,
+          });
+        }}
+      />
+    </div>
   );
 }

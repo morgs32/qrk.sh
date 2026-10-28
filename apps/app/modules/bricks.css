@@ -10,16 +10,13 @@
   --wall-frame-height: calc(100dvh - var(--wall-preview-top-gap) - var(--wall-preview-bottom-gap));
 }
 
-.wall-preview-scroll {
-  min-height: 0;
-  flex: 1;
-  overflow-x: clip;
-  overflow-y: auto;
-  scrollbar-width: none;
+.wall-preview-frame {
+  --wall-frame-radius: 12px;
 }
 
-.wall-preview-scroll::-webkit-scrollbar {
-  display: none;
+.wall-preview-frame[data-breakpoint="sm"],
+.wall-preview-frame[data-breakpoint="md"] {
+  --wall-frame-radius: 16px;
 }
 
 /* The translucent Brick occupies insertion space and keeps its host targetable. */
@@ -108,7 +105,7 @@
   overflow: hidden;
 }
 
-/* Surface clipping stays local; drawer previews lift as a complete template. */
+/* Surface clipping stays local; editor hover borders do not change layout. */
 .brick-hover-target > .brick-hover-surface {
   position: relative;
 }
@@ -117,44 +114,22 @@
   isolation: isolate;
 }
 
-[data-drawer-module-id],
-.wall-placement-content {
-  transition:
-    transform 180ms cubic-bezier(0.2, 0.7, 0.2, 1),
-    box-shadow 180ms ease;
-}
-
 [data-drawer-module-id]::after,
 .wall-placement-content::after {
   content: "";
   position: absolute;
   inset: 0;
-  border: 2px solid #282824;
+  border: 5px solid #000;
   border-radius: inherit;
   opacity: 0;
   pointer-events: none;
   z-index: 19;
-  transition: opacity 180ms ease;
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .wall-editor:has(.wall-placement:hover) {
-    z-index: 51;
-  }
-
-  [data-drawer-module-id]:hover,
-  .wall-placement:hover > .wall-placement-content {
-    transform: translate(-5px, -5px);
-    box-shadow: 10px 10px 0 #282824;
-  }
-
   [data-drawer-module-id]:hover::after,
   .wall-placement:hover > .wall-placement-content::after {
     opacity: 1;
-  }
-
-  .wall-placement:hover {
-    z-index: 1;
   }
 }
 
@@ -169,23 +144,13 @@
 }
 
 .brick-drag-preview > [data-drawer-module-id]::after {
+  border: 2px solid #282824;
   opacity: 1;
   transition: none;
 }
 
 .brick-drag-preview .brick-action {
   display: none;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  [data-drawer-module-id],
-  [data-drawer-module-id]::after,
-  .wall-placement-content,
-  .wall-placement:hover > .wall-placement-content,
-  .wall-placement-content::after {
-    transition: none;
-    transform: none;
-  }
 }
 
 .brick-action [data-slot="button"] {
@@ -199,10 +164,4 @@
 
 .wall-placement:is(.is-selected, .is-menu-open) > .wall-placement-content > .brick-action {
   opacity: 1;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .brick-hover-target:hover {
-    z-index: 1;
-  }
 }

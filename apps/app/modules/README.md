@@ -135,7 +135,7 @@ the surface toward it; direction updates on scroll, resize, layout changes, and
 pointer entry or focus. Each option has browser chrome around a clipped viewport,
 with the bricks flush against its edges. Reduced motion removes lift and
 animation. These treatments remain available for comparison; the shared brick
-drawer previews and wall Bricks use the Bold shadow treatment; placed Bricks retain their interaction borders.
+drawer previews and wall Bricks use only a 5px black hover border; placed Bricks retain their keyboard-focus and open-menu borders.
 
 ## Public exports and shared UI
 
@@ -162,9 +162,8 @@ transitions and drawer lifecycle.
 `renderModuleLink`. Columns scroll vertically inside a horizontal strip, with
 headings pinned above their previews. App supplies catalog/insertion actions;
 Storybook supplies its own module examples. Live preview content stays interactive.
-Drawer previews lift 5px up and left on hover with a 10px solid dark shadow and
-2px edge, matching the Bold shadow study's 180ms transition. Reduced motion
-keeps the edge and shadow without movement or animation.
+Drawer previews show a 5px black border on hover, without movement, added shadows,
+or hover animation. The border overlays the content without changing layout.
 
 Card styling is an ordinary boolean presentation prop on shared previews;
 BrickCardStyleContext is removed. Module playgrounds own a local checkbox
@@ -343,7 +342,7 @@ contracts from injected host models or versions.
 The shared controlled wall components render supplied data and action callbacks.
 App's PagePreview reads the initialized `UserUI` session and adopts the development
 canvas's direct Wall query and layout projection. The
-URL-selected Wall renders inside BrowserChrome with SiteHeader receiving the
+URL-selected Wall renders below BrowserChrome with SiteHeader receiving the
 explicit site ID. SiteHeader reads the required Site from UserUI without Clerk or
 route dependencies. It renders above the Wall in the shared preview scroll
 container, with existing
@@ -373,9 +372,9 @@ the current Row, preventing a taller shadow from changing combine/reorder
 targeting. Temporary space clears on drop, cancellation, or outside movement
 without persisted fake Rows. Capacity checks and the existing drop command path
 apply to the shadow's destination.
-The Wall ends with a thin white, right-aligned “powered by qrk.sh” footer with a
+The Wall ends with a white, right-aligned “powered by qrk.sh” footer with
 an inset top divider and `qrk.sh` in Silkscreen. Its text line boxes are vertically
-centered in a 24px footer; the divider does not consume layout space. It sits at
+centered in a 64px footer, matching the site navbar; the divider does not consume layout space. It sits at
 the bottom of short Walls and follows content on long Walls.
 The Wall background is light orange (`#E6AA80`, a 50% white tint of `#CC5500`), except for the existing empty-Wall
 drag highlight. `Site.brickGap` sets the space between Bricks in whole pixels
@@ -383,7 +382,9 @@ from 0 to 12, defaulting to 1. SiteSettings saves it through `updateSiteSettings
 whose guard rejects values outside that range. Each Placement and insertion
 shadow uses half the gap as padding. The content-height Wall wrapper offsets
 the outer inset so Bricks sit flush with the Wall edges at every gap size.
-BrowserChrome's border is an outer ring, leaving the inner orange seams visible.
+The full-width preview frame has no border. Its centered sections share real
+1px zinc side borders owned by PreviewSection; the browser bar uses a real top
+border rather than an outside ring.
 Each Placement adds the configured gap to its minimum width to preserve the module's content minimum.
 Target boxes still touch. There is no perimeter-border overlay.
 Empty Rows accept their first Placement; exposed Stack background appends a Row.
@@ -398,28 +399,44 @@ parents. Successful local staging opens the Brick form. Cancellation, outside
 drops, invalid source data, and stale destinations create nothing.
 
 There is no WallEditorProvider or WallViewportProvider/context. The URL owns
-`?breakpoint=sm|md|lg|xl`; the App-only Zustand viewport store owns measured width,
-with available choices derived from static `BREAKPOINTS`. PageLayout's
-`useBreakpointGuard` measures PageLayout's preview region through its plain `previewRef`
-and replaces a missing/non-fitting URL choice after measurement. Below 360px it
-shows insufficient space without choosing a fallback Wall. Width growth enables
-choices while keeping the current URL selection. The separate development URL is
-removed. PageLayout's single `.wall-preview-viewport` root contains the editor
-scroll region and drawer spacer, toolbar anchor, and Drawer as siblings. It owns
-scroll anchoring/clamping and floating toolbar placement. ValidBreakpoint and
-PagePreview add no presentation wrappers; WallPreviewViewport is removed.
-BrowserChrome accepts only children, breakpoint, and previewWidth and keeps
-its clipped frame and decorative browser bar without a slide-animation lifecycle.
-A rounded 1px outer ring (`ring-zinc-400/50`) surrounds the entire frame without
-consuming layout width or covering the Wall's inner seams; no inset frame overlay
-or Wall stacking workaround remains. The browser-header divider is retained.
-Its `.wall-preview-scroll` remains separate from the editor scroll region.
+`?breakpoint=sm|md|lg|xl`. Static `BREAKPOINTS.previewWidth` values are exact page
+content widths: 360, 720, 1080, and 1440px. The App-only Zustand viewport store
+holds available content width, measured by `useBreakpointGuard` through its
+plain `previewRef` as `max(0, element.clientWidth - 2 * PREVIEW_BORDER_WIDTH)`.
+`PREVIEW_BORDER_WIDTH` is exported from `modules/lib/breakpoints.ts` and is 1px.
+PagePreview and the Wall Editor story supply it as `--wall-preview-border-width`.
+Guard selection, ValidBreakpoint rendering, and
+floating-toolbar availability all compare against that same content-width
+measurement. Below 362px of available total width, the UI explains the minimum
+space needed instead of mounting or shrinking a Wall. Width growth enables
+choices while keeping the current URL selection; breakpoint labels retain their
+nominal content widths. The separate development URL is removed.
+PageLayout's single `.wall-preview-viewport` root contains the editor scroll
+region and drawer spacer, toolbar anchor, and Drawer as siblings. It owns scroll
+anchoring/clamping and floating toolbar placement. PagePreview owns a full-width
+flex frame whose minimum height fills the available preview space.
+`PreviewSection` is the single centered element shared by the browser bar, site
+navbar, Wall body, and footer. It owns the real side borders and a border-box
+width of `previewWidth + 2 * PREVIEW_BORDER_WIDTH`, without max-width clamping.
+A 720px page therefore occupies 722px including its borders; its unpadded query
+container remains exactly 720px wide. Section-local content padding remains
+inside that content area. Container-query thresholds are unchanged. Surrounding
+gutters remain available to editor controls, and sections do not clip overflow.
+The editor's full-width scroll region is the only preview scroll container.
+`BrowserChrome` renders only the 48px browser bar, sticky at the top of that
+region, with its own real top border and bottom divider. The optional sticky
+site navbar sits below it. The full frame has no border or ring; browser/footer
+corners remain rounded without clipping descendants. The footer remains part
+of WallEditor and is 64px tall.
+The Wall Editor story uses the same section widths and a full-width scroll
+owner. Its frame has a minimum width of the selected content width plus both
+side borders, so oversized selections scroll horizontally rather than silently
+shrinking. Its breakpoint controls keep the nominal content-width labels.
 Reduced motion skips positional toolbar animation; drawer animation is unchanged.
 
-**Wall Editor / Default** and **Empty wall** exercise the same shadow feedback
-used by production WallEditor. The separate Large, Halo, and Shadow prototype
-stories, styling, and prototype flags are removed. The user chose the shadow
-approach; visual verification remains with the user.
+**Wall Editor / Default** and **Empty wall** exercise the same 5px black hover
+border used by production WallEditor. The separate Large, Halo, and Shadow
+prototype stories, styling, and prototype flags are removed.
 
 The Wall Editor story uses the existing in-memory MockAggregateInitializer and
 UserUI, seeds Wall layouts plus separate Placement records, and renders the
@@ -439,18 +456,17 @@ Stacks that survive cleanup; catalog additions retain their existing capacity
 rules. Rows have no CSS gutters; half-gap Placement insets create the configured
 gaps, and the Wall wrapper cancels the outer inset.
 Each Row contains a flex element with Placements and any temporary insertion
-shadow. Rows allow visible overflow so hover lift and shadows can cross adjacent
-Rows; the preview viewport owns scrolling and outer clipping.
+shadow. Rows allow visible overflow; the full-width preview viewport owns scrolling
+and outer clipping.
 The outer Row uses `flow-root` to contain the flex element's -0.5px margin.
 Its 0.5px padding and 49px minimum height preserve the Row's 48px outer minimum height.
-Wall Brick content uses the same 5px lift, 10px shadow, 2px dark edge, and reduced-motion
-behavior as drawer previews. While a Brick is hovered, the Wall rises above the navbar
-inside the isolated page preview, keeping the drawer above both.
-Placed BrickActions live inside the moving content
-wrapper, keeping their 1px top-right inset throughout the hover lift. Placement
-hitboxes and blue focus, selection, and open-menu borders stay stationary. Each
-Placement isolates its stacking context; moving content sits above the stationary
-border overlay, and its actions sit above the content's decorative edge.
+Wall Brick content uses the same 5px black hover border as drawer previews,
+without movement, added shadows, animation, or hover stacking changes.
+Placed BrickActions remain inside the stationary content wrapper at their 1px
+top-right inset. Placement hitboxes and blue keyboard-focus and open-menu borders
+stay stationary. Selection keeps the Brick's actions visible without drawing a
+border. Each Placement isolates its stacking context; its actions sit above the
+content's hover border.
 Placed Bricks use `.brick-surface`, retaining `.brick-surface-card` for card
 treatment but omitting `.brick-surface-flat`; catalog flat borders are retained.
 Editor styling also uses
@@ -460,7 +476,7 @@ editor-owned data attributes. Library state, password-manager hints, and
 unrelated module attributes retain their owners.
 Each Placement draws its interaction border with a noninteractive `::after`
 overlay outset 0.5px, centering its stroke between adjacent Placement boxes. Idle
-and hovered Placements keep transparent borders; blue-500 selection, open-menu,
+and hovered Placements keep transparent borders; blue-500 open-menu
 and keyboard-focus borders use z-index 19. These remain below action
 tabs at z-index 20 without changing Placement padding, minimum widths, or drop geometry.
 `BrickAction` owns the top-right control surface for both Placements and catalog

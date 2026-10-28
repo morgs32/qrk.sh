@@ -30,17 +30,29 @@ its breakpoint directly from its Wall.
 
 ## Frame and content rendering
 
-The shared `BrowserChrome` is a static frame accepting children, breakpoint,
-and previewWidth. It retains clipping and the 48px decorative browser bar.
-A rounded 1px outer ring (`ring-zinc-400/50`) surrounds the whole frame without
-consuming layout width or covering the inner orange seams. The inset frame
-overlay and Wall stacking workaround are removed; the header divider remains.
-Its dormant slide-animation lifecycle is removed. PageLayout owns
-breakpoint fitting/selection. Only the URL-selected frame mounts the canvas.
-PageLayout's single `.wall-preview-viewport` root contains the editor scroll region with
-its drawer spacer, toolbar anchor, and Drawer as siblings. The inner
-`.wall-preview-scroll` remains a separate scroll owner. ValidBreakpoint and PagePreview
-add no presentation wrappers. Drawer spacing, scroll anchoring, toolbar
+The shared `BrowserChrome` renders the 48px decorative browser bar, sticky
+inside PageLayout's full-width editor scroll region. `PagePreview` owns the
+full-width frame. Each `BREAKPOINTS.previewWidth` is an exact page content width
+(360, 720, 1080, or 1440px). `PreviewSection` is one centered element and solely
+owns the shared 1px zinc side borders. Its border-box width is the selected
+content width plus `2 * PREVIEW_BORDER_WIDTH`, with no max-width clamping.
+Thus a 720px page occupies 722px including its borders. The browser bar owns its
+real top border and bottom divider; the navbar and footer keep their own local
+horizontal separators. There is no outside ring or full-frame outline.
+Section-local padding remains inside the exact page content width. Container
+queries retain their existing thresholds; surrounding gutters remain open to
+hovered Bricks and their controls. Browser and footer corners remain rounded.
+PageLayout owns breakpoint fitting/selection. `useBreakpointGuard` stores
+`max(0, element.clientWidth - 2 * PREVIEW_BORDER_WIDTH)` as available content
+width, so the guard, ValidBreakpoint, and floating breakpoint controls share one
+availability boundary. The minimum page needs 362px including borders; labels
+continue to show nominal content widths. Only the fitting URL-selected frame
+mounts the canvas. Its `.wall-preview-viewport` contains the editor scroll region
+with its drawer spacer, toolbar anchor, and Drawer as siblings. There is no
+nested preview scroll container. The optional sticky site navbar sits below the
+browser bar. Storybook gives the frame the same content-plus-borders minimum
+width and scrolls oversized selections horizontally instead of shrinking them.
+Drawer spacing, scroll anchoring, toolbar
 positioning, and drawer animation keep their existing behavior. The Bricks list
 and individual Brick drawer screens keep the floating breakpoint toolbar visible
 above the drawer; selecting a breakpoint keeps the current drawer screen open.
@@ -125,8 +137,9 @@ no-ops.
 The Wall background is light orange (`#E6AA80`, a 50% white tint of `#CC5500`), except for its existing empty-Wall
 drag highlight. Half-pixel padding on the content-height wrapper and each
 Placement creates condensed 1px gaps between Bricks and around the content.
-BrowserChrome's border is an outer ring, leaving the inner orange seams visible.
-There is no perimeter-border overlay or CSS gutter. Placed Bricks omit flat
+The full-width preview frame has no border; PreviewSection owns each centered
+section's real side borders, and the browser bar owns its real top border.
+PreviewSection's outside gutters preserve overflow without changing Brick gaps. Placed Bricks omit flat
 surface borders; catalog flat borders and card treatment remain.
 Target boxes still touch; the shadow temporarily participates in layout at its
 insertion destination. Capacity checks and the existing drop command path apply
@@ -149,8 +162,9 @@ touch access. Edit/Delete menus are keyboard-accessible. The Delete confirmation
 supports cancellation and restores focus to its trigger or a surviving control.
 Placement interaction borders use a noninteractive `::after` overlay outset
 0.5px, centering the stroke on the shared 1px seam. White hover borders use
-z-index 18; blue-500 selection, open-menu, and keyboard-focus borders use z-index
-19 so blue wins across neighboring seams. Both remain below action tabs at
+z-index 18; blue-500 open-menu and keyboard-focus borders use z-index
+19 so blue wins across neighboring seams. Selection keeps actions visible without
+drawing a border. Both remain below action tabs at
 z-index 20. Each outer Row uses `flow-root` to contain its scroller's -0.5px
 margin; 0.5px padding and a 49px minimum height allow seam-covering paint through
 the clip while preserving the 48px outer minimum, content positions and widths,

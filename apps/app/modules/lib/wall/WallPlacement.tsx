@@ -25,7 +25,7 @@ export function WallPlacement(props: {
         "wall-placement group/brick relative flex-1 after:pointer-events-none after:absolute after:-inset-[0.5px] after:z-[18] after:border after:content-[''] focus-within:after:z-[19] focus-within:after:border-blue-500",
         selected && "is-selected",
         menuOpen && "is-menu-open",
-        selected || menuOpen ? "after:z-[19] after:border-blue-500" : "after:border-transparent",
+        menuOpen ? "after:z-[19] after:border-blue-500" : "after:border-transparent",
       )}
     >
       <div className="wall-placement-content relative z-20 min-w-0 w-full">

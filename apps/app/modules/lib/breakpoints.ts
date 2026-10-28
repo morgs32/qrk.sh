@@ -1,3 +1,6 @@
+/** Decorative frame borders sit outside the authored page-content width. */
+export const PREVIEW_BORDER_WIDTH = 1;
+
 /** Shared breakpoint ids and preview widths. */
 export const BREAKPOINTS = [
   { id: "sm", minWidth: 0, previewWidth: 360 },

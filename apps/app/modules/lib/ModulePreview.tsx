@@ -49,8 +49,8 @@ export function ModulePreview(props: {
   if (entry === undefined) throw new Error(`Unknown breakpoint: ${breakpoint}`);
 
   return (
-    <div className="flex h-full min-h-0 w-max shrink-0 flex-col overflow-y-auto overscroll-y-contain border-r border-zinc-200 bg-zinc-100">
-      <h2 className="sticky top-0 z-10 m-0 shrink-0 bg-inherit px-8 py-4 font-normal">
+    <div className="flex h-full min-h-0 w-max shrink-0 flex-col overflow-y-auto overscroll-y-contain border-r border-zinc-200">
+      <h2 className="sticky top-0 z-10 m-0 shrink-0 px-8 py-4 font-normal">
         {moduleLink}
       </h2>
       <div className="px-8 pb-16 pt-2">

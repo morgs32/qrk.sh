@@ -193,8 +193,8 @@ export function SiteSettings(props: {
         if (result._tag === "Failure") setSaveError(result.failure.message);
       }}
     >
-      <div className="space-y-8 px-4 py-6">
-        <div className="flex items-center justify-between gap-4">
+      <div className="grid grid-cols-2 items-start gap-x-6 gap-y-8 px-4 py-6 md:gap-x-8">
+        <div className="col-start-1 flex items-center justify-between gap-4">
           <FieldLabel htmlFor="site-card-style" description="Show each brick as a card">
             Cards
           </FieldLabel>
@@ -205,7 +205,7 @@ export function SiteSettings(props: {
           />
         </div>
 
-        <div className="flex items-center justify-between gap-4">
+        <div className="col-start-1 flex items-center justify-between gap-4">
           <FieldLabel
             htmlFor="site-brick-gap"
             description="Space between bricks, from 0 to 12 pixels"
@@ -228,8 +228,11 @@ export function SiteSettings(props: {
           </div>
         </div>
 
-        <div className="flex items-center justify-between gap-4">
-          <FieldLabel htmlFor="site-sticky-navbar" description="Keep the navbar visible while scrolling">
+        <div className="col-start-1 flex items-center justify-between gap-4">
+          <FieldLabel
+            htmlFor="site-sticky-navbar"
+            description="Keep the navbar visible while scrolling"
+          >
             Sticky navbar
           </FieldLabel>
           <input
@@ -240,8 +243,8 @@ export function SiteSettings(props: {
           />
         </div>
 
-        <div className="grid grid-cols-2 items-start gap-6 md:gap-8">
-          <div className="flex min-w-0 flex-col gap-4">
+        <div className="contents">
+          <div className="col-start-1 flex min-w-0 flex-col gap-4">
             <FieldLabel description="PNG or SVG; height up to 48px recommended">Logo</FieldLabel>
             <div className="flex flex-col items-start gap-4">
               <input
@@ -252,7 +255,10 @@ export function SiteSettings(props: {
                 onChange={(event) => {
                   const file = event.target.files?.[0];
                   event.target.value = "";
-                  void runUpload({ file, onUrl: (logoUrl) => setFields((current) => ({ ...current, logoUrl })) });
+                  void runUpload({
+                    file,
+                    onUrl: (logoUrl) => setFields((current) => ({ ...current, logoUrl })),
+                  });
                 }}
               />
               <Button
@@ -290,7 +296,11 @@ export function SiteSettings(props: {
                   onChange={(event) => {
                     const file = event.target.files?.[0];
                     event.target.value = "";
-                    void runUpload({ file, onUrl: (faviconLightUrl) => setFields((current) => ({ ...current, faviconLightUrl })) });
+                    void runUpload({
+                      file,
+                      onUrl: (faviconLightUrl) =>
+                        setFields((current) => ({ ...current, faviconLightUrl })),
+                    });
                   }}
                 />
                 <Button
@@ -328,7 +338,11 @@ export function SiteSettings(props: {
                   onChange={(event) => {
                     const file = event.target.files?.[0];
                     event.target.value = "";
-                    void runUpload({ file, onUrl: (faviconDarkUrl) => setFields((current) => ({ ...current, faviconDarkUrl })) });
+                    void runUpload({
+                      file,
+                      onUrl: (faviconDarkUrl) =>
+                        setFields((current) => ({ ...current, faviconDarkUrl })),
+                    });
                   }}
                 />
                 <Button
@@ -360,7 +374,7 @@ export function SiteSettings(props: {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 items-start gap-6 md:gap-8">
+        <div className="contents">
           <div className="flex min-w-0 flex-col gap-2">
             <FieldLabel htmlFor="site-name-and-wordmark">Site name and wordmark</FieldLabel>
             <Input
@@ -402,7 +416,7 @@ export function SiteSettings(props: {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 items-start gap-6 md:gap-8">
+        <div className="contents">
           <div className="flex min-w-0 flex-col gap-2">
             <FieldLabel>QR Code</FieldLabel>
             <div className="relative h-40 w-40 shrink-0 overflow-hidden rounded-md border bg-background">
@@ -446,9 +460,15 @@ export function SiteSettings(props: {
           />
         </div>
 
-        {saveError === null ? null : <p role="alert" className="text-sm text-destructive">{saveError}</p>}
-        <div className="flex items-center gap-2">
-          <Button type="submit" disabled={!isDirty || isUploading}>Save</Button>
+        {saveError === null ? null : (
+          <p role="alert" className="col-span-2 text-sm text-destructive">
+            {saveError}
+          </p>
+        )}
+        <div className="col-span-2 flex items-center gap-2">
+          <Button type="submit" disabled={!isDirty || isUploading}>
+            Save
+          </Button>
           <Button
             type="button"
             variant="outline"
@@ -465,9 +485,9 @@ export function SiteSettings(props: {
           </Button>
         </div>
 
-        <Separator />
+        <Separator className="col-span-2" />
 
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="col-span-2 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
             <FieldLabel description="Unpublish your website from all domains.">
               Danger Zone

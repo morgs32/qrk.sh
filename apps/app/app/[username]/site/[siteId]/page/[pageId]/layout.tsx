@@ -166,9 +166,7 @@ export default function PageLayout(props: { children: ReactNode }) {
           ref={scrollRef}
           className="relative h-full min-h-0 min-w-0 overflow-x-hidden overflow-y-auto pt-[var(--wall-preview-top-gap)] pb-[var(--wall-preview-bottom-gap)]"
         >
-          <div className="relative">
-            <ValidBreakpoint />
-          </div>
+          <ValidBreakpoint />
           <div ref={drawerSpace} aria-hidden />
         </div>
         <div

@@ -2,7 +2,7 @@
 
 import { useSearch } from "@tanstack/react-router";
 import { useEditorViewportStore } from "@/stores/useEditorViewportStore";
-import { BREAKPOINTS } from "../../../../../../modules/lib/breakpoints";
+import { BREAKPOINTS, PREVIEW_BORDER_WIDTH } from "../../../../../../modules/lib/breakpoints";
 
 import { PagePreview } from "./PagePreview";
 
@@ -16,7 +16,8 @@ export function ValidBreakpoint() {
     <>
       {insufficientWidth ? (
         <p className="p-4 text-sm" role="status">
-          At least 360px is needed to preview the page.
+          At least {BREAKPOINTS[0].previewWidth + 2 * PREVIEW_BORDER_WIDTH}px is needed to preview{" "}
+          {BREAKPOINTS[0].previewWidth}px of page content with its borders.
         </p>
       ) : null}
       {breakpoint !== undefined &&

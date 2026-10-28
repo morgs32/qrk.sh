@@ -11,7 +11,7 @@ import { SiteHeader } from "../app/[username]/site/[siteId]/SiteHeader";
 import { BrowserChrome } from "../modules/lib/BrowserChrome";
 import { WallEditor } from "../modules/lib/wall/WallEditor";
 import { Button } from "../modules/components/ui/button";
-import { BREAKPOINTS } from "../modules/lib/breakpoints";
+import { BREAKPOINTS, PREVIEW_BORDER_WIDTH } from "../modules/lib/breakpoints";
 import { makePlacementId } from "@qrk.sh/zerospin/src/modules/lib/makePlacementId";
 import { swatchAndIconV1 } from "@qrk.sh/zerospin/src/modules/swatchAndIcon/swatchAndIconV1";
 import { modulesHash } from "../modules/lib/modulesHash";
@@ -147,6 +147,12 @@ function WallEditorStory(props: { emptyWall: boolean; brickGap: number; stickyNa
   const [resources] = useState(() => makeResources(emptyWall, brickGap, stickyNavbar));
   const [breakpoint, setBreakpoint] = useState<(typeof BREAKPOINTS)[number]>(BREAKPOINTS[0]);
   const wallId = prefixId(wall, `story-${breakpoint.id}`);
+  const previewStyle = {
+    "--wall-preview-width": `${breakpoint.previewWidth}px`,
+    "--wall-preview-border-width": `${PREVIEW_BORDER_WIDTH}px`,
+    minWidth: breakpoint.previewWidth + 2 * PREVIEW_BORDER_WIDTH,
+    minHeight: "100%",
+  };
 
   return (
     <MockAggregateInitializer
@@ -192,23 +198,21 @@ function WallEditorStory(props: { emptyWall: boolean; brickGap: number; stickyNa
                   })}
                 </div>
               </header>
-              <main className="min-h-0 flex-1 overflow-auto px-8 py-6 [--wall-frame-height:100%]">
+              <main className="min-h-0 flex-1 overflow-auto px-8 py-6">
                 <div
-                  className="mx-auto h-full min-h-60 rounded-2xl shadow-[0_12px_40px_-16px_rgb(0_0_0/0.2)]"
-                  style={{ width: breakpoint.previewWidth }}
+                  className="wall-preview-frame relative isolate flex w-full flex-col"
+                  style={previewStyle}
+                  data-breakpoint={breakpoint.id}
                 >
-                  <BrowserChrome breakpoint={breakpoint.id} previewWidth={breakpoint.previewWidth}>
-                    <div
-                      className="wall-preview-scroll min-h-0 flex-1 overflow-y-auto bg-white"
-                      role="region"
-                      aria-label={`${breakpoint.id} page preview`}
-                    >
-                      <div className="@container grid min-h-full grid-rows-[auto_1fr]">
-                        <SiteHeader siteId={siteId} />
-                        <WallEditor key={wallId} wallId={wallId} />
-                      </div>
-                    </div>
-                  </BrowserChrome>
+                  <BrowserChrome breakpoint={breakpoint.id} />
+                  <div
+                    role="region"
+                    aria-label={`${breakpoint.id} page preview`}
+                    className="flex flex-1 flex-col"
+                  >
+                    <SiteHeader siteId={siteId} />
+                    <WallEditor key={wallId} wallId={wallId} />
+                  </div>
                 </div>
               </main>
               <div className="h-[280px] min-w-0 shrink-0">

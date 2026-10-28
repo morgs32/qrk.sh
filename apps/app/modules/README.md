@@ -360,8 +360,9 @@ saved Wall Bricks remain undraggable. Module Page limits apply before accepting
 any destination. Compatible Rows use top/bottom quarters for new Rows and their
 middle half for left/right Placement insertion. Incompatible Rows use top/bottom
 halves for new Rows.
-Insertion feedback opens temporary space using a blue-edged copy of the drawer's
-existing `.brick-hover-surface` at 40% opacity, without rerendering its module or
+Insertion feedback opens temporary space using a copy of the drawer's existing
+`.brick-hover-surface` at 40% opacity, with the hover style's dark border color
+and square corners, without rerendering its module or
 reading providers. It occupies a Placement slot in a compatible Row, a new Row
 in a Stack, or the first slot in an empty Wall. Its content is inert and ignores
 pointer events; its host accepts drops at the visible slot's stable
@@ -373,7 +374,9 @@ targeting. Temporary space clears on drop, cancellation, or outside movement
 without persisted fake Rows. Capacity checks and the existing drop command path
 apply to the shadow's destination.
 The Wall ends with a thin white, right-aligned “powered by qrk.sh” footer with a
-top border and `qrk.sh` in Silkscreen. It sits at the bottom of short Walls and follows content on long Walls.
+an inset top divider and `qrk.sh` in Silkscreen. Its text line boxes are vertically
+centered in a 24px footer; the divider does not consume layout space. It sits at
+the bottom of short Walls and follows content on long Walls.
 The Wall background is light orange (`#E6AA80`, a 50% white tint of `#CC5500`), except for the existing empty-Wall
 drag highlight. `Site.brickGap` sets the space between Bricks in whole pixels
 from 0 to 12, defaulting to 1. SiteSettings saves it through `updateSiteSettings`,
@@ -441,7 +444,9 @@ Rows; the preview viewport owns scrolling and outer clipping.
 The outer Row uses `flow-root` to contain the flex element's -0.5px margin.
 Its 0.5px padding and 49px minimum height preserve the Row's 48px outer minimum height.
 Wall Brick content uses the same 5px lift, 10px shadow, 2px dark edge, and reduced-motion
-behavior as drawer previews. Placed BrickActions live inside the moving content
+behavior as drawer previews. While a Brick is hovered, the Wall rises above the navbar
+inside the isolated page preview, keeping the drawer above both.
+Placed BrickActions live inside the moving content
 wrapper, keeping their 1px top-right inset throughout the hover lift. Placement
 hitboxes and blue focus, selection, and open-menu borders stay stationary. Each
 Placement isolates its stacking context; moving content sits above the stationary

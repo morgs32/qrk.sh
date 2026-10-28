@@ -43,7 +43,7 @@ export function PagePreview(props: { breakpoint: (typeof BREAKPOINTS)[number] })
   return (
     <BrowserChrome breakpoint={breakpoint.id} previewWidth={breakpoint.previewWidth}>
       <div
-        className="wall-preview-scroll min-h-0 flex-1 overflow-y-auto bg-white"
+        className="wall-preview-scroll isolate min-h-0 flex-1 overflow-y-auto bg-white"
         role="region"
         aria-label={`${breakpoint.id} page preview`}
       >

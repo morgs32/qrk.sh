@@ -3,14 +3,14 @@ import { useState } from "react";
 import { articleV1 } from "@qrk.sh/zerospin/src/modules/article/articleV1";
 import { ArticleForm } from "./ArticleForm";
 
-const meta = {
+const meta: Meta<{ failSave: boolean }> = {
   title: "Modules/Article",
   parameters: { layout: "fullscreen" },
   args: { failSave: false },
   argTypes: {
     failSave: { control: "boolean", description: "Reject the production form's save callback." },
   },
-} satisfies Meta<{ failSave: boolean }>;
+};
 
 export default meta;
 

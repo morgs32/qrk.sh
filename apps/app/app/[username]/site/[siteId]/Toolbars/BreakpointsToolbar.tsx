@@ -25,7 +25,7 @@ const toolbarPresenceTransition = {
   ease: [0, 0, 0.2, 1] as const,
 };
 
-/** Standalone breakpoint preview controls for the /breakpoints route. */
+/** Breakpoint preview controls for breakpoint selection and the Bricks drawer. */
 export function BreakpointsToolbar() {
   const reducedMotion = useReducedMotion();
   const params = useValidatedParams(ParamsSchema);

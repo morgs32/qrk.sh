@@ -8,7 +8,7 @@ import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 
 import { ModuleFilmstrip } from "../../../../../../../modules/lib/ModuleFilmstrip";
 import { BREAKPOINTS } from "../../../../../../../modules/lib/breakpoints";
-import { brickV1 } from "@qrk.sh/zerospin/src/aggregates/user/models/brick/BrickV1";
+import { brickV2 } from "@qrk.sh/zerospin/src/aggregates/user/models/brick/BrickV2";
 import { wallInsertionTargetSchema } from "@qrk.sh/zerospin/src/aggregates/user/layout/wallTargetSchemas";
 import { pageV1 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV1";
 import { siteV1 as Site } from "@qrk.sh/zerospin/src/aggregates/user/models/site/SiteV1";
@@ -71,7 +71,7 @@ export function Modules() {
                     ? undefined
                     : () => {
                         if (insertionTarget === null || insertionTarget.wallId !== wall.id) return;
-                        const id = session.runSync(makeId(brickV1));
+                        const id = session.runSync(makeId(brickV2));
                         const result = stageAggregateSessionCommand({
                           session,
                           contractName: "addBrick",

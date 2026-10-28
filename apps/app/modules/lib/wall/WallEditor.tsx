@@ -15,7 +15,7 @@ import {
 } from "@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge";
 import { isNonEmptySpec } from "@json-render/core";
 import { Fragment, useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
-import { brickV1 } from "@qrk.sh/zerospin/src/aggregates/user/models/brick/BrickV1";
+import { brickV2 } from "@qrk.sh/zerospin/src/aggregates/user/models/brick/BrickV2";
 import { wallV1 } from "@qrk.sh/zerospin/src/aggregates/user/models/wall/WallV1";
 import { useLiveQuery } from "@zerospin/react";
 import { Result, Schema } from "effect";
@@ -33,7 +33,7 @@ import { UserUI } from "@/zerospin/UserUI";
 
 const DrawerBrickData = Schema.Struct({
   type: Schema.Literal("drawer-brick"),
-  moduleId: brickV1.attributesSchema.fields.moduleId,
+  moduleId: brickV2.attributesSchema.fields.moduleId,
 });
 
 /** Shared interactive Wall; its host owns navigation and the surrounding page chrome. */
@@ -153,7 +153,7 @@ export function WallEditor(props: {
             !source.element.isConnected
           )
             return;
-          const id = session.runSync(makeId(brickV1));
+          const id = session.runSync(makeId(brickV2));
           const result = stageAggregateSessionCommand({
             session,
             contractName: "addBrick",
@@ -420,7 +420,10 @@ export function WallEditor(props: {
                                             <div
                                               className={`brick-surface ${wall.page.site.cardStyle ? "brick-surface-card" : ""} brick-hover-target relative min-w-0`}
                                             >
-                                              <BrickWrapper className="brick-hover-surface h-auto">
+                                              <BrickWrapper
+                                                borderWidth={brick.borderWidth}
+                                                className="brick-hover-surface h-auto"
+                                              >
                                                 <Component
                                                   state={brick.state}
                                                   variantId={placement.variantId}
@@ -492,7 +495,7 @@ export function WallEditor(props: {
                 variant="destructive"
                 onClick={() => {
                   if (deletingBrickId === null) return;
-                  const brickId = Schema.decodeUnknownSync(makeIdSchema(brickV1))(deletingBrickId);
+                  const brickId = Schema.decodeUnknownSync(makeIdSchema(brickV2))(deletingBrickId);
                   const result = stageAggregateSessionCommand({
                     session,
                     contractName: "deleteBrick",

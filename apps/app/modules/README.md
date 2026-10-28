@@ -322,6 +322,12 @@ its revision and superseding active spec generation. Null is accepted for all te
 modules. Spec validation remains strict. The command preserves each Placement's
 identity, layout membership, and spec; it stores no pixel dimensions, `gridItem`, or visibility.
 
+Each Brick also owns `borderWidth`, shared by all four breakpoint Placements.
+It defaults to `0` and accepts whole pixels from `0` to `12` through the authenticated
+`setBrickBorderWidth({ brickId, borderWidth })` command. A border-only save changes
+neither module state and its revision nor Placement specs, revisions, or generation.
+There is no border-width editor control yet.
+
 ## App-owned persisted editor
 
 App's user aggregate owns the final Page and directly referenced Wall/Brick
@@ -334,8 +340,10 @@ retain stable identities, direct `wallId`, and per-width specs/revisions/generat
 Breakpoint derives from that Wall; content/spec changes leave layout arrays alone.
 
 State-save and spec-update command declarations belong to QRK's user aggregate
-and bind concrete model versions there. The current V1 baseline exposes no
-provider configure/complete commands or retained compatibility release. App supplies module
+and bind concrete model versions there. App uses user release and actor V2 with
+BrickV2 and PageSnapshotV2. V1 declarations remain registered unchanged so retained
+commands can replay into V2 materialization; no application rows or browser storage
+are reset or backfilled. App supplies module
 schemas, input normalization, and provider operations; it does not construct
 contracts from injected host models or versions.
 
@@ -467,8 +475,11 @@ top-right inset. Placement hitboxes and blue keyboard-focus and open-menu border
 stay stationary. Selection keeps the Brick's actions visible without drawing a
 border. Each Placement isolates its stacking context; its actions sit above the
 content's hover border.
-Placed Bricks use `.brick-surface`, retaining `.brick-surface-card` for card
-treatment but omitting `.brick-surface-flat`; catalog flat borders are retained.
+Placed and catalog Bricks use `.brick-surface`, retaining `.brick-surface-card`
+for card treatment. `BrickWrapper` draws the saved content border once as a
+noninteractive inset overlay using the existing border color, in both flat and
+card modes. It preserves dimensions, clipping, card radius, and the separate hover,
+focus, and menu indicators. Unsaved catalog previews default to no content border.
 Editor styling also uses
 `.wall-placement` with `.is-selected` and `.is-menu-open`; Storybook scopes its
 Placement styling through `.wall-story .wall-placement`. These class hooks replace
@@ -626,7 +637,9 @@ QRK owns editable models, publication serialization, and snapshot history under
 `apps/zerospin/src/aggregates/user/`. Snapshots retain shared Brick content once and
 four ordered Wall hierarchies containing Sections, Stacks, Rows, and Placements
 with their specs. Array order follows `Wall.layout`; publication dirty
-comparison includes arrangement. Editing bookkeeping and former grid geometry are
+comparison includes arrangement and each Brick's shared `borderWidth`. V2 snapshot
+serialization retains the width once per Brick; historical commands replay with
+the default width of `0`. Editing bookkeeping and former grid geometry are
 excluded. Shared module source supplies schemas/default specs and rendering, not
 an independent persisted owner or WallSnapshot model. Public-site rendering remains
 outside this editor change.

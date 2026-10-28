@@ -50,9 +50,7 @@ export function ModulePreview(props: {
 
   return (
     <div className="flex h-full min-h-0 w-max shrink-0 flex-col overflow-y-auto overscroll-y-contain border-r border-zinc-200">
-      <h2 className="sticky top-0 z-10 m-0 shrink-0 px-8 py-4 font-normal">
-        {moduleLink}
-      </h2>
+      <h2 className="sticky top-0 z-10 m-0 shrink-0 px-8 py-4 font-normal">{moduleLink}</h2>
       <div className="px-8 pb-16 pt-2">
         {maxPerPage !== undefined ? (
           <p className="mb-3 mt-0 max-w-64 text-sm text-zinc-500">Limit: {maxPerPage} per page.</p>
@@ -72,7 +70,7 @@ export function ModulePreview(props: {
                 child.draggable = false;
               });
           }}
-          className={`brick-surface ${cardStyle ? "brick-surface-card" : "brick-surface-flat"} brick-hover-target group/brick relative shrink-0 cursor-grab ${dragging ? "opacity-40" : ""}`}
+          className={`brick-surface ${cardStyle ? "brick-surface-card" : ""} brick-hover-target group/brick relative shrink-0 cursor-grab ${dragging ? "opacity-40" : ""}`}
           style={{
             width: Math.min(view.defaultWidth, entry.previewWidth),
             minWidth: view.minWidth,

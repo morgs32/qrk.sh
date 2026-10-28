@@ -2,7 +2,7 @@
 
 import { modulesHash } from "../../../../../../../modules/lib/modulesHash";
 import { makePlacementId } from "@qrk.sh/zerospin/src/modules/lib/makePlacementId";
-import { brickV1 } from "@qrk.sh/zerospin/src/aggregates/user/models/brick/BrickV1";
+import { brickV2 } from "@qrk.sh/zerospin/src/aggregates/user/models/brick/BrickV2";
 import { UserUI } from "@/zerospin/UserUI";
 import { pageV1 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV1";
 import { siteV1 as Site } from "@qrk.sh/zerospin/src/aggregates/user/models/site/SiteV1";
@@ -26,7 +26,7 @@ const ParamsSchema = Schema.Struct({
 });
 
 function isBrickId(value: string): value is `brk_${string}` {
-  return value.startsWith(`${brickV1.abbreviation}_`);
+  return value.startsWith(`${brickV2.abbreviation}_`);
 }
 
 export function BrickDetail() {
@@ -164,13 +164,13 @@ export function BrickDetail() {
             ) : (
               <div className="mt-8 overflow-auto">
                 <div
-                  className={`brick-surface ${site.cardStyle ? "brick-surface-card" : "brick-surface-flat"} brick-hover-target relative shrink-0`}
+                  className={`brick-surface ${site.cardStyle ? "brick-surface-card" : ""} brick-hover-target relative shrink-0`}
                   style={{
                     width: Math.min(view.defaultWidth, entry.previewWidth),
                     minWidth: view.minWidth,
                   }}
                 >
-                  <BrickWrapper className="brick-hover-surface">
+                  <BrickWrapper borderWidth={brickRow.borderWidth} className="brick-hover-surface">
                     <BrickComponent
                       variantId={placement.variantId}
                       state={brickRow.state}

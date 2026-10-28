@@ -11,7 +11,7 @@ import {
   ContractError,
   findFirst,
   findMany,
-  makeAggregateContractVersion,
+  makeAggregateContractRelease,
   primitives,
 } from "@zerospin/sdk/browser";
 
@@ -31,7 +31,7 @@ import { makePageSnapshot } from "../../snapshots/makePageSnapshot";
 
 import { publishSite } from "./publishSite";
 
-export const publishSiteV1 = makeAggregateContractVersion(publishSite, {
+export const publishSiteV1 = makeAggregateContractRelease(publishSite, {
   version: 1,
   payload: {
     siteId: modelId({ model: siteIdentity }),

@@ -6,7 +6,7 @@ import * as sdk from "@zerospin/sdk/browser";
 
 import {
   modelId,
-  makeAggregateContractVersion,
+  makeAggregateContractRelease,
   prefixId,
   primitives,
   ContractError,
@@ -26,7 +26,7 @@ import { userClaims } from "../../../../claims";
 
 import { wallV1 as Wall } from "../../models/wall/WallV1";
 
-export const createPageV1 = makeAggregateContractVersion(createPage, {
+export const createPageV1 = makeAggregateContractRelease(createPage, {
   claims: userClaims,
   operations: {
     createWall: Wall.operations.create,

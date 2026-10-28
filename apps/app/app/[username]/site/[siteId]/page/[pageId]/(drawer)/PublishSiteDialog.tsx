@@ -4,7 +4,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { useLiveQuery } from "@zerospin/react";
 import { makeId, stageAggregateSessionCommand } from "@zerospin/sdk/browser";
-import { pageSnapshotV1 as PageSnapshot } from "@qrk.sh/zerospin/src/aggregates/user/models/pageSnapshot/PageSnapshotV1";
+import { pageSnapshotV2 as PageSnapshot } from "@qrk.sh/zerospin/src/aggregates/user/models/pageSnapshot/PageSnapshotV2";
 
 import { SiteTree, type ISiteTreeNode } from "@/components/SiteTree";
 import { Button } from "@/components/ui/button";

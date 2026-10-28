@@ -3,7 +3,7 @@ import {
   modelId,
   ContractError,
   defineAggregateContract,
-  makeAggregateContractVersion,
+  makeAggregateContractRelease,
   findFirst,
   prefixId,
   primitives,
@@ -16,7 +16,7 @@ import { userV1 as user } from "../../models/user/UserV1";
 import { wallV1 as wall } from "../../models/wall/WallV1";
 import { sectionIdSchema } from "../../layout/wallLayoutSchema";
 
-export const addWallSectionV1 = makeAggregateContractVersion(
+export const addWallSectionV1 = makeAggregateContractRelease(
   defineAggregateContract("addWallSection"),
   {
     version: 1,

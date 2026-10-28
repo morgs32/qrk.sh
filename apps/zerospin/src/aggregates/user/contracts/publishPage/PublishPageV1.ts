@@ -13,7 +13,7 @@ import {
   ContractError,
   findFirst,
   findMany,
-  makeAggregateContractVersion,
+  makeAggregateContractRelease,
 } from "@zerospin/sdk/browser";
 
 import { Effect } from "effect";
@@ -30,7 +30,7 @@ import { makePageSnapshot } from "../../snapshots/makePageSnapshot";
 
 import { publishPage } from "./publishPage";
 
-export const publishPageV1 = makeAggregateContractVersion(publishPage, {
+export const publishPageV1 = makeAggregateContractRelease(publishPage, {
   version: 1,
   payload: {
     pageId: modelId({ model: pageIdentity }),

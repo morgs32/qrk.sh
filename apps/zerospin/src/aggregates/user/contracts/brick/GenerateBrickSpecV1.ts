@@ -14,7 +14,7 @@ import { defineAggregateContract } from "@zerospin/core/contracts/defineAggregat
 
 import { findFirst } from "@zerospin/core/contracts/findFirst";
 
-import { makeAggregateContractVersion } from "@zerospin/core/contracts/make/makeAggregateContractVersion";
+import { makeAggregateContractRelease } from "@zerospin/core/contracts/make/makeAggregateContractRelease";
 
 import { ContractError } from "@zerospin/error";
 
@@ -26,7 +26,7 @@ import { makePlacementId } from "../../../../modules/lib/makePlacementId";
 
 import { generateBrickSpecExternalDefinitionV1 } from "./GenerateBrickSpecExternalDefinitionV1";
 
-export const generateBrickSpecV1 = makeAggregateContractVersion(
+export const generateBrickSpecV1 = makeAggregateContractRelease(
   defineAggregateContract("generateBrickSpec"),
   {
     version: 1,

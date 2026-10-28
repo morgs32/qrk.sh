@@ -3,7 +3,7 @@ import {
   modelId,
   ContractError,
   defineAggregateContract,
-  makeAggregateContractVersion,
+  makeAggregateContractRelease,
   findFirst,
   prefixId,
   primitives,
@@ -19,7 +19,7 @@ import { placementV1 as placement } from "../../models/placement/PlacementV1";
 import { movePlacementInLayout } from "../../layout/wallLayout";
 import { wallInsertionTargetSchema } from "../../layout/wallTargetSchemas";
 
-export const movePlacementV1 = makeAggregateContractVersion(
+export const movePlacementV1 = makeAggregateContractRelease(
   defineAggregateContract("movePlacement"),
   {
     version: 1,

@@ -11,7 +11,10 @@ import { BreakpointsToolbar } from "./BreakpointsToolbar";
 export function Toolbars() {
   const route = useMatches({ select: (matches) => matches.at(-1)?.routeId });
   const toolbar =
-    route === "/$username/site/$siteId/page/$pageId/breakpoints" ? (
+    route === "/$username/site/$siteId/page/$pageId/breakpoints" ||
+    route === "/$username/site/$siteId/page/$pageId/_drawer/modules/" ||
+    route === "/$username/site/$siteId/page/$pageId/_drawer/modules/$moduleId" ||
+    route === "/$username/site/$siteId/page/$pageId/_drawer/brick/$brickId" ? (
       <BreakpointsToolbar key="Breakpoints" />
     ) : route === "/$username/site/$siteId/page/$pageId/" ? (
       <SiteToolbar key="Site" />

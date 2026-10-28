@@ -41,7 +41,9 @@ PageLayout's single `.wall-preview-viewport` root contains the editor scroll reg
 its drawer spacer, toolbar anchor, and Drawer as siblings. The inner
 `.wall-preview-scroll` remains a separate scroll owner. ValidBreakpoint and PagePreview
 add no presentation wrappers. Drawer spacing, scroll anchoring, toolbar
-positioning, and drawer animation keep their existing behavior.
+positioning, and drawer animation keep their existing behavior. The Bricks list
+and individual Brick drawer screens keep the floating breakpoint toolbar visible
+above the drawer; selecting a breakpoint keeps the current drawer screen open.
 App's `PagePreview` queries the Wall with separate
 Placements/Bricks through `UserUI.useSession()` and resolves layout references
 through `makeWallLayoutView`. App initializes a connected session; Storybook
@@ -92,7 +94,8 @@ The production Wall accepts these templates subject to module Page limits:
   accepts its first Brick. Populated Walls expose no new Section/Stack targets
   outside the existing layout.
 
-Insertion feedback opens temporary space using a blue-edged, 40%-opacity copy
+Insertion feedback opens temporary space using a 40%-opacity copy with the hover
+style's dark border color and square corners
 of the drawer's existing `.brick-hover-surface`, without rerendering its module
 or reading providers. The shadow occupies a Placement slot in a Row, a new Row
 in a Stack, or the first slot in an empty Wall. Its content is inert and ignores

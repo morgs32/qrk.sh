@@ -338,7 +338,7 @@ export function WallEditor(props: {
       <div
         ref={setShadowElement}
         aria-hidden="true"
-        className={`wall-shadow-placeholder relative min-h-12 min-w-0 shrink-0 ${dropTarget.kind === "row" ? "flex-1" : "overflow-x-auto"}`}
+        className={`wall-shadow-placeholder relative min-h-12 min-w-0 shrink-0 opacity-40 ${dropTarget.kind === "row" ? "flex-1" : "overflow-x-auto"}`}
         style={{
           padding: brickGap / 2,
           minWidth:
@@ -349,7 +349,7 @@ export function WallEditor(props: {
       >
         <div
           inert
-          className="pointer-events-none opacity-40"
+          className="pointer-events-none"
           style={{ minWidth: modulesHash[shadowSource.moduleId].variants.default.minWidth }}
         />
       </div>
@@ -360,7 +360,7 @@ export function WallEditor(props: {
       <div
         ref={wallRef}
         tabIndex={-1}
-        className={`@container relative flex min-h-full min-w-0 flex-col outline-none ${dropTarget?.kind === "wall" ? "bg-blue-50 outline-2 outline-blue-500 -outline-offset-2" : "bg-[#E6AA80]"}`}
+        className={`wall-editor @container relative flex min-h-full min-w-0 flex-col outline-none ${dropTarget?.kind === "wall" ? "bg-blue-50 outline-2 outline-blue-500 -outline-offset-2" : "bg-[#E6AA80]"}`}
         aria-label={`${wall.breakpoint} Wall editor`}
       >
         {sections.length > 0 && (
@@ -455,8 +455,9 @@ export function WallEditor(props: {
           </div>
         )}
         {sections.length === 0 && dropTarget?.kind === "wall" && shadow}
-        <p className="mt-auto shrink-0 border-t border-zinc-200 bg-white px-3 py-1 text-right text-[10px] leading-4 text-black/60">
-          powered by <span style={{ fontFamily: "Silkscreen, monospace" }}>qrk.sh</span>
+        <p className="mt-auto flex h-6 shrink-0 items-center justify-end gap-1 bg-white px-3 text-[10px] leading-4 text-black/60 shadow-[inset_0_1px_0_var(--color-zinc-200)]">
+          <span>powered by</span>
+          <span style={{ fontFamily: "Silkscreen, monospace" }}>qrk.sh</span>
         </p>
       </div>
       <Dialog.Root

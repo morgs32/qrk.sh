@@ -393,11 +393,17 @@ in a Stack, or the first slot in an empty Wall. Its content is inert and ignores
 pointer events; its host accepts drops at the visible slot's stable
 before-Placement or before-Row destination. No thin-line or rectangle indicator
 variants remain.
-Each Row's instruction height is captured at drag start while its top follows
-the current Row, preventing a taller shadow from changing combine/reorder
-targeting. Temporary space clears on drop, cancellation, or outside movement
-without persisted fake Rows. Capacity checks and the existing drop command path
-apply to the shadow's destination.
+Each Row's drop-target wrapper contains its real content and its owned
+before/after shadow. Local feedback retains the owning Row separately from the
+canonical before-Row destination: after Row A remains owned by A even when its
+command destination is before Row B. Both Row instructions and Placement
+eligibility use the wrapper's top and the natural Row height captured at drag
+start. Moving the shadow therefore does not move its own combine/reorder
+boundaries. The shadow retains its own drop target and committed destination;
+stickiness is unchanged. Temporary space clears on drop, cancellation, or outside
+movement without persisted fake Rows. Capacity checks and the existing drop
+command path apply to the shadow's destination. The [source research](../../../wiki/research/pragmatic-drag-shadow-stability.md)
+records the library example and the adaptation for combine zones.
 The Wall ends with a white, right-aligned “powered by qrk.sh” footer with
 an inset top divider and `qrk.sh` in Silkscreen. Its text line boxes are vertically
 centered in a 64px footer, matching the site navbar; the divider does not consume layout space. It sits at

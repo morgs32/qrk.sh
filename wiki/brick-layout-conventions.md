@@ -178,6 +178,15 @@ drop indicators. The user chose the shadow approach; visual verification
 remains with the user.
 Backend move commands remain available independently of the canvas.
 
+Clicking ordinary placed-Brick content opens its edit form through the existing
+route-owned selection. Clicking an already selected Brick keeps it selected.
+Links, buttons, form controls, editable content, media controls, and action-menu
+controls keep their own interactions without selecting. MapCanvas owns its click
+boundary so map gestures and controls remain usable. Modified or prevented clicks
+and clicks following a text-selection drag do not select. The existing Edit menu
+remains the keyboard-accessible selection action; selection adds no tab stop or
+button role around interactive Brick content.
+
 Selected means a Brick's edit form is open. Active means DOM focus, including
 keyboard focus. Controls appear on hover, focus, selection, and open menus, with
 touch access. Edit/Delete menus are keyboard-accessible. The Delete confirmation

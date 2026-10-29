@@ -115,7 +115,7 @@ const openGenerationDb = (siteIsPublished = false) => Effect.gen(function* () {
   return { db: readDb, replay, start };
 });
 
-it.effect('defaults new sites to a 1px gap and saves gaps from 0 to 12 pixels', () =>
+it.effect('defaults new sites to a 0px gap and saves gaps from 0 to 12 pixels', () =>
   Effect.gen(function* () {
     const { db, replay } = yield* openGenerationDb();
     const created = yield* createSiteV1.evaluate({
@@ -124,7 +124,7 @@ it.effect('defaults new sites to a 1px gap and saves gaps from 0 to 12 pixels', 
     });
     for (const operation of created.operations) yield* replay(operation);
     expect(yield* sdk.findFirst({ db, model: userAggregateV3.models.site,
-      where: { id: { eq: 'sit_gap' } } })).toMatchObject({ brickGap: 1 });
+      where: { id: { eq: 'sit_gap' } } })).toMatchObject({ brickGap: 0 });
 
     for (const brickGap of [0, 6, 12]) {
       const saved = yield* updateSiteSettingsV1.evaluate({

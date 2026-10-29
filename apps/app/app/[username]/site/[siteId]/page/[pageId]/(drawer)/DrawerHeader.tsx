@@ -156,6 +156,7 @@ export function DrawerHeader() {
       )}
       <div className="ml-auto flex shrink-0 items-center gap-3">
         {isPageSettings ? <div id="page-settings-header-actions" /> : null}
+        {isSiteSettings ? <div id="site-settings-header-actions" /> : null}
         {canPublishPage || canPublishUpdates ? (
           <Button
             type="button"

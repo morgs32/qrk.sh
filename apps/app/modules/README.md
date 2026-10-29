@@ -410,13 +410,18 @@ centered in a 64px footer, matching the site navbar; the divider does not consum
 the bottom of short Walls and follows content on long Walls.
 The Wall background is light orange (`#E6AA80`, a 50% white tint of `#CC5500`), except for the existing empty-Wall
 drag highlight. `Site.brickGap` sets the space between Bricks in whole pixels
-from 0 to 12, defaulting to 1. SiteSettings saves it through `updateSiteSettings`,
+from 0 to 12, defaulting to 0. SiteSettings saves it through `updateSiteSettings`,
 whose guard rejects values outside that range. Each Placement and insertion
 shadow uses half the gap as padding. The content-height Wall wrapper offsets
 the outer inset so Bricks sit flush with the Wall edges at every gap size.
 The full-width preview frame has no border. Its centered sections share real
 1px zinc side borders owned by PreviewSection; the browser bar uses a real top
 border rather than an outside ring.
+Square white backing rows behind the 48px chrome and 64px footer mask Wall
+content around their rounded corners. Zero-blur white shadows cover the adjacent
+vertical gaps without changing the scroll extent. Chrome stays sticky above the
+navbar; the footer stays in normal flow above Wall decorations. Side gutters
+remain unclipped for editor controls and drag feedback.
 Each Placement adds the configured gap to its minimum width to preserve the module's content minimum.
 Target boxes still touch. There is no perimeter-border overlay.
 Empty Rows accept their first Placement; exposed Stack background appends a Row.

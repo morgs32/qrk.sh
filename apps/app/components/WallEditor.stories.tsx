@@ -568,7 +568,11 @@ export const StackNameEditor: StoryObj<typeof meta> = {
     expect(stack).toHaveClass("is-selected-stack");
     expect(stack.matches(":focus-within")).toBe(false);
     await waitFor(() => expect(getComputedStyle(tab).opacity).toBe("1"));
-    expect(getComputedStyle(stack).outlineColor).toBe("rgb(31, 155, 252)");
+    const border = getComputedStyle(stack, "::after");
+    expect(border.borderWidth).toBe("1px");
+    expect(border.borderColor).toBe("rgb(31, 155, 252)");
+    expect(border.zIndex).toBe("29");
+    expect(border.pointerEvents).toBe("none");
 
     await userEvent.clear(input);
     await userEvent.type(input, "  Featured  ");

@@ -191,8 +191,9 @@ button role around interactive Brick content.
 
 Clicking the keyboard-accessible name button in StackAction opens Stack Details
 and replaces Brick selection. The route owns the selected Stack, so reload and
-Back/Forward restore it. A selected Stack has an inset blue outline and keeps its
-name tab visible without changing layout or drop geometry. Missing or mismatched
+Back/Forward restore it. A selected Stack has a 1px blue border overlay above its
+Brick content and below its name tab. The overlay ignores pointer events and keeps
+the name tab visible without changing layout or drop geometry. Missing or mismatched
 Stack routes show Stack not found.
 
 Stack Details edits only the name in the current breakpoint's Wall. Save trims

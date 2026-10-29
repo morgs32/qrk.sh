@@ -396,7 +396,7 @@ export function WallEditor(props: {
                     <div
                       key={stack.id}
                       data-wall-stack-id={stack.id}
-                      className={`group/stack relative min-h-12 min-w-0 ${stack.id === selectedStackId ? "is-selected-stack outline outline-[#1f9bfc] -outline-offset-1" : ""} ${stack.rows.length === 0 && dropTarget?.kind === "stack" && dropTarget.stackId === stack.id ? "bg-blue-50 outline outline-blue-500 -outline-offset-2" : ""}`}
+                      className={`group/stack relative min-h-12 min-w-0 ${stack.id === selectedStackId ? "is-selected-stack after:pointer-events-none after:absolute after:inset-0 after:z-[29] after:border after:border-[#1f9bfc] after:content-['']" : ""} ${stack.rows.length === 0 && dropTarget?.kind === "stack" && dropTarget.stackId === stack.id ? "bg-blue-50 outline outline-blue-500 -outline-offset-2" : ""}`}
                     >
                       {stack.rows.some((row) => row.placements.length > 0) ? (
                         <StackAction>

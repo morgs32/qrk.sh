@@ -19,10 +19,8 @@ export function SwatchAndIconForm(props: {
   onCancel: () => void;
 }) {
   const { state, onSave, onCancel } = props;
-  const savedState = state ?? {
-    payload: { color: "", hash: "" },
-    data: { name: "", svg: "" },
-  };
+  if (state === null) throw new Error("Swatch and Icon requires configured state");
+  const savedState = state;
   const [draft, setDraft] = useState<{
     color: string;
     icon: { hash: string; name: string; svg: string };

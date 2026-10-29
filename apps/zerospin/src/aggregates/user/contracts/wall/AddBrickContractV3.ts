@@ -1,23 +1,50 @@
 import {
+  ContractError,
+  defineAggregateContract,
   findFirst,
   findMany,
+  makeAggregateContractRelease,
+  modelId,
   prefixId,
-  upgradeAggregateContractRelease,
+  primitives,
 } from "@zerospin/sdk/browser";
-import { Effect, Result } from "effect";
-import { brickV2 } from "../../models/brick/BrickV2";
+import { makeEffectSchema } from "@zerospin/shapes";
+import { Effect, Result, Schema } from "effect";
+import { userClaims } from "../../../../claims";
+import { brick as brickIdentity } from "../../models/brick/brick";
+import { page as pageIdentity } from "../../models/page/page";
+import { brickV2 as brick } from "../../models/brick/BrickV2";
+import { pageV1 as page } from "../../models/page/PageV1";
+import { siteV1 as site } from "../../models/site/SiteV1";
+import { userV1 as user } from "../../models/user/UserV1";
+import { wallV1 as wall } from "../../models/wall/WallV1";
+import { placementV1 as placement } from "../../models/placement/PlacementV1";
 import { backendLibrary } from "../../../../modules/backendLibrary";
 import { makePlacementId } from "../../../../modules/lib/makePlacementId";
 import { canShareRow } from "../../../../modules/lib/canShareRow";
 import { insertPlacementInLayout } from "../../layout/wallLayout";
 import { wallInsertionTargetSchema } from "../../layout/wallTargetSchemas";
-import { addBrickV1 } from "./AddBrickContractV1";
 
-export const addBrickV2 = upgradeAggregateContractRelease(addBrickV1, {
-  version: 2,
-  payload: {},
-  models: { brick: brickV2 },
-  operations: { createBrick: brickV2.operations.create },
+export const addBrickV3 = makeAggregateContractRelease(defineAggregateContract("addBrick"), {
+  version: 3,
+  models: { page, site, user, wall, brick, placement },
+  claims: userClaims,
+  operations: {
+    updateWall: wall.operations.update,
+    createBrick: brick.operations.create,
+    createPlacement: placement.operations.create,
+  },
+  payload: {
+    id: modelId({ model: brickIdentity }),
+    pageId: modelId({ model: pageIdentity }),
+    moduleId: brick.attributes.moduleId,
+    target: primitives.json({ schema: wallInsertionTargetSchema }),
+    state: primitives.json({ schema: Schema.Unknown }),
+  },
+  failures: {
+    invalidLayout: ContractError.schema({ code: "add-brick-invalid-layout" }),
+    invalidState: ContractError.schema({ code: "add-brick-invalid-state" }),
+  },
   program: Effect.fn("addBrick.program")(function* (props) {
     const { db, payload, operations, failures, claims } = props;
     const { pageId, target } = payload;
@@ -44,6 +71,15 @@ export const addBrickV2 = upgradeAggregateContractRelease(addBrickV1, {
         status: 409,
       });
     const module = backendLibrary[payload.moduleId];
+    const StateSchema = Schema.toType(makeEffectSchema(module.stateShape));
+    const decodedState = Schema.decodeUnknownResult(
+      module.hasPlaceholder ? Schema.NullOr(StateSchema) : StateSchema,
+    )(payload.state, { onExcessProperty: "ignore" });
+    if (Result.isFailure(decodedState))
+      return yield* failures.invalidState.make({
+        message: `Brick state is invalid for module ${module.id}`,
+        status: 400,
+      });
     const existingBricks = yield* findMany({
       db,
       model: db.models.brick,
@@ -120,7 +156,7 @@ export const addBrickV2 = upgradeAggregateContractRelease(addBrickV1, {
       attributes: {
         pageId,
         moduleId: payload.moduleId,
-        state: null,
+        state: structuredClone(decodedState.success),
         stateRevision: 0,
         borderWidth: 0,
       },

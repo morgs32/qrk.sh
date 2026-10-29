@@ -2,7 +2,7 @@ import { brick as brickIdentity } from "../../models/brick/brick";
 
 import { backendLibrary as library } from "../../../../modules/backendLibrary";
 
-import { brickV1 as brick } from "../../models/brick/BrickV1";
+import { brickV2 as brick } from "../../models/brick/BrickV2";
 
 import { placementV1 as placement } from "../../models/placement/PlacementV1";
 
@@ -34,7 +34,7 @@ const updateBrickPayload = {
   state: primitives.json({ schema: Schema.Unknown }),
 };
 
-export const updateBrickV1 = makeAggregateContractRelease(defineAggregateContract("updateBrick"), {
+export const updateBrickV3 = makeAggregateContractRelease(defineAggregateContract("updateBrick"), {
   operations: {
     updateBrick: brick.operations.update,
     updatePlacement: placement.operations.update,
@@ -55,7 +55,7 @@ export const updateBrickV1 = makeAggregateContractRelease(defineAggregateContrac
     placement,
     wall,
   },
-  version: 1,
+  version: 3,
   guard: Effect.fn("updateBrick.guard")(function* (props) {
     const { failures, db, payload } = props;
     const brickRow = yield* findFirst({
@@ -80,7 +80,9 @@ export const updateBrickV1 = makeAggregateContractRelease(defineAggregateContrac
 
     const brickModule = library[brickRow.moduleId];
     const StateSchema = Schema.toType(makeEffectSchema(brickModule.stateShape));
-    yield* Schema.decodeUnknownEffect(Schema.NullOr(StateSchema))(payload.state, {
+    yield* Schema.decodeUnknownEffect(
+      brickModule.hasPlaceholder ? Schema.NullOr(StateSchema) : StateSchema,
+    )(payload.state, {
       onExcessProperty: "ignore",
     }).pipe(
       mapParseError({
@@ -125,50 +127,47 @@ export const updateBrickV1 = makeAggregateContractRelease(defineAggregateContrac
       }
     }
   }),
-  program: (props) => {
+  program: Effect.fn("updateBrick.program")(function* (props) {
     const { operations, payload, db } = props;
-    return Effect.gen(function* () {
-      const currentBrick = yield* findFirst({
+    const currentBrick = yield* findFirst({
+      db,
+      model: db.models.brick,
+      where: { id: { eq: payload.brickId } },
+    });
+    if (currentBrick === undefined) return;
+    const brickModule = library[payload.moduleId];
+    const StateSchema = Schema.toType(makeEffectSchema(brickModule.stateShape));
+    const decodedState = yield* Schema.decodeUnknownEffect(
+      brickModule.hasPlaceholder ? Schema.NullOr(StateSchema) : StateSchema,
+    )(payload.state, { onExcessProperty: "ignore" }).pipe(
+      mapParseError({
+        code: "update-brick-invalid-state",
+        prefix: `updateBrick state failed ${payload.moduleId} decode`,
+      }),
+    );
+    yield* operations.updateBrick({
+      resourceId: payload.brickId,
+      attributes: {
+        state: structuredClone(decodedState),
+        stateRevision: currentBrick.stateRevision + 1,
+      },
+    });
+    for (const breakpoint of breakpoints) {
+      const currentPlacement = yield* findFirst({
         db,
-        model: db.models.brick,
-        where: { id: { eq: payload.brickId } },
+        model: db.models.placement,
+        where: { id: { eq: makePlacementId(payload.brickId, breakpoint) } },
       });
-      if (currentBrick === undefined) return;
-      const brickModule = library[payload.moduleId];
-      const StateSchema = Schema.toType(makeEffectSchema(brickModule.stateShape));
-      const decodedState = yield* Schema.decodeUnknownEffect(Schema.NullOr(StateSchema))(
-        payload.state,
-        { onExcessProperty: "ignore" },
-      ).pipe(
-        mapParseError({
-          code: "update-brick-invalid-state",
-          prefix: `updateBrick state failed ${payload.moduleId} decode`,
-        }),
-      );
-      yield* operations.updateBrick({
-        resourceId: payload.brickId,
+      if (currentPlacement === undefined) continue;
+      yield* operations.updatePlacement({
+        resourceId: makePlacementId(payload.brickId, breakpoint),
         attributes: {
-          state: structuredClone(decodedState),
-          stateRevision: currentBrick.stateRevision + 1,
+          generation:
+            currentPlacement.generation?.status === "generating"
+              ? { ...currentPlacement.generation, status: "superseded" }
+              : currentPlacement.generation,
         },
       });
-      for (const breakpoint of breakpoints) {
-        const currentPlacement = yield* findFirst({
-          db,
-          model: db.models.placement,
-          where: { id: { eq: makePlacementId(payload.brickId, breakpoint) } },
-        });
-        if (currentPlacement === undefined) continue;
-        yield* operations.updatePlacement({
-          resourceId: makePlacementId(payload.brickId, breakpoint),
-          attributes: {
-            generation:
-              currentPlacement.generation?.status === "generating"
-                ? { ...currentPlacement.generation, status: "superseded" }
-                : currentPlacement.generation,
-          },
-        });
-      }
-    });
-  },
+    }
+  }),
 });

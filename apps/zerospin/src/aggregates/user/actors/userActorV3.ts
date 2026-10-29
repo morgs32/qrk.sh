@@ -4,21 +4,21 @@ import { createSiteV1 as createSite } from "../contracts/createSite/CreateSiteV1
 import { createPageV1 as createPage } from "../contracts/createPage/CreatePageV1";
 import { unpublishSiteV1 as unpublishSite } from "../contracts/unpublishSite/UnpublishSiteV1";
 import { wallV1 as Wall } from "../models/wall/WallV1";
-import { brickV1 as Brick } from "../models/brick/BrickV1";
+import { brickV2 as Brick } from "../models/brick/BrickV2";
 import { placementV1 as Placement } from "../models/placement/PlacementV1";
 import { pageV1 as Page } from "../models/page/PageV1";
-import { pageSnapshotV1 as PageSnapshot } from "../models/pageSnapshot/PageSnapshotV1";
+import { pageSnapshotV2 as PageSnapshot } from "../models/pageSnapshot/PageSnapshotV2";
 import { siteV1 as Site } from "../models/site/SiteV1";
 import { userV1 as User } from "../models/user/UserV1";
-import { addBrickV1 as addBrick } from "../contracts/wall/AddBrickContractV1";
+import { addBrickV3 as addBrick } from "../contracts/wall/AddBrickContractV3";
 import { addWallSectionV1 as addWallSection } from "../contracts/wall/AddWallSectionContractV1";
-import { movePlacementV1 as movePlacement } from "../contracts/wall/MovePlacementContractV1";
+import { movePlacementV2 as movePlacement } from "../contracts/wall/MovePlacementContractV2";
 import { moveStackV1 as moveStack } from "../contracts/wall/MoveStackContractV1";
-import { deleteBrickV1 as deleteBrick } from "../contracts/wall/DeleteBrickContractV1";
-import { updateBrickV1 as updateBrick } from "../contracts/brick/UpdateBrickV1";
-import { generateBrickSpecV1 as generateBrickSpec } from "../contracts/brick/GenerateBrickSpecV1";
-import { publishSiteV1 as publishSite } from "../contracts/publishSite/PublishSiteV1";
-import { publishPageV1 as publishPage } from "../contracts/publishPage/PublishPageV1";
+import { deleteBrickV2 as deleteBrick } from "../contracts/wall/DeleteBrickContractV2";
+import { updateBrickV3 as updateBrick } from "../contracts/brick/UpdateBrickV3";
+import { generateBrickSpecV2 as generateBrickSpec } from "../contracts/brick/GenerateBrickSpecV2";
+import { publishSiteV2 as publishSite } from "../contracts/publishSite/PublishSiteV2";
+import { publishPageV2 as publishPage } from "../contracts/publishPage/PublishPageV2";
 import { Effect, Schema } from "effect";
 import { verifyToken } from "@clerk/backend";
 import { mapParseError, prettyUnknownFailure } from "@zerospin/error";
@@ -37,6 +37,7 @@ import {
 } from "@zerospin/sdk";
 import { RoutePattern } from "@remix-run/route-pattern";
 import { makeActorIdentity } from "@zerospin/sdk";
+import { setBrickBorderWidthV1 as setBrickBorderWidth } from "../contracts/brick/SetBrickBorderWidthV1";
 import { userClaims } from "../../../claims";
 import { signature } from "../../../signature";
 import { createUserV1 } from "../contracts/createUser/CreateUserV1";
@@ -57,8 +58,8 @@ const db = makeQueryDbVersion({
   },
 });
 
-export const userActorV1 = makeAggregateActorRelease(defineAggregateActor({ name: "web" }), {
-  version: 1,
+export const userActorV3 = makeAggregateActorRelease(defineAggregateActor({ name: "web" }), {
+  version: 3,
   db,
   identity,
   authentication: {
@@ -161,6 +162,7 @@ export const userActorV1 = makeAggregateActorRelease(defineAggregateActor({ name
     moveStack,
     deleteBrick,
     updateBrick,
+    setBrickBorderWidth,
     generateBrickSpec,
     publishSite,
     publishPage,

@@ -6,9 +6,9 @@ import { Effect } from "effect";
 
 import { system } from "../src/system";
 import { setBrickBorderWidthV1 } from "../src/aggregates/user/contracts/brick/SetBrickBorderWidthV1";
-import { userAggregateV2 } from "../src/aggregates/user/UserV2";
-import { makePageSnapshot } from "../src/aggregates/user/snapshots/makePageSnapshot";
+import { userAggregateV3 } from "../src/aggregates/user/UserV3";
 import { makePageSnapshotV2 } from "../src/aggregates/user/snapshots/makePageSnapshotV2";
+import { swatchAndIconV1 } from "../src/modules/swatchAndIcon/swatchAndIconV1";
 
 it.effect("decodes whole-pixel widths and rejects fractions at the actor command boundary", () =>
   Effect.gen(function* () {
@@ -45,8 +45,8 @@ it.effect("keeps border changes unavailable to System commands", () =>
         id: "cmd_border_system",
         commandName: "setBrickBorderWidth",
         contractVersion: 1,
-        aggregateName: userAggregateV2.name,
-        aggregateVersion: userAggregateV2.version,
+        aggregateName: userAggregateV3.name,
+        aggregateVersion: userAggregateV3.version,
         aggregateId: "acct_border",
         externalOutcome: null,
         payload: { brickId: "brk_border", borderWidth: 1 },
@@ -54,10 +54,10 @@ it.effect("keeps border changes unavailable to System commands", () =>
       .pipe(Effect.flip);
     expect(rejected).toMatchObject({ code: "system-harness-command-forbidden" });
     yield* harness.flush();
-    const db = makeQueryDbVersion({ models: userAggregateV2.models });
+    const db = makeQueryDbVersion({ models: userAggregateV3.models });
     expect(
       yield* harness.query(
-        { release: userAggregateV2, aggregateId: "acct_border" },
+        { release: userAggregateV3, aggregateId: "acct_border" },
         db.query.brick.findMany({}),
       ),
     ).toEqual([]);
@@ -65,18 +65,18 @@ it.effect("keeps border changes unavailable to System commands", () =>
 );
 
 it.effect(
-  "executes declared actor border changes across four Placements without changing content",
+  "creates captured preview state and preserves it through border changes across four Placements",
   () =>
     Effect.gen(function* () {
       const harness = yield* makeSystemHarness({ system });
-      const owner = { release: userAggregateV2, aggregateId: "acct_border" };
-      const db = makeQueryDbVersion({ models: userAggregateV2.models });
+      const owner = { release: userAggregateV3, aggregateId: "acct_border" };
+      const db = makeQueryDbVersion({ models: userAggregateV3.models });
       const actor = {
-        aggregateName: userAggregateV2.name,
-        aggregateVersion: userAggregateV2.version,
+        aggregateName: userAggregateV3.name,
+        aggregateVersion: userAggregateV3.version,
         aggregateId: "acct_border",
         actorName: "web",
-        actorVersion: 2,
+        actorVersion: 3,
         claims: { aggregateId: "acct_border", clerkUserId: "user_border" },
         externalOutcome: null,
         nodeId: "node_border",
@@ -87,8 +87,8 @@ it.effect(
         id: "cmd_border_user",
         commandName: "createUser",
         contractVersion: 1,
-        aggregateName: userAggregateV2.name,
-        aggregateVersion: userAggregateV2.version,
+        aggregateName: userAggregateV3.name,
+        aggregateVersion: userAggregateV3.version,
         aggregateId: "acct_border",
         externalOutcome: null,
         payload: {
@@ -128,17 +128,23 @@ it.effect(
           description: null,
         },
       });
+      const capturedState = {
+        ...swatchAndIconV1.defaultState,
+        payload: { hash: "", color: "#123456" },
+        data: { ...swatchAndIconV1.defaultState.data, name: "Captured icon" },
+      };
       yield* harness.push({
         ...actor,
         kind: "actor",
         id: "cmd_border_brick",
         commandName: "addBrick",
-        contractVersion: 2,
+        contractVersion: 3,
         pushIndex: 3,
         payload: {
           id: "brk_border",
           pageId: "pag_border",
           moduleId: "swatch-and-icon",
+          state: capturedState,
           target: { kind: "wall", wallId: "wal_pag_border_sm", beforeSectionId: null },
         },
       });
@@ -148,9 +154,19 @@ it.effect(
         db.query.brick.findFirst({ where: { id: { eq: "brk_border" } } }),
       );
       if (before === undefined) expect.fail("Expected the command-created Brick");
-      expect(before.borderWidth).toBe(0);
+      expect(before).toMatchObject({ borderWidth: 0, state: capturedState, stateRevision: 0 });
       const placementsBefore = yield* harness.query(owner, db.query.placement.findMany({}));
       expect(placementsBefore).toHaveLength(4);
+      const placedBricks = yield* harness.query(
+        owner,
+        db.query.placement.findMany({ with: { brick: true } }),
+      );
+      expect(placedBricks.map((entry) => entry.brick.state)).toEqual([
+        capturedState,
+        capturedState,
+        capturedState,
+        capturedState,
+      ]);
       const wallsBefore = yield* harness.query(owner, db.query.wall.findMany({}));
 
       let pushIndex = 4;
@@ -211,16 +227,100 @@ it.effect(
           db.query.brick.findFirst({ where: { id: { eq: "brk_border" } } }),
         ),
       ).toMatchObject({ borderWidth: 0 });
+
+      for (const entry of [
+        { id: "brk_null", state: null },
+        { id: "brk_malformed", state: {} },
+      ]) {
+        const rejected = yield* harness
+          .push({
+            ...actor,
+            kind: "actor",
+            id: `cmd_${entry.id}`,
+            commandName: "addBrick",
+            contractVersion: 3,
+            pushIndex: pushIndex++,
+            payload: {
+              ...entry,
+              pageId: "pag_border",
+              moduleId: "swatch-and-icon",
+              target: { kind: "wall", wallId: "wal_pag_border_sm", beforeSectionId: null },
+            },
+          })
+          .pipe(Effect.flip);
+        expect(rejected).toMatchObject({ code: "add-brick-invalid-state" });
+      }
+      const rejectedUpdate = yield* harness
+        .push({
+          ...actor,
+          kind: "actor",
+          id: "cmd_null_swatch_update",
+          commandName: "updateBrick",
+          contractVersion: 3,
+          pushIndex: pushIndex++,
+          payload: { brickId: "brk_border", moduleId: "swatch-and-icon", state: null },
+        })
+        .pipe(Effect.flip);
+      expect(rejectedUpdate).toMatchObject({
+        code: "contract-guard-failed",
+        cause: expect.stringContaining("updateBrick state failed swatch-and-icon decode"),
+      });
+      yield* harness.flush();
+      expect(yield* harness.query(owner, db.query.brick.findMany({}))).toHaveLength(1);
+      expect(yield* harness.query(owner, db.query.placement.findMany({}))).toEqual(
+        placementsBefore,
+      );
+      expect(
+        yield* harness.query(
+          owner,
+          db.query.brick.findFirst({
+            where: { id: { eq: "brk_border" } },
+          }),
+        ),
+      ).toMatchObject({ state: capturedState, stateRevision: 0 });
+
+      yield* harness.push({
+        ...actor,
+        kind: "actor",
+        id: "cmd_unconfigured_link",
+        commandName: "addBrick",
+        contractVersion: 3,
+        pushIndex: pushIndex++,
+        payload: {
+          id: "brk_link",
+          pageId: "pag_border",
+          moduleId: "link",
+          state: null,
+          target: { kind: "wall", wallId: "wal_pag_border_sm", beforeSectionId: null },
+        },
+      });
+      yield* harness.flush();
+      expect(
+        yield* harness.query(
+          owner,
+          db.query.brick.findFirst({
+            where: { id: { eq: "brk_link" } },
+          }),
+        ),
+      ).toMatchObject({ moduleId: "link", state: null });
+      expect(
+        yield* harness.query(
+          owner,
+          db.query.placement.findMany({
+            where: { brickId: { eq: "brk_link" } },
+          }),
+        ),
+      ).toHaveLength(4);
     }).pipe(Effect.provide(NanoIdFactory)),
 );
 
-it("includes shared border width in V2 publication changes while preserving V1 serialization", () => {
+it("includes shared border width in publication changes", () => {
   const recordedAt = new Date("2026-10-28T12:00:00Z");
   const brick = {
     id: "brk_snapshot",
     pageId: "pag_snapshot",
     moduleId: "swatch-and-icon",
-    state: null,
+    state: swatchAndIconV1.defaultState,
     stateRevision: 0,
     borderWidth: 0,
     createdAt: recordedAt,
@@ -236,13 +336,10 @@ it("includes shared border width in V2 publication changes while preserving V1 s
   const changed = makePageSnapshotV2({ ...props, bricks: [{ ...brick, borderWidth: 12 }] });
 
   expect(published.bricks).toEqual([
-    { id: brick.id, moduleId: brick.moduleId, state: null, borderWidth: 0 },
+    { id: brick.id, moduleId: brick.moduleId, state: brick.state, borderWidth: 0 },
   ]);
   expect(changed.bricks).toEqual([
-    { id: brick.id, moduleId: brick.moduleId, state: null, borderWidth: 12 },
+    { id: brick.id, moduleId: brick.moduleId, state: brick.state, borderWidth: 12 },
   ]);
   expect(changed).not.toEqual(published);
-  expect(makePageSnapshot(props).bricks).toEqual([
-    { id: brick.id, moduleId: brick.moduleId, state: null },
-  ]);
 });

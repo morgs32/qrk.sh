@@ -79,7 +79,7 @@ export function makeModuleVersion<
       };
     };
     defaultSpec: Spec;
-    hasPlaceholder?: boolean;
+    hasPlaceholder: boolean;
     components: Record<string, ReturnType<typeof defineComponent>>;
     stateShape: STATE_SHAPE;
     defaultState: IInferDecodedRow<STATE_SHAPE> & Readonly<Record<string, IJsonValue>>;
@@ -92,7 +92,7 @@ export function makeModuleVersion<
     components,
     stateShape,
     defaultState: suppliedDefaultState,
-    hasPlaceholder = false,
+    hasPlaceholder,
   } = props;
   const { id, abbreviation, label, description, maxPerPage } = defineModule(identity);
   if (!Number.isSafeInteger(version) || version < 1) {

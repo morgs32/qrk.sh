@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { draggable } from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
 import { pointerOutsideOfPreview } from "@atlaskit/pragmatic-drag-and-drop/utils/pointer-outside-of-preview";
 import { setCustomNativeDragPreview } from "@atlaskit/pragmatic-drag-and-drop/utils/set-custom-native-drag-preview";
@@ -13,17 +13,57 @@ export function ModulePreview(props: {
   breakpoint: (typeof BREAKPOINTS)[number]["id"];
   cardStyle: boolean;
   moduleLink: ReactNode;
-  moduleAction?: ReactNode;
+  moduleAction?: (state: unknown) => ReactNode;
 }) {
   const { brickModule, breakpoint, cardStyle, moduleLink, moduleAction } = props;
   const previewRef = useRef<HTMLDivElement>(null);
+  const [previewState, setPreviewState] = useState<unknown>(() => brickModule.def.state);
+  const committedState = useRef(previewState);
+  const dragInProgress = useRef(false);
   const [dragging, setDragging] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
+  const [documentVisible, setDocumentVisible] = useState(false);
+  const [reducedMotion, setReducedMotion] = useState(true);
+  const updatePreviewState = useCallback((state: unknown) => {
+    if (!dragInProgress.current) setPreviewState(state);
+  }, []);
+  useLayoutEffect(() => {
+    committedState.current = previewState;
+  }, [previewState]);
+  useEffect(() => {
+    const element = previewRef.current;
+    if (element === null) throw new Error("Missing drawer Brick preview");
+    const observer = new IntersectionObserver((entries) => {
+      setIsVisible(entries.some((entry) => entry.isIntersecting));
+    });
+    observer.observe(element);
+    const onVisibilityChange = () => setDocumentVisible(document.visibilityState === "visible");
+    onVisibilityChange();
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    const motionPreference = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const onMotionPreferenceChange = () => setReducedMotion(motionPreference.matches);
+    onMotionPreferenceChange();
+    motionPreference.addEventListener("change", onMotionPreferenceChange);
+    return () => {
+      observer.disconnect();
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      motionPreference.removeEventListener("change", onMotionPreferenceChange);
+    };
+  }, []);
   useEffect(() => {
     const element = previewRef.current;
     if (element === null) throw new Error("Missing drawer Brick preview");
     return draggable({
       element,
-      getInitialData: () => ({ type: "drawer-brick", moduleId: brickModule.id }),
+      getInitialData: () => {
+        dragInProgress.current = true;
+        setDragging(true);
+        return {
+          type: "drawer-brick",
+          moduleId: brickModule.id,
+          state: brickModule.hasPlaceholder ? null : structuredClone(committedState.current),
+        };
+      },
       onGenerateDragPreview: ({ nativeSetDragImage }) => {
         setCustomNativeDragPreview({
           nativeSetDragImage,
@@ -38,13 +78,16 @@ export function ModulePreview(props: {
           },
         });
       },
-      onDragStart: () => setDragging(true),
-      onDrop: () => setDragging(false),
+      onDrop: () => {
+        dragInProgress.current = false;
+        setDragging(false);
+      },
     });
-  }, [brickModule.id]);
+  }, [brickModule.id, brickModule.hasPlaceholder]);
   const maxPerPage = brickModule.maxPerPage;
   const view = brickModule.variants.default;
   const Component = view.component;
+  const Preview = view.preview;
   const entry = BREAKPOINTS.find((row) => row.id === breakpoint);
   if (entry === undefined) throw new Error(`Unknown breakpoint: ${breakpoint}`);
 
@@ -76,9 +119,19 @@ export function ModulePreview(props: {
             minWidth: view.minWidth,
           }}
         >
-          <BrickAction>{moduleAction}</BrickAction>
+          <BrickAction>
+            {moduleAction?.(brickModule.hasPlaceholder ? null : previewState)}
+          </BrickAction>
           <BrickWrapper className="brick-hover-surface">
-            <Component state={brickModule.def.state} />
+            {Preview === undefined ? (
+              <Component state={previewState} />
+            ) : (
+              <Preview
+                state={previewState}
+                setState={updatePreviewState}
+                isActive={isVisible && documentVisible && !dragging && !reducedMotion}
+              />
+            )}
           </BrickWrapper>
         </div>
       </div>

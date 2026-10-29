@@ -34,6 +34,7 @@ import { UserUI } from "@/zerospin/UserUI";
 const DrawerBrickData = Schema.Struct({
   type: Schema.Literal("drawer-brick"),
   moduleId: brickV2.attributesSchema.fields.moduleId,
+  state: Schema.Unknown,
 });
 
 /** Shared interactive Wall; its host owns navigation and the surrounding page chrome. */
@@ -161,6 +162,7 @@ export function WallEditor(props: {
               id,
               pageId: wall.pageId,
               moduleId: data.success.moduleId,
+              state: data.success.state,
               target: target.success,
             },
           });

@@ -233,8 +233,8 @@ is no variant picker or switching command while every module has one choice.
 Catalog previews render authored module content at that resolved preview width.
 The App catalog keeps its module selection/insertion controls separate from live
 preview content. Ordinary links, forms, Image file selection, and module-owned
-interactions remain available. Placed Bricks fill their Row cells with natural
-height rather than applying the catalog preferred width.
+interactions remain available. Placed Bricks and insertion shadows use the same
+preferred width with natural content height, leaving unused Row space on the right.
 
 Link's copy column uses CSS half width and ordinary URL/title wrapping; no
 font-size or column-width fitting runs. Map Place owns a 200px CSS minimum height
@@ -314,8 +314,10 @@ use the same preferred `defaultWidth` and minimum `minWidth`, with no
 Wall layout arrays hold ordering and Placement references. Separate Placement
 records hold specs, variants, revisions, and generation state and reference their
 Wall directly. Natural content dimensions come from the Row cell.
-Rows share available width subject to module minimums and scroll
-horizontally when those minimums do not fit. Content or preview dimension changes
+Each Placement uses its module preferred width plus the configured gap, without growing
+to fill unused Row space. Crowded Rows shrink cells toward their module minimums
+and scroll horizontally when those minimums do not fit. Insertion shadows use
+the same sizing and natural content height. Content or preview dimension changes
 do not write model geometry.
 
 The current Placement spec schema requires a nonempty root, at least one
@@ -386,9 +388,10 @@ any destination. Compatible Rows use top/bottom quarters for new Rows and their
 middle half for left/right Placement insertion. Incompatible Rows use top/bottom
 halves for new Rows.
 Insertion feedback opens temporary space using a copy of the drawer's existing
-`.brick-hover-surface` at 40% opacity, with the hover style's dark border color
-and square corners, without rerendering its module or
-reading providers. It occupies a Placement slot in a compatible Row, a new Row
+`.brick-hover-surface` at 40% opacity, without an added border, outline, or halo,
+without rerendering its module or reading providers. Preview and shadow content
+use the same natural height as placed content; the shadow has no separate minimum
+height and retains the flat/card treatment. It occupies a Placement slot in a compatible Row, a new Row
 in a Stack, or the first slot in an empty Wall. Its content is inert and ignores
 pointer events; its host accepts drops at the visible slot's stable
 before-Placement or before-Row destination. No thin-line or rectangle indicator
@@ -500,6 +503,7 @@ the whole Placement temporarily rises above neighboring Bricks at z-index 1 and
 returns to normal stacking when hover ends. Stack controls, browser chrome,
 menus, and floating toolbars remain above it. Focus, selection, and open-menu
 state do not raise the Placement.
+The native drag preview uses a 2px `#1F9BFC` edge without halos.
 Placed BrickActions remain inside the stationary content wrapper at their 1px
 top-right inset. Placement hitboxes and blue keyboard-focus and open-menu borders
 stay stationary. While a Brick's edit form is open, its selected Placement keeps
@@ -680,3 +684,14 @@ Brick and Placement model factories accept stable model definitions (name and ID
 abbreviation), and declare their relationships with SDK `modelRef`. They do not
 require the parent model version's Table object. The host aggregate owns the
 selected versions and the complete relation graph.
+
+### Brick dimension stories
+
+The Wall Editor's Preview Brick, Placement Brick, and Shadow Brick stories compare
+the production rendering paths with compact Swatch and Icon and wrapping Article
+fixtures. At equal state and available width their content boxes match. Placement
+and shadow cells use the module preferred/minimum widths plus the configured gap,
+as two half-gap insets, and shrink without growing to fill a Row. Hover, focus,
+selection, and saved border overlays do not change dimensions.
+The Shadow Brick story opens insertion feedback without dropping; use an empty
+Wall for Article because its Page limit is one.

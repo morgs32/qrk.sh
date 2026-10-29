@@ -20,9 +20,9 @@ The first Brick drop creates the required Section, Stack, and Row. Existing
 persisted layouts are unchanged. Moves and Brick deletion prune empty Rows,
 Stacks, and Sections. Stack capacity
 is 1 / 2 / 3 / 4 per Section at sm / md / lg / xl, counted after move cleanup.
-Rows share available horizontal space subject to module minimum widths, with
-natural content height and no
-arbitrary Placement-count cap. Each Row scrolls horizontally when its minimums
+Rows lay out Bricks at their module preferred widths and shrink them toward
+module minimum widths when crowded, with natural content height and no arbitrary
+Placement-count cap. Each Row scrolls horizontally when its minimums
 do not fit, without widening neighboring Stacks or changing saved order.
 The former `Page.wallId`, `Wall.label`, `Brick.wallId`, Placement grid geometry,
 visibility, and duplicated breakpoint attribute are removed. Placement derives
@@ -65,14 +65,14 @@ control supply route/visual inputs; its Brick-detail route returns to the Wall
 without mounting edit forms. Drops and deletion use ordinary commands and
 reactive queries rather than local fixture mutations.
 
-A placed Brick fills its Row cell, whose minimum width comes from its module.
-The cell adds 1px to that minimum for its two half-pixel insets, preserving the
-module's content minimum.
+A placed Brick and insertion shadow share the module preferred and minimum widths
+with drawer previews. Their cells shrink without growing to fill unused Row space.
+Each cell adds the configured Brick gap to both widths for its two half-gap insets,
+preserving the module content dimensions.
 Each Row contains a flex scroll element with Placements and any temporary
 insertion shadow.
 It uses the containing Wall's logical breakpoint and Placement spec, regardless
-of cell width. Catalog
-preferred widths do not constrain placed content. Every module has a 320px
+of cell width. Every module has a 320px
 minimum except Swatch and Icon at 160px, constant across all breakpoints.
 Module links, inputs, forms, and provider states remain interactive. Menus are siblings of
 content rather than a wrapping button or selection overlay.
@@ -119,9 +119,9 @@ The production Wall accepts these templates subject to module Page limits:
   accepts its first Brick. Populated Walls expose no new Section/Stack targets
   outside the existing layout.
 
-Insertion feedback opens temporary space using a 40%-opacity copy with the hover
-style's dark border color and square corners
-of the drawer's existing `.brick-hover-surface`, without rerendering its module
+Insertion feedback opens temporary space using a 40%-opacity copy
+of the drawer's existing `.brick-hover-surface`, without an added border, outline,
+or halo, without rerendering its module
 or reading providers. The shadow occupies a Placement slot in a Row, a new Row
 in a Stack, or the first slot in an empty Wall. Its content is inert and ignores
 pointer events; its host accepts drops at the visible slot's stable
@@ -177,6 +177,15 @@ prototype stories, styling, and prototype flags are removed, along with thin
 drop indicators. The user chose the shadow approach; visual verification
 remains with the user.
 Backend move commands remain available independently of the canvas.
+
+Clicking ordinary placed-Brick content opens its edit form through the existing
+route-owned selection. Clicking an already selected Brick keeps it selected.
+Links, buttons, form controls, editable content, media controls, and action-menu
+controls keep their own interactions without selecting. MapCanvas owns its click
+boundary so map gestures and controls remain usable. Modified or prevented clicks
+and clicks following a text-selection drag do not select. The existing Edit menu
+remains the keyboard-accessible selection action; selection adds no tab stop or
+button role around interactive Brick content.
 
 Selected means a Brick's edit form is open. Active means DOM focus, including
 keyboard focus. Controls appear on hover, focus, selection, and open menus, with
@@ -277,3 +286,12 @@ unchanged. Connected App identities include the session lock; only matching loca
 nodes/discovery entries were deleted.
 Earlier origins, unrelated databases, cookies, preferences, uploads, and deployed
 storage were preserved.
+
+## Brick dimension stories
+
+Preview, placed, and shadow content use natural height. At equal content widths
+and state their content boxes match, independently of hover, focus, selection,
+or saved border width. Placement and shadow cells use the module preferred and
+minimum widths plus the configured Brick gap as two half-gap insets. Cells shrink
+without growing to fill unused Row space. The Preview Brick, Placement Brick,
+and Shadow Brick stories exercise these production rendering paths.

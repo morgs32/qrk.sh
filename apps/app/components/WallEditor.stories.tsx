@@ -1,4 +1,4 @@
-import { MockAggregateInitializer } from "@zerospin/react";
+import { MockAggregateSession } from "@zerospin/react";
 import { prefixId } from "@zerospin/sdk/browser";
 import { Schema } from "effect";
 import { useState } from "react";
@@ -24,7 +24,13 @@ const siteId = prefixId(site, "story");
 const pageId = prefixId(page, "story");
 const claims = { aggregateId: "wall-story", clerkUserId: "wall-story" };
 
-function makeResources(emptyWall: boolean, brickGap: number, stickyNavbar: boolean) {
+function makeResources(
+  emptyWall: boolean,
+  brickGap: number,
+  stickyNavbar: boolean,
+  borderWidth: number,
+  cardStyle: boolean,
+) {
   const timestamps = {
     createdAt: new Date("2026-10-20T00:00:00.000Z"),
     updatedAt: new Date("2026-10-20T00:00:00.000Z"),
@@ -39,6 +45,7 @@ function makeResources(emptyWall: boolean, brickGap: number, stickyNavbar: boole
           id: prefixId(brick, `story-${position}`),
           pageId,
           moduleId: "swatch-and-icon",
+          borderWidth,
           stateRevision: 0,
           state: {
             ...swatchAndIconV1.defaultState,
@@ -72,7 +79,7 @@ function makeResources(emptyWall: boolean, brickGap: number, stickyNavbar: boole
         faviconLightUrl: null,
         faviconDarkUrl: null,
         isPublished: false,
-        cardStyle: false,
+        cardStyle,
         brickGap,
         stickyNavbar,
       }),
@@ -142,9 +149,17 @@ function makeResources(emptyWall: boolean, brickGap: number, stickyNavbar: boole
   };
 }
 
-function WallEditorStory(props: { emptyWall: boolean; brickGap: number; stickyNavbar: boolean }) {
-  const { emptyWall, brickGap, stickyNavbar } = props;
-  const [resources] = useState(() => makeResources(emptyWall, brickGap, stickyNavbar));
+function WallEditorStory(props: {
+  emptyWall: boolean;
+  brickGap: number;
+  stickyNavbar: boolean;
+  borderWidth: number;
+  cardStyle: boolean;
+}) {
+  const { emptyWall, brickGap, stickyNavbar, borderWidth, cardStyle } = props;
+  const [resources] = useState(() =>
+    makeResources(emptyWall, brickGap, stickyNavbar, borderWidth, cardStyle),
+  );
   const [breakpoint, setBreakpoint] = useState<(typeof BREAKPOINTS)[number]>(BREAKPOINTS[0]);
   const wallId = prefixId(wall, `story-${breakpoint.id}`);
   const previewStyle = {
@@ -155,7 +170,7 @@ function WallEditorStory(props: { emptyWall: boolean; brickGap: number; stickyNa
   };
 
   return (
-    <MockAggregateInitializer
+    <MockAggregateSession
       definition={userSessionDefinition}
       claims={claims}
       resources={resources}
@@ -229,7 +244,7 @@ function WallEditorStory(props: { emptyWall: boolean; brickGap: number; stickyNa
                   <div className="min-h-0 flex-1">
                     <ModuleFilmstrip
                       breakpoint={breakpoint.id}
-                      cardStyle={false}
+                      cardStyle={cardStyle}
                       renderModuleLink={(brickModule) => <span>{brickModule.label}</span>}
                     />
                   </div>
@@ -241,7 +256,7 @@ function WallEditorStory(props: { emptyWall: boolean; brickGap: number; stickyNa
           <p role="status">Opening local session…</p>
         )
       }
-    </MockAggregateInitializer>
+    </MockAggregateSession>
   );
 }
 
@@ -252,23 +267,41 @@ const meta = {
     emptyWall: false,
     brickGap: 1,
     stickyNavbar: true,
+    borderWidth: 0,
+    cardStyle: false,
   },
   argTypes: {
     stickyNavbar: { control: "boolean" },
     brickGap: { control: { type: "range", min: 0, max: 12, step: 1 } },
+    borderWidth: { control: { type: "range", min: 0, max: 12, step: 1 } },
+    cardStyle: { control: "boolean" },
   },
-  render: function Render(props: { emptyWall: boolean; brickGap: number; stickyNavbar: boolean }) {
-    const { emptyWall, brickGap, stickyNavbar } = props;
+  render: function Render(props: {
+    emptyWall: boolean;
+    brickGap: number;
+    stickyNavbar: boolean;
+    borderWidth: number;
+    cardStyle: boolean;
+  }) {
+    const { emptyWall, brickGap, stickyNavbar, borderWidth, cardStyle } = props;
     return (
       <WallEditorStory
-        key={`${emptyWall}-${brickGap}-${stickyNavbar}`}
+        key={`${emptyWall}-${brickGap}-${stickyNavbar}-${borderWidth}-${cardStyle}`}
         emptyWall={emptyWall}
         brickGap={brickGap}
         stickyNavbar={stickyNavbar}
+        borderWidth={borderWidth}
+        cardStyle={cardStyle}
       />
     );
   },
-} satisfies Meta<{ emptyWall: boolean; brickGap: number; stickyNavbar: boolean }>;
+} satisfies Meta<{
+  emptyWall: boolean;
+  brickGap: number;
+  stickyNavbar: boolean;
+  borderWidth: number;
+  cardStyle: boolean;
+}>;
 
 export default meta;
 export const Default: StoryObj<typeof meta> = {};

@@ -4,7 +4,7 @@ import {
   modelId,
   ContractError,
   findFirst,
-  makeAggregateContractVersion,
+  makeAggregateContractRelease,
 } from "@zerospin/sdk/browser";
 
 import { Effect } from "effect";
@@ -15,7 +15,7 @@ import { userV1 as User } from "../../models/user/UserV1";
 
 import { unpublishSite } from "./unpublishSite";
 
-export const unpublishSiteV1 = makeAggregateContractVersion(unpublishSite, {
+export const unpublishSiteV1 = makeAggregateContractRelease(unpublishSite, {
   version: 1,
   payload: { siteId: modelId({ model: siteIdentity }) },
   models: {

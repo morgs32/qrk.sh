@@ -8,11 +8,11 @@ import { useLiveQuery } from "@zerospin/react";
 import { makeIdSchema, makeId, stageAggregateSessionCommand } from "@zerospin/sdk/browser";
 import { makeEffectSchema } from "@zerospin/shapes";
 import { modulesHash } from "../../../../../../../modules/lib/modulesHash";
-import { brickV1 } from "@qrk.sh/zerospin/src/aggregates/user/models/brick/BrickV1";
+import { brickV2 } from "@qrk.sh/zerospin/src/aggregates/user/models/brick/BrickV2";
 import { pageV1 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV1";
 import { siteV1 as Site } from "@qrk.sh/zerospin/src/aggregates/user/models/site/SiteV1";
-import { pageSnapshotV1 as PageSnapshot } from "@qrk.sh/zerospin/src/aggregates/user/models/pageSnapshot/PageSnapshotV1";
-import { makePageSnapshot } from "@qrk.sh/zerospin/src/aggregates/user/snapshots/makePageSnapshot";
+import { pageSnapshotV2 as PageSnapshot } from "@qrk.sh/zerospin/src/aggregates/user/models/pageSnapshot/PageSnapshotV2";
+import { makePageSnapshotV2 } from "@qrk.sh/zerospin/src/aggregates/user/snapshots/makePageSnapshotV2";
 
 import { Button } from "@/components/ui/button";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
@@ -57,7 +57,7 @@ export function DrawerHeader() {
     query: (db, id) =>
       db.query.pageSnapshot.findFirst({ where: { id: { eq: id ?? "psn_missing" } } }),
   });
-  const decodedBrickId = Schema.decodeUnknownResult(makeIdSchema(brickV1))(params.brickId);
+  const decodedBrickId = Schema.decodeUnknownResult(makeIdSchema(brickV2))(params.brickId);
   const { data: brick } = useLiveQuery({
     session,
     key: {
@@ -76,7 +76,7 @@ export function DrawerHeader() {
   const savedContent =
     page === undefined
       ? null
-      : makePageSnapshot({
+      : makePageSnapshotV2({
           page,
           bricks: page.bricks,
           walls: page.walls,
@@ -90,7 +90,7 @@ export function DrawerHeader() {
     publishedSnapshot !== undefined &&
     !isEqual(savedContent, publishedSnapshot.content);
   const decodedModule = Schema.decodeUnknownResult(
-    makeEffectSchema({ moduleId: brickV1.attributes.moduleId }),
+    makeEffectSchema({ moduleId: brickV2.attributes.moduleId }),
   )({ moduleId: params.brickId === undefined ? params.moduleId : brick?.moduleId });
   const moduleId = Result.isSuccess(decodedModule) ? decodedModule.success.moduleId : undefined;
   const moduleLabel = moduleId === undefined ? undefined : modulesHash[moduleId].label;

@@ -2,7 +2,7 @@
 
 import { RedirectToSignIn, useAuth, useUser } from "@clerk/react";
 import { ZerospinError } from "@zerospin/error";
-import { ConnectedAggregateInitializer } from "@zerospin/react";
+import { ConnectedAggregateSession } from "@zerospin/react";
 import { signature } from "@qrk.sh/zerospin/src/signature";
 import { Cause, Effect, Exit } from "effect";
 import { useEffect, type ComponentProps, type ReactNode } from "react";
@@ -29,7 +29,7 @@ export default function UserLayout(props: { children: ReactNode }) {
   const clerkUserId = user.id;
   const aggregateId = clerkUserId;
   return (
-    <ConnectedAggregateInitializer
+    <ConnectedAggregateSession
       key={clerkUserId}
       definition={userSessionDefinition}
       sharedWorkerUrl={workerUrl}
@@ -80,7 +80,7 @@ export default function UserLayout(props: { children: ReactNode }) {
           ) : null}
         </>
       )}
-    </ConnectedAggregateInitializer>
+    </ConnectedAggregateSession>
   );
 }
 

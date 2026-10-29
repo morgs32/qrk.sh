@@ -6,7 +6,7 @@ import { ContractError } from "@zerospin/error";
 
 import * as sdk from "@zerospin/sdk/browser";
 
-import { modelId, makeAggregateContractVersion, primitives } from "@zerospin/sdk/browser";
+import { modelId, makeAggregateContractRelease, primitives } from "@zerospin/sdk/browser";
 
 import { Effect, Schema } from "effect";
 
@@ -30,7 +30,7 @@ const createSitePayload = {
   }),
 };
 
-export const createSiteV1 = makeAggregateContractVersion(createSite, {
+export const createSiteV1 = makeAggregateContractRelease(createSite, {
   operations: {
     createSite: Site.operations.create,
   },

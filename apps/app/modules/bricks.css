@@ -81,21 +81,6 @@
   --ring: oklch(0.552 0.016 285.938);
 }
 
-.brick-surface {
-  --brick-edge: 1px;
-}
-
-/* Shared strokes occupy the same pixels; content keeps its own clipping. */
-.brick-surface-flat::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  box-sizing: border-box;
-  border: var(--brick-edge) solid var(--border);
-  z-index: 19;
-  pointer-events: none;
-}
-
 .brick-surface-card > .brick-hover-surface {
   border-radius: 8px;
   background: white;

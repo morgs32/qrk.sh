@@ -2,7 +2,7 @@ import { user as userIdentity } from "../../models/user/user";
 
 import {
   modelId,
-  makeAggregateContractVersion,
+  makeAggregateContractRelease,
   primitives,
   findFirst,
 } from "@zerospin/sdk/browser";
@@ -26,7 +26,7 @@ const createUserPayload = {
   }),
 };
 
-export const createUserV1 = makeAggregateContractVersion(createUser, {
+export const createUserV1 = makeAggregateContractRelease(createUser, {
   operations: { createUser: User.operations.create },
   payload: createUserPayload,
   models: { user: User },

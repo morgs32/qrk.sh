@@ -14,7 +14,7 @@ import { findFirst } from "@zerospin/core/contracts/findFirst";
 
 import {
   modelId,
-  makeAggregateContractVersion,
+  makeAggregateContractRelease,
   defineAggregateContract,
 } from "@zerospin/sdk/browser";
 
@@ -34,7 +34,7 @@ const updateBrickPayload = {
   state: primitives.json({ schema: Schema.Unknown }),
 };
 
-export const updateBrickV1 = makeAggregateContractVersion(defineAggregateContract("updateBrick"), {
+export const updateBrickV1 = makeAggregateContractRelease(defineAggregateContract("updateBrick"), {
   operations: {
     updateBrick: brick.operations.update,
     updatePlacement: placement.operations.update,

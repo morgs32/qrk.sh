@@ -4,7 +4,7 @@ import { ContractError } from "@zerospin/error";
 
 import * as sdk from "@zerospin/sdk/browser";
 
-import { modelId, makeAggregateContractVersion, primitives } from "@zerospin/sdk/browser";
+import { modelId, makeAggregateContractRelease, primitives } from "@zerospin/sdk/browser";
 
 import { Effect } from "effect";
 
@@ -28,7 +28,7 @@ const updatePageSettingsPayload = {
   }),
 };
 
-export const updatePageSettingsV1 = makeAggregateContractVersion(updatePageSettings, {
+export const updatePageSettingsV1 = makeAggregateContractRelease(updatePageSettings, {
   operations: {
     updatePage: Page.operations.update,
   },

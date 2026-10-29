@@ -3,7 +3,7 @@ import {
   modelId,
   ContractError,
   defineAggregateContract,
-  makeAggregateContractVersion,
+  makeAggregateContractRelease,
   findFirst,
   findMany,
 } from "@zerospin/sdk/browser";
@@ -17,7 +17,7 @@ import { brickV1 as brick } from "../../models/brick/BrickV1";
 import { placementV1 as placement } from "../../models/placement/PlacementV1";
 import { removePlacementFromLayout } from "../../layout/wallLayout";
 
-export const deleteBrickV1 = makeAggregateContractVersion(defineAggregateContract("deleteBrick"), {
+export const deleteBrickV1 = makeAggregateContractRelease(defineAggregateContract("deleteBrick"), {
   version: 1,
   models: { page, site, user, wall, brick, placement },
   claims: userClaims,

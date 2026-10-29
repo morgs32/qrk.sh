@@ -7,6 +7,7 @@ import { makeResourceDbConfig } from '@zerospin/core/drizzle/make/makeDbConfig/m
 import { makeTx } from '@zerospin/core/drizzle/make/makeTx';
 import { openHarnessDb } from '@zerospin/core/testing/systemHarness/openHarnessDb';
 import { makeSystemHarness } from '@zerospin/sdk/testing';
+import { prepareAggregateInvocation } from '@zerospin/core/contracts/prepare/prepareAggregateInvocation';
 import { Effect } from 'effect';
 import { newHttpBatchRpcResponse, RpcTarget } from 'capnweb';
 import { vi } from 'vitest';
@@ -24,22 +25,26 @@ import { swatchAndIconV1 } from '../src/modules/swatchAndIcon/swatchAndIconV1';
 
 vi.mock('cloudflare:workers', () => ({ env: { QRK_LIBRARY_API_URL: 'https://api.qrk.test/rpc' } }));
 
-it.effect('creates a user through a command and rejects unauthenticated site creation', () =>
+it.effect('creates a user through a command and keeps site creation unavailable to System commands', () =>
   Effect.gen(function* () {
     const harness = yield* makeSystemHarness({ system });
-    yield* harness.push(yield* sdk.makeAggregateCommand(userAggregateV1, {
-      aggregateId: 'acct_harness', contractName: 'createUser',
+    yield* harness.push({
+      kind: 'system', id: 'cmd_create_user', commandName: 'createUser', contractVersion: 1,
+      aggregateName: userAggregateV1.name, aggregateVersion: userAggregateV1.version,
+      aggregateId: 'acct_harness', externalOutcome: null,
       payload: { id: 'usr_harness', clerkUserId: 'user_harness', username: null, displayName: null },
-    }));
+    });
     const db = sdk.makeQueryDbVersion({ models: userAggregateV1.models });
     expect(yield* harness.query({ release: userAggregateV1, aggregateId: 'acct_harness' },
       db.query.user.findFirst({ where: { id: { eq: 'usr_harness' } } })))
       .toMatchObject({ clerkUserId: 'user_harness' });
-    const rejected = yield* harness.push(yield* sdk.makeAggregateCommand(userAggregateV1, {
-      aggregateId: 'acct_harness', contractName: 'createSite',
+    const rejected = yield* harness.push({
+      kind: 'system', id: 'cmd_create_site', commandName: 'createSite', contractVersion: 1,
+      aggregateName: userAggregateV1.name, aggregateVersion: userAggregateV1.version,
+      aggregateId: 'acct_harness', externalOutcome: null,
       payload: { id: 'sit_harness', userId: 'usr_harness', slug: 'example', name: null, description: null },
-    })).pipe(Effect.flip);
-    expect(rejected).toMatchObject({ code: 'create-site-user-mismatch' });
+    }).pipe(Effect.flip);
+    expect(rejected).toMatchObject({ code: 'system-harness-command-forbidden' });
     yield* harness.flush();
     expect(yield* harness.query({ release: userAggregateV1, aggregateId: 'acct_harness' },
       db.query.site.findMany({}))).toEqual([]);
@@ -90,7 +95,7 @@ const openGenerationDb = (siteIsPublished = false) => Effect.gen(function* () {
   });
   const replay = (operation: IAnyOperation) => makeTx('generation.replay')(function* (tx) {
     yield* applyOperationTx({
-      tx, operation, commandId: 'cmd_generation', operationIndex: 0, appliedAt: recordedAt,
+      tx, operation, appliedAt: recordedAt,
     });
   })(db);
   const start = (requestId: string) => Effect.gen(function* () {
@@ -145,16 +150,20 @@ it.effect('defaults new sites to a 1px gap and saves gaps from 0 to 12 pixels', 
       where: { id: { eq: 'sit_gap' } } })).toMatchObject({ brickGap: 12 });
   }));
 
-it.effect('rejects fractional brick gaps at command construction', () =>
+it.effect('rejects fractional brick gaps at the actor command decoding boundary', () =>
   Effect.gen(function* () {
-    const result = yield* sdk.makeAggregateCommand(userAggregateV1, {
-      aggregateId: 'acct_harness', contractName: 'updateSiteSettings',
-      payload: { id: 'sit_gap', name: null, description: null, logoUrl: null,
-        faviconLightUrl: null, faviconDarkUrl: null, cardStyle: false,
-        stickyNavbar: true, brickGap: 1.5 },
-    }).pipe(Effect.exit);
-    expect(result._tag).toBe('Failure');
-  }).pipe(Effect.provide(sdk.NanoIdFactory)));
+    const rejected = yield* prepareAggregateInvocation({
+      contract: updateSiteSettingsV1,
+      command: {
+        aggregateId: 'acct_harness',
+        payload: { id: 'sit_gap', name: null, description: null, logoUrl: null,
+          faviconLightUrl: null, faviconDarkUrl: null, cardStyle: false,
+          stickyNavbar: true, brickGap: 1.5 },
+      },
+      claims: { aggregateId: 'acct_harness', clerkUserId: 'user_one' },
+    }).pipe(Effect.flip);
+    expect(rejected).toMatchObject({ code: 'validate-command-payload-failed' });
+  }));
 
 it.effect('records canonical generation inputs and commits the validated external spec', () =>
   Effect.gen(function* () {

@@ -1,4 +1,4 @@
-import { makeAggregateExternalContract, findFirst } from "@zerospin/sdk";
+import { makeAggregateExternalContractRelease, findFirst } from "@zerospin/sdk";
 import { makeZerospinError } from "@zerospin/error";
 import { newHttpBatchRpcSession } from "capnweb";
 import { Effect, Schema } from "effect";
@@ -12,7 +12,7 @@ import { wallV1 as wall } from "../../models/wall/WallV1";
 
 import { generateBrickSpecExternalDefinitionV1, libraryGenerateSpecResponse } from "./GenerateBrickSpecExternalDefinitionV1";
 
-export const generateBrickSpecExternalV1 = makeAggregateExternalContract(generateBrickSpecExternalDefinitionV1, {
+export const generateBrickSpecExternalV1 = makeAggregateExternalContractRelease(generateBrickSpecExternalDefinitionV1, {
   models: { brick, placement, wall },
   operations: { updatePlacement: placement.operations.update },
   request: Effect.fn("generateBrickSpecExternal.request")(function* (props) {

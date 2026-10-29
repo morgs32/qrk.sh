@@ -9,7 +9,7 @@ import { wallInsertionTargetSchema } from "@qrk.sh/zerospin/src/aggregates/user/
 import { WallModuleAction } from "../../../../../../../../../../modules/lib/wall/WallModuleAction";
 
 import { modulesHash } from "../../../../../../../../../../modules/lib/modulesHash";
-import { brickV1 } from "@qrk.sh/zerospin/src/aggregates/user/models/brick/BrickV1";
+import { brickV2 } from "@qrk.sh/zerospin/src/aggregates/user/models/brick/BrickV2";
 import { makeEffectSchema } from "@zerospin/shapes";
 import { Result, Schema } from "effect";
 import { pageV1 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV1";
@@ -33,7 +33,7 @@ export default function ModuleRoute() {
   const { moduleId } = params;
 
   const decoded = Schema.decodeUnknownResult(
-    makeEffectSchema({ moduleId: brickV1.attributes.moduleId }),
+    makeEffectSchema({ moduleId: brickV2.attributes.moduleId }),
   )({ moduleId: moduleId });
   const decodedPageId = Schema.decodeUnknownResult(PageIdSchema)(pageId);
   const decodedSiteId = Schema.decodeUnknownResult(SiteIdSchema)(siteId);
@@ -109,7 +109,7 @@ function ModuleRouteBody(props: {
                   ? undefined
                   : () => {
                       if (insertionTarget === null || insertionTarget.wallId !== wall.id) return;
-                      const id = session.runSync(makeId(brickV1));
+                      const id = session.runSync(makeId(brickV2));
                       const result = stageAggregateSessionCommand({
                         session,
                         contractName: "addBrick",
@@ -158,7 +158,7 @@ function ModuleRouteBody(props: {
                   <div>
                     <p className="m-0 mb-2 font-mono text-neutral-500">Component</p>
                     <div
-                      className={`brick-surface ${site.cardStyle ? "brick-surface-card" : "brick-surface-flat"} brick-hover-target relative shrink-0`}
+                      className={`brick-surface ${site.cardStyle ? "brick-surface-card" : ""} brick-hover-target relative shrink-0`}
                       style={{ width: previewWidth, minWidth: view.minWidth }}
                     >
                       <BrickWrapper className="brick-hover-surface">
@@ -169,7 +169,7 @@ function ModuleRouteBody(props: {
                   <div>
                     <p className="m-0 mb-2 font-mono text-neutral-500">JsonRender</p>
                     <div
-                      className={`brick-surface ${site.cardStyle ? "brick-surface-card" : "brick-surface-flat"} brick-hover-target relative shrink-0`}
+                      className={`brick-surface ${site.cardStyle ? "brick-surface-card" : ""} brick-hover-target relative shrink-0`}
                       style={{ width: previewWidth, minWidth: view.minWidth }}
                     >
                       <BrickWrapper className="brick-hover-surface">

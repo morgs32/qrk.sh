@@ -28,10 +28,9 @@ import { sql } from "drizzle-orm";
 import {
   CuidFactory,
   defineAggregateActor,
-  makeAggregateActorVersion,
+  makeAggregateActorRelease,
   makeQueryDbVersion,
   makeId,
-  prefixId,
   resolveFailure,
   makeZerospinError,
   ZerospinError,
@@ -58,7 +57,7 @@ const db = makeQueryDbVersion({
   },
 });
 
-export const userActorV1 = makeAggregateActorVersion(defineAggregateActor({ name: "web" }), {
+export const userActorV1 = makeAggregateActorRelease(defineAggregateActor({ name: "web" }), {
   version: 1,
   db,
   identity,
@@ -120,10 +119,7 @@ export const userActorV1 = makeAggregateActorVersion(defineAggregateActor({ name
       .sync();
     if (existingUser !== undefined) return;
 
-    const makeCuid = yield* CuidFactory;
-    const id = prefixId({ abbreviation: "cmd" }, yield* makeCuid());
     const outcome = yield* executeCommand({
-      id,
       commandName: createUserV1.commandName,
       contractVersion: createUserV1.version,
       payload: {

@@ -1,7 +1,7 @@
 import {
   ContractError,
   defineAggregateContract,
-  makeAggregateContractVersion,
+  makeAggregateContractRelease,
   findFirst,
   prefixId,
   primitives,
@@ -16,7 +16,7 @@ import { moveStackInLayout } from "../../layout/wallLayout";
 import { stackMoveTargetSchema } from "../../layout/wallTargetSchemas";
 import { stackIdSchema } from "../../layout/wallLayoutSchema";
 
-export const moveStackV1 = makeAggregateContractVersion(defineAggregateContract("moveStack"), {
+export const moveStackV1 = makeAggregateContractRelease(defineAggregateContract("moveStack"), {
   version: 1,
   models: { page, site, user, wall },
   claims: userClaims,

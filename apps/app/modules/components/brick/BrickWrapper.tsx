@@ -3,17 +3,17 @@ import { cn } from "cn";
 
 import { brickStackGapClass } from "./brickTokens";
 
-export function BrickWrapper({
-  children,
-  className,
-  ...props
-}: {
-  children?: ReactNode;
-  className?: string;
-} & Omit<ComponentPropsWithoutRef<"div">, "children" | "className">) {
+export function BrickWrapper(
+  props: {
+    children?: ReactNode;
+    className?: string;
+    borderWidth?: number;
+  } & Omit<ComponentPropsWithoutRef<"div">, "children" | "className">,
+) {
+  const { children, className, borderWidth = 0, ...divProps } = props;
   return (
     <div
-      {...props}
+      {...divProps}
       className={cn(
         "qrk-bricks relative flex h-full min-h-0 min-w-0 w-full overflow-hidden [&_svg]:select-none",
         "@container flex-col",
@@ -22,6 +22,11 @@ export function BrickWrapper({
       )}
     >
       {children}
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 z-[18] rounded-[inherit]"
+        style={{ border: `${borderWidth}px solid var(--border)` }}
+      />
     </div>
   );
 }

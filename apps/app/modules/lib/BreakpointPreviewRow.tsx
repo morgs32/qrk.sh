@@ -31,7 +31,7 @@ export function BreakpointPreviewRow(props: {
           <div>
             <p className="m-0 mb-2 font-mono text-neutral-500">Component</p>
             <div
-              className={`brick-surface ${cardStyle ? "brick-surface-card" : "brick-surface-flat"} brick-hover-target relative shrink-0`}
+              className={`brick-surface ${cardStyle ? "brick-surface-card" : ""} brick-hover-target relative shrink-0`}
               style={{ width: previewWidth, minWidth: view.minWidth }}
             >
               <BrickWrapper className="brick-hover-surface">
@@ -42,7 +42,7 @@ export function BreakpointPreviewRow(props: {
           <div>
             <p className="m-0 mb-2 font-mono text-neutral-500">JsonRender</p>
             <div
-              className={`brick-surface ${cardStyle ? "brick-surface-card" : "brick-surface-flat"} brick-hover-target relative shrink-0`}
+              className={`brick-surface ${cardStyle ? "brick-surface-card" : ""} brick-hover-target relative shrink-0`}
               style={{ width: previewWidth, minWidth: view.minWidth }}
             >
               <BrickWrapper className="brick-hover-surface">

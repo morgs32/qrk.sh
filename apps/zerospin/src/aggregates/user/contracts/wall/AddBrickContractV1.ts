@@ -4,7 +4,7 @@ import {
   modelId,
   ContractError,
   defineAggregateContract,
-  makeAggregateContractVersion,
+  makeAggregateContractRelease,
   findFirst,
   findMany,
   prefixId,
@@ -24,7 +24,7 @@ import { canShareRow } from "../../../../modules/lib/canShareRow";
 import { insertPlacementInLayout } from "../../layout/wallLayout";
 import { wallInsertionTargetSchema } from "../../layout/wallTargetSchemas";
 
-export const addBrickV1 = makeAggregateContractVersion(defineAggregateContract("addBrick"), {
+export const addBrickV1 = makeAggregateContractRelease(defineAggregateContract("addBrick"), {
   version: 1,
   models: { page, site, user, wall, brick, placement },
   claims: userClaims,

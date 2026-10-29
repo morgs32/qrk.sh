@@ -1,4 +1,4 @@
-import { MockAggregateInitializer } from "@zerospin/react";
+import { MockAggregateSession } from "@zerospin/react";
 import { prefixId } from "@zerospin/sdk/browser";
 import { Schema } from "effect";
 import { useState } from "react";
@@ -170,7 +170,7 @@ function WallEditorStory(props: {
   };
 
   return (
-    <MockAggregateInitializer
+    <MockAggregateSession
       definition={userSessionDefinition}
       claims={claims}
       resources={resources}
@@ -256,7 +256,7 @@ function WallEditorStory(props: {
           <p role="status">Opening local session…</p>
         )
       }
-    </MockAggregateInitializer>
+    </MockAggregateSession>
   );
 }
 

@@ -130,13 +130,18 @@ run `pnpm --dir apps/<app> dev`; this starts only that app. Its `dev:app` script
 runs the underlying HTTP server directly when needed. Frontend scripts honor
 `PORT`; direct defaults are listed above. Storybooks use 10020 for App and 10022 for Web, also overridable with `PORT`.
 
-The current integer-version baseline starts every authored declaration at `1`.
-Older release declarations and browser session registrations are removed.
-Development and production storage must be empty for this cutover, and the
-maintainer has authorized erasing this system's obsolete data. Source migration
-and storage reset completion are tracked separately.
+The user aggregate retains releases `1` and `2`; App binds its session to
+release `2` and Actor version `2`. Historical declarations remain registered for
+replay. Shared Brick border widths belong to BrickV2 and default to `0` when
+historical creation commands replay.
 
-App's `ConnectedAggregateInitializer` receives its pure `userSessionDefinition`,
+Packages are pinned to Zerospin `37.0.1`. Existing framework `36` storage needs a
+lossless migration before this runtime starts against it. Preserve retained
+commands, identities, checkpoints and model rows; no storage reset is authorized
+for this upgrade. The earlier integer-version cutover's reset approval does not
+apply here.
+
+App's `ConnectedAggregateSession` receives its pure `userSessionDefinition`,
 `userApplicationLayer`, credentials schema and authored `sharedWorkerUrl` directly.
 Zerospin validates the `node.worker.ts` artifact and constructs its SharedWorker.
 Zerospin chooses its name from the runtime version and persistent session identity.
@@ -153,7 +158,7 @@ App bundles installed Zerospin packages with
 `ssr.noExternal` so their extensionless ESM imports resolve through Vite.
 
 App prerenders a static document shell and initializes its routes in the
-browser. `ConnectedAggregateInitializer` owns a fresh facade for its Clerk binding; its
+browser. `ConnectedAggregateSession` owns a fresh facade for its Clerk binding; its
 `isLoaded` callback gates readers until the initialized database is published. The
 dashboard uses the installed Silkscreen font for its `QRK.SH` wordmark.
 Browser-owned data and editor drafts stay under the content readiness gate.

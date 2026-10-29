@@ -95,7 +95,7 @@ const openGenerationDb = (siteIsPublished = false) => Effect.gen(function* () {
   });
   const replay = (operation: IAnyOperation) => makeTx('generation.replay')(function* (tx) {
     yield* applyOperationTx({
-      tx, operation, commandId: 'cmd_generation', operationIndex: 0, appliedAt: recordedAt,
+      tx, operation, appliedAt: recordedAt,
     });
   })(db);
   const start = (requestId: string) => Effect.gen(function* () {

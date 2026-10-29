@@ -446,7 +446,7 @@ Reduced motion skips positional toolbar animation; drawer animation is unchanged
 border used by production WallEditor. The separate Large, Halo, and Shadow
 prototype stories, styling, and prototype flags are removed.
 
-The Wall Editor story uses the existing in-memory MockAggregateInitializer and
+The Wall Editor story uses the existing in-memory MockAggregateSession and
 UserUI, seeds Wall layouts plus separate Placement records, and renders the
 production PagePreview above a Bricks Drawer containing ModuleFilmstrip. Its
 memory router redirects Brick-detail navigation back to the Wall, so dragging

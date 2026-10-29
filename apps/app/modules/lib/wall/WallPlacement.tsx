@@ -77,17 +77,17 @@ export function WallPlacement(props: {
             </Menu.Trigger>
             <Menu.Portal>
               <Menu.Positioner side="bottom" align="end" sideOffset={0} className="z-[90]">
-                <Menu.Popup className="w-max min-w-[90px] max-w-[var(--available-width)] max-h-[var(--available-height)] overflow-y-auto rounded-none border border-[#dedede] bg-[color-mix(in_srgb,#fff,#111_6%)] p-0 font-mono text-[15px] leading-[18px] font-normal text-[#111] shadow-[2px_3px_0_#0005] outline-none">
+                <Menu.Popup className="w-max min-w-[90px] max-w-[var(--available-width)] max-h-[var(--available-height)] overflow-y-auto rounded-none border border-[#dedede] bg-white p-0 font-mono text-[15px] leading-[18px] font-normal text-[#111] shadow-[2px_3px_0_#0005] outline-none">
                   {onEditBrick && (
                     <Menu.Item
-                      className="min-h-5 cursor-pointer select-none px-0.5 py-px outline-none data-[highlighted]:bg-white"
+                      className="min-h-5 cursor-pointer select-none px-0.5 py-px outline-none data-[highlighted]:bg-[color-mix(in_srgb,#fff,#111_6%)]"
                       onClick={() => onEditBrick(placement.brickId)}
                     >
                       Edit
                     </Menu.Item>
                   )}
                   <Menu.Item
-                    className="min-h-5 cursor-pointer select-none px-0.5 py-px text-destructive outline-none data-[highlighted]:bg-white"
+                    className="min-h-5 cursor-pointer select-none px-0.5 py-px text-destructive outline-none data-[highlighted]:bg-[color-mix(in_srgb,#fff,#111_6%)]"
                     onClick={() => onRequestDelete(placement.brickId, triggerId)}
                   >
                     Delete Brick

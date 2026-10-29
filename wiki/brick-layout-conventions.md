@@ -227,6 +227,10 @@ coarse-pointer fallback. StackAction retains its own left placement, Stack scope
 and existing coarse-pointer behavior. Both action surfaces use blue backgrounds
 and white text/icons.
 
+The Brick menu matches Fragment's compact dropdown: square pale-gray popup,
+15px monospace text, tightly padded 20px rows, white highlights, and a hard offset
+shadow. Delete retains its destructive color.
+
 On hover-capable fine pointers, the whole Placement temporarily rises above
 neighboring Bricks at z-index 1, across Rows, Stacks, and Sections. Hover ending
 restores normal stacking. Stack controls, browser chrome, menus, and floating

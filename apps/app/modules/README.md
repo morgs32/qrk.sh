@@ -470,6 +470,7 @@ The outer Row uses `flow-root` to contain the flex element's -0.5px margin.
 Its 0.5px padding and 49px minimum height preserve the Row's 48px outer minimum height.
 Wall Brick content uses the same 5px black hover border as drawer previews,
 without movement, added shadows, animation, or hover stacking changes.
+The native drag preview uses a 2px `#1F9BFC` edge without halos.
 Placed BrickActions remain inside the stationary content wrapper at their 1px
 top-right inset. Placement hitboxes and blue keyboard-focus and open-menu borders
 stay stationary. While a Brick's edit form is open, its selected Placement keeps

@@ -138,7 +138,7 @@
 }
 
 .brick-drag-preview > [data-drawer-module-id]::after {
-  border: 2px solid #282824;
+  border: 2px solid #1f9bfc;
   opacity: 1;
   transition: none;
 }

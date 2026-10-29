@@ -3,7 +3,7 @@
 import { Link, useMatches, useNavigate, useSearch } from "@tanstack/react-router";
 import { Result, Schema } from "effect";
 import { isEqual } from "es-toolkit";
-import { ArrowLeft, FileText, Globe, X } from "lucide-react";
+import { ArrowLeft, FileText, Globe, Layers, X } from "lucide-react";
 import { useLiveQuery } from "@zerospin/react";
 import { makeIdSchema, makeId, stageAggregateSessionCommand } from "@zerospin/sdk/browser";
 import { makeEffectSchema } from "@zerospin/shapes";
@@ -34,6 +34,7 @@ export function DrawerHeader() {
   const session = UserUI.useSession();
   const isSiteSettings = routeId === "/$username/site/$siteId/page/$pageId/_drawer/site-settings";
   const isPageSettings = routeId === "/$username/site/$siteId/page/$pageId/_drawer/page-settings";
+  const isStackDetails = routeId === "/$username/site/$siteId/page/$pageId/_drawer/stack/$stackId";
   const { data: site } = useLiveQuery({
     session,
     key: params.siteId,
@@ -97,15 +98,17 @@ export function DrawerHeader() {
 
   return (
     <header className="flex h-full min-w-0 shrink-0 items-center gap-4 overflow-x-auto border-b border-zinc-200 whitespace-nowrap px-4 pr-16">
-      {isSiteSettings || isPageSettings ? (
+      {isSiteSettings || isPageSettings || isStackDetails ? (
         <div className="flex min-w-0 items-center gap-2">
           {isSiteSettings ? (
             <Globe className="size-5 shrink-0" aria-hidden />
-          ) : (
+          ) : isPageSettings ? (
             <FileText className="size-5 shrink-0" aria-hidden />
+          ) : (
+            <Layers className="size-5 shrink-0" aria-hidden />
           )}
           <h1 className="truncate text-base tracking-tight">
-            {isSiteSettings ? "Site Settings" : "Page Settings"}
+            {isSiteSettings ? "Site Settings" : isPageSettings ? "Page Settings" : "Stack Details"}
           </h1>
         </div>
       ) : (

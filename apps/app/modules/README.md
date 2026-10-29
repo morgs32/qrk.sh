@@ -359,10 +359,12 @@ retain stable identities, direct `wallId`, and per-width specs/revisions/generat
 Breakpoint derives from that Wall; content/spec changes leave layout arrays alone.
 
 State-save and spec-update command declarations belong to QRK's user aggregate
-and bind concrete model versions there. App's user release and web actor are V3;
-the browser session pins both with `addBrick@3` and `updateBrick@3`, retaining
-BrickV2 and PageSnapshotV2. This is a hard cutover: obsolete creation contracts and their
-adapters are not supported. Existing null Swatches are not retained through a
+and bind concrete model versions there. App's current user release and web actor
+are V4; the browser session pins both with `renameStack@1` alongside unchanged
+`addBrick@3` and `updateBrick@3`, retaining BrickV2 and PageSnapshotV2. User V3 stays
+registered for history. The name editor changes no models and requires no storage
+reset. The earlier Swatch creation cutover removed obsolete creation contracts and their
+adapters. Existing null Swatches are not retained through a
 fallback or repair path. The authorized local cutover backs up and resets QRK's
 Zerospin development storage; it does not reset remote data, API storage, or
 credentials. App supplies module schemas, input normalization, and provider

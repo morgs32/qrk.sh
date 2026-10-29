@@ -1,6 +1,6 @@
 "use client";
 
-import { useNavigate, useSearch } from "@tanstack/react-router";
+import { useNavigate, useParams, useSearch } from "@tanstack/react-router";
 
 import { BREAKPOINTS } from "../../../../../modules/lib/breakpoints";
 import { WallPreviewToolbar } from "../../../../../modules/lib/WallPreviewToolbar";
@@ -29,6 +29,7 @@ const toolbarPresenceTransition = {
 export function BreakpointsToolbar() {
   const reducedMotion = useReducedMotion();
   const params = useValidatedParams(ParamsSchema);
+  const { stackId } = useParams({ strict: false });
   const navigate = useNavigate();
   const search = useSearch({ from: "/$username/site/$siteId/page/$pageId" });
   const availableWidth = useEditorViewportStore((state) => state.availableWidth);
@@ -54,8 +55,15 @@ export function BreakpointsToolbar() {
             aria-label={`${row.id} preview width`}
             aria-pressed={search.breakpoint === row.id}
             disabled={availableWidth === null || row.previewWidth > availableWidth}
-            onClick={() =>
-              navigate({
+            onClick={() => {
+              if (stackId !== undefined && search.breakpoint !== row.id)
+                return navigate({
+                  to: "/$username/site/$siteId/page/$pageId",
+                  params,
+                  search: { breakpoint: row.id },
+                  resetScroll: false,
+                });
+              return navigate({
                 to: ".",
                 search: (previous) => ({
                   ...previous,
@@ -63,8 +71,8 @@ export function BreakpointsToolbar() {
                   insertion: undefined,
                 }),
                 resetScroll: false,
-              })
-            }
+              });
+            }}
             className={
               search.breakpoint === row.id
                 ? "h-7 px-2 text-[13px] font-normal text-foreground"

@@ -5,6 +5,16 @@ import { useState } from "react";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, fireEvent, userEvent, waitFor, within } from "storybook/test";
 import { Laptop, Monitor, MoveHorizontal, MoveVertical, Smartphone, Tablet } from "lucide-react";
+import {
+  createMemoryHistory,
+  createRootRoute,
+  createRoute,
+  createRouter,
+  Outlet,
+  RouterProvider,
+  useNavigate,
+  useParams,
+} from "@tanstack/react-router";
 
 import { Drawer } from "../modules/lib/Drawer";
 import { ModuleFilmstrip } from "../modules/lib/ModuleFilmstrip";
@@ -19,6 +29,7 @@ import { swatchAndIconV1 } from "@qrk.sh/zerospin/src/modules/swatchAndIcon/swat
 import { modulesHash } from "../modules/lib/modulesHash";
 import { UserUI } from "@/zerospin/UserUI";
 import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
+import { StackDetails } from "../app/[username]/site/[siteId]/page/[pageId]/StackDetails/StackDetails";
 
 const { user, site, page, wall, brick, placement } = userSessionDefinition.models;
 const userId = prefixId(user, "story");
@@ -448,6 +459,135 @@ const meta = {
 export default meta;
 export const Default: StoryObj<typeof meta> = {};
 export const EmptyWall: StoryObj<typeof meta> = { args: { emptyWall: true } };
+
+/** The real drawer stages renames against the story's command-backed session. */
+export const StackNameEditor: StoryObj<typeof meta> = {
+  render: function Render() {
+    const [resources] = useState(() => makeResources(false, 0, true, 0, false, "default"));
+    const [router] = useState(() => {
+      const root = createRootRoute({ component: Outlet });
+      const pageRoute = createRoute({
+        getParentRoute: () => root,
+        path: "/$username/site/$siteId/page/$pageId",
+        validateSearch: (search: Record<string, unknown>) => ({
+          breakpoint: typeof search.breakpoint === "string" ? search.breakpoint : "sm",
+        }),
+        component: function StackEditor() {
+          const { stackId } = useParams({ strict: false });
+          const navigate = useNavigate();
+          return (
+            <div className="flex h-dvh flex-col bg-zinc-100 text-zinc-900">
+              <main className="min-h-0 flex-1 overflow-auto p-8">
+                <div className="wall-preview-frame w-[362px]">
+                  <BrowserChrome breakpoint="sm" />
+                  <SiteHeader siteId={siteId} />
+                  <WallEditor
+                    wallId={prefixId(wall, "story-sm")}
+                    selectedStackId={stackId}
+                    onEditStack={(id) => {
+                      if (stackId === id) return;
+                      void navigate({
+                        to: "/$username/site/$siteId/page/$pageId/stack/$stackId",
+                        params: { username: "story", siteId, pageId, stackId: id },
+                        search: { breakpoint: "sm" },
+                      });
+                    }}
+                  />
+                </div>
+              </main>
+              {stackId === undefined ? (
+                <p className="p-6">Click the Stack name to open its editor.</p>
+              ) : (
+                <div className="h-[280px] shrink-0">
+                  <Drawer
+                    side="bottom"
+                    layoutMode="flow"
+                    animated={false}
+                    aria-label="Stack details drawer"
+                  >
+                    <h1 className="border-b px-6 py-3">Stack Details</h1>
+                    <Outlet />
+                  </Drawer>
+                </div>
+              )}
+            </div>
+          );
+        },
+      });
+      const stackRoute = createRoute({
+        getParentRoute: () => pageRoute,
+        path: "stack/$stackId",
+        component: StackDetails,
+      });
+      return createRouter({
+        routeTree: root.addChildren([pageRoute.addChildren([stackRoute])]),
+        history: createMemoryHistory({
+          initialEntries: [`/story/site/${siteId}/page/${pageId}?breakpoint=sm`],
+        }),
+      });
+    });
+    return (
+      <MockAggregateSession
+        definition={userSessionDefinition}
+        claims={claims}
+        resources={resources}
+        renderError={(error, retry) => (
+          <div role="alert">
+            {error.message}
+            <Button type="button" onClick={retry}>
+              Retry
+            </Button>
+          </div>
+        )}
+      >
+        {({ session, isLoaded }) =>
+          isLoaded ? (
+            <UserUI session={session}>
+              <RouterProvider router={router} />
+            </UserUI>
+          ) : (
+            <p role="status">Opening local session…</p>
+          )
+        }
+      </MockAggregateSession>
+    );
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const name = await canvas.findByRole(
+      "button",
+      { name: "Edit stack Stack 1" },
+      { timeout: 10000 },
+    );
+    await userEvent.click(name);
+    const input = await canvas.findByRole("textbox", { name: "Stack name" });
+    const stack = canvasElement.querySelector<HTMLElement>("[data-wall-stack-id]");
+    const tab = name.parentElement;
+    if (stack === null || tab === null) throw new Error("Missing Stack fixture");
+    await userEvent.click(input);
+    expect(stack).toHaveClass("is-selected-stack");
+    expect(stack.matches(":focus-within")).toBe(false);
+    await waitFor(() => expect(getComputedStyle(tab).opacity).toBe("1"));
+    expect(getComputedStyle(stack).outlineColor).toBe("rgb(31, 155, 252)");
+
+    await userEvent.clear(input);
+    await userEvent.type(input, "  Featured  ");
+    await userEvent.click(canvas.getByRole("button", { name: "Save", exact: true }));
+    const savedName = await canvas.findByRole("button", { name: "Edit stack Featured" });
+    await waitFor(() => expect(input).toHaveValue("Featured"));
+    expect(canvas.getByRole("button", { name: "Save", exact: true })).toBeDisabled();
+
+    await userEvent.clear(input);
+    await userEvent.type(input, "Unsubmitted name");
+    // Selecting the same route keeps its existing draft.
+    await userEvent.click(savedName);
+    expect(input).toHaveValue("Unsubmitted name");
+    await userEvent.click(canvas.getByRole("button", { name: "Cancel", exact: true }));
+    expect(input).toHaveValue("Featured");
+    expect(input).toBeVisible();
+    expect(stack).toHaveClass("is-selected-stack");
+  },
+};
 
 /** Storybook-only experiment: a 420px right catalog at lg, and the existing bottom drawer below. */
 export const VerticalDrawer: StoryObj<typeof meta> = {

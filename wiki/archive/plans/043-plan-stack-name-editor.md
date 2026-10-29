@@ -1,6 +1,6 @@
 # Plan 043: Stack selection and name editor
 
-Status: Implementation verified; publication pending
+Status: Complete
 
 ## Agreed behavior
 
@@ -102,7 +102,8 @@ qrk.sh/
 4. The live editor retained the trimmed name after reload. Brick/Stack selection
    switched correctly; changing lg to md closed the drawer and discarded the
    draft, and Back restored the saved lg name. The md Stack name was unchanged.
+5. Published the ready-for-review [PR 36](https://github.com/morgs32/qrk.sh/pull/36).
 
 ## Remaining work
 
-1. Open the ready-for-review PR and archive this verified plan.
+None.

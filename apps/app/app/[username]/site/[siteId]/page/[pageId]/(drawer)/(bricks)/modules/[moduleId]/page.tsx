@@ -164,10 +164,10 @@ function ModuleRouteBody(props: {
                   <div>
                     <p className="m-0 mb-2 font-mono text-neutral-500">Component</p>
                     <div
-                      className={`brick-surface ${site.cardStyle ? "brick-surface-card" : ""} brick-hover-target relative shrink-0`}
+                      className="relative shrink-0"
                       style={{ width: previewWidth, minWidth: view.minWidth }}
                     >
-                      <BrickWrapper className="brick-hover-surface">
+                      <BrickWrapper className={site.cardStyle ? "brick-surface-card" : undefined}>
                         <Component state={brickModule.defaultState} />
                       </BrickWrapper>
                     </div>
@@ -175,10 +175,10 @@ function ModuleRouteBody(props: {
                   <div>
                     <p className="m-0 mb-2 font-mono text-neutral-500">JsonRender</p>
                     <div
-                      className={`brick-surface ${site.cardStyle ? "brick-surface-card" : ""} brick-hover-target relative shrink-0`}
+                      className="relative shrink-0"
                       style={{ width: previewWidth, minWidth: view.minWidth }}
                     >
-                      <BrickWrapper className="brick-hover-surface">
+                      <BrickWrapper className={site.cardStyle ? "brick-surface-card" : undefined}>
                         <JsonRender
                           variantId="default"
                           state={brickModule.defaultState}

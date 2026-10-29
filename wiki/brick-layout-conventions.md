@@ -1,6 +1,6 @@
 # Brick preview and editor conventions
 
-**updated:** 2026-10-24
+**updated:** 2026-10-29
 
 ## App owns saved editing
 
@@ -67,8 +67,10 @@ reactive queries rather than local fixture mutations.
 
 A placed Brick and insertion shadow share the module preferred and minimum widths
 with drawer previews. Their cells shrink without growing to fill unused Row space.
-Each cell adds the configured Brick gap to both widths for its two half-gap insets,
-preserving the module content dimensions.
+Placement and shadow cells share `flex: 0 1 auto`; their inline preferred and
+minimum widths include the configured Brick gap for two half-gap padding insets.
+An empty Wall preserves the same outer half-gap allowance. These rules retain
+module content dimensions while allowing shrink without growth.
 Each Row contains a flex scroll element with Placements and any temporary
 insertion shadow.
 It uses the containing Wall's logical breakpoint and Placement spec, regardless
@@ -120,9 +122,8 @@ The production Wall accepts these templates subject to module Page limits:
   outside the existing layout.
 
 Insertion feedback opens temporary space using a 40%-opacity copy
-of the drawer's existing `.brick-hover-surface`, without an added border, outline,
-or halo, without rerendering its module
-or reading providers. The shadow occupies a Placement slot in a Row, a new Row
+of the drawer's complete `BrickWrapper` surface, without an added border, outline,
+or halo, without rerendering its module or reading providers. The shadow occupies a Placement slot in a Row, a new Row
 in a Stack, or the first slot in an empty Wall. Its content is inert and ignores
 pointer events; its host accepts drops at the visible slot's stable
 before-Placement or before-Row destination. Each Row's instruction height is
@@ -150,43 +151,56 @@ containers remain untouched. Array order needs no sibling renumbering.
 Stable insertion anchors are validated before cleanup; self-before moves remain
 no-ops.
 
-The Wall background is light orange (`#E6AA80`, a 50% white tint of `#CC5500`), except for its existing empty-Wall
-drag highlight. Half-pixel padding on the content-height wrapper and each
-Placement creates condensed 1px gaps between Bricks and around the content.
+The Wall background is light orange (`#E6AA80`, a 50% white tint of `#CC5500`), except
+for its existing empty-Wall drag highlight. Each Placement and insertion shadow
+uses half the configured `Site.brickGap` as padding; the Wall's outer half-gap
+allowance preserves content dimensions and alignment at the perimeter.
 The full-width preview frame has no border; PreviewSection owns each centered
 section's real side borders, and the browser bar owns its real top border.
-PreviewSection's outside gutters preserve overflow without changing Brick gaps. Placed Bricks omit flat
-surface borders; catalog flat borders and card treatment remain.
+PreviewSection's outside gutters preserve overflow without changing Brick gaps.
+Saved content borders and flat/card appearance belong to BrickWrapper in every
+presentation, rather than separate catalog and Wall treatments.
 Target boxes still touch; the shadow temporarily participates in layout at its
 insertion destination. Capacity checks and the existing drop command path apply
 to that destination.
 Stack names overlay the layout, inset 1px inside the border. Empty persisted Rows/Stacks retain their layout
 containers until a move command cleans their Wall or deletion empties their
 ancestor path. Production PagePreview renders saved layout with Edit and Delete
-controls and owns drawer drop targeting and insertion feedback. The Wall Editor
+controls and hosts WallEditor for drawer drop targeting and insertion feedback. The Wall Editor
 story uses this preview while omitting the Brick Details panel.
-The Wall Editor's Default and EmptyWall stories exercise the canonical shadow
-feedback used by production WallEditor. The separate Large, Halo, and Shadow
-prototype stories, styling, and prototype flags are removed, along with thin
-drop indicators. The user chose the shadow approach; visual verification
-remains with the user.
+The Wall Editor's Default and EmptyWall stories exercise production insertion
+feedback. Preview Brick, Placement Brick, and Shadow Brick label their actual
+representations and use scenario-valid fixture controls. The old hover-study
+gallery and its mock stylesheet are removed; production components own paint.
 Backend move commands remain available independently of the canvas.
 
+`BrickWrapper` owns intrinsic height and self-contained flat/card appearance.
+Its outer surface allows visible overflow. Its internal `.brick-content` layer
+owns content clipping, inherited corner rounding, and the query container.
+Saved border paint remains at z-index 18, interaction paint at 19 outside the
+clipping layer, and BrickAction at 20. StackAction retains its existing z-index
+30 and Stack scope. The insertion shadow clones the complete
+surface without editor actions or an added edge. The separate native pointer
+image retains its 2px `#1F9BFC` edge, with no halos or card shadow.
+
 Selected means a Brick's edit form is open. Active means DOM focus, including
-keyboard focus. Controls appear on hover, focus, selection, and open menus, with
-touch access. Edit/Delete menus are keyboard-accessible. The Delete confirmation
-supports cancellation and restores focus to its trigger or a surviving control.
-Placement interaction borders use a noninteractive `::after` overlay outset
-0.5px, centering the stroke on the shared 1px seam. White hover borders use
-z-index 18; blue-500 open-menu and keyboard-focus borders use z-index
-19 so blue wins across neighboring seams. Selection keeps actions visible and
-reveals a separate 1px `#1F9BFC` content border with sharp 1px same-blue halos
-(30% outer opacity, 15% inset) while the Brick's edit form is open. This selection
-decoration does not depend on hover or DOM focus. Both decorations remain below
-action tabs at z-index 20. Each outer Row uses `flow-root` to contain its scroller's -0.5px
-margin; 0.5px padding and a 49px minimum height allow seam-covering paint through
-the clip while preserving the 48px outer minimum, content positions and widths,
-scroll range, Placement padding/minimum widths, and drop geometry.
+keyboard focus. A shared 1px `#1F9BFC` content stroke and sharp same-blue halos
+(30% opacity outside and 15% inside) decorate hover, focus, and selection without
+changing layout. Selection can keep that content paint while focus is in the
+drawer, but it does not force BrickAction visible. BrickAction appears only on
+actual Brick hover or focus within; it has no selected/menu override or permanent
+coarse-pointer fallback. StackAction retains its own left placement, Stack scope,
+and existing coarse-pointer behavior. Both action surfaces use blue backgrounds
+and white text/icons.
+
+The Placement's noninteractive outer stroke, outset 0.5px, remains reserved for
+an open portal menu because the portal can take DOM focus outside the Brick.
+Focus uses the shared content decoration. Edit/Delete menus remain keyboard
+accessible; Delete confirmation supports cancellation and restores focus to its
+trigger or a surviving control. Each outer Row uses `flow-root` to contain its
+flex element's -0.5px margin; 0.5px padding and a 49px minimum retain the Row's
+48px outer minimum without changing Placement padding, minimum widths, or drop
+geometry.
 Container deletion, hiding, resizing, and production zoom remain outside the
 feature. The separate `/dev/page/<pageId>/<breakpoint>` route is removed; its
 historical implementation is recorded in
@@ -269,9 +283,17 @@ storage were preserved.
 
 ## Brick dimension stories
 
-Preview, placed, and shadow content use natural height. At equal content widths
-and state their content boxes match, independently of hover, focus, selection,
-or saved border width. Placement and shadow cells use the module preferred and
-minimum widths plus the configured Brick gap as two half-gap insets. Cells shrink
-without growing to fill unused Row space. The Preview Brick, Placement Brick,
-and Shadow Brick stories exercise these production rendering paths.
+Preview, placed, and shadow content use the existing BrickWrapper surface with
+natural height and self-contained flat/card styling. At equal content widths,
+state, and effective spec their content boxes match independently of hover,
+focus, selection, or saved border width. Placement and shadow cells share
+`flex: 0 1 auto`; inline preferred/minimum widths include the configured Brick
+gap as two half-gap insets, including the empty-Wall perimeter allowance.
+
+Preview Brick, Placement Brick, and Shadow Brick label the actual
+representations rather than implying that every Brick in a story is a shadow.
+Each scenario exposes only valid fixture controls. The shadow scenario uses the
+production drag path, remains visible for inspection, and cancels without a drop.
+The native pointer image is a separate presentation with its retained 2px blue
+edge. Paint/action-visibility assertions complement geometry checks, and real
+pointer interaction verifies CSS hover.

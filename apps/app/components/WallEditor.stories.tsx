@@ -165,6 +165,7 @@ function WallEditorStory(props: {
   verticalAtLg: boolean;
   fixture: "default" | "swatch-and-icon" | "article";
   selected: boolean;
+  shadowFixture: boolean;
 }) {
   const {
     emptyWall,
@@ -175,9 +176,18 @@ function WallEditorStory(props: {
     verticalAtLg,
     fixture,
     selected,
+    shadowFixture,
   } = props;
+  const [shadowVisible, setShadowVisible] = useState(false);
   const [resources] = useState(() =>
-    makeResources(emptyWall, brickGap, stickyNavbar, borderWidth, cardStyle, fixture),
+    makeResources(
+      emptyWall,
+      brickGap,
+      stickyNavbar,
+      borderWidth,
+      cardStyle,
+      shadowFixture ? "swatch-and-icon" : fixture,
+    ),
   );
   const [selectedBrickId, setSelectedBrickId] = useState<string | null>(() =>
     selected ? (resources.brick[0]?.id ?? null) : null,
@@ -208,7 +218,17 @@ function WallEditorStory(props: {
       {({ session, isLoaded }) =>
         isLoaded ? (
           <UserUI session={session}>
-            <div className="flex h-dvh min-h-0 flex-col overflow-hidden bg-zinc-100 text-zinc-900 antialiased">
+            <div
+              ref={(element) => {
+                if (element === null) return;
+                const observer = new MutationObserver(() => {
+                  setShadowVisible(element.querySelector(".wall-shadow-placeholder") !== null);
+                });
+                observer.observe(element, { childList: true, subtree: true });
+                return () => observer.disconnect();
+              }}
+              className="flex h-dvh min-h-0 flex-col overflow-hidden bg-zinc-100 text-zinc-900 antialiased"
+            >
               <header className="flex h-14 shrink-0 items-center justify-between gap-4 border-b border-zinc-200 bg-white px-6">
                 <h1 className="text-sm font-medium tracking-tight">Wall editor</h1>
                 {fixture !== "default" && resources.brick.length > 0 ? (
@@ -249,6 +269,20 @@ function WallEditorStory(props: {
               </header>
               <div className={`flex min-h-0 flex-1 flex-col ${verticalAtLg ? "lg:flex-row" : ""}`}>
                 <main className="min-h-0 min-w-0 flex-1 overflow-auto px-8 py-6">
+                  {fixture !== "default" ? (
+                    <div className="mb-3 flex flex-wrap gap-x-6 gap-y-1 text-xs text-zinc-600">
+                      <p>
+                        {resources.brick.length > 0
+                          ? `Existing placement — ${shadowFixture ? "Swatch and Icon" : modulesHash[fixture].label}`
+                          : "Existing placement absent — empty Wall"}
+                      </p>
+                      <p role="status" data-testid="shadow-status">
+                        {shadowVisible
+                          ? `Insertion shadow — ${modulesHash[fixture].label}`
+                          : "Shadow absent — not dragging or cancelled"}
+                      </p>
+                    </div>
+                  ) : null}
                   <div
                     className="wall-preview-frame relative isolate flex w-full flex-col"
                     style={previewStyle}
@@ -282,7 +316,11 @@ function WallEditorStory(props: {
                   >
                     <header className="flex h-12 shrink-0 items-center justify-between gap-4 border-b border-zinc-200 bg-white px-6">
                       <div className="flex items-baseline gap-3">
-                        <p className="text-xs text-zinc-500">Drag a brick onto your page</p>
+                        <p className="text-xs text-zinc-500">
+                          {fixture === "default"
+                            ? "Drag a brick onto your page"
+                            : `Source preview — ${modulesHash[fixture].label}`}
+                        </p>
                       </div>
                       <span className="flex items-center gap-2 text-xs text-zinc-400">
                         <MoveHorizontal
@@ -355,16 +393,19 @@ const meta = {
     fixture: { control: "select", options: ["default", "swatch-and-icon", "article"] },
     selected: { control: "boolean" },
   },
-  render: function Render(props: {
-    emptyWall: boolean;
-    brickGap: number;
-    stickyNavbar: boolean;
-    borderWidth: number;
-    cardStyle: boolean;
-    verticalAtLg: boolean;
-    fixture: "default" | "swatch-and-icon" | "article";
-    selected: boolean;
-  }) {
+  render: function Render(
+    props: {
+      emptyWall: boolean;
+      brickGap: number;
+      stickyNavbar: boolean;
+      borderWidth: number;
+      cardStyle: boolean;
+      verticalAtLg: boolean;
+      fixture: "default" | "swatch-and-icon" | "article";
+      selected: boolean;
+    },
+    context,
+  ) {
     const {
       emptyWall,
       brickGap,
@@ -375,10 +416,13 @@ const meta = {
       fixture,
       selected,
     } = props;
+    const shadowFixture = context.id.endsWith("--shadow-brick");
+    const populatedFixture =
+      context.id.endsWith("--preview-brick") || context.id.endsWith("--placement-brick");
     return (
       <WallEditorStory
-        key={`${emptyWall}-${brickGap}-${stickyNavbar}-${borderWidth}-${cardStyle}-${fixture}-${selected}`}
-        emptyWall={emptyWall}
+        key={`${emptyWall}-${brickGap}-${stickyNavbar}-${borderWidth}-${cardStyle}-${fixture}-${selected}-${shadowFixture}`}
+        emptyWall={populatedFixture ? false : emptyWall}
         brickGap={brickGap}
         stickyNavbar={stickyNavbar}
         borderWidth={borderWidth}
@@ -386,6 +430,7 @@ const meta = {
         verticalAtLg={verticalAtLg}
         fixture={fixture}
         selected={selected}
+        shadowFixture={shadowFixture}
       />
     );
   },
@@ -417,19 +462,24 @@ export const VerticalDrawer: StoryObj<typeof meta> = {
   },
 };
 
-/** Same content and width through the real catalog and Wall render paths. */
+/** Same content and width through the actual catalog and Wall render paths. */
 export const PreviewBrick: StoryObj<typeof meta> = {
-  args: { fixture: "swatch-and-icon" },
+  args: { fixture: "swatch-and-icon", emptyWall: false },
+  argTypes: {
+    fixture: { options: ["swatch-and-icon", "article"] },
+    emptyWall: { control: false },
+  },
   parameters: {
     docs: {
       description: {
         story:
-          "Compare the catalog and placed content at the same width. Choose Swatch and Icon or Article with fixture; use cardStyle, brickGap, borderWidth, and the breakpoint buttons for the size checks. Hover and keyboard focus decorate the content without resizing it.",
+          "Source preview and existing placement use matching content. Choose Swatch and Icon or Article, flat/card treatment, gap, saved border, and breakpoint. Real pointer hover and keyboard focus use the same blue decoration without resizing the surface.",
       },
     },
   },
   play: async ({ canvasElement, args }) => {
-    await canvasElement.ownerDocument.fonts.ready;
+    const document = canvasElement.ownerDocument;
+    await document.fonts.ready;
     await waitFor(
       () =>
         expect(
@@ -448,65 +498,118 @@ export const PreviewBrick: StoryObj<typeof meta> = {
     if (source === null || placed === null) throw new Error("Missing Brick comparison fixture");
     source.scrollIntoView({ block: "nearest", inline: "nearest" });
     const surface = source.querySelector<HTMLElement>(".brick-hover-surface");
+    const content = surface?.querySelector<HTMLElement>(".brick-content");
+    const actions = source.querySelector<HTMLElement>(".brick-action");
+    if (!surface || !content || !actions) throw new Error("Missing catalog Brick surface");
     const action = within(source).getByRole("button", { name: "Preview brick action" });
-    if (surface === null) throw new Error("Missing catalog Brick surface");
     const before = surface.getBoundingClientRect();
-    // Compare content boxes: Wall padding is the intentional Brick gap.
+    // Content boxes match; the Wall's half-gap padding is measured separately.
     expect(before.width).toBeCloseTo(placed.getBoundingClientRect().width, 1);
     expect(before.height).toBeCloseTo(placed.getBoundingClientRect().height, 1);
+    expect(getComputedStyle(surface).overflow).toBe("visible");
+    expect(getComputedStyle(content).overflow).toBe("hidden");
+    expect(getComputedStyle(surface).borderRadius).toBe(args.cardStyle ? "8px" : "0px");
+    expect(getComputedStyle(content).borderRadius).toBe(args.cardStyle ? "8px" : "0px");
+    // CSS :hover is verified with a real browser pointer, rather than synthetic events.
+    if (!source.matches(":hover")) {
+      expect(getComputedStyle(surface, "::after").opacity).toBe("0");
+      expect(getComputedStyle(actions).opacity).toBe("0");
+    }
     action.focus();
-    expect(source.matches(":focus-within")).toBe(true);
+    await waitFor(() => expect(getComputedStyle(actions).opacity).toBe("1"));
+    const paint = getComputedStyle(surface, "::after");
+    expect(paint.opacity).toBe("1");
+    expect(paint.borderWidth).toBe("1px");
+    expect(paint.borderColor).toBe("rgb(31, 155, 252)");
+    expect(paint.boxShadow).toContain("rgba(31, 155, 252, 0.3)");
+    expect(paint.boxShadow).toContain("rgba(31, 155, 252, 0.15)");
+    expect(paint.boxShadow).toContain("inset");
+    expect(getComputedStyle(actions).backgroundColor).toBe("rgb(31, 155, 252)");
     expect(surface.getBoundingClientRect().width).toBeCloseTo(before.width, 1);
     expect(surface.getBoundingClientRect().height).toBeCloseTo(before.height, 1);
     action.blur();
   },
 };
 
-/** Selection belongs to the Wall; focus remains independent of it. */
+/** Selection is an edited Brick; keyboard focus remains a separate state. */
 export const PlacementBrick: StoryObj<typeof meta> = {
-  args: { fixture: "swatch-and-icon" },
+  args: { fixture: "swatch-and-icon", emptyWall: false },
+  argTypes: {
+    fixture: { options: ["swatch-and-icon", "article"] },
+    emptyWall: { control: false },
+  },
   parameters: {
     docs: {
       description: {
         story:
-          "Toggle Selected placement without focusing the Brick, then hover or tab into its actions. The content box and the gap-padded hitbox keep their dimensions in every state.",
+          "The play function checks focus, selection while focus is elsewhere, and the action menu's portal and Escape return. Pointer hover remains available for direct inspection; selection and an open menu alone do not reveal action tabs.",
       },
     },
   },
   play: async ({ canvasElement, args }) => {
-    await canvasElement.ownerDocument.fonts.ready;
+    const document = canvasElement.ownerDocument;
+    await document.fonts.ready;
     await waitFor(
       () => expect(canvasElement.querySelector("[data-wall-placement-id]")).not.toBeNull(),
       { timeout: 10000 },
     );
     const placementElement = canvasElement.querySelector<HTMLElement>("[data-wall-placement-id]");
     const surface = placementElement?.querySelector<HTMLElement>(".brick-hover-surface");
-    if (placementElement === null || surface === null || surface === undefined)
+    const content = surface?.querySelector<HTMLElement>(".brick-content");
+    const actions = placementElement?.querySelector<HTMLElement>(".brick-action");
+    if (!placementElement || !surface || !content || !actions)
       throw new Error("Missing placed Brick fixture");
     const before = surface.getBoundingClientRect();
     const hitbox = placementElement.getBoundingClientRect();
-    // Half-gap padding on each side adds exactly one configured gap.
     expect(hitbox.width - before.width).toBeCloseTo(args.brickGap, 1);
     expect(hitbox.height - before.height).toBeCloseTo(args.brickGap, 1);
+    expect(getComputedStyle(surface).borderRadius).toBe(args.cardStyle ? "8px" : "0px");
+    expect(getComputedStyle(content).overflow).toBe("hidden");
     const selectedControl = within(canvasElement).getByRole("checkbox", {
       name: "Selected placement",
     });
-    await userEvent.click(selectedControl);
-    expect(placementElement.classList.contains("is-selected")).toBe(!args.selected);
-    expect(surface.getBoundingClientRect().height).toBeCloseTo(before.height, 1);
-    expect(surface.getBoundingClientRect().width).toBeCloseTo(before.width, 1);
+    // Select without focusing the Brick: its content decoration persists on its own.
+    if (!args.selected) await userEvent.click(selectedControl);
+    selectedControl.focus();
+    await waitFor(() => expect(placementElement.classList.contains("is-selected")).toBe(true));
+    const selectedPaint = getComputedStyle(surface, "::after");
+    expect(selectedPaint.opacity).toBe("1");
+    expect(selectedPaint.borderWidth).toBe("1px");
+    expect(selectedPaint.borderColor).toBe("rgb(31, 155, 252)");
+    expect(selectedPaint.boxShadow).toContain("rgba(31, 155, 252, 0.3)");
+    expect(selectedPaint.boxShadow).toContain("rgba(31, 155, 252, 0.15)");
+    if (!placementElement.matches(":hover"))
+      await waitFor(() => expect(getComputedStyle(actions).opacity).toBe("0"));
     const action = within(placementElement).getByRole("button", { name: /Brick .* actions/ });
     action.focus();
-    expect(placementElement.matches(":focus-within")).toBe(true);
+    await waitFor(() => expect(getComputedStyle(actions).opacity).toBe("1"));
+    expect(getComputedStyle(actions).backgroundColor).toBe("rgb(31, 155, 252)");
+    expect(surface.getBoundingClientRect().height).toBeCloseTo(before.height, 1);
+    await userEvent.click(action);
+    const editItem = await within(document.body).findByRole("menuitem", { name: "Edit" });
+    editItem.focus();
+    expect(placementElement.classList.contains("is-menu-open")).toBe(true);
+    expect(placementElement.matches(":focus-within")).toBe(false);
+    expect(getComputedStyle(surface, "::after").opacity).toBe("1");
+    if (!placementElement.matches(":hover"))
+      await waitFor(() => expect(getComputedStyle(actions).opacity).toBe("0"));
+    await userEvent.keyboard("{Escape}");
+    await waitFor(() => expect(placementElement.classList.contains("is-menu-open")).toBe(false));
+    expect(document.activeElement).toBe(action);
+    await waitFor(() => expect(getComputedStyle(actions).opacity).toBe("1"));
+    expect(surface.getBoundingClientRect().width).toBeCloseTo(before.width, 1);
     expect(surface.getBoundingClientRect().height).toBeCloseTo(before.height, 1);
     expect(placementElement.getBoundingClientRect().height).toBeCloseTo(hitbox.height, 1);
-    action.blur();
+    // Leave selection visible while focus sits outside the Brick.
+    selectedControl.focus();
+    expect(getComputedStyle(surface, "::after").opacity).toBe("1");
   },
 };
 
-/** Leave the production insertion shadow visible without executing a drop. */
+/** Native copy, inert insertion shadow, cancellation, and crowded-row geometry. */
 export const ShadowBrick: StoryObj<typeof meta> = {
   args: { fixture: "swatch-and-icon" },
+  argTypes: { fixture: { options: ["swatch-and-icon", "article"] } },
   beforeEach: ({ canvasElement }) => {
     const document = canvasElement.ownerDocument;
     const onKeyDown = (event: KeyboardEvent) => {
@@ -516,7 +619,6 @@ export const ShadowBrick: StoryObj<typeof meta> = {
     document.addEventListener("keydown", onKeyDown);
     return () => {
       document.removeEventListener("keydown", onKeyDown);
-      // Cancel before changing args or stories so no drag lifecycle leaks.
       fireEvent.dragEnd(document.body);
     };
   },
@@ -524,12 +626,13 @@ export const ShadowBrick: StoryObj<typeof meta> = {
     docs: {
       description: {
         story:
-          "The play function checks every breakpoint, then leaves the sm insertion shadow visible in a new Row at the same available width. Use emptyWall for Article because it permits only one per page. The shadow has 40% opacity and no added edge. Press Escape to cancel; no drop is performed.",
+          "Source preview is the selected fixture; existing neighbors are Swatches, so Article can be dragged without exceeding its page limit. The play function checks all breakpoints, cancellation, native-copy paint, and a crowded Swatch Row. The final sm shadow stays visible; Escape changes the status to Shadow absent. No drop is performed.",
       },
     },
   },
   play: async ({ canvasElement, args }) => {
-    await canvasElement.ownerDocument.fonts.ready;
+    const document = canvasElement.ownerDocument;
+    await document.fonts.ready;
     await waitFor(
       () =>
         expect(
@@ -541,9 +644,14 @@ export const ShadowBrick: StoryObj<typeof meta> = {
     );
     // Finish at sm so the final visible shadow remains compact.
     for (const entry of [...BREAKPOINTS.slice(1), BREAKPOINTS[0]]) {
-      fireEvent.dragEnd(canvasElement.ownerDocument.body);
+      fireEvent.dragEnd(document.body);
       await waitFor(() =>
         expect(canvasElement.querySelector(".wall-shadow-placeholder")).toBeNull(),
+      );
+      await waitFor(() =>
+        expect(within(canvasElement).getByTestId("shadow-status").textContent).toContain(
+          "Shadow absent",
+        ),
       );
       await userEvent.click(
         within(canvasElement).getByRole("button", {
@@ -563,10 +671,10 @@ export const ShadowBrick: StoryObj<typeof meta> = {
       const row = canvasElement.querySelector<HTMLElement>("[data-wall-row-id]");
       const target = row ?? canvasElement.querySelector<HTMLElement>(".wall-editor");
       const placed = row?.querySelector<HTMLElement>(".brick-hover-surface");
-      if (source === null || target === null) throw new Error("Missing shadow Brick fixture");
+      if (!source || !target) throw new Error("Missing shadow Brick fixture");
       source.scrollIntoView({ block: "nearest", inline: "nearest" });
       const sourceSurface = source.querySelector<HTMLElement>(".brick-hover-surface");
-      if (sourceSurface === null) throw new Error("Missing shadow source surface");
+      if (!sourceSurface) throw new Error("Missing shadow source surface");
       const before = placed?.getBoundingClientRect();
       const sourceBox = sourceSurface.getBoundingClientRect();
       const rect = target.getBoundingClientRect();
@@ -576,8 +684,20 @@ export const ShadowBrick: StoryObj<typeof meta> = {
         clientX: sourceBox.x + 8,
         clientY: sourceBox.y + 8,
       });
+      // The native preview is intentionally present only until the next frame.
+      const nativeCopy = document.querySelector<HTMLElement>(
+        ".brick-drag-preview .brick-hover-surface",
+      );
+      if (!nativeCopy) throw new Error("Missing native Brick drag preview");
+      const nativePaint = getComputedStyle(nativeCopy, "::after");
+      expect(nativePaint.opacity).toBe("1");
+      expect(nativePaint.borderWidth).toBe("2px");
+      expect(nativePaint.borderColor).toBe("rgb(31, 155, 252)");
+      expect(nativePaint.boxShadow).toBe("none");
+      document
+        .querySelectorAll<HTMLElement>(".brick-drag-preview .brick-action")
+        .forEach((actions) => expect(getComputedStyle(actions).display).toBe("none"));
       await waitFor(() => expect(source.classList.contains("opacity-40")).toBe(true));
-      // Pragmatic DnD publishes drag start on the next animation frame.
       await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
       fireEvent.dragOver(target, {
         dataTransfer,
@@ -591,18 +711,67 @@ export const ShadowBrick: StoryObj<typeof meta> = {
       );
       const shadow = canvasElement.querySelector<HTMLElement>(".wall-shadow-placeholder");
       const shadowSurface = shadow?.querySelector<HTMLElement>(".brick-hover-surface");
-      if (shadow === null || shadowSurface === null || shadowSurface === undefined)
-        throw new Error("Missing insertion shadow surface");
-      // The shadow follows content height; padding contributes only the configured gap.
+      if (!shadow || !shadowSurface) throw new Error("Missing insertion shadow surface");
       expect(shadowSurface.getBoundingClientRect().width).toBeCloseTo(sourceBox.width, 1);
       expect(shadowSurface.getBoundingClientRect().height).toBeCloseTo(sourceBox.height, 1);
       expect(
         shadow.getBoundingClientRect().height - shadowSurface.getBoundingClientRect().height,
       ).toBeCloseTo(args.brickGap, 1);
-      if (placed !== null && placed !== undefined && before !== undefined)
+      if (placed && before)
         expect(placed.getBoundingClientRect().height).toBeCloseTo(before.height, 1);
       expect(getComputedStyle(shadow).opacity).toBe("0.4");
       expect(getComputedStyle(shadow, "::after").content).toBe("none");
+      expect(getComputedStyle(shadowSurface, "::after").content).toBe("none");
+      expect(getComputedStyle(shadowSurface).borderRadius).toBe(args.cardStyle ? "8px" : "0px");
+      const shadowContent = shadowSurface.querySelector<HTMLElement>(".brick-content");
+      if (!shadowContent) throw new Error("Missing cloned Brick content");
+      expect(getComputedStyle(shadowContent).overflow).toBe("hidden");
+      expect(shadow.querySelector(".brick-action, .stack-action")).toBeNull();
+      expect(shadow.firstElementChild?.hasAttribute("inert")).toBe(true);
+      await waitFor(() =>
+        expect(within(canvasElement).getByTestId("shadow-status").textContent).toContain(
+          "Insertion shadow",
+        ),
+      );
+
+      if (entry.id === "sm" && args.fixture === "swatch-and-icon" && row && placed) {
+        // Inserting beside a Swatch shrinks both cells; compare the matched widths.
+        fireEvent.dragEnd(document.body);
+        await waitFor(() =>
+          expect(canvasElement.querySelector(".wall-shadow-placeholder")).toBeNull(),
+        );
+        const placementElement = row.querySelector<HTMLElement>("[data-wall-placement-id]");
+        if (!placementElement) throw new Error("Missing crowded Row placement");
+        const placedBox = placementElement.getBoundingClientRect();
+        const rowBox = row.getBoundingClientRect();
+        fireEvent.dragStart(source, {
+          dataTransfer,
+          clientX: sourceBox.x + 8,
+          clientY: sourceBox.y + 8,
+        });
+        await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+        fireEvent.dragOver(placementElement, {
+          dataTransfer,
+          clientX: placedBox.right - 1,
+          clientY: rowBox.top + rowBox.height / 2,
+        });
+        await waitFor(() =>
+          expect(row.querySelector(".wall-shadow-placeholder .brick-hover-surface")).not.toBeNull(),
+        );
+        const crowdedShadow = row.querySelector<HTMLElement>(
+          ".wall-shadow-placeholder .brick-hover-surface",
+        );
+        if (!crowdedShadow) throw new Error("Missing crowded Row shadow");
+        expect(crowdedShadow.getBoundingClientRect().width).toBeLessThan(sourceBox.width);
+        expect(crowdedShadow.getBoundingClientRect().width).toBeCloseTo(
+          placed.getBoundingClientRect().width,
+          1,
+        );
+        expect(crowdedShadow.getBoundingClientRect().height).toBeCloseTo(
+          placed.getBoundingClientRect().height,
+          1,
+        );
+      }
     }
   },
 };

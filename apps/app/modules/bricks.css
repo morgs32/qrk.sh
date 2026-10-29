@@ -118,6 +118,15 @@
   }
 }
 
+/* Keep the edited Brick outlined while focus is in its drawer. */
+.wall-placement.is-selected > .wall-placement-content::after {
+  border: 1px solid #1f9bfc;
+  box-shadow:
+    0 0 0 1px rgb(31 155 252 / 30%),
+    inset 0 0 0 1px rgb(31 155 252 / 15%);
+  opacity: 1;
+}
+
 .brick-drag-preview > [data-drawer-module-id] {
   transform: none;
   box-shadow: none;

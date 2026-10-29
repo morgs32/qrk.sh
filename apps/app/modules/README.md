@@ -472,9 +472,11 @@ Wall Brick content uses the same 5px black hover border as drawer previews,
 without movement, added shadows, animation, or hover stacking changes.
 Placed BrickActions remain inside the stationary content wrapper at their 1px
 top-right inset. Placement hitboxes and blue keyboard-focus and open-menu borders
-stay stationary. Selection keeps the Brick's actions visible without drawing a
-border. Each Placement isolates its stacking context; its actions sit above the
-content's hover border.
+stay stationary. While a Brick's edit form is open, its selected Placement keeps
+a 1px `#1F9BFC` content border with sharp 1px same-blue halos (30% outer opacity,
+15% inset), even while focus is in the drawer or on a touch device. Selection
+continues to keep the Brick's actions visible. Each Placement isolates its
+stacking context; its actions sit above the content decoration.
 Placed and catalog Bricks use `.brick-surface`, retaining `.brick-surface-card`
 for card treatment. `BrickWrapper` draws the saved content border once as a
 noninteractive inset overlay using the existing border color, in both flat and

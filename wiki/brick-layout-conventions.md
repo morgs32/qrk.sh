@@ -77,10 +77,12 @@ minimum except Swatch and Icon at 160px, constant across all breakpoints.
 Module links, inputs, forms, and provider states remain interactive. Menus are siblings of
 content rather than a wrapping button or selection overlay.
 
-Every module accepts null as unconfigured content and provides its module-owned
-placeholder and blank form draft. Catalog/Storybook example defaults remain
-separate. Editing shared content affects all four Placements; arrangement and
-spec changes affect only their Wall/Placement.
+Each module's required `hasPlaceholder` flag declares whether null is valid state.
+Modules declaring `true` provide their module-owned placeholder and blank form
+draft. Swatch and Icon declares `false`, has no placeholder renderer, and requires
+configured color/icon state. Catalog/Storybook example defaults remain separate.
+Editing shared content affects all four Placements; arrangement and spec changes
+affect only their Wall/Placement.
 
 ## Insertion, movement, and selection
 
@@ -91,8 +93,19 @@ Targeted catalog URLs open add
 mode without persisting a reservation. Cancelling/leaving/changing breakpoint
 clears that mode; stale or malformed targets refuse rather than append elsewhere.
 
-Drawer module previews are copy drag sources carrying
-`{ type: "drawer-brick", moduleId }`. Their desktop native preview copies the rendered
+`ModulePreview` owns current local preview state and passes it to the optional
+module `preview({ state, setState, isActive })` callback. `isActive` requires an
+intersecting preview, a visible document, that preview not being dragged, and no
+reduced-motion preference. Swatch and Icon cycles colors and SVGs every two seconds through
+discrete local updates and pauses while inactive; these ticks create no model
+operations.
+
+Drawer module previews are copy drag sources carrying the module ID and the
+committed creation-state snapshot. Drag start freezes that rendered snapshot, so
+the native copy, insertion shadow, and created Brick agree. Catalog Add reads the
+current preview state; static module-detail Add supplies its displayed
+`defaultState`. Placeholder-backed modules use null. Their desktop native preview
+copies the rendered
 Brick, offset from the pointer by 16px horizontally and 8px vertically with the
 library's `pointerOutsideOfPreview` helper. Saved Wall Bricks are not drag sources.
 The production Wall accepts these templates subject to module Page limits:
@@ -119,11 +132,14 @@ on drop, cancellation, or outside movement without persisted fake Rows.
 
 Feedback and drop commands use the same stable insertion destination. Hover
 writes no model data; cancellation, outside drops, invalid source data, and stale
-destinations create nothing. A valid drop stages one `addBrick` command.
-Adding creates shared null Brick content and all four Placements atomically.
+destinations create nothing. A valid drop stages one `addBrick@3` command.
+Adding requires explicit state, decodes it with the selected module's schema,
+and accepts null only for `hasPlaceholder: true` modules. It creates the shared
+Brick content and all four Placements atomically. Swatch and Icon uses its captured
+color/icon state; `updateBrick@3` rejects null for it under the same policy.
 The active Wall follows the target; other Walls append a new Row to the last
 Stack, creating missing parents when needed. A successful local stage opens the
-new Brick form; cancelling that form leaves the created null Brick.
+new Brick form; cancelling that form leaves the created snapshot unchanged.
 Moves keep Placement identity/specs or carry the complete Stack's Rows. The pure
 layout module edits ordered arrays; commands record one update per changed Wall
 with the required independent-record operations in an atomic batch. Delete
@@ -205,6 +221,11 @@ GitHub Activity its calendar scrolling/fades, and Link its wrapping copy column.
 ## Persistence and publication
 
 All saved creates, updates, moves, and deletes occur through registered commands.
+The browser session pins user owner release V3, web actor V3, `addBrick@3`, and
+`updateBrick@3` together. The hard cutover removes obsolete supported
+creation paths and adapters rather than preserving null Swatches. The authorized
+local reset first backs up QRK's Zerospin development storage and leaves remote
+data, API storage, and credentials untouched.
 App initialization/disposal, optimistic queries, refusals, and provider completion
 retain their existing session owner. Local staging Success is distinct from a
 finalized canonical outcome. Spec/provider completions retain revision/request

@@ -16,4 +16,3 @@ const meta = {
 export default meta;
 
 export const Playground: StoryObj<typeof meta> = {};
-export const Unconfigured: StoryObj<typeof meta> = { args: { fixture: "unconfigured" } };

@@ -57,7 +57,12 @@ export function makeModuleView<
     variants: {
       default: {
         component: (props: { state: IInferDecodedRow<MODULE["stateShape"]> }) => ReactNode;
-        placeholder: () => ReactNode;
+        placeholder?: () => ReactNode;
+        preview?: (props: {
+          state: IInferDecodedRow<MODULE["stateShape"]>;
+          setState: (state: IInferDecodedRow<MODULE["stateShape"]>) => void;
+          isActive: boolean;
+        }) => ReactNode;
         generator?: {
           registry: ComponentRegistry;
           defaultSpec: Spec;
@@ -67,9 +72,6 @@ export function makeModuleView<
   },
 ) {
   const { defaultSpec, ...moduleFields } = module;
-  if (!module.hasPlaceholder) {
-    throw new Error(`makeModuleView: ${JSON.stringify(module.id)} must declare hasPlaceholder`);
-  }
   const decodeState = Schema.decodeUnknownSync(
     Schema.toType(makeEffectSchema<MODULE["stateShape"]>(module.stateShape)),
   );
@@ -77,16 +79,25 @@ export function makeModuleView<
     Schema.toType(makeEffectSchema<MODULE["stateShape"]>(module.stateShape)),
   );
   const variants = mapValues(view.variants, (variant, variantId) => {
+    if (module.hasPlaceholder !== (variant.placeholder !== undefined)) {
+      throw new Error(
+        `makeModuleView: ${JSON.stringify(module.id)} placeholder must match its declaration`,
+      );
+    }
     if (variant.generator !== undefined && module.catalog === undefined) {
       throw new Error(
         `makeModuleView: ${JSON.stringify(module.id)} has no catalog; omit generator`,
       );
     }
     const Component = variant.component;
+    const PreviewComponent = variant.preview;
     function Authored(props: { state: unknown }) {
       const { state } = props;
       const Placeholder = variant.placeholder;
-      if (state === null) return <Placeholder />;
+      if (state === null) {
+        if (Placeholder === undefined) throw new Error(`${module.id} requires configured state`);
+        return <Placeholder />;
+      }
       const decoded = decodeState(state, { onExcessProperty: "ignore" });
       return <Component state={decoded} />;
     }
@@ -94,6 +105,23 @@ export function makeModuleView<
       ...module.variants[variantId],
       component: Authored,
       placeholder: variant.placeholder,
+      preview:
+        PreviewComponent === undefined
+          ? undefined
+          : function Preview(props: {
+              state: unknown;
+              setState: (state: unknown) => void;
+              isActive: boolean;
+            }) {
+              const { state, setState, isActive } = props;
+              return (
+                <PreviewComponent
+                  state={decodeState(state, { onExcessProperty: "ignore" })}
+                  setState={setState}
+                  isActive={isActive}
+                />
+              );
+            },
       spec: variant.generator?.defaultSpec ?? defaultSpec,
       registry: variant.generator?.registry,
     };
@@ -115,6 +143,7 @@ export function makeModuleView<
     const variant = variants[variantId];
     const Placeholder = variant.placeholder;
     if (state === null) {
+      if (Placeholder === undefined) throw new Error(`${module.id} requires configured state`);
       return <Placeholder />;
     }
     const Authored = variant.component;

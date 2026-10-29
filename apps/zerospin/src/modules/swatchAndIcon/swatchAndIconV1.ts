@@ -35,7 +35,7 @@ export const swatchAndIconV1 = makeModuleVersion(swatchAndIcon, {
     },
   },
   defaultSpec,
-  hasPlaceholder: true,
+  hasPlaceholder: false,
   components: {
     SwatchAndIconColor: swatchAndIconColorComponent,
     IconSvgGraphic: iconSvgGraphicComponent,

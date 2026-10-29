@@ -39,7 +39,12 @@ export type IModule<MODULE extends string> = {
         bivarianceHack(props: { state: unknown }): ReactNode;
       }["bivarianceHack"];
       /** Display-only markup for an explicitly unconfigured brick (state === null). */
-      placeholder: () => ReactNode;
+      placeholder?: () => ReactNode;
+      preview?: (props: {
+        state: unknown;
+        setState: (state: unknown) => void;
+        isActive: boolean;
+      }) => ReactNode;
       spec: Spec;
       registry?: ComponentRegistry;
     };

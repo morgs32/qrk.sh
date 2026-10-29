@@ -62,7 +62,7 @@ export function Modules() {
         <ModuleFilmstrip
           breakpoint={breakpoint.id}
           cardStyle={site.cardStyle}
-          renderModuleAction={(brickModule) =>
+          renderModuleAction={(brickModule, state) =>
             wall === undefined ? null : (
               <WallModuleAction
                 moduleId={brickModule.id}
@@ -79,6 +79,7 @@ export function Modules() {
                             id,
                             pageId: params.pageId,
                             moduleId: brickModule.id,
+                            state,
                             target: insertionTarget,
                           },
                         });

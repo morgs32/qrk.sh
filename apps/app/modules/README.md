@@ -90,8 +90,10 @@ still preserve layout/specs and never capture preview dimensions.
 Swatch and Icon retains the selected `{ hash, name, svg }` from paged icon search.
 SVG data URLs are derived for presentation. Save validates a complete hex color
 and stages the selected icon and color directly, including the saved icon when no
-search runs. A new Swatch draft has no sample icon; an empty SVG renders no graphic,
-so a saved color can stand alone at a minimum height of 64px. There is no Save-time icon request.
+search runs. A new Swatch starts with the color and icon visible in the drawer
+when it was added; its form opens that saved snapshot. An empty SVG renders no
+graphic, so a saved color can stand alone at a minimum height of 64px. There is
+no Save-time icon request.
 
 ## Storybook
 
@@ -111,7 +113,8 @@ Each **Modules / <module> / Playground** story preserves the former module page'
 Module metadata, Generate spec and input, sm/md/lg/xl Component/JsonRender previews,
 and Brick Definition JSON. **Configure example** edits local state. Save changes
 the example JSON/previews; Cancel discards the draft. **Unconfigured** displays null
-and blank forms/placeholders. Provider Save calls the same RPC operations as App
+and blank forms/placeholders only for modules declaring `hasPlaceholder: true`;
+Swatch and Icon always has configured state. Provider Save calls the same RPC operations as App
 and updates only this mounted story's example state. Pending and errors come from
 the form interaction; persisted Resolving/Failed fixtures have been removed.
 
@@ -162,6 +165,18 @@ transitions and drawer lifecycle.
 `renderModuleLink`. Columns scroll vertically inside a horizontal strip, with
 headings pinned above their previews. App supplies catalog/insertion actions;
 Storybook supplies its own module examples. Live preview content stays interactive.
+`ModulePreview` owns its current local preview state, initialized from the module's
+`defaultState`. A module can supply `preview({ state, setState, isActive })`
+to change that local state. `IntersectionObserver`, document visibility, dragging,
+and reduced-motion preference determine `isActive`: it is true only while the
+preview is visible, the document is visible, that preview is not being dragged,
+and reduced motion is disabled. Swatch and Icon owns a discrete two-second color/SVG cycle through
+this callback and pauses it while inactive. Preview ticks write no model data.
+Drag start captures the committed preview state and freezes the drawer rendering;
+the native drag copy, insertion shadow, and newly created Brick use that same
+snapshot. Catalog Add uses the current preview state; static module-detail Add
+uses the `defaultState` displayed there. Preview animation never changes a saved
+Brick.
 Drawer previews show a 5px black border on hover, without movement, added shadows,
 or hover animation. The border overlays the content without changing layout.
 
@@ -260,18 +275,15 @@ omission means unlimited. Article declares `1` and Instagram declares `2`.
 Catalog and playground previews display the limit. App enforces it against the
 Page's shared Bricks during creation, counting a Brick once across four Placements.
 
-Module views require a display-only `variants.default.placeholder` in `makeModuleView`
-and `hasPlaceholder: true` in the backend `makeModuleVersion` declaration.
-Each variant's public `placeholder` field is required and receives no props.
-The module renderer selects the placement variant's placeholder for null state,
-so consuming routes do not repeat placeholder handling.
-
-All ten modules declare a module-owned placeholder. Exact null selects it before
-state decoding or JsonRender execution; empty strings, objects, and collections
-still use the normal schema/rendering path. Article, Map Place, Swatch and Icon,
-and Image use explicit unconfigured presentations. Catalog `defaultState`
-examples remain separate. Swatch and Icon uses its declared default height with a
-white question-mark icon on a gray background. Placeholder skeletons respect reduced motion and contain
+Module views can supply a display-only `variants.default.placeholder` in
+`makeModuleView`. The backend module's required `hasPlaceholder` flag owns whether
+null is valid creation or saved state. Modules declaring `true` supply their
+module-owned placeholder; exact null selects it before state decoding or
+JsonRender execution. Empty strings, objects, and collections still use the normal
+schema/rendering path. Swatch and Icon declares `hasPlaceholder: false`, supplies
+no placeholder renderer, and rejects null; the other modules declare `true` and
+retain their null-state presentations and blank form drafts. Catalog `defaultState`
+examples remain separate. Placeholder skeletons respect reduced motion and contain
 no outbound interactions; a configured Brick is never reset by preview controls.
 
 `makeComponentView` binds display markup to a `defineComponent` descriptor. Its
@@ -316,11 +328,14 @@ so consumers do not need an empty-spec rendering fallback. The root-membership
 filter runs in Effect and is not represented in generic JSON Schema.
 
 Module defaults, preview state, and authored rendering discard undeclared fields
-during decoding. App's `updateBrick` validates the selected module's state, checks
+during decoding. `addBrick@3` requires an explicit `state`: it decodes non-null
+state through the selected module's schema and accepts null only when that module
+declares `hasPlaceholder: true`. `updateBrick@3` applies the same rule, checks
 `moduleId` against the stored Brick, and persists shared content while advancing
-its revision and superseding active spec generation. Null is accepted for all ten
-modules. Spec validation remains strict. The command preserves each Placement's
-identity, layout membership, and spec; it stores no pixel dimensions, `gridItem`, or visibility.
+its revision and superseding active spec generation. Swatch and Icon rejects null
+on both paths. Spec validation remains strict. The update command preserves each
+Placement's identity, layout membership, and spec; it stores no pixel dimensions,
+`gridItem`, or visibility.
 
 Each Brick also owns `borderWidth`, shared by all four breakpoint Placements.
 It defaults to `0` and accepts whole pixels from `0` to `12` through the authenticated
@@ -340,11 +355,14 @@ retain stable identities, direct `wallId`, and per-width specs/revisions/generat
 Breakpoint derives from that Wall; content/spec changes leave layout arrays alone.
 
 State-save and spec-update command declarations belong to QRK's user aggregate
-and bind concrete model versions there. App uses user release and actor V2 with
-BrickV2 and PageSnapshotV2. V1 declarations remain registered unchanged so retained
-commands can replay into V2 materialization; no application rows or browser storage
-are reset or backfilled. App supplies module
-schemas, input normalization, and provider operations; it does not construct
+and bind concrete model versions there. App's user release and web actor are V3;
+the browser session pins both with `addBrick@3` and `updateBrick@3`, retaining
+BrickV2 and PageSnapshotV2. This is a hard cutover: obsolete creation contracts and their
+adapters are not supported. Existing null Swatches are not retained through a
+fallback or repair path. The authorized local cutover backs up and resets QRK's
+Zerospin development storage; it does not reset remote data, API storage, or
+credentials. App supplies module schemas, input normalization, and provider
+operations; it does not construct
 contracts from injected host models or versions.
 
 The shared controlled wall components render supplied data and action callbacks.
@@ -356,8 +374,8 @@ route dependencies. It renders above the Wall in the shared preview scroll
 container, with existing
 WallPlacement edit/delete controls. Module catalog/detail routes own their scoped
 add handlers for query-encoded insertion targets.
-Drawer `ModulePreview` templates are copy drag sources carrying
-`{ type: "drawer-brick", moduleId }`. Their desktop native drag preview copies the rendered
+Drawer `ModulePreview` templates are copy drag sources carrying the module ID and
+the committed creation-state snapshot. Their desktop native drag preview copies the rendered
 Brick and uses the library's pointer offset (16px horizontally, 8px vertically)
 to leave insertion feedback visible. Its detached container retains the source's
 font, text color, and Brick theme. The floating copy keeps the drawer's 2px dark
@@ -400,8 +418,10 @@ A Wall without Sections highlights its available area and creates the first
 Section/Stack/Row on drop. Populated Walls have no new Section/Stack drop targets
 outside the existing layout.
 
-Hover feedback remains local. One accepted drop stages one `addBrick`, creating
-one shared null Brick and four Placements atomically. The active Wall follows the
+Hover feedback remains local. One accepted drop stages one `addBrick@3` with the
+captured state, creating one shared Brick and four Placements atomically. A
+placeholder-backed module supplies null; Swatch and Icon supplies its captured
+color/icon state. The active Wall follows the
 destination; the other Walls append a Row to the last Stack, creating missing
 parents. Successful local staging opens the Brick form. Cancellation, outside
 drops, invalid source data, and stale destinations create nothing.

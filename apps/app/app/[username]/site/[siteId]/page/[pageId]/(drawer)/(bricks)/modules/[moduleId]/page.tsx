@@ -113,7 +113,13 @@ function ModuleRouteBody(props: {
                       const result = stageAggregateSessionCommand({
                         session,
                         contractName: "addBrick",
-                        payload: { id, pageId, moduleId: brickModule.id, target: insertionTarget },
+                        payload: {
+                          id,
+                          pageId,
+                          moduleId: brickModule.id,
+                          state: brickModule.hasPlaceholder ? null : brickModule.defaultState,
+                          target: insertionTarget,
+                        },
                       });
                       if (result._tag === "Success") {
                         void navigate({

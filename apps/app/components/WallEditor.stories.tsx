@@ -3,7 +3,7 @@ import { prefixId } from "@zerospin/sdk/browser";
 import { Schema } from "effect";
 import { useState } from "react";
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { Laptop, Monitor, MoveHorizontal, Smartphone, Tablet } from "lucide-react";
+import { Laptop, Monitor, MoveHorizontal, MoveVertical, Smartphone, Tablet } from "lucide-react";
 
 import { Drawer } from "../modules/lib/Drawer";
 import { ModuleFilmstrip } from "../modules/lib/ModuleFilmstrip";
@@ -155,8 +155,9 @@ function WallEditorStory(props: {
   stickyNavbar: boolean;
   borderWidth: number;
   cardStyle: boolean;
+  verticalAtLg: boolean;
 }) {
-  const { emptyWall, brickGap, stickyNavbar, borderWidth, cardStyle } = props;
+  const { emptyWall, brickGap, stickyNavbar, borderWidth, cardStyle, verticalAtLg } = props;
   const [resources] = useState(() =>
     makeResources(emptyWall, brickGap, stickyNavbar, borderWidth, cardStyle),
   );
@@ -213,42 +214,59 @@ function WallEditorStory(props: {
                   })}
                 </div>
               </header>
-              <main className="min-h-0 flex-1 overflow-auto px-8 py-6">
-                <div
-                  className="wall-preview-frame relative isolate flex w-full flex-col"
-                  style={previewStyle}
-                  data-breakpoint={breakpoint.id}
-                >
-                  <BrowserChrome breakpoint={breakpoint.id} />
+              <div className={`flex min-h-0 flex-1 flex-col ${verticalAtLg ? "lg:flex-row" : ""}`}>
+                <main className="min-h-0 min-w-0 flex-1 overflow-auto px-8 py-6">
                   <div
-                    role="region"
-                    aria-label={`${breakpoint.id} page preview`}
-                    className="flex flex-1 flex-col"
+                    className="wall-preview-frame relative isolate flex w-full flex-col"
+                    style={previewStyle}
+                    data-breakpoint={breakpoint.id}
                   >
-                    <SiteHeader siteId={siteId} />
-                    <WallEditor key={wallId} wallId={wallId} />
-                  </div>
-                </div>
-              </main>
-              <div className="h-[280px] min-w-0 shrink-0">
-                <Drawer side="bottom" layoutMode="flow" animated={false} aria-label="Bricks drawer">
-                  <header className="flex h-12 shrink-0 items-center justify-between gap-4 border-b border-zinc-200 bg-white px-6">
-                    <div className="flex items-baseline gap-3">
-                      <p className="text-xs text-zinc-500">Drag a brick onto your page</p>
+                    <BrowserChrome breakpoint={breakpoint.id} />
+                    <div
+                      role="region"
+                      aria-label={`${breakpoint.id} page preview`}
+                      className="flex flex-1 flex-col"
+                    >
+                      <SiteHeader siteId={siteId} />
+                      <WallEditor key={wallId} wallId={wallId} />
                     </div>
-                    <span className="flex items-center gap-2 text-xs text-zinc-400">
-                      <MoveHorizontal className="size-3.5" aria-hidden="true" />
-                      Scroll to browse
-                    </span>
-                  </header>
-                  <div className="min-h-0 flex-1">
-                    <ModuleFilmstrip
-                      breakpoint={breakpoint.id}
-                      cardStyle={cardStyle}
-                      renderModuleLink={(brickModule) => <span>{brickModule.label}</span>}
-                    />
                   </div>
-                </Drawer>
+                </main>
+                <div
+                  className={`h-[280px] min-w-0 shrink-0 ${verticalAtLg ? "lg:h-full lg:w-[420px]" : ""}`}
+                >
+                  <Drawer
+                    side="bottom"
+                    layoutMode="flow"
+                    animated={false}
+                    aria-label="Bricks drawer"
+                    className={verticalAtLg ? "lg:border-t-0 lg:border-l" : undefined}
+                  >
+                    <header className="flex h-12 shrink-0 items-center justify-between gap-4 border-b border-zinc-200 bg-white px-6">
+                      <div className="flex items-baseline gap-3">
+                        <p className="text-xs text-zinc-500">Drag a brick onto your page</p>
+                      </div>
+                      <span className="flex items-center gap-2 text-xs text-zinc-400">
+                        <MoveHorizontal
+                          className={`size-3.5 ${verticalAtLg ? "lg:hidden" : ""}`}
+                          aria-hidden="true"
+                        />
+                        {verticalAtLg ? (
+                          <MoveVertical className="hidden size-3.5 lg:block" aria-hidden="true" />
+                        ) : null}
+                        Scroll to browse
+                      </span>
+                    </header>
+                    <div className="min-h-0 flex-1">
+                      <ModuleFilmstrip
+                        verticalAtLg={verticalAtLg}
+                        breakpoint={breakpoint.id}
+                        cardStyle={cardStyle}
+                        renderModuleLink={(brickModule) => <span>{brickModule.label}</span>}
+                      />
+                    </div>
+                  </Drawer>
+                </div>
               </div>
             </div>
           </UserUI>
@@ -269,6 +287,7 @@ const meta = {
     stickyNavbar: true,
     borderWidth: 0,
     cardStyle: false,
+    verticalAtLg: false,
   },
   argTypes: {
     stickyNavbar: { control: "boolean" },
@@ -282,8 +301,9 @@ const meta = {
     stickyNavbar: boolean;
     borderWidth: number;
     cardStyle: boolean;
+    verticalAtLg: boolean;
   }) {
-    const { emptyWall, brickGap, stickyNavbar, borderWidth, cardStyle } = props;
+    const { emptyWall, brickGap, stickyNavbar, borderWidth, cardStyle, verticalAtLg } = props;
     return (
       <WallEditorStory
         key={`${emptyWall}-${brickGap}-${stickyNavbar}-${borderWidth}-${cardStyle}`}
@@ -292,6 +312,7 @@ const meta = {
         stickyNavbar={stickyNavbar}
         borderWidth={borderWidth}
         cardStyle={cardStyle}
+        verticalAtLg={verticalAtLg}
       />
     );
   },
@@ -301,8 +322,22 @@ const meta = {
   stickyNavbar: boolean;
   borderWidth: number;
   cardStyle: boolean;
+  verticalAtLg: boolean;
 }>;
 
 export default meta;
 export const Default: StoryObj<typeof meta> = {};
 export const EmptyWall: StoryObj<typeof meta> = { args: { emptyWall: true } };
+
+/** Storybook-only experiment: a 420px right catalog at lg, and the existing bottom drawer below. */
+export const VerticalDrawer: StoryObj<typeof meta> = {
+  args: { verticalAtLg: true },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "At viewport widths of 1024px and above, the catalog occupies a 420px right column with one vertical scroll area. Below that width it uses the existing 280px bottom drawer. Placement follows the viewport, independently of the selected page-preview breakpoint. Use emptyWall to try dragging into an empty page.",
+      },
+    },
+  },
+};

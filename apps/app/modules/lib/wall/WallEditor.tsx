@@ -341,18 +341,20 @@ export function WallEditor(props: {
       <div
         ref={setShadowElement}
         aria-hidden="true"
-        className={`wall-shadow-placeholder relative min-h-12 min-w-0 shrink-0 opacity-40 ${dropTarget.kind === "row" ? "flex-1" : "overflow-x-auto"}`}
+        className="wall-shadow-placeholder relative opacity-40"
         style={{
+          flex: `0 1 ${modulesHash[shadowSource.moduleId].variants.default.defaultWidth + brickGap}px`,
+          width: modulesHash[shadowSource.moduleId].variants.default.defaultWidth + brickGap,
+          // Empty Walls need the same outer half-gap allowance as populated Rows.
+          maxWidth: dropTarget.kind === "wall" ? `calc(100% + ${brickGap}px)` : "100%",
+          margin: dropTarget.kind === "wall" ? -brickGap / 2 : undefined,
           padding: brickGap / 2,
-          minWidth:
-            dropTarget.kind === "row"
-              ? modulesHash[shadowSource.moduleId].variants.default.minWidth + brickGap
-              : undefined,
+          minWidth: modulesHash[shadowSource.moduleId].variants.default.minWidth + brickGap,
         }}
       >
         <div
           inert
-          className="pointer-events-none"
+          className={`brick-surface pointer-events-none ${wall.page.site.cardStyle ? "brick-surface-card" : ""}`}
           style={{ minWidth: modulesHash[shadowSource.moduleId].variants.default.minWidth }}
         />
       </div>
@@ -416,6 +418,8 @@ export function WallEditor(props: {
                                       placement={{
                                         id: placement.id,
                                         brickId: brick.id,
+                                        defaultWidth:
+                                          module.variants[placement.variantId].defaultWidth,
                                         minWidth: module.variants[placement.variantId].minWidth,
                                         content:
                                           brick.state === null || isNonEmptySpec(placement.spec) ? (

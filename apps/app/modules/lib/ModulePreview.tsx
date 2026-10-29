@@ -122,7 +122,7 @@ export function ModulePreview(props: {
           <BrickAction>
             {moduleAction?.(brickModule.hasPlaceholder ? null : previewState)}
           </BrickAction>
-          <BrickWrapper className="brick-hover-surface">
+          <BrickWrapper className="brick-hover-surface h-auto">
             {Preview === undefined ? (
               <Component state={previewState} />
             ) : (

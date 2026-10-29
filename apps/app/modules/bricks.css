@@ -19,16 +19,6 @@
   --wall-frame-radius: 16px;
 }
 
-/* The translucent Brick occupies insertion space and keeps its host targetable. */
-.wall-shadow-placeholder::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border: 2px solid #282824;
-  z-index: 19;
-  pointer-events: none;
-}
-
 .qrk-responsive-insets {
   --qrk-inset-inline: 16px;
   --qrk-inset-block: 16px;

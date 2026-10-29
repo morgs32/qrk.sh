@@ -1,7 +1,8 @@
 "use client";
 
 import { Globe } from "lucide-react";
-import { useState } from "react";
+import { useLayoutEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { stageAggregateSessionCommand } from "@zerospin/sdk/browser";
 import { Schema } from "effect";
@@ -33,11 +34,18 @@ export function PageSettings(props: {
     title: page.title,
     description: page.description,
   }));
+  const [headerActions, setHeaderActions] = useState<HTMLElement | null>(null);
+  useLayoutEffect(() => {
+    const target = document.getElementById("page-settings-header-actions");
+    if (target === null) throw new Error("Missing Page Settings header actions");
+    setHeaderActions(target);
+  }, []);
   const [saveError, setSaveError] = useState<string | null>(null);
   const isDirty = fields.title !== page.title || fields.description !== page.description;
 
   return (
     <form
+      id="page-settings-form"
       autoComplete="off"
       className="w-full"
       onSubmit={(event) => {
@@ -101,24 +109,35 @@ export function PageSettings(props: {
             </div>
           </div>
         </div>
-        {saveError === null ? null : <p role="alert" className="text-sm text-destructive">{saveError}</p>}
-        <div className="flex items-center gap-2">
-          <Button type="submit" disabled={!isDirty}>Save</Button>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => {
-              void navigate({
-                to: "/$username/site/$siteId/page/$pageId",
-                params,
-                search: { breakpoint: search.breakpoint },
-                resetScroll: false,
-              });
-            }}
-          >
-            Cancel
-          </Button>
-        </div>
+        {saveError === null ? null : (
+          <p role="alert" className="text-sm text-destructive">
+            {saveError}
+          </p>
+        )}
+        {headerActions === null
+          ? null
+          : createPortal(
+              <div className="flex items-center gap-2">
+                <Button type="submit" form="page-settings-form" disabled={!isDirty}>
+                  Save
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    void navigate({
+                      to: "/$username/site/$siteId/page/$pageId",
+                      params,
+                      search: { breakpoint: search.breakpoint },
+                      resetScroll: false,
+                    });
+                  }}
+                >
+                  Cancel
+                </Button>
+              </div>,
+              headerActions,
+            )}
       </div>
     </form>
   );

@@ -358,7 +358,6 @@ export function WallEditor(props: {
         aria-hidden="true"
         className="wall-shadow-placeholder relative opacity-40"
         style={{
-          flex: `0 1 ${modulesHash[shadowSource.moduleId].variants.default.defaultWidth + brickGap}px`,
           width: modulesHash[shadowSource.moduleId].variants.default.defaultWidth + brickGap,
           // Empty Walls need the same outer half-gap allowance as populated Rows.
           maxWidth: dropTarget.kind === "wall" ? `calc(100% + ${brickGap}px)` : "100%",
@@ -369,7 +368,7 @@ export function WallEditor(props: {
       >
         <div
           inert
-          className={`brick-surface pointer-events-none ${wall.page.site.cardStyle ? "brick-surface-card" : ""}`}
+          className="pointer-events-none"
           style={{ minWidth: modulesHash[shadowSource.moduleId].variants.default.minWidth }}
         />
       </div>
@@ -442,24 +441,24 @@ export function WallEditor(props: {
                                       minWidth: module.variants[placement.variantId].minWidth,
                                       content:
                                         brick.state === null || isNonEmptySpec(placement.spec) ? (
-                                          <div
-                                            className={`brick-surface ${wall.page.site.cardStyle ? "brick-surface-card" : ""} brick-hover-target relative min-w-0`}
+                                          <BrickWrapper
+                                            borderWidth={brick.borderWidth}
+                                            className={
+                                              wall.page.site.cardStyle
+                                                ? "brick-surface-card"
+                                                : undefined
+                                            }
                                           >
-                                            <BrickWrapper
-                                              borderWidth={brick.borderWidth}
-                                              className="brick-hover-surface h-auto"
-                                            >
-                                              <Component
-                                                state={brick.state}
-                                                variantId={placement.variantId}
-                                                spec={
-                                                  isNonEmptySpec(placement.spec)
-                                                    ? placement.spec
-                                                    : module.variants[placement.variantId].spec
-                                                }
-                                              />
-                                            </BrickWrapper>
-                                          </div>
+                                            <Component
+                                              state={brick.state}
+                                              variantId={placement.variantId}
+                                              spec={
+                                                isNonEmptySpec(placement.spec)
+                                                  ? placement.spec
+                                                  : module.variants[placement.variantId].spec
+                                              }
+                                            />
+                                          </BrickWrapper>
                                         ) : (
                                           <p role="alert">Invalid Brick spec</p>
                                         ),

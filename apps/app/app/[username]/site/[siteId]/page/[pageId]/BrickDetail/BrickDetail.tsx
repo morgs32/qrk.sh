@@ -164,13 +164,16 @@ export function BrickDetail() {
             ) : (
               <div className="mt-8 overflow-auto">
                 <div
-                  className={`brick-surface ${site.cardStyle ? "brick-surface-card" : ""} brick-hover-target relative shrink-0`}
+                  className="relative shrink-0"
                   style={{
                     width: Math.min(view.defaultWidth, entry.previewWidth),
                     minWidth: view.minWidth,
                   }}
                 >
-                  <BrickWrapper borderWidth={brickRow.borderWidth} className="brick-hover-surface">
+                  <BrickWrapper
+                    borderWidth={brickRow.borderWidth}
+                    className={site.cardStyle ? "brick-surface-card" : undefined}
+                  >
                     <BrickComponent
                       variantId={placement.variantId}
                       state={brickRow.state}

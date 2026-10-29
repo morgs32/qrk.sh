@@ -127,7 +127,7 @@ export function ModulePreview(props: {
                 child.draggable = false;
               });
           }}
-          className={`brick-surface ${cardStyle ? "brick-surface-card" : ""} brick-hover-target group/brick relative shrink-0 cursor-grab ${verticalAtLg ? "lg:max-w-full" : ""} ${dragging ? "opacity-40" : ""}`}
+          className={`group/brick relative shrink-0 cursor-grab ${verticalAtLg ? "lg:max-w-full" : ""} ${dragging ? "opacity-40" : ""}`}
           style={{
             width: Math.min(view.defaultWidth, entry.previewWidth),
             minWidth: view.minWidth,
@@ -136,7 +136,7 @@ export function ModulePreview(props: {
           <BrickAction>
             {moduleAction?.(brickModule.hasPlaceholder ? null : previewState)}
           </BrickAction>
-          <BrickWrapper className="brick-hover-surface h-auto">
+          <BrickWrapper className={cardStyle ? "brick-surface-card" : undefined}>
             {Preview === undefined ? (
               <Component state={previewState} />
             ) : (

@@ -27,15 +27,14 @@ export function WallPlacement(props: {
     <div
       data-wall-placement-id={placement.id}
       style={{
-        flex: `0 1 ${placement.defaultWidth + brickGap}px`,
+        width: placement.defaultWidth + brickGap,
         minWidth: placement.minWidth + brickGap,
         padding: brickGap / 2,
       }}
       className={cn(
-        "wall-placement group/brick relative after:pointer-events-none after:absolute after:-inset-[0.5px] after:z-[18] after:border after:content-[''] focus-within:after:z-[19] focus-within:after:border-blue-500",
+        "wall-placement group/brick relative after:pointer-events-none after:absolute after:-inset-[0.5px] after:z-[18] after:border after:border-transparent after:content-['']",
         selected && "is-selected",
         menuOpen && "is-menu-open",
-        menuOpen ? "after:z-[19] after:border-blue-500" : "after:border-transparent",
       )}
     >
       <div

@@ -16,7 +16,7 @@ const placement = {
   content: (
     <div className="brick-surface space-y-3 border bg-white p-6">
       <p>Select this brick</p>
-      <a href="#fixture-link" onClick={followLink}>
+      <a href="#fixture-link" target="_self" onClick={followLink}>
         Fixture link
       </a>
       <button type="button" onClick={pressButton}>
@@ -122,7 +122,8 @@ export const ClickSelection: StoryObj<typeof meta> = {
     await userEvent.keyboard("{ArrowDown}");
     await waitFor(() => expect(body.getByRole("menuitem", { name: "Edit" })).toHaveFocus());
     await userEvent.keyboard("{Enter}");
-    expect(editBrick).toHaveBeenCalledExactlyOnceWith("story-brick");
+    expect(editBrick).toHaveBeenCalledOnce();
+    expect(editBrick).toHaveBeenCalledWith("story-brick");
 
     await userEvent.click(text);
     expect(editBrick).toHaveBeenCalledTimes(2);

@@ -15,13 +15,19 @@ export function BrickWrapper(
     <div
       {...divProps}
       className={cn(
-        "qrk-bricks relative flex h-full min-h-0 min-w-0 w-full overflow-hidden [&_svg]:select-none",
-        "@container flex-col",
-        brickStackGapClass,
+        "qrk-bricks brick-hover-surface relative h-auto min-h-0 min-w-0 w-full overflow-visible [&_svg]:select-none",
         className,
       )}
     >
-      {children}
+      {/* Clip module content without clipping the surface's outer interaction halo. */}
+      <div
+        className={cn(
+          "brick-content @container relative z-0 flex min-h-0 min-w-0 w-full flex-col overflow-hidden rounded-[inherit]",
+          brickStackGapClass,
+        )}
+      >
+        {children}
+      </div>
       <span
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 z-[18] rounded-[inherit]"

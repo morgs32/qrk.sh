@@ -13,18 +13,13 @@ the action opens a dialog, so it should retain button semantics.
 This is a design recommendation based on the existing implementation, not a
 shadcn rule that all dialog triggers must use this variant.
 [shadcn Radix Button](https://ui.shadcn.com/docs/components/radix/button#link),
-[local variants](/Users/morgs32/GitHub/qrk.sh/apps/app/components/ui/button.tsx:18),
-[current trigger](/Users/morgs32/GitHub/qrk.sh/apps/app/app/[username]/site/[siteId]/page/[pageId]/(drawer)/PublishSiteDialog.tsx:96).
+[local variants](../../apps/app/components/ui/button.tsx#L18),
+[current trigger](../../apps/app/app/%5Busername%5D/site/%5BsiteId%5D/page/%5BpageId%5D/%28drawer%29/PublishSiteDialog.tsx#L96).
 
 Proposed change at that trigger only:
 
 ```tsx
-<Button
-  type="button"
-  variant="link"
-  size="sm"
-  className="text-blue-600 dark:text-blue-400"
->
+<Button type="button" variant="link" size="sm" className="text-blue-600 dark:text-blue-400">
   Publish Site
 </Button>
 ```
@@ -33,8 +28,8 @@ Blue is a proposed emphasis color, not an established QRK brand token. The same
 light/dark text utilities are already used by the search preview link. No new
 button variant, dependency, wrapper, or global theme change is needed for this
 proposal.
-[existing colored link](/Users/morgs32/GitHub/qrk.sh/apps/app/app/[username]/site/[siteId]/page/[pageId]/SearchPreviewCard.tsx:31),
-[Button class composition](/Users/morgs32/GitHub/qrk.sh/apps/app/components/ui/button.tsx:50).
+[existing colored link](../../apps/app/app/%5Busername%5D/site/%5BsiteId%5D/page/%5BpageId%5D/SearchPreviewCard.tsx#L31),
+[Button class composition](../../apps/app/components/ui/button.tsx#L50).
 
 ## Link versus ghost
 
@@ -48,7 +43,7 @@ proposal.
 These are the actual styles in QRK and the current upstream shadcn Radix source.
 The variant changes styling; QRK still renders a native button unless `asChild`
 is requested.
-[local Button](/Users/morgs32/GitHub/qrk.sh/apps/app/components/ui/button.tsx:7),
+[local Button](../../apps/app/components/ui/button.tsx#L7),
 [upstream Button source](https://github.com/shadcn-ui/ui/blob/main/apps/v4/registry/new-york-v4/ui/button.tsx).
 
 ## What “accent” means here
@@ -69,9 +64,9 @@ A plain `variant="link"` would therefore remain near-black text in the light
 theme. `text-accent` would instead select the pale surface color. Changing the
 global `primary` or `accent` tokens would affect other consumers of those tokens;
 a local color is the bounded choice for the single selected action.
-[light tokens](/Users/morgs32/GitHub/qrk.sh/apps/app/app/globals.css:64),
-[dark tokens](/Users/morgs32/GitHub/qrk.sh/apps/app/app/globals.css:98),
-[token mapping](/Users/morgs32/GitHub/qrk.sh/apps/app/app/globals.css:38),
+[light tokens](../../apps/app/app/globals.css#L64),
+[dark tokens](../../apps/app/app/globals.css#L98),
+[token mapping](../../apps/app/app/globals.css#L38),
 [shadcn theming](https://ui.shadcn.com/docs/theming).
 
 ## Scope and verification
@@ -80,8 +75,8 @@ a local color is the bounded choice for the single selected action.
 actual publish command is submitted by a separate filled button inside the
 dialog. Apply any future styling change to the trigger, keeping the dialog's
 confirmation action and publishing handler intact.
-[toolbar call site](/Users/morgs32/GitHub/qrk.sh/apps/app/app/[username]/site/[siteId]/Toolbars/SiteToolbar.tsx:123),
-[confirmation button](/Users/morgs32/GitHub/qrk.sh/apps/app/app/[username]/site/[siteId]/page/[pageId]/(drawer)/PublishSiteDialog.tsx:157).
+[toolbar call site](../../apps/app/app/%5Busername%5D/site/%5BsiteId%5D/Toolbars/SiteToolbar.tsx#L123),
+[confirmation button](../../apps/app/app/%5Busername%5D/site/%5BsiteId%5D/page/%5BpageId%5D/%28drawer%29/PublishSiteDialog.tsx#L157).
 
 The findings were checked against official docs, upstream source, and the local
 source files. No browser prototype, visual acceptance, contrast measurement, or

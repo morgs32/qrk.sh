@@ -88,7 +88,7 @@ export function BreakpointsToolbar() {
               resetScroll: false,
             })
           }
-          className="h-7 px-2 text-destructive hover:bg-destructive/10 hover:text-destructive"
+          className="h-7 px-2 text-destructive hover:text-destructive"
         >
           <X className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
         </ToolbarButton>

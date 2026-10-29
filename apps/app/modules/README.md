@@ -461,6 +461,8 @@ measurement. Below 362px of available total width, the UI explains the minimum
 space needed instead of mounting or shrinking a Wall. Width growth enables
 choices while keeping the current URL selection; breakpoint labels retain their
 nominal content widths. The separate development URL is removed.
+Automatic breakpoint normalization closes Stack Details because Stack IDs belong
+to a single Wall, matching toolbar breakpoint changes.
 PageLayout's single `.wall-preview-viewport` root contains the editor scroll
 region and drawer spacer, toolbar anchor, and Drawer as siblings. It owns scroll
 anchoring/clamping and floating toolbar placement. PagePreview owns a full-width

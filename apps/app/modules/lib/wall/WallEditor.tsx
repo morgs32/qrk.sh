@@ -408,7 +408,7 @@ export function WallEditor(props: {
                               variant="ghost"
                               aria-label={`Edit stack ${stack.name}`}
                               onClick={() => onEditStack(stack.id)}
-                              className="h-7 min-w-0 rounded-none px-0 text-xs font-normal text-white hover:bg-transparent hover:text-white"
+                              className="h-7 min-w-0 shrink rounded-none px-0 text-xs font-normal text-white hover:bg-transparent hover:text-white"
                             >
                               <span className="truncate">{stack.name}</span>
                             </Button>

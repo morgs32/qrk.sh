@@ -12,10 +12,18 @@ export function ModulePreview(props: {
   brickModule: (typeof modulesHash)[keyof typeof modulesHash];
   breakpoint: (typeof BREAKPOINTS)[number]["id"];
   cardStyle: boolean;
+  verticalAtLg?: boolean;
   moduleLink: ReactNode;
   moduleAction?: (state: unknown) => ReactNode;
 }) {
-  const { brickModule, breakpoint, cardStyle, moduleLink, moduleAction } = props;
+  const {
+    brickModule,
+    breakpoint,
+    cardStyle,
+    verticalAtLg = false,
+    moduleLink,
+    moduleAction,
+  } = props;
   const previewRef = useRef<HTMLDivElement>(null);
   const [previewState, setPreviewState] = useState<unknown>(() => brickModule.def.state);
   const committedState = useRef(previewState);
@@ -92,9 +100,15 @@ export function ModulePreview(props: {
   if (entry === undefined) throw new Error(`Unknown breakpoint: ${breakpoint}`);
 
   return (
-    <div className="flex h-full min-h-0 w-max shrink-0 flex-col overflow-y-auto overscroll-y-contain border-r border-zinc-200">
-      <h2 className="sticky top-0 z-10 m-0 shrink-0 px-8 py-4 font-normal">{moduleLink}</h2>
-      <div className="px-8 pb-16 pt-2">
+    <div
+      className={`flex h-full min-h-0 w-max shrink-0 flex-col overflow-y-auto overscroll-y-contain border-r border-zinc-200 ${verticalAtLg ? "lg:h-auto lg:w-full lg:overflow-visible lg:border-r-0 lg:border-b lg:last:border-b-0" : ""}`}
+    >
+      <h2
+        className={`sticky top-0 z-10 m-0 shrink-0 px-8 py-4 font-normal ${verticalAtLg ? "lg:static" : ""}`}
+      >
+        {moduleLink}
+      </h2>
+      <div className={`px-8 pb-16 pt-2 ${verticalAtLg ? "lg:pb-8" : ""}`}>
         {maxPerPage !== undefined ? (
           <p className="mb-3 mt-0 max-w-64 text-sm text-zinc-500">Limit: {maxPerPage} per page.</p>
         ) : null}
@@ -113,7 +127,7 @@ export function ModulePreview(props: {
                 child.draggable = false;
               });
           }}
-          className={`brick-surface ${cardStyle ? "brick-surface-card" : ""} brick-hover-target group/brick relative shrink-0 cursor-grab ${dragging ? "opacity-40" : ""}`}
+          className={`brick-surface ${cardStyle ? "brick-surface-card" : ""} brick-hover-target group/brick relative shrink-0 cursor-grab ${verticalAtLg ? "lg:max-w-full" : ""} ${dragging ? "opacity-40" : ""}`}
           style={{
             width: Math.min(view.defaultWidth, entry.previewWidth),
             minWidth: view.minWidth,

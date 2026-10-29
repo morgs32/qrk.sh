@@ -4,7 +4,7 @@ import { Schema } from "effect";
 import { useState } from "react";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, fireEvent, userEvent, waitFor, within } from "storybook/test";
-import { Laptop, Monitor, MoveHorizontal, Smartphone, Tablet } from "lucide-react";
+import { Laptop, Monitor, MoveHorizontal, MoveVertical, Smartphone, Tablet } from "lucide-react";
 
 import { Drawer } from "../modules/lib/Drawer";
 import { ModuleFilmstrip } from "../modules/lib/ModuleFilmstrip";
@@ -162,10 +162,20 @@ function WallEditorStory(props: {
   stickyNavbar: boolean;
   borderWidth: number;
   cardStyle: boolean;
+  verticalAtLg: boolean;
   fixture: "default" | "swatch-and-icon" | "article";
   selected: boolean;
 }) {
-  const { emptyWall, brickGap, stickyNavbar, borderWidth, cardStyle, fixture, selected } = props;
+  const {
+    emptyWall,
+    brickGap,
+    stickyNavbar,
+    borderWidth,
+    cardStyle,
+    verticalAtLg,
+    fixture,
+    selected,
+  } = props;
   const [resources] = useState(() =>
     makeResources(emptyWall, brickGap, stickyNavbar, borderWidth, cardStyle, fixture),
   );
@@ -237,7 +247,7 @@ function WallEditorStory(props: {
                   })}
                 </div>
               </header>
-              <div className="flex min-h-0 flex-1 flex-col">
+              <div className={`flex min-h-0 flex-1 flex-col ${verticalAtLg ? "lg:flex-row" : ""}`}>
                 <main className="min-h-0 min-w-0 flex-1 overflow-auto px-8 py-6">
                   <div
                     className="wall-preview-frame relative isolate flex w-full flex-col"
@@ -260,25 +270,35 @@ function WallEditorStory(props: {
                     </div>
                   </div>
                 </main>
-                <div className="h-[280px] min-w-0 shrink-0">
+                <div
+                  className={`h-[280px] min-w-0 shrink-0 ${verticalAtLg ? "lg:h-full lg:w-[420px]" : ""}`}
+                >
                   <Drawer
                     side="bottom"
                     layoutMode="flow"
                     animated={false}
                     aria-label="Bricks drawer"
+                    className={verticalAtLg ? "lg:border-t-0 lg:border-l" : undefined}
                   >
                     <header className="flex h-12 shrink-0 items-center justify-between gap-4 border-b border-zinc-200 bg-white px-6">
                       <div className="flex items-baseline gap-3">
                         <p className="text-xs text-zinc-500">Drag a brick onto your page</p>
                       </div>
                       <span className="flex items-center gap-2 text-xs text-zinc-400">
-                        <MoveHorizontal className="size-3.5" aria-hidden="true" />
+                        <MoveHorizontal
+                          className={`size-3.5 ${verticalAtLg ? "lg:hidden" : ""}`}
+                          aria-hidden="true"
+                        />
+                        {verticalAtLg ? (
+                          <MoveVertical className="hidden size-3.5 lg:block" aria-hidden="true" />
+                        ) : null}
                         Scroll to browse
                       </span>
                     </header>
                     <div className="min-h-0 flex-1">
                       {fixture === "default" ? (
                         <ModuleFilmstrip
+                          verticalAtLg={verticalAtLg}
                           breakpoint={breakpoint.id}
                           cardStyle={cardStyle}
                           renderModuleLink={(brickModule) => <span>{brickModule.label}</span>}
@@ -323,6 +343,7 @@ const meta = {
     stickyNavbar: true,
     borderWidth: 0,
     cardStyle: false,
+    verticalAtLg: false,
     fixture: "default",
     selected: false,
   },
@@ -340,7 +361,7 @@ const meta = {
     stickyNavbar: boolean;
     borderWidth: number;
     cardStyle: boolean;
-
+    verticalAtLg: boolean;
     fixture: "default" | "swatch-and-icon" | "article";
     selected: boolean;
   }) {
@@ -350,7 +371,7 @@ const meta = {
       stickyNavbar,
       borderWidth,
       cardStyle,
-
+      verticalAtLg,
       fixture,
       selected,
     } = props;
@@ -362,7 +383,7 @@ const meta = {
         stickyNavbar={stickyNavbar}
         borderWidth={borderWidth}
         cardStyle={cardStyle}
-
+        verticalAtLg={verticalAtLg}
         fixture={fixture}
         selected={selected}
       />
@@ -374,6 +395,7 @@ const meta = {
   stickyNavbar: boolean;
   borderWidth: number;
   cardStyle: boolean;
+  verticalAtLg: boolean;
   fixture: "default" | "swatch-and-icon" | "article";
   selected: boolean;
 }>;
@@ -381,6 +403,19 @@ const meta = {
 export default meta;
 export const Default: StoryObj<typeof meta> = {};
 export const EmptyWall: StoryObj<typeof meta> = { args: { emptyWall: true } };
+
+/** Storybook-only experiment: a 420px right catalog at lg, and the existing bottom drawer below. */
+export const VerticalDrawer: StoryObj<typeof meta> = {
+  args: { verticalAtLg: true },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "At viewport widths of 1024px and above, the catalog occupies a 420px right column with one vertical scroll area. Below that width it uses the existing 280px bottom drawer. Placement follows the viewport, independently of the selected page-preview breakpoint. Use emptyWall to try dragging into an empty page.",
+      },
+    },
+  },
+};
 
 /** Same content and width through the real catalog and Wall render paths. */
 export const PreviewBrick: StoryObj<typeof meta> = {

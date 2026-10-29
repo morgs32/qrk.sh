@@ -495,7 +495,11 @@ and outer clipping.
 The outer Row uses `flow-root` to contain the flex element's -0.5px margin.
 Its 0.5px padding and 49px minimum height preserve the Row's 48px outer minimum height.
 Wall Brick content uses the same 5px black hover border as drawer previews,
-without movement, added shadows, animation, or hover stacking changes.
+without movement, added shadows, or animation. On hover-capable fine pointers,
+the whole Placement temporarily rises above neighboring Bricks at z-index 1 and
+returns to normal stacking when hover ends. Stack controls, browser chrome,
+menus, and floating toolbars remain above it. Focus, selection, and open-menu
+state do not raise the Placement.
 Placed BrickActions remain inside the stationary content wrapper at their 1px
 top-right inset. Placement hitboxes and blue keyboard-focus and open-menu borders
 stay stationary. While a Brick's edit form is open, its selected Placement keeps

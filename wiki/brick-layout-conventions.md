@@ -182,6 +182,11 @@ Selected means a Brick's edit form is open. Active means DOM focus, including
 keyboard focus. Controls appear on hover, focus, selection, and open menus, with
 touch access. Edit/Delete menus are keyboard-accessible. The Delete confirmation
 supports cancellation and restores focus to its trigger or a surviving control.
+On hover-capable fine pointers, the whole Placement temporarily rises above
+neighboring Bricks at z-index 1, across Rows, Stacks, and Sections. Hover ending
+restores normal stacking. Stack controls, browser chrome, menus, and floating
+toolbars remain above it; focus, selection, and open-menu state do not raise it.
+Placement isolation, internal decoration ordering, and viewport clipping remain.
 Placement interaction borders use a noninteractive `::after` overlay outset
 0.5px, centering the stroke on the shared 1px seam. White hover borders use
 z-index 18; blue-500 open-menu and keyboard-focus borders use z-index

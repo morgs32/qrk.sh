@@ -112,6 +112,11 @@
 }
 
 @media (hover: hover) and (pointer: fine) {
+  /* Lift the entire placement above neighboring bricks during hover. */
+  .wall-placement:hover {
+    z-index: 1;
+  }
+
   [data-drawer-module-id]:hover::after,
   .wall-placement:hover > .wall-placement-content::after {
     opacity: 1;

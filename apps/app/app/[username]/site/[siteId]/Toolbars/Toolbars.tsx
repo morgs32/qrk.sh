@@ -14,6 +14,7 @@ export function Toolbars() {
     route === "/$username/site/$siteId/page/$pageId/breakpoints" ||
     route === "/$username/site/$siteId/page/$pageId/_drawer/modules/" ||
     route === "/$username/site/$siteId/page/$pageId/_drawer/modules/$moduleId" ||
+    route === "/$username/site/$siteId/page/$pageId/_drawer/stack/$stackId" ||
     route === "/$username/site/$siteId/page/$pageId/_drawer/brick/$brickId" ? (
       <BreakpointsToolbar key="Breakpoints" />
     ) : route === "/$username/site/$siteId/page/$pageId/" ? (

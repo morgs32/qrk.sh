@@ -17,7 +17,7 @@ import { SiteHeader } from "../../SiteHeader";
 export function PagePreview(props: { breakpoint: (typeof BREAKPOINTS)[number] }) {
   const { breakpoint } = props;
   const navigate = useNavigate();
-  const { brickId: selectedBrickId } = useParams({ strict: false });
+  const { brickId: selectedBrickId, stackId: selectedStackId } = useParams({ strict: false });
   const session = UserUI.useSession();
   const params = useValidatedParams(
     Schema.Struct({
@@ -60,6 +60,20 @@ export function PagePreview(props: { breakpoint: (typeof BREAKPOINTS)[number] })
         key={wall.id}
         wallId={wall.id}
         selectedBrickId={selectedBrickId}
+        selectedStackId={selectedStackId}
+        onEditStack={(stackId) => {
+          if (selectedStackId === stackId) return;
+          void navigate({
+            to: "/$username/site/$siteId/page/$pageId/stack/$stackId",
+            params: { ...params, stackId },
+            search: (previous) => ({
+              ...previous,
+              breakpoint: breakpoint.id,
+              insertion: undefined,
+            }),
+            resetScroll: false,
+          });
+        }}
         onEditBrick={(brickId) => {
           void navigate({
             to: "/$username/site/$siteId/page/$pageId/brick/$brickId",

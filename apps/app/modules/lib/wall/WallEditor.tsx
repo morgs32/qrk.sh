@@ -42,10 +42,13 @@ const DrawerBrickData = Schema.Struct({
 export function WallEditor(props: {
   wallId: IInferModelRow<typeof wallV1>["id"];
   selectedBrickId?: string | null;
+  selectedStackId?: string | null;
   onEditBrick?: (brickId: string) => void;
+  onEditStack?: (stackId: string) => void;
   onBrickDeleted?: (brickId: string) => void;
 }) {
-  const { wallId, selectedBrickId, onEditBrick, onBrickDeleted } = props;
+  const { wallId, selectedBrickId, selectedStackId, onEditBrick, onEditStack, onBrickDeleted } =
+    props;
   const wallRef = useRef<HTMLDivElement>(null);
   const shadowTargetRef = useRef<typeof wallInsertionTargetSchema.Type | null>(null);
   const shadowRowHeights = useRef(new Map<HTMLElement, number>());
@@ -393,11 +396,23 @@ export function WallEditor(props: {
                     <div
                       key={stack.id}
                       data-wall-stack-id={stack.id}
-                      className={`group/stack relative min-h-12 min-w-0 ${stack.rows.length === 0 && dropTarget?.kind === "stack" && dropTarget.stackId === stack.id ? "bg-blue-50 outline outline-blue-500 -outline-offset-2" : ""}`}
+                      className={`group/stack relative min-h-12 min-w-0 ${stack.id === selectedStackId ? "is-selected-stack after:pointer-events-none after:absolute after:inset-0 after:z-[29] after:border after:border-[#1f9bfc] after:content-['']" : ""} ${stack.rows.length === 0 && dropTarget?.kind === "stack" && dropTarget.stackId === stack.id ? "bg-blue-50 outline outline-blue-500 -outline-offset-2" : ""}`}
                     >
                       {stack.rows.some((row) => row.placements.length > 0) ? (
                         <StackAction>
-                          <span className="min-w-0 truncate">{stack.name}</span>
+                          {onEditStack === undefined ? (
+                            <span className="min-w-0 truncate">{stack.name}</span>
+                          ) : (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              aria-label={`Edit stack ${stack.name}`}
+                              onClick={() => onEditStack(stack.id)}
+                              className="h-7 min-w-0 shrink rounded-none px-0 text-xs font-normal text-white hover:bg-transparent hover:text-white"
+                            >
+                              <span className="truncate">{stack.name}</span>
+                            </Button>
+                          )}
                         </StackAction>
                       ) : null}
                       {stack.rows.map((row) => (

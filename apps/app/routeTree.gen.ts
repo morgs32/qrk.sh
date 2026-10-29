@@ -23,6 +23,7 @@ import { Route as UsernameSiteSiteIdPagePageIdDrawerSiteSettingsRouteImport } fr
 import { Route as UsernameSiteSiteIdPagePageIdDrawerBrickBrickIdRouteImport } from './routes/$username.site.$siteId.page.$pageId._drawer.brick.$brickId'
 import { Route as UsernameSiteSiteIdPagePageIdDrawerModulesIndexRouteImport } from './routes/$username.site.$siteId.page.$pageId._drawer.modules.index'
 import { Route as UsernameSiteSiteIdPagePageIdDrawerModulesModuleIdRouteImport } from './routes/$username.site.$siteId.page.$pageId._drawer.modules.$moduleId'
+import { Route as UsernameSiteSiteIdPagePageIdDrawerStackStackIdRouteImport } from './routes/$username.site.$siteId.page.$pageId._drawer.stack.$stackId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -102,6 +103,12 @@ const UsernameSiteSiteIdPagePageIdDrawerModulesModuleIdRoute =
     path: '/modules/$moduleId',
     getParentRoute: () => UsernameSiteSiteIdPagePageIdDrawerRoute,
   } as any)
+const UsernameSiteSiteIdPagePageIdDrawerStackStackIdRoute =
+  UsernameSiteSiteIdPagePageIdDrawerStackStackIdRouteImport.update({
+    id: '/stack/$stackId',
+    path: '/stack/$stackId',
+    getParentRoute: () => UsernameSiteSiteIdPagePageIdDrawerRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -116,6 +123,7 @@ export interface FileRoutesByFullPath {
   '/$username/site/$siteId/page/$pageId/site-settings': typeof UsernameSiteSiteIdPagePageIdDrawerSiteSettingsRoute
   '/$username/site/$siteId/page/$pageId/brick/$brickId': typeof UsernameSiteSiteIdPagePageIdDrawerBrickBrickIdRoute
   '/$username/site/$siteId/page/$pageId/modules/$moduleId': typeof UsernameSiteSiteIdPagePageIdDrawerModulesModuleIdRoute
+  '/$username/site/$siteId/page/$pageId/stack/$stackId': typeof UsernameSiteSiteIdPagePageIdDrawerStackStackIdRoute
   '/$username/site/$siteId/page/$pageId/modules/': typeof UsernameSiteSiteIdPagePageIdDrawerModulesIndexRoute
 }
 export interface FileRoutesByTo {
@@ -128,6 +136,7 @@ export interface FileRoutesByTo {
   '/$username/site/$siteId/page/$pageId/site-settings': typeof UsernameSiteSiteIdPagePageIdDrawerSiteSettingsRoute
   '/$username/site/$siteId/page/$pageId/brick/$brickId': typeof UsernameSiteSiteIdPagePageIdDrawerBrickBrickIdRoute
   '/$username/site/$siteId/page/$pageId/modules/$moduleId': typeof UsernameSiteSiteIdPagePageIdDrawerModulesModuleIdRoute
+  '/$username/site/$siteId/page/$pageId/stack/$stackId': typeof UsernameSiteSiteIdPagePageIdDrawerStackStackIdRoute
   '/$username/site/$siteId/page/$pageId/modules': typeof UsernameSiteSiteIdPagePageIdDrawerModulesIndexRoute
 }
 export interface FileRoutesById {
@@ -145,6 +154,7 @@ export interface FileRoutesById {
   '/$username/site/$siteId/page/$pageId/_drawer/site-settings': typeof UsernameSiteSiteIdPagePageIdDrawerSiteSettingsRoute
   '/$username/site/$siteId/page/$pageId/_drawer/brick/$brickId': typeof UsernameSiteSiteIdPagePageIdDrawerBrickBrickIdRoute
   '/$username/site/$siteId/page/$pageId/_drawer/modules/$moduleId': typeof UsernameSiteSiteIdPagePageIdDrawerModulesModuleIdRoute
+  '/$username/site/$siteId/page/$pageId/_drawer/stack/$stackId': typeof UsernameSiteSiteIdPagePageIdDrawerStackStackIdRoute
   '/$username/site/$siteId/page/$pageId/_drawer/modules/': typeof UsernameSiteSiteIdPagePageIdDrawerModulesIndexRoute
 }
 export interface FileRouteTypes {
@@ -162,6 +172,7 @@ export interface FileRouteTypes {
     | '/$username/site/$siteId/page/$pageId/site-settings'
     | '/$username/site/$siteId/page/$pageId/brick/$brickId'
     | '/$username/site/$siteId/page/$pageId/modules/$moduleId'
+    | '/$username/site/$siteId/page/$pageId/stack/$stackId'
     | '/$username/site/$siteId/page/$pageId/modules/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -174,6 +185,7 @@ export interface FileRouteTypes {
     | '/$username/site/$siteId/page/$pageId/site-settings'
     | '/$username/site/$siteId/page/$pageId/brick/$brickId'
     | '/$username/site/$siteId/page/$pageId/modules/$moduleId'
+    | '/$username/site/$siteId/page/$pageId/stack/$stackId'
     | '/$username/site/$siteId/page/$pageId/modules'
   id:
     | '__root__'
@@ -190,6 +202,7 @@ export interface FileRouteTypes {
     | '/$username/site/$siteId/page/$pageId/_drawer/site-settings'
     | '/$username/site/$siteId/page/$pageId/_drawer/brick/$brickId'
     | '/$username/site/$siteId/page/$pageId/_drawer/modules/$moduleId'
+    | '/$username/site/$siteId/page/$pageId/_drawer/stack/$stackId'
     | '/$username/site/$siteId/page/$pageId/_drawer/modules/'
   fileRoutesById: FileRoutesById
 }
@@ -298,6 +311,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof UsernameSiteSiteIdPagePageIdDrawerModulesModuleIdRouteImport
       parentRoute: typeof UsernameSiteSiteIdPagePageIdDrawerRoute
     }
+    '/$username/site/$siteId/page/$pageId/_drawer/stack/$stackId': {
+      id: '/$username/site/$siteId/page/$pageId/_drawer/stack/$stackId'
+      path: '/stack/$stackId'
+      fullPath: '/$username/site/$siteId/page/$pageId/stack/$stackId'
+      preLoaderRoute: typeof UsernameSiteSiteIdPagePageIdDrawerStackStackIdRouteImport
+      parentRoute: typeof UsernameSiteSiteIdPagePageIdDrawerRoute
+    }
   }
 }
 
@@ -306,6 +326,7 @@ interface UsernameSiteSiteIdPagePageIdDrawerRouteChildren {
   UsernameSiteSiteIdPagePageIdDrawerSiteSettingsRoute: typeof UsernameSiteSiteIdPagePageIdDrawerSiteSettingsRoute
   UsernameSiteSiteIdPagePageIdDrawerBrickBrickIdRoute: typeof UsernameSiteSiteIdPagePageIdDrawerBrickBrickIdRoute
   UsernameSiteSiteIdPagePageIdDrawerModulesModuleIdRoute: typeof UsernameSiteSiteIdPagePageIdDrawerModulesModuleIdRoute
+  UsernameSiteSiteIdPagePageIdDrawerStackStackIdRoute: typeof UsernameSiteSiteIdPagePageIdDrawerStackStackIdRoute
   UsernameSiteSiteIdPagePageIdDrawerModulesIndexRoute: typeof UsernameSiteSiteIdPagePageIdDrawerModulesIndexRoute
 }
 
@@ -319,6 +340,8 @@ const UsernameSiteSiteIdPagePageIdDrawerRouteChildren: UsernameSiteSiteIdPagePag
       UsernameSiteSiteIdPagePageIdDrawerBrickBrickIdRoute,
     UsernameSiteSiteIdPagePageIdDrawerModulesModuleIdRoute:
       UsernameSiteSiteIdPagePageIdDrawerModulesModuleIdRoute,
+    UsernameSiteSiteIdPagePageIdDrawerStackStackIdRoute:
+      UsernameSiteSiteIdPagePageIdDrawerStackStackIdRoute,
     UsernameSiteSiteIdPagePageIdDrawerModulesIndexRoute:
       UsernameSiteSiteIdPagePageIdDrawerModulesIndexRoute,
   }

@@ -189,6 +189,25 @@ and clicks following a text-selection drag do not select. The existing Edit menu
 remains the keyboard-accessible selection action; selection adds no tab stop or
 button role around interactive Brick content.
 
+Clicking the keyboard-accessible name button in StackAction opens Stack Details
+and replaces Brick selection. The route owns the selected Stack, so reload and
+Back/Forward restore it. A selected Stack has a 1px blue border overlay above its
+Brick content and below its name tab. The overlay ignores pointer events and keeps
+the name tab visible without changing layout or drop geometry. Missing or mismatched
+Stack routes show Stack not found.
+
+Stack Details edits only the name in the current breakpoint's Wall. Save trims
+whitespace, rejects blank names, and remains in the drawer; unchanged names cannot
+be saved. Cancel restores the saved name without closing. Selecting the same
+Stack preserves the draft; leaving the drawer or switching breakpoints discards
+it. Breakpoint changes leave the Stack route instead of selecting an unrelated
+Stack in the next Wall.
+
+`renameStack@1` checks authenticated ownership and current Wall membership, then
+updates only the embedded Stack's name. Stack IDs, Rows, Placements, and other
+Walls are preserved. The browser pins user owner V4 and web actor V4; owner V3 is
+retained for history. Models are unchanged and no storage reset is required.
+
 `BrickWrapper` owns intrinsic height and self-contained flat/card appearance.
 Its outer surface allows visible overflow. Its internal `.brick-content` layer
 owns content clipping, inherited corner rounding, and the query container.
@@ -198,7 +217,7 @@ clipping layer, and BrickAction at 20. StackAction retains its existing z-index
 surface without editor actions or an added edge. The separate native pointer
 image retains its 2px `#1F9BFC` edge, with no halos or card shadow.
 
-Selected means a Brick's edit form is open. Active means DOM focus, including
+Selected means a Brick's edit form or a Stack's name editor is open. Active means DOM focus, including
 keyboard focus. A shared 1px `#1F9BFC` content stroke and sharp same-blue halos
 (30% opacity outside and 15% inside) decorate hover, focus, and selection without
 changing layout. Selection can keep that content paint while focus is in the
@@ -207,6 +226,10 @@ actual Brick hover or focus within; it has no selected/menu override or permanen
 coarse-pointer fallback. StackAction retains its own left placement, Stack scope,
 and existing coarse-pointer behavior. Both action surfaces use blue backgrounds
 and white text/icons.
+
+The Brick menu matches Fragment's compact dropdown: square pale-gray popup,
+15px monospace text, tightly padded 20px rows, white highlights, and a hard offset
+shadow. Delete retains its destructive color.
 
 On hover-capable fine pointers, the whole Placement temporarily rises above
 neighboring Bricks at z-index 1, across Rows, Stacks, and Sections. Hover ending
@@ -256,8 +279,10 @@ GitHub Activity its calendar scrolling/fades, and Link its wrapping copy column.
 ## Persistence and publication
 
 All saved creates, updates, moves, and deletes occur through registered commands.
-The browser session pins user owner release V3, web actor V3, `addBrick@3`, and
-`updateBrick@3` together. The hard cutover removes obsolete supported
+The browser session pins user owner release V4 and web actor V4, with
+`renameStack@1` alongside unchanged `addBrick@3` and `updateBrick@3`.
+Owner V3 remains registered for history; the name editor changes no models and
+requires no storage reset. The earlier Swatch creation cutover removed obsolete
 creation paths and adapters rather than preserving null Swatches. The authorized
 local reset first backs up QRK's Zerospin development storage and leaves remote
 data, API storage, and credentials untouched.

@@ -6,7 +6,13 @@ import { Button } from "../../components/ui/button";
 import { BrickAction } from "../../components/BrickAction";
 
 export function WallPlacement(props: {
-  placement: { id: string; brickId: string; minWidth: number; content: ReactNode };
+  placement: {
+    id: string;
+    brickId: string;
+    defaultWidth: number;
+    minWidth: number;
+    content: ReactNode;
+  };
   scope: string;
   brickGap: number;
   selected: boolean;
@@ -20,9 +26,13 @@ export function WallPlacement(props: {
   return (
     <div
       data-wall-placement-id={placement.id}
-      style={{ minWidth: placement.minWidth + brickGap, padding: brickGap / 2 }}
+      style={{
+        flex: `0 1 ${placement.defaultWidth + brickGap}px`,
+        minWidth: placement.minWidth + brickGap,
+        padding: brickGap / 2,
+      }}
       className={cn(
-        "wall-placement group/brick relative flex-1 after:pointer-events-none after:absolute after:-inset-[0.5px] after:z-[18] after:border after:content-[''] focus-within:after:z-[19] focus-within:after:border-blue-500",
+        "wall-placement group/brick relative after:pointer-events-none after:absolute after:-inset-[0.5px] after:z-[18] after:border after:content-[''] focus-within:after:z-[19] focus-within:after:border-blue-500",
         selected && "is-selected",
         menuOpen && "is-menu-open",
         menuOpen ? "after:z-[19] after:border-blue-500" : "after:border-transparent",

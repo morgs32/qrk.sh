@@ -19,16 +19,6 @@
   --wall-frame-radius: 16px;
 }
 
-/* The translucent Brick occupies insertion space and keeps its host targetable. */
-.wall-shadow-placeholder::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border: 2px solid #282824;
-  z-index: 19;
-  pointer-events: none;
-}
-
 /* Cover the top scroll gutter without clipping the preview or changing its height. */
 .wall-preview-chrome {
   box-shadow: 0 calc(-1 * var(--wall-preview-top-gap, 24px)) 0 white;
@@ -122,6 +112,11 @@
 }
 
 @media (hover: hover) and (pointer: fine) {
+  /* Lift the entire placement above neighboring bricks during hover. */
+  .wall-placement:hover {
+    z-index: 1;
+  }
+
   [data-drawer-module-id]:hover::after,
   .wall-placement:hover > .wall-placement-content::after {
     opacity: 1;

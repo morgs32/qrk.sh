@@ -385,7 +385,7 @@ to leave insertion feedback visible. Its detached container retains the source's
 font, text color, and Brick theme. The floating copy keeps a 2px `#1F9BFC`
 edge without relying on hover, removes interaction halos and card shadows, and
 hides editor action controls. This pointer-following image is distinct from the
-borderless insertion shadow on the Wall. PagePreview owns production drop targeting;
+borderless insertion shadow on the Wall. WallEditor owns production drop targeting;
 saved Wall Bricks remain undraggable. Module Page limits apply before accepting
 any destination. Compatible Rows use top/bottom quarters for new Rows and their
 middle half for left/right Placement insertion. Incompatible Rows use top/bottom
@@ -399,24 +399,35 @@ in a Stack, or the first slot in an empty Wall. Its content is inert and ignores
 pointer events; its host accepts drops at the visible slot's stable
 before-Placement or before-Row destination. No thin-line or rectangle indicator
 variants remain.
-Each Row's instruction height is captured at drag start while its top follows
-the current Row, preventing a taller shadow from changing combine/reorder
-targeting. Temporary space clears on drop, cancellation, or outside movement
-without persisted fake Rows. Capacity checks and the existing drop command path
-apply to the shadow's destination.
+Each Row's drop-target wrapper contains its real content and its owned
+before/after shadow. Local feedback retains the owning Row separately from the
+canonical before-Row destination: after Row A remains owned by A even when its
+command destination is before Row B. Both Row instructions and Placement
+eligibility use the wrapper's top and the natural Row height captured at drag
+start. Moving the shadow therefore does not move its own combine/reorder
+boundaries. The shadow retains its own drop target and committed destination;
+stickiness is unchanged. Temporary space clears on drop, cancellation, or outside
+movement without persisted fake Rows. Capacity checks and the existing drop
+command path apply to the shadow's destination. The [source research](../../../wiki/research/pragmatic-drag-shadow-stability.md)
+records the library example and the adaptation for combine zones.
 The Wall ends with a white, right-aligned “powered by qrk.sh” footer with
 an inset top divider and `qrk.sh` in Silkscreen. Its text line boxes are vertically
 centered in a 64px footer, matching the site navbar; the divider does not consume layout space. It sits at
 the bottom of short Walls and follows content on long Walls.
 The Wall background is light orange (`#E6AA80`, a 50% white tint of `#CC5500`), except for the existing empty-Wall
 drag highlight. `Site.brickGap` sets the space between Bricks in whole pixels
-from 0 to 12, defaulting to 1. SiteSettings saves it through `updateSiteSettings`,
+from 0 to 12, defaulting to 0. SiteSettings saves it through `updateSiteSettings`,
 whose guard rejects values outside that range. Each Placement and insertion
 shadow uses half the gap as padding. The content-height Wall wrapper offsets
 the outer inset so Bricks sit flush with the Wall edges at every gap size.
 The full-width preview frame has no border. Its centered sections share real
 1px zinc side borders owned by PreviewSection; the browser bar uses a real top
 border rather than an outside ring.
+Square white backing rows behind the 48px chrome and 64px footer mask Wall
+content around their rounded corners. Zero-blur white shadows cover the adjacent
+vertical gaps without changing the scroll extent. Chrome stays sticky above the
+navbar; the footer stays in normal flow above Wall decorations. Side gutters
+remain unclipped for editor controls and drag feedback.
 Placement and insertion-shadow cells share `flex: 0 1 auto`; their inline
 preferred width and minimum width each include the configured gap. The two
 half-gap padding insets preserve content width. Empty-Wall insertion retains its
@@ -518,6 +529,16 @@ it does not force BrickAction visible. Placement hitboxes remain stationary.
 The separate outer Placement stroke is reserved for its open portal menu;
 keyboard focus reveals the shared content decoration instead. The menu portal
 can take focus outside the Brick, so that outer indication retains its own owner.
+
+On hover-capable fine pointers, the whole Placement temporarily rises above
+neighboring Bricks at z-index 1, across Rows, Stacks, and Sections. Hover ending
+restores normal stacking. Stack controls, browser chrome, menus, and floating
+toolbars remain above it; focus, selection, and open-menu state do not raise it.
+Placement isolation, internal decoration ordering, and viewport clipping remain.
+Editor styling uses `.wall-placement` with `.is-selected` and `.is-menu-open`;
+Storybook scopes Placement styling through `.wall-story .wall-placement`.
+These class hooks replace editor-owned data attributes. Library state,
+password-manager hints, and unrelated module attributes retain their owners.
 
 `BrickAction` owns the top-right editor control surface for placed and catalog
 Bricks. It is visible only while its Brick is hovered or contains DOM focus.

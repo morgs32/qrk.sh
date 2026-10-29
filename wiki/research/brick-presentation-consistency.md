@@ -59,7 +59,9 @@ same rounded blue decoration; selected-only retains the content stroke while
 hiding actions. Story plays cover focus/menu transfer and Escape return, native
 2px-blue/no-halo images, borderless 40%-opacity inert insertion copies, crowded
 Rows, empty Walls, and cancellation. Default, Empty Wall, and Vertical Drawer
-also render with the existing local public Mapbox configuration.
+also render with the existing local public Mapbox configuration. After integrating
+current main, the click-selection and row-owned shadow stability regression stories
+also pass; their production handlers remain owned by the baseline editor code.
 
 **Remaining work:** None.
 

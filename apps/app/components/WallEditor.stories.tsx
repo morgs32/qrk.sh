@@ -377,7 +377,7 @@ const meta = {
   parameters: { layout: "fullscreen" },
   args: {
     emptyWall: false,
-    brickGap: 1,
+    brickGap: 0,
     stickyNavbar: true,
     borderWidth: 0,
     cardStyle: false,
@@ -772,6 +772,85 @@ export const ShadowBrick: StoryObj<typeof meta> = {
           1,
         );
       }
+    }
+  },
+};
+
+/** A stationary pointer must keep its destination as the shadow changes layout. */
+export const ShadowStability: StoryObj<typeof meta> = {
+  args: { brickGap: 0 },
+  play: async ({ canvasElement }) => {
+    const document = canvasElement.ownerDocument;
+    await document.fonts.ready;
+    await waitFor(
+      () =>
+        expect(
+          canvasElement.querySelector(
+            '[data-drawer-module-id="swatch-and-icon"][draggable="true"]',
+          ),
+        ).not.toBeNull(),
+      { timeout: 10000 },
+    );
+    const source = canvasElement.querySelector<HTMLElement>(
+      '[data-drawer-module-id="swatch-and-icon"]',
+    );
+    // The default fixture's final Row contains one Swatch.
+    const row = Array.from(canvasElement.querySelectorAll<HTMLElement>("[data-wall-row-id]")).at(
+      -1,
+    );
+    const placement = row?.querySelector<HTMLElement>("[data-wall-placement-id]");
+    const contentRow = placement?.parentElement;
+    if (
+      source === null ||
+      row === undefined ||
+      placement === null ||
+      placement === undefined ||
+      !contentRow
+    )
+      throw new Error("Missing singleton Swatch fixture");
+    source.scrollIntoView({ block: "nearest", inline: "nearest" });
+    const sourceBox = source.getBoundingClientRect();
+    const rowBox = row.getBoundingClientRect();
+    const clientX = Math.min(placement.getBoundingClientRect().right + 8, rowBox.right - 1);
+    expect(clientX).toBeLessThan(rowBox.right);
+
+    try {
+      for (const { position, fraction } of [
+        { position: "before", fraction: 1 / 8 },
+        { position: "after", fraction: 7 / 8 },
+        { position: "combine", fraction: 1 / 2 },
+      ]) {
+        const dataTransfer = new DataTransfer();
+        fireEvent.dragStart(source, {
+          dataTransfer,
+          clientX: sourceBox.x + 8,
+          clientY: sourceBox.y + 8,
+        });
+        await waitFor(() => expect(source.classList.contains("opacity-40")).toBe(true));
+        const clientY = rowBox.top + rowBox.height * fraction;
+
+        for (let repetition = 0; repetition < 4; repetition += 1) {
+          // Re-hit-test after every layout change, just as the browser does.
+          const target = document.elementFromPoint(clientX, clientY);
+          if (target === null) throw new Error("Missing fixed-pointer drag target");
+          fireEvent.dragOver(target, { dataTransfer, clientX, clientY });
+          await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+          await waitFor(() => {
+            const shadow = row.querySelector(".wall-shadow-placeholder");
+            expect(shadow).not.toBeNull();
+            if (position === "before") expect(shadow?.nextElementSibling).toBe(contentRow);
+            else if (position === "after") expect(shadow?.previousElementSibling).toBe(contentRow);
+            else expect(shadow?.parentElement).toBe(contentRow);
+          });
+        }
+
+        fireEvent.dragEnd(source, { dataTransfer });
+        await waitFor(() =>
+          expect(canvasElement.querySelector(".wall-shadow-placeholder")).toBeNull(),
+        );
+      }
+    } finally {
+      fireEvent.dragEnd(source);
     }
   },
 };

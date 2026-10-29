@@ -23,6 +23,16 @@
   --wall-frame-radius: 16px;
 }
 
+/* Cover the top scroll gutter without clipping the preview or changing its height. */
+.wall-preview-chrome {
+  box-shadow: 0 calc(-1 * var(--wall-preview-top-gap, 24px)) 0 white;
+}
+
+/* Keep the bottom scroll gutter white below the normal-flow footer. */
+.wall-preview-footer {
+  box-shadow: 0 var(--wall-preview-bottom-gap, 24px) 0 white;
+}
+
 .qrk-responsive-insets {
   --qrk-inset-inline: 16px;
   --qrk-inset-block: 16px;
@@ -109,6 +119,7 @@
 }
 
 @media (hover: hover) and (pointer: fine) {
+  /* Lift the entire placement above neighboring bricks during hover. */
   .wall-placement:hover {
     z-index: 1;
   }

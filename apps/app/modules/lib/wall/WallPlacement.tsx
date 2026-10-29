@@ -37,7 +37,35 @@ export function WallPlacement(props: {
         menuOpen && "is-menu-open",
       )}
     >
-      <div className="wall-placement-content relative z-20 min-w-0 w-full">
+      <div
+        className="wall-placement-content relative z-20 min-w-0 w-full"
+        onClick={(event) => {
+          if (
+            event.defaultPrevented ||
+            event.button !== 0 ||
+            event.altKey ||
+            event.ctrlKey ||
+            event.metaKey ||
+            event.shiftKey ||
+            !(event.target instanceof Element) ||
+            // Portaled menu events bubble through React, outside this DOM subtree.
+            !event.currentTarget.contains(event.target) ||
+            event.target.closest(
+              'a, button, input, textarea, select, label, summary, [contenteditable]:not([contenteditable="false"]), [role="button"], [role="link"], [role^="menuitem"], audio, video, canvas',
+            )
+          )
+            return;
+          const selection = event.currentTarget.ownerDocument.getSelection();
+          if (
+            selection !== null &&
+            !selection.isCollapsed &&
+            selection.rangeCount > 0 &&
+            selection.getRangeAt(0).intersectsNode(event.currentTarget)
+          )
+            return;
+          onEditBrick?.(placement.brickId);
+        }}
+      >
         <BrickAction>
           <Menu.Root open={menuOpen} onOpenChange={setMenuOpen}>
             <Menu.Trigger

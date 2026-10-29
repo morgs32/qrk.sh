@@ -126,10 +126,16 @@ of the drawer's complete `BrickWrapper` surface, without an added border, outlin
 or halo, without rerendering its module or reading providers. The shadow occupies a Placement slot in a Row, a new Row
 in a Stack, or the first slot in an empty Wall. Its content is inert and ignores
 pointer events; its host accepts drops at the visible slot's stable
-before-Placement or before-Row destination. Each Row's instruction height is
-captured at drag start while its top follows the current Row, preventing a
-taller shadow from switching combine/reorder targeting. Temporary space clears
-on drop, cancellation, or outside movement without persisted fake Rows.
+before-Placement or before-Row destination. Each Row's drop-target wrapper owns
+its real content and its before/after shadow. Local feedback keeps the owning
+Row separate from the canonical before-Row destination, so after Row A remains
+owned by A even when the command names Row B. Both Row instructions and Placement
+eligibility use the enclosing wrapper's top and the natural Row height captured
+at drag start. The shadow can move its content without moving its own
+combine/reorder boundaries. Its own drop target and committed destination remain;
+stickiness is unchanged. Temporary space clears on drop, cancellation, or outside
+movement without persisted fake Rows. See the [library source research](./research/pragmatic-drag-shadow-stability.md)
+for the enclosing-target pattern and its combine-zone adaptation.
 
 Feedback and drop commands use the same stable insertion destination. Hover
 writes no model data; cancellation, outside drops, invalid source data, and stale
@@ -174,6 +180,15 @@ representations and use scenario-valid fixture controls. The old hover-study
 gallery and its mock stylesheet are removed; production components own paint.
 Backend move commands remain available independently of the canvas.
 
+Clicking ordinary placed-Brick content opens its edit form through the existing
+route-owned selection. Clicking an already selected Brick keeps it selected.
+Links, buttons, form controls, editable content, media controls, and action-menu
+controls keep their own interactions without selecting. MapCanvas owns its click
+boundary so map gestures and controls remain usable. Modified or prevented clicks
+and clicks following a text-selection drag do not select. The existing Edit menu
+remains the keyboard-accessible selection action; selection adds no tab stop or
+button role around interactive Brick content.
+
 `BrickWrapper` owns intrinsic height and self-contained flat/card appearance.
 Its outer surface allows visible overflow. Its internal `.brick-content` layer
 owns content clipping, inherited corner rounding, and the query container.
@@ -193,14 +208,20 @@ coarse-pointer fallback. StackAction retains its own left placement, Stack scope
 and existing coarse-pointer behavior. Both action surfaces use blue backgrounds
 and white text/icons.
 
+On hover-capable fine pointers, the whole Placement temporarily rises above
+neighboring Bricks at z-index 1, across Rows, Stacks, and Sections. Hover ending
+restores normal stacking. Stack controls, browser chrome, menus, and floating
+toolbars remain above it; focus, selection, and open-menu state do not raise it.
+Placement isolation, internal decoration ordering, and viewport clipping remain.
+
 The Placement's noninteractive outer stroke, outset 0.5px, remains reserved for
 an open portal menu because the portal can take DOM focus outside the Brick.
 Focus uses the shared content decoration. Edit/Delete menus remain keyboard
 accessible; Delete confirmation supports cancellation and restores focus to its
 trigger or a surviving control. Each outer Row uses `flow-root` to contain its
 flex element's -0.5px margin; 0.5px padding and a 49px minimum retain the Row's
-48px outer minimum without changing Placement padding, minimum widths, or drop
-geometry.
+48px outer minimum, content positions and widths, scroll range, Placement
+padding/minimum widths, and drop geometry.
 Container deletion, hiding, resizing, and production zoom remain outside the
 feature. The separate `/dev/page/<pageId>/<breakpoint>` route is removed; its
 historical implementation is recorded in

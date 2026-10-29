@@ -8,6 +8,7 @@ import { combine } from "@atlaskit/pragmatic-drag-and-drop/combine";
 import {
   dropTargetForElements,
   monitorForElements,
+  type ElementEventBasePayload,
 } from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
 import {
   attachClosestEdge,
@@ -51,7 +52,11 @@ export function WallEditor(props: {
   const returnFocusId = useRef<string | null>(null);
   const scope = useId();
   const [deletingBrickId, setDeletingBrickId] = useState<string | null>(null);
-  const [dropTarget, setDropTarget] = useState<typeof wallInsertionTargetSchema.Type | null>(null);
+  const [dropFeedback, setDropFeedback] = useState<{
+    target: typeof wallInsertionTargetSchema.Type;
+    ownerRowId: string | null;
+  } | null>(null);
+  const dropTarget = dropFeedback?.target ?? null;
   const [shadowSource, setShadowSource] = useState<{
     element: HTMLElement;
     moduleId: keyof typeof modulesHash;
@@ -112,6 +117,30 @@ export function WallEditor(props: {
     const element = wallRef.current;
     if (element === null) throw new Error("Missing Wall editor");
     const { sections } = makeWallLayoutView({ wall });
+    const onDrag = (props: ElementEventBasePayload) => {
+      const { location } = props;
+      const innermost = location.current.dropTargets[0];
+      const target = Schema.decodeUnknownResult(wallInsertionTargetSchema)(innermost?.data);
+      if (Result.isFailure(target) || target.success.wallId !== wall.id) {
+        setDropFeedback(null);
+        return;
+      }
+      const ownerRowId =
+        innermost?.element.closest("[data-wall-row-id]")?.getAttribute("data-wall-row-id") ?? null;
+      setDropFeedback((current) => ({
+        target: target.success,
+        // After A and before B share a command target; keep the visible seam's owner.
+        ownerRowId:
+          ownerRowId !== null &&
+          current?.ownerRowId !== null &&
+          current?.target.kind === "stack" &&
+          target.success.kind === "stack" &&
+          current.target.stackId === target.success.stackId &&
+          current.target.beforeRowId === target.success.beforeRowId
+            ? current.ownerRowId
+            : ownerRowId,
+      }));
+    };
     const cleanups = [
       monitorForElements({
         canMonitor: ({ source }) => Schema.is(DrawerBrickData)(source.data),
@@ -123,24 +152,10 @@ export function WallEditor(props: {
           });
           setShadowSource({ element: source.element, moduleId: source.data.moduleId });
         },
-        onDrag: ({ location }) => {
-          const target = Schema.decodeUnknownResult(wallInsertionTargetSchema)(
-            location.current.dropTargets[0]?.data,
-          );
-          setDropTarget(
-            Result.isSuccess(target) && target.success.wallId === wall.id ? target.success : null,
-          );
-        },
-        onDropTargetChange: ({ location }) => {
-          const target = Schema.decodeUnknownResult(wallInsertionTargetSchema)(
-            location.current.dropTargets[0]?.data,
-          );
-          setDropTarget(
-            Result.isSuccess(target) && target.success.wallId === wall.id ? target.success : null,
-          );
-        },
+        onDrag,
+        onDropTargetChange: onDrag,
         onDrop: ({ source, location }) => {
-          setDropTarget(null);
+          setDropFeedback(null);
           setShadowSource(null);
           shadowRowHeights.current.clear();
           const data = Schema.decodeUnknownResult(DrawerBrickData)(source.data);
@@ -245,7 +260,7 @@ export function WallEditor(props: {
                 });
                 const rect = rowElement.getBoundingClientRect();
                 const height = shadowRowHeights.current.get(rowElement) ?? rect.height;
-                // A tall ghost must not move the Row's original insertion zones.
+                // The enclosing target's top and natural height exclude its own shadow movement.
                 const operation = canCombine
                   ? input.clientY <= rect.top + height / 4
                     ? "reorder-before"
@@ -330,7 +345,7 @@ export function WallEditor(props: {
     }
     return () => {
       combine(...cleanups)();
-      setDropTarget(null);
+      setDropFeedback(null);
       setShadowSource(null);
       shadowRowHeights.current.clear();
     };
@@ -387,78 +402,87 @@ export function WallEditor(props: {
                         </StackAction>
                       ) : null}
                       {stack.rows.map((row) => (
-                        <Fragment key={row.id}>
+                        <div
+                          key={row.id}
+                          data-wall-row-id={row.id}
+                          className="relative flow-root min-w-0"
+                        >
                           {dropTarget?.kind === "stack" &&
                             dropTarget.stackId === stack.id &&
+                            dropFeedback?.ownerRowId === row.id &&
                             dropTarget.beforeRowId === row.id &&
                             shadow}
-                          <div data-wall-row-id={row.id} className="relative flow-root min-w-0">
-                            <div
-                              className={`relative -m-[0.5px] flex min-h-[49px] min-w-0 items-start p-[0.5px] ${row.placements.length === 0 && dropTarget?.kind === "row" && dropTarget.rowId === row.id ? "bg-blue-50 outline outline-blue-500 -outline-offset-2" : ""}`}
-                            >
-                              {row.placements.map((placement) => {
-                                const brick = placement.brick;
-                                const module = modulesHash[brick.moduleId];
-                                const Component = module.component;
-                                return (
-                                  <Fragment key={placement.id}>
-                                    {dropTarget?.kind === "row" &&
-                                      dropTarget.rowId === row.id &&
-                                      dropTarget.beforePlacementId === placement.id &&
-                                      shadow}
-                                    <WallPlacement
-                                      scope={scope}
-                                      brickGap={brickGap}
-                                      selected={brick.id === selectedBrickId}
-                                      onEditBrick={onEditBrick}
-                                      onRequestDelete={(brickId, triggerId) => {
-                                        returnFocusId.current = triggerId;
-                                        setDeletingBrickId(brickId);
-                                      }}
-                                      placement={{
-                                        id: placement.id,
-                                        brickId: brick.id,
-                                        defaultWidth:
-                                          module.variants[placement.variantId].defaultWidth,
-                                        minWidth: module.variants[placement.variantId].minWidth,
-                                        content:
-                                          brick.state === null || isNonEmptySpec(placement.spec) ? (
-                                            <div
-                                              className={`brick-surface ${wall.page.site.cardStyle ? "brick-surface-card" : ""} brick-hover-target relative min-w-0`}
+                          <div
+                            className={`relative -m-[0.5px] flex min-h-[49px] min-w-0 items-start p-[0.5px] ${row.placements.length === 0 && dropTarget?.kind === "row" && dropTarget.rowId === row.id ? "bg-blue-50 outline outline-blue-500 -outline-offset-2" : ""}`}
+                          >
+                            {row.placements.map((placement) => {
+                              const brick = placement.brick;
+                              const module = modulesHash[brick.moduleId];
+                              const Component = module.component;
+                              return (
+                                <Fragment key={placement.id}>
+                                  {dropTarget?.kind === "row" &&
+                                    dropTarget.rowId === row.id &&
+                                    dropTarget.beforePlacementId === placement.id &&
+                                    shadow}
+                                  <WallPlacement
+                                    scope={scope}
+                                    brickGap={brickGap}
+                                    selected={brick.id === selectedBrickId}
+                                    onEditBrick={onEditBrick}
+                                    onRequestDelete={(brickId, triggerId) => {
+                                      returnFocusId.current = triggerId;
+                                      setDeletingBrickId(brickId);
+                                    }}
+                                    placement={{
+                                      id: placement.id,
+                                      brickId: brick.id,
+                                      defaultWidth:
+                                        module.variants[placement.variantId].defaultWidth,
+                                      minWidth: module.variants[placement.variantId].minWidth,
+                                      content:
+                                        brick.state === null || isNonEmptySpec(placement.spec) ? (
+                                          <div
+                                            className={`brick-surface ${wall.page.site.cardStyle ? "brick-surface-card" : ""} brick-hover-target relative min-w-0`}
+                                          >
+                                            <BrickWrapper
+                                              borderWidth={brick.borderWidth}
+                                              className="brick-hover-surface h-auto"
                                             >
-                                              <BrickWrapper
-                                                borderWidth={brick.borderWidth}
-                                                className="brick-hover-surface h-auto"
-                                              >
-                                                <Component
-                                                  state={brick.state}
-                                                  variantId={placement.variantId}
-                                                  spec={
-                                                    isNonEmptySpec(placement.spec)
-                                                      ? placement.spec
-                                                      : module.variants[placement.variantId].spec
-                                                  }
-                                                />
-                                              </BrickWrapper>
-                                            </div>
-                                          ) : (
-                                            <p role="alert">Invalid Brick spec</p>
-                                          ),
-                                      }}
-                                    />
-                                  </Fragment>
-                                );
-                              })}
-                              {dropTarget?.kind === "row" &&
-                                dropTarget.rowId === row.id &&
-                                dropTarget.beforePlacementId === null &&
-                                shadow}
-                            </div>
+                                              <Component
+                                                state={brick.state}
+                                                variantId={placement.variantId}
+                                                spec={
+                                                  isNonEmptySpec(placement.spec)
+                                                    ? placement.spec
+                                                    : module.variants[placement.variantId].spec
+                                                }
+                                              />
+                                            </BrickWrapper>
+                                          </div>
+                                        ) : (
+                                          <p role="alert">Invalid Brick spec</p>
+                                        ),
+                                    }}
+                                  />
+                                </Fragment>
+                              );
+                            })}
+                            {dropTarget?.kind === "row" &&
+                              dropTarget.rowId === row.id &&
+                              dropTarget.beforePlacementId === null &&
+                              shadow}
                           </div>
-                        </Fragment>
+                          {dropTarget?.kind === "stack" &&
+                            dropTarget.stackId === stack.id &&
+                            dropFeedback?.ownerRowId === row.id &&
+                            dropTarget.beforeRowId !== row.id &&
+                            shadow}
+                        </div>
                       ))}
                       {dropTarget?.kind === "stack" &&
                         dropTarget.stackId === stack.id &&
+                        dropFeedback?.ownerRowId === null &&
                         dropTarget.beforeRowId === null &&
                         shadow}
                     </div>

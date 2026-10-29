@@ -125,10 +125,16 @@ or halo, without rerendering its module
 or reading providers. The shadow occupies a Placement slot in a Row, a new Row
 in a Stack, or the first slot in an empty Wall. Its content is inert and ignores
 pointer events; its host accepts drops at the visible slot's stable
-before-Placement or before-Row destination. Each Row's instruction height is
-captured at drag start while its top follows the current Row, preventing a
-taller shadow from switching combine/reorder targeting. Temporary space clears
-on drop, cancellation, or outside movement without persisted fake Rows.
+before-Placement or before-Row destination. Each Row's drop-target wrapper owns
+its real content and its before/after shadow. Local feedback keeps the owning
+Row separate from the canonical before-Row destination, so after Row A remains
+owned by A even when the command names Row B. Both Row instructions and Placement
+eligibility use the enclosing wrapper's top and the natural Row height captured
+at drag start. The shadow can move its content without moving its own
+combine/reorder boundaries. Its own drop target and committed destination remain;
+stickiness is unchanged. Temporary space clears on drop, cancellation, or outside
+movement without persisted fake Rows. See the [library source research](./research/pragmatic-drag-shadow-stability.md)
+for the enclosing-target pattern and its combine-zone adaptation.
 
 Feedback and drop commands use the same stable insertion destination. Hover
 writes no model data; cancellation, outside drops, invalid source data, and stale
@@ -171,6 +177,15 @@ prototype stories, styling, and prototype flags are removed, along with thin
 drop indicators. The user chose the shadow approach; visual verification
 remains with the user.
 Backend move commands remain available independently of the canvas.
+
+Clicking ordinary placed-Brick content opens its edit form through the existing
+route-owned selection. Clicking an already selected Brick keeps it selected.
+Links, buttons, form controls, editable content, media controls, and action-menu
+controls keep their own interactions without selecting. MapCanvas owns its click
+boundary so map gestures and controls remain usable. Modified or prevented clicks
+and clicks following a text-selection drag do not select. The existing Edit menu
+remains the keyboard-accessible selection action; selection adds no tab stop or
+button role around interactive Brick content.
 
 Selected means a Brick's edit form is open. Active means DOM focus, including
 keyboard focus. Controls appear on hover, focus, selection, and open menus, with

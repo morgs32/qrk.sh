@@ -339,7 +339,7 @@ const meta = {
   parameters: { layout: "fullscreen" },
   args: {
     emptyWall: false,
-    brickGap: 1,
+    brickGap: 0,
     stickyNavbar: true,
     borderWidth: 0,
     cardStyle: false,

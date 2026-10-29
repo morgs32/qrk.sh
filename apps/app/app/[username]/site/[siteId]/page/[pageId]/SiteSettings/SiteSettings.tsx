@@ -10,7 +10,8 @@ import { ClerkOfflineError } from "@clerk/react/errors";
 import { Schema } from "effect";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { isEqual } from "es-toolkit";
-import { useMemo, useRef, useState } from "react";
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { toast } from "sonner";
 import useSWR from "swr";
 
@@ -22,7 +23,6 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { FieldLabel } from "@/components/ui/field-label";
 import { Input } from "@/components/ui/input";
-import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useUsername } from "@/hooks/useUsername";
@@ -104,6 +104,12 @@ export function SiteSettings(props: {
     brickGap: site.brickGap,
     stickyNavbar: site.stickyNavbar,
   }));
+  const [headerActions, setHeaderActions] = useState<HTMLElement | null>(null);
+  useLayoutEffect(() => {
+    const target = document.getElementById("site-settings-header-actions");
+    if (target === null) throw new Error("Missing Site Settings header actions");
+    setHeaderActions(target);
+  }, []);
   const [saveError, setSaveError] = useState<string | null>(null);
   const isDirty = !isEqual(fields, {
     name: site.name,
@@ -170,6 +176,7 @@ export function SiteSettings(props: {
 
   return (
     <form
+      id="site-settings-form"
       autoComplete="off"
       className="w-full"
       onSubmit={(event) => {
@@ -465,50 +472,40 @@ export function SiteSettings(props: {
             {saveError}
           </p>
         )}
-        <div className="col-span-2 flex items-center gap-2">
-          <Button type="submit" disabled={!isDirty || isUploading}>
-            Save
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => {
-              void navigate({
-                to: "/$username/site/$siteId/page/$pageId",
-                params,
-                search: { breakpoint: search.breakpoint },
-                resetScroll: false,
-              });
-            }}
-          >
-            Cancel
-          </Button>
-        </div>
+        {headerActions === null
+          ? null
+          : createPortal(
+              <div className="flex items-center gap-2">
+                <Button type="submit" form="site-settings-form" disabled={!isDirty || isUploading}>
+                  Save
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    void navigate({
+                      to: "/$username/site/$siteId/page/$pageId",
+                      params,
+                      search: { breakpoint: search.breakpoint },
+                      resetScroll: false,
+                    });
+                  }}
+                >
+                  Cancel
+                </Button>
+              </div>,
+              headerActions,
+            )}
 
-        <Separator className="col-span-2" />
-
-        <div className="col-span-2 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="col-span-2 flex flex-col items-start gap-4">
           <div className="min-w-0">
             <FieldLabel description="Unpublish your website from all domains.">
               Danger Zone
             </FieldLabel>
           </div>
-          {site.isPublished ? (
-            <Button
-              type="button"
-              variant="destructive"
-              className="shrink-0"
-              onClick={() => {
-                stageAggregateSessionCommand({
-                  session,
-                  contractName: "unpublishSite",
-                  payload: { siteId: params.siteId },
-                });
-              }}
-            >
-              Unpublish Site
-            </Button>
-          ) : null}
+          <Button type="button" variant="destructive" disabled>
+            Unpublish
+          </Button>
         </div>
       </div>
     </form>

@@ -32,6 +32,14 @@ pnpm --filter @qrk.sh/app preview
 
 Serves the Vite preview on `PORT` or `10010`.
 
+## Site Settings
+
+Save and Cancel sit at the top right of the drawer header. The form owns both
+actions and its dirty/upload state; Save submits the associated form, and Cancel
+returns to the page while preserving the preview breakpoint.
+Danger Zone shows a disabled Unpublish button below its description; the action
+is not connected yet.
+
 ## Startup timing
 
 Frontend timing is active with the currently installed Zerospin release.

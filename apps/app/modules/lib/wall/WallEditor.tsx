@@ -493,10 +493,12 @@ export function WallEditor(props: {
           )}
           {sections.length === 0 && dropTarget?.kind === "wall" && shadow}
         </PreviewSection>
-        <PreviewSection className="flex h-16 shrink-0 items-center justify-end gap-1 rounded-b-[var(--wall-frame-radius,12px)] bg-white px-3 text-[10px] leading-4 text-black/60 shadow-[inset_0_1px_0_var(--color-zinc-200)]">
-          <span>powered by</span>
-          <span style={{ fontFamily: "Silkscreen, monospace" }}>qrk.sh</span>
-        </PreviewSection>
+        <div className="wall-preview-footer relative z-40 h-16 shrink-0 bg-white">
+          <PreviewSection className="flex h-16 shrink-0 items-center justify-end gap-1 rounded-b-[var(--wall-frame-radius,12px)] bg-white px-3 text-[10px] leading-4 text-black/60 shadow-[inset_0_1px_0_var(--color-zinc-200)]">
+            <span>powered by</span>
+            <span style={{ fontFamily: "Silkscreen, monospace" }}>qrk.sh</span>
+          </PreviewSection>
+        </div>
       </div>
       <Dialog.Root
         open={deletingBrickId !== null}

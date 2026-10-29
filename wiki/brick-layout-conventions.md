@@ -163,9 +163,11 @@ supports cancellation and restores focus to its trigger or a surviving control.
 Placement interaction borders use a noninteractive `::after` overlay outset
 0.5px, centering the stroke on the shared 1px seam. White hover borders use
 z-index 18; blue-500 open-menu and keyboard-focus borders use z-index
-19 so blue wins across neighboring seams. Selection keeps actions visible without
-drawing a border. Both remain below action tabs at
-z-index 20. Each outer Row uses `flow-root` to contain its scroller's -0.5px
+19 so blue wins across neighboring seams. Selection keeps actions visible and
+reveals a separate 1px `#1F9BFC` content border with sharp 1px same-blue halos
+(30% outer opacity, 15% inset) while the Brick's edit form is open. This selection
+decoration does not depend on hover or DOM focus. Both decorations remain below
+action tabs at z-index 20. Each outer Row uses `flow-root` to contain its scroller's -0.5px
 margin; 0.5px padding and a 49px minimum height allow seam-covering paint through
 the clip while preserving the 48px outer minimum, content positions and widths,
 scroll range, Placement padding/minimum widths, and drop geometry.

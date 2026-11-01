@@ -1,6 +1,7 @@
 "use client";
 
 import { Link, useMatches, useNavigate, useSearch } from "@tanstack/react-router";
+import { useHotkey } from "@tanstack/react-hotkeys";
 import { Result, Schema } from "effect";
 import { isEqual } from "es-toolkit";
 import { ArrowLeft, FileText, Globe, Layers, X } from "lucide-react";
@@ -96,6 +97,26 @@ export function DrawerHeader() {
   const moduleId = Result.isSuccess(decodedModule) ? decodedModule.success.moduleId : undefined;
   const moduleLabel = moduleId === undefined ? undefined : modulesHash[moduleId].label;
 
+  const closeDrawer = () => {
+    void navigate({
+      to: "/$username/site/$siteId/page/$pageId",
+      params,
+      search: { breakpoint: search.breakpoint },
+      resetScroll: false,
+    });
+  };
+
+  useHotkey(
+    "Escape",
+    (event) => {
+      // Child overlays consume Escape before the drawer's bubbling listener.
+      if (event.defaultPrevented) return;
+      event.preventDefault();
+      closeDrawer();
+    },
+    { preventDefault: false, requireReset: true },
+  );
+
   return (
     <header className="flex h-full min-w-0 shrink-0 items-center gap-4 overflow-x-auto border-b border-zinc-200 whitespace-nowrap pl-4 pr-2">
       {isSiteSettings || isPageSettings || isStackDetails ? (
@@ -182,14 +203,7 @@ export function DrawerHeader() {
           size="icon"
           className="size-10 cursor-pointer"
           aria-label="Close drawer"
-          onClick={() => {
-            void navigate({
-              to: "/$username/site/$siteId/page/$pageId",
-              params,
-              search: { breakpoint: search.breakpoint },
-              resetScroll: false,
-            });
-          }}
+          onClick={closeDrawer}
         >
           <X className="size-5" aria-hidden />
         </Button>

@@ -2,6 +2,11 @@
 
 App serves the editor at <https://app.qrk.localhost/>.
 
+Workspace drawers use TanStack Hotkeys for Escape dismissal, including while a
+form field is focused. Escape uses the Close button's route transition and keeps
+the current breakpoint. Open menus, popovers, and dialogs consume Escape
+first; the next press closes the workspace drawer.
+
 | Area | Worker                    | Pure manifest           |
 | ---- | ------------------------- | ----------------------- |
 | User | `zerospin/node.worker.ts` | `userSessionDefinition` |

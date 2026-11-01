@@ -170,6 +170,171 @@ export function movePlacementInLayout(props: {
   return Result.succeed(candidate);
 }
 
+/** Move to an existing Row without allocating any layout identities. */
+export function movePlacementToRowInLayout(props: {
+  layout: typeof wallLayoutSchema.Type;
+  placementId: IInferResource<typeof placementV1>["id"];
+  rowId: typeof rowIdSchema.Type;
+  beforePlacementId: IInferResource<typeof placementV1>["id"] | null;
+  stackLimit: number;
+}) {
+  const { layout, placementId, rowId, beforePlacementId, stackLimit } = props;
+  const candidate = structuredClone(layout);
+  const rows = candidate.sections.flatMap((section) =>
+    section.stacks.flatMap((stack) => stack.rows),
+  );
+  const sourceRow = rows.find((row) => row.placementIds.includes(placementId));
+  const destinationRow = rows.find((row) => row.id === rowId);
+  if (sourceRow === undefined) return Result.fail("The Placement no longer belongs to this Wall");
+  if (destinationRow === undefined) return Result.fail("The destination Row no longer exists");
+  if (beforePlacementId !== null && !destinationRow.placementIds.includes(beforePlacementId))
+    return Result.fail("The Placement insertion point no longer exists");
+  const sourceIndex = sourceRow.placementIds.indexOf(placementId);
+  if (
+    sourceRow === destinationRow &&
+    (beforePlacementId === placementId ||
+      beforePlacementId === (sourceRow.placementIds[sourceIndex + 1] ?? null))
+  )
+    return Result.succeed(layout);
+  sourceRow.placementIds.splice(sourceIndex, 1);
+  const position =
+    beforePlacementId === null
+      ? destinationRow.placementIds.length
+      : destinationRow.placementIds.indexOf(beforePlacementId);
+  destinationRow.placementIds.splice(position, 0, placementId);
+  pruneEmptyContainers(candidate);
+  if (candidate.sections.some((section) => section.stacks.length > stackLimit))
+    return Result.fail("This Section has reached its Stack limit");
+  return Result.succeed(candidate);
+}
+
+/** Create one named Row identity at the selected Stack position and move into it. */
+export function movePlacementToNewRowInLayout(props: {
+  layout: typeof wallLayoutSchema.Type;
+  placementId: IInferResource<typeof placementV1>["id"];
+  stackId: typeof stackIdSchema.Type;
+  newRowId: typeof rowIdSchema.Type;
+  beforeRowId: typeof rowIdSchema.Type | null;
+  stackLimit: number;
+}) {
+  const { layout, placementId, stackId, newRowId, beforeRowId, stackLimit } = props;
+  const candidate = structuredClone(layout);
+  const stacks = candidate.sections.flatMap((section) => section.stacks);
+  const sourceRow = stacks
+    .flatMap((stack) => stack.rows)
+    .find((row) => row.placementIds.includes(placementId));
+  const destinationStack = stacks.find((stack) => stack.id === stackId);
+  if (sourceRow === undefined) return Result.fail("The Placement no longer belongs to this Wall");
+  if (destinationStack === undefined) return Result.fail("The destination Stack no longer exists");
+  if (beforeRowId !== null && !destinationStack.rows.some((row) => row.id === beforeRowId))
+    return Result.fail("The Row insertion point no longer exists");
+  const nodeIds = new Set(
+    candidate.sections.flatMap((section) => [
+      section.id,
+      ...section.stacks.flatMap((stack) => [stack.id, ...stack.rows.map((row) => row.id)]),
+    ]),
+  );
+  if (nodeIds.has(newRowId)) return Result.fail("The new Row ID already belongs to this Wall");
+  sourceRow.placementIds.splice(sourceRow.placementIds.indexOf(placementId), 1);
+  const position =
+    beforeRowId === null
+      ? destinationStack.rows.length
+      : destinationStack.rows.findIndex((row) => row.id === beforeRowId);
+  destinationStack.rows.splice(position, 0, { id: newRowId, placementIds: [placementId] });
+  pruneEmptyContainers(candidate);
+  if (candidate.sections.some((section) => section.stacks.length > stackLimit))
+    return Result.fail("This Section has reached its Stack limit");
+  return Result.succeed(candidate);
+}
+
+/** Append a new Stack with its explicit first Row and move into that Row. */
+export function movePlacementToNewStackInLayout(props: {
+  layout: typeof wallLayoutSchema.Type;
+  placementId: IInferResource<typeof placementV1>["id"];
+  sectionId: typeof sectionIdSchema.Type;
+  newStackId: typeof stackIdSchema.Type;
+  newRowId: typeof rowIdSchema.Type;
+  stackLimit: number;
+}) {
+  const { layout, placementId, sectionId, newStackId, newRowId, stackLimit } = props;
+  const candidate = structuredClone(layout);
+  const sourceRow = candidate.sections
+    .flatMap((section) => section.stacks)
+    .flatMap((stack) => stack.rows)
+    .find((row) => row.placementIds.includes(placementId));
+  const destinationSection = candidate.sections.find((section) => section.id === sectionId);
+  if (sourceRow === undefined) return Result.fail("The Placement no longer belongs to this Wall");
+  if (destinationSection === undefined)
+    return Result.fail("The destination Section no longer exists");
+  const nodeIds = new Set(
+    candidate.sections.flatMap((section) => [
+      section.id,
+      ...section.stacks.flatMap((stack) => [stack.id, ...stack.rows.map((row) => row.id)]),
+    ]),
+  );
+  if (nodeIds.has(newStackId) || nodeIds.has(newRowId))
+    return Result.fail("New layout IDs must be distinct and unused in this Wall");
+  sourceRow.placementIds.splice(sourceRow.placementIds.indexOf(placementId), 1);
+  destinationSection.stacks.push({
+    id: newStackId,
+    name: "Stack",
+    rows: [{ id: newRowId, placementIds: [placementId] }],
+  });
+  pruneEmptyContainers(candidate);
+  if (candidate.sections.some((section) => section.stacks.length > stackLimit))
+    return Result.fail("This Section has reached its Stack limit");
+  return Result.succeed(candidate);
+}
+
+/** Insert an explicit Section/Stack/Row hierarchy and move into its only Row. */
+export function movePlacementToNewSectionInLayout(props: {
+  layout: typeof wallLayoutSchema.Type;
+  placementId: IInferResource<typeof placementV1>["id"];
+  newSectionId: typeof sectionIdSchema.Type;
+  newStackId: typeof stackIdSchema.Type;
+  newRowId: typeof rowIdSchema.Type;
+  beforeSectionId: typeof sectionIdSchema.Type | null;
+  stackLimit: number;
+}) {
+  const { layout, placementId, newSectionId, newStackId, newRowId, beforeSectionId, stackLimit } =
+    props;
+  const candidate = structuredClone(layout);
+  const sourceRow = candidate.sections
+    .flatMap((section) => section.stacks)
+    .flatMap((stack) => stack.rows)
+    .find((row) => row.placementIds.includes(placementId));
+  if (sourceRow === undefined) return Result.fail("The Placement no longer belongs to this Wall");
+  if (
+    beforeSectionId !== null &&
+    !candidate.sections.some((section) => section.id === beforeSectionId)
+  )
+    return Result.fail("The Section insertion point no longer exists");
+  const nodeIds = new Set(
+    candidate.sections.flatMap((section) => [
+      section.id,
+      ...section.stacks.flatMap((stack) => [stack.id, ...stack.rows.map((row) => row.id)]),
+    ]),
+  );
+  const newIds = [newSectionId, newStackId, newRowId];
+  if (new Set(newIds).size !== newIds.length || newIds.some((id) => nodeIds.has(id)))
+    return Result.fail("New layout IDs must be distinct and unused in this Wall");
+  sourceRow.placementIds.splice(sourceRow.placementIds.indexOf(placementId), 1);
+  const position =
+    beforeSectionId === null
+      ? candidate.sections.length
+      : candidate.sections.findIndex((section) => section.id === beforeSectionId);
+  candidate.sections.splice(position, 0, {
+    id: newSectionId,
+    stacks: [
+      { id: newStackId, name: "Stack", rows: [{ id: newRowId, placementIds: [placementId] }] },
+    ],
+  });
+  pruneEmptyContainers(candidate);
+  if (candidate.sections.some((section) => section.stacks.length > stackLimit))
+    return Result.fail("This Section has reached its Stack limit");
+  return Result.succeed(candidate);
+}
+
 export function moveStackInLayout(props: {
   layout: typeof wallLayoutSchema.Type;
   target: typeof stackMoveTargetSchema.Type;

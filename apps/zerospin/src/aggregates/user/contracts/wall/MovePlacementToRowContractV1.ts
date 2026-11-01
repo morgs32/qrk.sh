@@ -1,0 +1,105 @@
+import {
+  ContractError,
+  defineAggregateContract,
+  findFirst,
+  makeAggregateContractRelease,
+  makeIdSchema,
+  modelId,
+  primitives,
+} from "@zerospin/sdk/browser";
+import { Effect, Result, Schema } from "effect";
+import { userClaims } from "../../../../claims";
+import { rowIdSchema } from "../../layout/wallLayoutSchema";
+import { movePlacementToRowInLayout } from "../../layout/wallLayout";
+import { pageV1 as page } from "../../models/page/PageV1";
+import { placementV1 as placement } from "../../models/placement/PlacementV1";
+import { placement as placementIdentity } from "../../models/placement/placement";
+import { siteV1 as site } from "../../models/site/SiteV1";
+import { userV1 as user } from "../../models/user/UserV1";
+import { wallV1 as wall } from "../../models/wall/WallV1";
+
+export const movePlacementToRowV1 = makeAggregateContractRelease(
+  defineAggregateContract("movePlacementToRow"),
+  {
+    version: 1,
+    claims: userClaims,
+    models: { page, placement, site, user, wall },
+    operations: { updateWall: wall.operations.update },
+    payload: {
+      placementId: modelId({ model: placementIdentity }),
+      rowId: primitives.json({ schema: rowIdSchema }),
+      beforePlacementId: primitives.json({
+        schema: Schema.NullOr(makeIdSchema(placementIdentity)),
+      }),
+    },
+    failures: { invalidLayout: ContractError.schema({ code: "move-placement-invalid-layout" }) },
+    program: Effect.fn("movePlacementToRow.program")(function* (props) {
+      const { db, payload, operations, failures, claims } = props;
+      if (claims === null)
+        return yield* failures.invalidLayout.make({
+          message: "Moving a Placement requires an authenticated user",
+          status: 403,
+        });
+      const moving = yield* findFirst({
+        db,
+        model: db.models.placement,
+        where: { id: { eq: payload.placementId } },
+      });
+      if (moving === undefined)
+        return yield* failures.invalidLayout.make({
+          message: "The Placement no longer exists",
+          status: 404,
+        });
+      const wallRow = yield* findFirst({
+        db,
+        model: db.models.wall,
+        where: { id: { eq: moving.wallId } },
+      });
+      if (wallRow === undefined)
+        return yield* failures.invalidLayout.make({
+          message: "The Placement's Wall no longer exists",
+          status: 404,
+        });
+      const pageRow = yield* findFirst({
+        db,
+        model: db.models.page,
+        where: { id: { eq: wallRow.pageId } },
+      });
+      const siteRow =
+        pageRow === undefined
+          ? undefined
+          : yield* findFirst({
+              db,
+              model: db.models.site,
+              where: { id: { eq: pageRow.siteId } },
+            });
+      const userRow =
+        siteRow === undefined
+          ? undefined
+          : yield* findFirst({
+              db,
+              model: db.models.user,
+              where: { id: { eq: siteRow.userId } },
+            });
+      if (userRow === undefined || userRow.clerkUserId !== claims.clerkUserId)
+        return yield* failures.invalidLayout.make({
+          message: "This Page is unavailable",
+          status: 403,
+        });
+      const changed = movePlacementToRowInLayout({
+        layout: wallRow.layout,
+        placementId: moving.id,
+        rowId: payload.rowId,
+        beforePlacementId: payload.beforePlacementId,
+        stackLimit: { sm: 1, md: 2, lg: 3, xl: 4 }[wallRow.breakpoint],
+      });
+      if (Result.isFailure(changed))
+        return yield* failures.invalidLayout.make({ message: changed.failure, status: 409 });
+      if (changed.success === wallRow.layout) return;
+      yield* operations.updateWall({
+        resourceId: wallRow.id,
+        attributes: { layout: changed.success },
+      });
+    }),
+  },
+);

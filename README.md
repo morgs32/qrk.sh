@@ -130,16 +130,28 @@ run `pnpm --dir apps/<app> dev`; this starts only that app. Its `dev:app` script
 runs the underlying HTTP server directly when needed. Frontend scripts honor
 `PORT`; direct defaults are listed above. Storybooks use 10020 for App and 10022 for Web, also overridable with `PORT`.
 
-The user aggregate retains releases `1` and `2`; App binds its session to
-release `2` and Actor version `2`. Historical declarations remain registered for
-replay. Shared Brick border widths belong to BrickV2 and default to `0` when
-historical creation commands replay.
+The user aggregate registers releases `3`, `4`, and `5`; App binds its session
+to owner release `5` and web Actor `5`. Saved Bricks reorder within their Row
+from a dedicated grip, using `movePlacementToRow@1`. The other concrete commands
+create a new Row, Stack, or Section with explicit new node IDs; the current canvas
+exposes no cross-row dragging. Historical generic move declarations remain with
+the older releases. See [editor conventions](wiki/brick-layout-conventions.md#insertion-movement-and-selection).
 
 Packages are pinned to Zerospin `38.1.1`. Existing framework `36` storage needs a
 lossless migration before this runtime starts against it. Preserve retained
 commands, identities, checkpoints and model rows; no storage reset is authorized
-for this upgrade. The earlier integer-version cutover's reset approval does not
-apply here.
+for that framework upgrade. The separate local Row-drag cutover below does not
+extend that authorization to a framework `36` migration or production data.
+
+On November 1, 2026, the user authorized resetting QRK's local Zerospin backend
+and affected App session databases for fresh V5 initialization. The backend was
+backed up at
+`apps/zerospin/.wrangler/zerospin/backups/sys_qrk_sh_1-row-drag-reset-20261101T204758Z`.
+At `app.qrk.localhost`, nine Node and five discovery databases were reset;
+cookies, preferences, and the unrelated debug database were preserved. API
+storage and production were untouched. Fresh local V5 initialization works;
+adopting V5 against histories containing generic `movePlacement` commands still
+requires unresolved framework support for historical execution after grant removal.
 
 App's `useConnectedAggregateSession` receives its pure `userSessionDefinition`,
 `userApplicationLayer`, credentials schema and authored `sharedWorkerUrl` directly.

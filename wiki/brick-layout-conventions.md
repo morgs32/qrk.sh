@@ -124,8 +124,8 @@ current preview state; static module-detail Add supplies its displayed
 `defaultState`. Placeholder-backed modules use null. Their desktop native preview
 copies the rendered
 Brick, offset from the pointer by 16px horizontally and 8px vertically with the
-library's `pointerOutsideOfPreview` helper. Saved Wall Bricks are not drag sources.
-The production Wall accepts these templates subject to module Page limits:
+library's `pointerOutsideOfPreview` helper. The production Wall accepts these
+templates subject to module Page limits:
 
 - A compatible Row's top/bottom quarters create a Row before/after. Its middle
   half inserts a Placement at the hovered Brick's left/right boundary.
@@ -135,6 +135,17 @@ The production Wall accepts these templates subject to module Page limits:
 - A Wall with no Sections highlights its remaining browser content area and
   accepts its first Brick. Populated Walls expose no new Section/Stack targets
   outside the existing layout.
+
+Saved Wall Bricks move only from the grip beside their action menu. Their
+content retains text selection, links, controls, and ordinary click selection.
+The canvas accepts the move only within its source Row: a sibling's left/right
+half selects the insertion seam, and trailing Row space appends. The source
+remains in place at 40% opacity, with the existing native pointer-preview treatment.
+A noninteractive 2px blue line spans the Row height without opening a slot or
+changing geometry. Selection and the open drawer remain unchanged. Cancellation,
+outside drops, other Rows, and unchanged order stage no command. A changed drop
+stages one `movePlacementToRow@1` after checking the current source and anchor.
+Cross-row, Stack, and Section drag gestures remain outside this canvas pass.
 
 Insertion feedback opens temporary space using a 40%-opacity copy
 of the drawer's complete `BrickWrapper` surface, without an added border, outline,
@@ -162,6 +173,13 @@ color/icon state; `updateBrick@3` rejects null for it under the same policy.
 The active Wall follows the target; other Walls append a new Row to the last
 Stack, creating missing parents when needed. A successful local stage opens the
 new Brick form; cancelling that form leaves the created snapshot unchanged.
+The four concrete Placement move commands name their structural effect:
+`movePlacementToRow@1` targets an existing Row; `movePlacementToNewRow@1`
+requires `newRowId`; `movePlacementToNewStack@1` requires `newStackId` and
+`newRowId`; `movePlacementToNewSection@1` requires all three new container IDs.
+The source Placement determines the Wall. There is no generic identity seed.
+Each command validates ownership, destination membership, anchors, and unused
+new IDs before atomically editing the hierarchy. `moveStack@1` is unchanged.
 Moves keep Placement identity/specs or carry the complete Stack's Rows. The pure
 layout module edits ordered arrays; commands record one update per changed Wall
 with the required independent-record operations in an atomic batch. Delete
@@ -169,8 +187,9 @@ Brick confirms removal from all four widths. Movement prunes all empty container
 in the affected Wall after editing. Brick deletion removes its references and
 records and prunes only ancestors emptied by that deletion. Unrelated empty
 containers remain untouched. Array order needs no sibling renumbering.
-Stable insertion anchors are validated before cleanup; self-before moves remain
-no-ops.
+Stable insertion anchors are validated before cleanup. Concrete Placement moves
+that preserve order, including self-before, before-current-successor, and appending
+an already-last Placement, record no update and perform no cleanup.
 
 The Wall background is light orange (`#E6AA80`, a 50% white tint of `#CC5500`), except
 for its existing empty-Wall drag highlight. Each Placement and insertion shadow
@@ -221,8 +240,8 @@ Stack in the next Wall.
 
 `renameStack@1` checks authenticated ownership and current Wall membership, then
 updates only the embedded Stack's name. Stack IDs, Rows, Placements, and other
-Walls are preserved. The browser pins user owner V4 and web actor V4; owner V3 is
-retained for history. Models are unchanged and no storage reset is required.
+Walls are preserved. The browser now pins user owner V5 and web Actor V5;
+`renameStack@1` and its models are unchanged.
 
 `BrickWrapper` owns intrinsic content sizing and self-contained flat/card appearance,
 and stretches vertically inside a Wall Row.
@@ -296,13 +315,24 @@ GitHub Activity its calendar scrolling/fades, and Link its wrapping copy column.
 ## Persistence and publication
 
 All saved creates, updates, moves, and deletes occur through registered commands.
-The browser session pins user owner release V4 and web actor V4, with
-`renameStack@1` alongside unchanged `addBrick@3` and `updateBrick@3`.
-Owner V3 remains registered for history; the name editor changes no models and
-requires no storage reset. The earlier Swatch creation cutover removed obsolete
-creation paths and adapters rather than preserving null Swatches. The authorized
-local reset first backs up QRK's Zerospin development storage and leaves remote
-data, API storage, and credentials untouched.
+The browser session pins user owner release V5 and web Actor V5, with four
+concrete Placement move contracts alongside unchanged `renameStack@1`,
+`addBrick@3`, and `updateBrick@3`. The new Actor grant map excludes generic
+`movePlacement`; owners V3/V4 and their generic declarations remain registered.
+Existing histories containing generic moves cannot currently materialize those
+moves in V5 after grant removal: framework historical-execution support remains
+unresolved. A retained-data or production cutover requires resolving that support.
+
+The November 1, 2026 cutover used the user's explicit authorization to reset
+only QRK's local backend and affected App session data. The backend backup is
+`apps/zerospin/.wrangler/zerospin/backups/sys_qrk_sh_1-row-drag-reset-20261101T204758Z`.
+Nine Node and five discovery databases on `app.qrk.localhost` were reset, preserving
+cookies, preferences, and the unrelated debug database. Fresh local V5 initializes;
+API storage, credentials, and production were untouched. This authorization does
+not cover the separate framework `36` storage migration.
+
+The earlier Swatch creation cutover removed obsolete creation paths and adapters
+rather than preserving null Swatches. Its reset authorization remains separate.
 App initialization/disposal, optimistic queries, refusals, and provider completion
 retain their existing session owner. Local staging Success is distinct from a
 finalized canonical outcome. Spec/provider completions retain revision/request

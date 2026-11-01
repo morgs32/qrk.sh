@@ -223,7 +223,9 @@ nonempty Row can contain only fixed-height variants. The adopted PagePreview can
 combines this rule with minimum-width fitting at the rendered Row width; fixed
 variants with different heights may share. `addBrick` enforces exclusivity before
 recording mutations and refuses rather than choosing another destination.
-`movePlacement` enforcement remains deferred. Applying preferred heights,
+Cross-row sharing enforcement in `movePlacementToRow` remains deferred; the
+canvas limits saved-Brick dragging to its current Row, preserving its membership.
+Applying preferred heights,
 row equalization, and module content fitting remain deferred.
 
 Each Placement persists a required `variantId`, currently `"default"`, alongside

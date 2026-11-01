@@ -119,6 +119,10 @@
   isolation: isolate;
 }
 
+.wall-placement[data-wall-moving] {
+  opacity: 0.4;
+}
+
 /* Content clips inside the surface; its decoration remains outside that clip. */
 .brick-hover-surface::after {
   content: "";

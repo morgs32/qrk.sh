@@ -97,7 +97,7 @@ export function DrawerHeader() {
   const moduleLabel = moduleId === undefined ? undefined : modulesHash[moduleId].label;
 
   return (
-    <header className="flex h-full min-w-0 shrink-0 items-center gap-4 overflow-x-auto border-b border-zinc-200 whitespace-nowrap px-4 pr-16">
+    <header className="flex h-full min-w-0 shrink-0 items-center gap-4 overflow-x-auto border-b border-zinc-200 whitespace-nowrap pl-4 pr-2">
       {isSiteSettings || isPageSettings || isStackDetails ? (
         <div className="flex min-w-0 items-center gap-2">
           {isSiteSettings ? (
@@ -112,7 +112,7 @@ export function DrawerHeader() {
           </h1>
         </div>
       ) : (
-        <nav aria-label="Drawer breadcrumbs" className="flex shrink-0 items-center gap-2">
+        <nav aria-label="Drawer breadcrumbs" className="flex min-w-0 items-center gap-2">
           {params.brickId !== undefined ? (
             <>
               <Link
@@ -158,8 +158,8 @@ export function DrawerHeader() {
         </nav>
       )}
       <div className="ml-auto flex shrink-0 items-center gap-3">
-        {isPageSettings ? <div id="page-settings-header-actions" /> : null}
         {isSiteSettings ? <div id="site-settings-header-actions" /> : null}
+        {isPageSettings ? <div id="page-settings-header-actions" /> : null}
         {canPublishPage || canPublishUpdates ? (
           <Button
             type="button"
@@ -180,7 +180,7 @@ export function DrawerHeader() {
           type="button"
           variant="ghost"
           size="icon"
-          className="size-8 cursor-pointer"
+          className="size-10 cursor-pointer"
           aria-label="Close drawer"
           onClick={() => {
             void navigate({
@@ -191,7 +191,7 @@ export function DrawerHeader() {
             });
           }}
         >
-          <X className="size-3.5" aria-hidden />
+          <X className="size-5" aria-hidden />
         </Button>
       </div>
     </header>

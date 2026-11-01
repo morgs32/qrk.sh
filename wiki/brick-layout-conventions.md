@@ -56,8 +56,12 @@ Drawer spacing, scroll anchoring, toolbar
 positioning, and drawer animation keep their existing behavior. The Bricks list
 and individual Brick drawer screens keep the floating breakpoint toolbar visible
 above the drawer; selecting a breakpoint keeps the current drawer screen open.
+Both floating toolbars keep a 38px height and concentric corners: the buttons'
+8px radius plus their 5px inset (4px padding and 1px border) gives the shell a
+13px radius. The URL-selected breakpoint is bold, fully opaque, and disabled;
+other unavailable breakpoints remain disabled and dimmed.
 App's `PagePreview` queries the Wall with separate
-Placements/Bricks through `UserUI.useSession()` and resolves layout references
+Placements/Bricks through `useSession(userSessionDefinition)` and resolves layout references
 through `makeWallLayoutView`. App initializes a connected session; Storybook
 initializes a real local mock with complete seed resources and renders the same
 `PagePreview` with a Bricks Drawer. Storybook's memory router and local width
@@ -159,17 +163,18 @@ no-ops.
 
 The Wall background is light orange (`#E6AA80`, a 50% white tint of `#CC5500`), except
 for its existing empty-Wall drag highlight. Each Placement and insertion shadow
-uses half the configured `Site.brickGap` as padding; the Wall's outer half-gap
+uses half the configured `Site.brickGap` (default 0px) as padding; the Wall's outer half-gap
 allowance preserves content dimensions and alignment at the perimeter.
 The full-width preview frame has no border; PreviewSection owns each centered
-section's real side borders, and the browser bar owns its real top border.
+section's real zinc-300 side borders, and the browser bar owns its real top border
+in the same color. The footer closes the frame with a zinc-300 bottom border.
 PreviewSection's outside gutters preserve overflow without changing Brick gaps.
 Saved content borders and flat/card appearance belong to BrickWrapper in every
 presentation, rather than separate catalog and Wall treatments.
 Target boxes still touch; the shadow temporarily participates in layout at its
 insertion destination. Capacity checks and the existing drop command path apply
 to that destination.
-Stack names overlay the layout, inset 1px inside the border. Empty persisted Rows/Stacks retain their layout
+Stacks retain a 50px minimum height. Stack names overlay the layout, inset 1px inside the border. Empty persisted Rows/Stacks retain their layout
 containers until a move command cleans their Wall or deletion empties their
 ancestor path. Production PagePreview renders saved layout with Edit and Delete
 controls and hosts WallEditor for drawer drop targeting and insertion feedback. The Wall Editor

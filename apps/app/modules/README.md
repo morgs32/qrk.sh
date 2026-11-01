@@ -413,7 +413,7 @@ movement without persisted fake Rows. Capacity checks and the existing drop
 command path apply to the shadow's destination. The [source research](../../../wiki/research/pragmatic-drag-shadow-stability.md)
 records the library example and the adaptation for combine zones.
 The Wall ends with a white, right-aligned “powered by qrk.sh” footer with
-an inset top divider and `qrk.sh` in Silkscreen. Its text line boxes are vertically
+an inset top divider, a zinc-300 bottom border closing the preview frame, and `qrk.sh` in Silkscreen. Its text line boxes are vertically
 centered in a 64px footer, matching the site navbar; the divider does not consume layout space. It sits at
 the bottom of short Walls and follows content on long Walls.
 The Wall background is light orange (`#E6AA80`, a 50% white tint of `#CC5500`), except for the existing empty-Wall
@@ -423,8 +423,8 @@ whose guard rejects values outside that range. Each Placement and insertion
 shadow uses half the gap as padding. The content-height Wall wrapper offsets
 the outer inset so Bricks sit flush with the Wall edges at every gap size.
 The full-width preview frame has no border. Its centered sections share real
-1px zinc side borders owned by PreviewSection; the browser bar uses a real top
-border rather than an outside ring.
+1px zinc-300 side borders owned by PreviewSection; the browser bar uses a real top
+border rather than an outside ring. The browser bar shares the zinc-300 border color.
 Square white backing rows behind the 48px chrome and 64px footer mask Wall
 content around their rounded corners. Zero-blur white shadows cover the adjacent
 vertical gaps without changing the scroll extent. Chrome stays sticky above the
@@ -484,6 +484,10 @@ The Wall Editor story uses the same section widths and a full-width scroll
 owner. Its frame has a minimum width of the selected content width plus both
 side borders, so oversized selections scroll horizontally rather than silently
 shrinking. Its breakpoint controls keep the nominal content-width labels.
+Both floating toolbars keep a 38px height and concentric corners: the buttons'
+8px radius plus their 5px inset (4px padding and 1px border) gives the shell a
+13px radius. The URL-selected breakpoint is bold, fully opaque, and disabled;
+other unavailable breakpoints remain disabled and dimmed.
 Reduced motion skips positional toolbar animation; drawer animation is unchanged.
 
 **Wall Editor / Default** and **Empty wall** exercise production insertion and
@@ -512,6 +516,7 @@ shadow. Rows allow visible overflow; the full-width preview viewport owns scroll
 and outer clipping.
 The outer Row uses `flow-root` to contain the flex element's -0.5px margin.
 Its 0.5px padding and 49px minimum height preserve the Row's 48px outer minimum height.
+The enclosing Stack retains a 50px minimum height.
 Brick content has one surface owner: `BrickWrapper` uses intrinsic height and
 visible outer overflow. Its internal `.brick-content` wrapper owns `@container`,
 content layout, inherited corner rounding, and clipping. The saved content border

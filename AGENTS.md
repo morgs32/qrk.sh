@@ -20,6 +20,7 @@ Before editing files for a substantial task:
 - Prefer targeted edits, reuse current context, and skip files over 100 KB unless required. Keep control flow simple and explicit; do not change unrelated component props or function arguments.
 - Be terse, concrete, and accurate. Treat the user as an expert, label uncertainty, and show only relevant code excerpts. Every question is blocking until explicitly answered or withdrawn.
 - Keep affected documentation current. User instructions override this file.
+- Open a PR for completed work and mark it ready for review. Never leave a PR in draft mode.
 - When the user says "sibs" or "sibling repos", scope the work to repositories using Zerospin. Other adjacent repositories are outside that scope unless explicitly named.
 
 ## PR reviews

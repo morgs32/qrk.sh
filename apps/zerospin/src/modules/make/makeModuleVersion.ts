@@ -68,7 +68,7 @@ export function makeModuleVersion<
     version: VERSION;
     variants: {
       default: {
-        /** Preferred preview width in pixels, capped by the selected breakpoint's width. */
+        /** Preferred rendered width in pixels, shared by previews and placed Bricks. */
         defaultWidth: number;
         /** Minimum rendered width in pixels. */
         minWidth: 160 | 320;

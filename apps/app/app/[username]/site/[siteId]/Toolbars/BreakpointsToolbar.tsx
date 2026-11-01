@@ -46,7 +46,7 @@ export function BreakpointsToolbar() {
     >
       <WallPreviewToolbar
         aria-label="Breakpoints"
-        className="rounded-full border-border/80 bg-background px-1.5 shadow-md"
+        className="border-border/80 bg-background shadow-md"
       >
         {BREAKPOINTS.map((row) => (
           <ToolbarButton
@@ -54,7 +54,11 @@ export function BreakpointsToolbar() {
             tooltip={`${row.id} (${row.previewWidth}px)`}
             aria-label={`${row.id} preview width`}
             aria-pressed={search.breakpoint === row.id}
-            disabled={availableWidth === null || row.previewWidth > availableWidth}
+            disabled={
+              search.breakpoint === row.id ||
+              availableWidth === null ||
+              row.previewWidth > availableWidth
+            }
             onClick={() => {
               if (stackId !== undefined && search.breakpoint !== row.id)
                 return navigate({
@@ -75,7 +79,7 @@ export function BreakpointsToolbar() {
             }}
             className={
               search.breakpoint === row.id
-                ? "h-7 px-2 text-[13px] font-normal text-foreground"
+                ? "h-7 px-2 text-[13px] font-bold text-foreground disabled:opacity-100"
                 : "h-7 px-2 text-[13px] font-normal text-muted-foreground hover:text-foreground"
             }
           >

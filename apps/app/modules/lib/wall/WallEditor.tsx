@@ -396,7 +396,7 @@ export function WallEditor(props: {
                     <div
                       key={stack.id}
                       data-wall-stack-id={stack.id}
-                      className={`group/stack relative min-h-12 min-w-0 ${stack.id === selectedStackId ? "is-selected-stack after:pointer-events-none after:absolute after:inset-0 after:z-[29] after:border after:border-[#1f9bfc] after:content-['']" : ""} ${stack.rows.length === 0 && dropTarget?.kind === "stack" && dropTarget.stackId === stack.id ? "bg-blue-50 outline outline-blue-500 -outline-offset-2" : ""}`}
+                      className={`group/stack relative min-h-[50px] min-w-0 ${stack.id === selectedStackId ? "is-selected-stack after:pointer-events-none after:absolute after:inset-0 after:z-[29] after:border after:border-[#1f9bfc] after:content-['']" : ""} ${stack.rows.length === 0 && dropTarget?.kind === "stack" && dropTarget.stackId === stack.id ? "bg-blue-50 outline outline-blue-500 -outline-offset-2" : ""}`}
                     >
                       {stack.rows.some((row) => row.placements.length > 0) ? (
                         <StackAction>
@@ -508,7 +508,7 @@ export function WallEditor(props: {
           {sections.length === 0 && dropTarget?.kind === "wall" && shadow}
         </PreviewSection>
         <div className="wall-preview-footer relative z-40 h-16 shrink-0 bg-white">
-          <PreviewSection className="flex h-16 shrink-0 items-center justify-end gap-1 rounded-b-[var(--wall-frame-radius,12px)] bg-white px-3 text-[10px] leading-4 text-black/60 shadow-[inset_0_1px_0_var(--color-zinc-200)]">
+          <PreviewSection className="flex h-16 shrink-0 items-center justify-end gap-1 rounded-b-[var(--wall-frame-radius,12px)] border-b bg-white px-3 text-[10px] leading-4 text-black/60 shadow-[inset_0_1px_0_var(--color-zinc-200)]">
             <span>powered by</span>
             <span style={{ fontFamily: "Silkscreen, monospace" }}>qrk.sh</span>
           </PreviewSection>

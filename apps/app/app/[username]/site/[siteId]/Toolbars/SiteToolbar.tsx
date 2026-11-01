@@ -56,7 +56,7 @@ export function SiteToolbar() {
     >
       <WallPreviewToolbar
         aria-label="Page controls"
-        className="rounded-sm border-border/80 bg-background shadow-md"
+        className="border-border/80 bg-background shadow-md"
       >
         <ToolbarButton
           label="Exit"

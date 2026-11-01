@@ -3,8 +3,8 @@
 import { makeId, makeIdSchema, stageAggregateSessionCommand } from "@zerospin/sdk/browser";
 
 import { useNavigate, useParams, useSearch } from "@tanstack/react-router";
-import { useLiveQuery } from "@zerospin/react";
-import { UserUI } from "@/zerospin/UserUI";
+import { useLiveQuery, useSession } from "@zerospin/react";
+import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
 import { wallInsertionTargetSchema } from "@qrk.sh/zerospin/src/aggregates/user/layout/wallTargetSchemas";
 import { WallModuleAction } from "../../../../../../../../../../modules/lib/wall/WallModuleAction";
 
@@ -68,7 +68,7 @@ function ModuleRouteBody(props: {
   const search = useSearch({ from: "/$username/site/$siteId/page/$pageId" });
   const breakpoint = BREAKPOINTS.find((entry) => entry.id === search.breakpoint);
   const navigate = useNavigate();
-  const session = UserUI.useSession();
+  const session = useSession(userSessionDefinition);
   const { data: site } = useLiveQuery({
     session,
     key: siteId,

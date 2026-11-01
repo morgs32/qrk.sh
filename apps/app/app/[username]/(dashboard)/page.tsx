@@ -8,7 +8,7 @@ import { makeId, stageAggregateSessionCommand } from "@zerospin/sdk/browser";
 import { useLayoutEffect, useState } from "react";
 import { Schema } from "effect";
 import { toast } from "sonner";
-import { useLiveQuery } from "@zerospin/react";
+import { useLiveQuery, useSession } from "@zerospin/react";
 import { Check, X } from "lucide-react";
 
 import { siteV1 as Site } from "@qrk.sh/zerospin/src/aggregates/user/models/site/SiteV1";
@@ -31,7 +31,7 @@ import {
   InputGroupInput,
   InputGroupText,
 } from "@/components/ui/input-group";
-import { UserUI } from "@/zerospin/UserUI";
+import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
 import { startupTiming } from "@/lib/startupTiming";
 
@@ -41,7 +41,7 @@ const ParamsSchema = Schema.Struct({
 
 export default function UsernameDashboardPage() {
   const { username } = useValidatedParams(ParamsSchema);
-  const session = UserUI.useSession();
+  const session = useSession(userSessionDefinition);
   const [createSiteOpen, setCreateSiteOpen] = useState(false);
   const [siteName, setSiteName] = useState("");
   const [siteDescription, setSiteDescription] = useState("");

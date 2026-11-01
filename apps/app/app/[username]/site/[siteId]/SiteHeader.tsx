@@ -1,15 +1,15 @@
 "use client";
 
 import type { IInferModelRow } from "@zerospin/core/models/types";
-import { useLiveQuery } from "@zerospin/react";
+import { useLiveQuery, useSession } from "@zerospin/react";
 import { siteV1 } from "@qrk.sh/zerospin/src/aggregates/user/models/site/SiteV1";
 import { cn } from "cn";
 import { PreviewSection } from "../../../../modules/lib/PreviewSection";
-import { UserUI } from "@/zerospin/UserUI";
+import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
 
 export function SiteHeader(props: { siteId: IInferModelRow<typeof siteV1>["id"] }) {
   const { siteId } = props;
-  const session = UserUI.useSession();
+  const session = useSession(userSessionDefinition);
   const { data: site } = useLiveQuery({
     session,
     key: siteId,

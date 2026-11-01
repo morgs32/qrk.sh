@@ -3,14 +3,14 @@
 import { modulesHash } from "../../../../../../../modules/lib/modulesHash";
 import { makePlacementId } from "@qrk.sh/zerospin/src/modules/lib/makePlacementId";
 import { brickV2 } from "@qrk.sh/zerospin/src/aggregates/user/models/brick/BrickV2";
-import { UserUI } from "@/zerospin/UserUI";
+import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
 import { pageV1 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV1";
 import { siteV1 as Site } from "@qrk.sh/zerospin/src/aggregates/user/models/site/SiteV1";
 import { BREAKPOINTS } from "../../../../../../../modules/lib/breakpoints";
 import { useLocation, useRouter, useSearch } from "@tanstack/react-router";
 import { isNonEmptySpec } from "@json-render/core";
 import { makeIdSchema, stageAggregateSessionCommand } from "@zerospin/sdk/browser";
-import { useLiveQuery } from "@zerospin/react";
+import { useLiveQuery, useSession } from "@zerospin/react";
 import { Schema } from "effect";
 import { useLayoutEffect, useRef, useState } from "react";
 
@@ -34,7 +34,7 @@ export function BrickDetail() {
   const entry = BREAKPOINTS.find((row) => row.id === search.breakpoint);
   const breakpoint = entry?.id;
   const params = useValidatedParams(ParamsSchema);
-  const session = UserUI.useSession();
+  const session = useSession(userSessionDefinition);
   const { data: site } = useLiveQuery({
     session,
     key: params.siteId,

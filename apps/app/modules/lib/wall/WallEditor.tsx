@@ -18,7 +18,7 @@ import { isNonEmptySpec } from "@json-render/core";
 import { Fragment, useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { brickV2 } from "@qrk.sh/zerospin/src/aggregates/user/models/brick/BrickV2";
 import { wallV1 } from "@qrk.sh/zerospin/src/aggregates/user/models/wall/WallV1";
-import { useLiveQuery } from "@zerospin/react";
+import { useLiveQuery, useSession } from "@zerospin/react";
 import { Result, Schema } from "effect";
 import { wallInsertionTargetSchema } from "@qrk.sh/zerospin/src/aggregates/user/layout/wallTargetSchemas";
 import { canShareRow } from "@qrk.sh/zerospin/src/modules/lib/canShareRow";
@@ -30,7 +30,7 @@ import { WallPlacement } from "./WallPlacement";
 import { PreviewSection } from "../PreviewSection";
 import { modulesHash } from "../modulesHash";
 import { makeWallLayoutView } from "./makeWallLayoutView";
-import { UserUI } from "@/zerospin/UserUI";
+import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
 
 const DrawerBrickData = Schema.Struct({
   type: Schema.Literal("drawer-brick"),
@@ -64,7 +64,7 @@ export function WallEditor(props: {
     element: HTMLElement;
     moduleId: keyof typeof modulesHash;
   } | null>(null);
-  const session = UserUI.useSession();
+  const session = useSession(userSessionDefinition);
   const { data: wall } = useLiveQuery({
     session,
     key: wallId,

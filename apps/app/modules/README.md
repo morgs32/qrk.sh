@@ -372,10 +372,10 @@ operations; it does not construct
 contracts from injected host models or versions.
 
 The shared controlled wall components render supplied data and action callbacks.
-App's PagePreview reads the initialized `UserUI` session and adopts the development
+App's PagePreview reads the initialized `useSession(userSessionDefinition)` session and adopts the development
 canvas's direct Wall query and layout projection. The
 URL-selected Wall renders below BrowserChrome with SiteHeader receiving the
-explicit site ID. SiteHeader reads the required Site from UserUI without Clerk or
+explicit site ID. SiteHeader reads the required Site from the same session without Clerk or
 route dependencies. It renders above the Wall in the shared preview scroll
 container, with existing
 WallPlacement edit/delete controls. Module catalog/detail routes own their scoped
@@ -490,8 +490,8 @@ Reduced motion skips positional toolbar animation; drawer animation is unchanged
 presentation. The old hover-study gallery and its separate mock stylesheet are
 removed; the representation stories exercise the production owners directly.
 
-The Wall Editor story uses the existing in-memory MockAggregateSession and
-UserUI, seeds Wall layouts plus separate Placement records, and renders the
+The Wall Editor story uses the in-memory `useMockAggregateSession`, `SessionProvider`, and
+`SessionReady`, seeds Wall layouts plus separate Placement records, and renders the
 production PagePreview above a Bricks Drawer containing ModuleFilmstrip. Its
 memory router redirects Brick-detail navigation back to the Wall, so dragging
 keeps the drawer visible without mounting edit forms. Breakpoint search and

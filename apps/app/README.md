@@ -13,22 +13,30 @@ first; the next press closes the workspace drawer.
 
 ## Wall dragging
 
-Saved Bricks reorder only within their current Row, using the grip beside the
-action menu. The source stays in place at 40% opacity; a blue insertion line marks
-the destination without changing layout. Brick content remains interactive,
-selection and the drawer remain open, and drawer-template insertion keeps its
-existing shadow feedback. Cancellation and unchanged drops stage no move.
+Saved Bricks move from the grip beside the action menu into existing or new Rows
+across the current Wall's existing Stacks and Sections. On compatible populated
+Rows, the top/bottom 8px create a Row above/below; the remaining area joins or
+reorders horizontally. Incompatible Rows use top/bottom halves for separate Rows.
+Empty Rows accept a Placement directly; empty Stack backgrounds create their
+first Row. The canvas creates no Stacks or Sections.
 
-The session pins user owner V5 and web Actor V5. Same-row drops stage
-`movePlacementToRow@1`; `movePlacementToNewRow@1`,
-`movePlacementToNewStack@1`, and `movePlacementToNewSection@1` accept explicit
-IDs for the containers they create. They have no generic identity seed. Their
-cross-row canvas gestures are not exposed in this pass.
+The source stays in place at 40% opacity. A noninteractive 2px blue line marks
+existing-Row insertion vertically or new-Row insertion horizontally, without
+changing layout. Brick content remains interactive, selection and the drawer
+remain open, and drawer templates retain their existing shadow feedback.
+Cancellation, invalidated destinations, and unchanged drops—including replacing a
+singleton Row at its current position—stage no move.
 
-Fresh local V5 initialization follows the specifically authorized backend and
-App-session reset recorded in the [root README](../../README.md). Existing generic
-move history still needs framework historical-execution support before a retained-data
-V5 cutover; the local reset establishes no production migration path.
+The session pins user owner V6 and web Actor V6. Existing-Row drops stage
+`movePlacementToRow@2`, which enforces the shared variant-sharing rule; new-Row
+drops stage `movePlacementToNewRow@1`, allocating `newRowId` only after an accepted
+drop. The other concrete commands retain explicit IDs for Stack/Section creation,
+without canvas gestures. There is no generic identity seed.
+
+V6 retains the V1-to-V2 move contract lineage and valid V5 move history without a
+new reset. The earlier local V5 reset is recorded in the [root README](../../README.md).
+Pre-V5 generic move history still needs framework historical-execution support
+before a retained-data cutover; this update establishes no production migration path.
 
 ## Development
 

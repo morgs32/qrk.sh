@@ -138,16 +138,25 @@ templates subject to module Page limits:
 
 Saved Wall Bricks move only from the grip beside their action menu. Their
 content retains text selection, links, controls, and ordinary click selection.
-The canvas accepts the move only within its source Row: a sibling's left/right
-half selects the insertion seam, and trailing Row space appends. The source
-remains in place at 40% opacity, with the existing native pointer-preview treatment.
-A noninteractive 2px blue line spans the Row height without opening a slot or
-changing geometry. Selection and the open drawer remain unchanged. Cancellation,
-outside drops, other Rows, and unchanged order stage no command. A changed drop
-stages one `movePlacementToRow@1` after checking the current source and anchor.
-Cross-row, Stack, and Section drag gestures remain outside this canvas pass.
+The canvas accepts existing and new Row destinations across the current Wall's
+existing Stacks and Sections. On compatible populated Rows, the top/bottom 8px
+create Rows above/below; the remaining area chooses a horizontal insertion seam.
+Incompatible Rows use top/bottom halves for separate Rows. Empty Rows accept a
+Placement directly; empty Stack backgrounds create their first Row. These gestures
+create no Stacks or Sections.
 
-Insertion feedback opens temporary space using a 40%-opacity copy
+The source remains in place at 40% opacity with the existing native preview.
+A noninteractive 2px blue line marks existing-Row insertion vertically and new-Row
+insertion horizontally, without changing geometry. A boundary remains owned by
+its visible Row even when the command anchors before the next Row. Selection and
+the open drawer remain unchanged. Cancellation, outside drops, invalidated
+destinations, and unchanged order stage no command; replacing a singleton source
+Row at its current position is also suppressed. A changed drop stages one
+`movePlacementToRow@2` or `movePlacementToNewRow@1` after checking current source,
+compatibility, and anchors. `newRowId` is allocated only for an accepted new-Row
+drop. Existing width shrink and horizontal overflow behavior remain unchanged.
+
+Drawer-template insertion feedback opens temporary space using a 40%-opacity copy
 of the drawer's complete `BrickWrapper` surface, without an added border, outline,
 or halo, without rerendering its module or reading providers. The shadow occupies a Placement slot in a Row, a new Row
 in a Stack, or the first slot in an empty Wall. Its content is inert and ignores
@@ -165,7 +174,7 @@ for the enclosing-target pattern and its combine-zone adaptation.
 
 Feedback and drop commands use the same stable insertion destination. Hover
 writes no model data; cancellation, outside drops, invalid source data, and stale
-destinations create nothing. A valid drop stages one `addBrick@3` command.
+destinations create nothing. A valid template drop stages one `addBrick@3` command.
 Adding requires explicit state, decodes it with the selected module's schema,
 and accepts null only for `hasPlaceholder: true` modules. It creates the shared
 Brick content and all four Placements atomically. Swatch and Icon uses its captured
@@ -174,12 +183,14 @@ The active Wall follows the target; other Walls append a new Row to the last
 Stack, creating missing parents when needed. A successful local stage opens the
 new Brick form; cancelling that form leaves the created snapshot unchanged.
 The four concrete Placement move commands name their structural effect:
-`movePlacementToRow@1` targets an existing Row; `movePlacementToNewRow@1`
-requires `newRowId`; `movePlacementToNewStack@1` requires `newStackId` and
+`movePlacementToRow@2` targets an existing Row and enforces `canShareRow`;
+`movePlacementToNewRow@1` requires `newRowId`; `movePlacementToNewStack@1` requires `newStackId` and
 `newRowId`; `movePlacementToNewSection@1` requires all three new container IDs.
 The source Placement determines the Wall. There is no generic identity seed.
 Each command validates ownership, destination membership, anchors, and unused
-new IDs before atomically editing the hierarchy. `moveStack@1` is unchanged.
+new IDs before atomically editing the hierarchy. Row-sharing checks use the
+actual module/variant definitions and exclude the moving Placement from existing
+members. `moveStack@1` is unchanged.
 Moves keep Placement identity/specs or carry the complete Stack's Rows. The pure
 layout module edits ordered arrays; commands record one update per changed Wall
 with the required independent-record operations in an atomic batch. Delete
@@ -240,7 +251,7 @@ Stack in the next Wall.
 
 `renameStack@1` checks authenticated ownership and current Wall membership, then
 updates only the embedded Stack's name. Stack IDs, Rows, Placements, and other
-Walls are preserved. The browser now pins user owner V5 and web Actor V5;
+Walls are preserved. The browser now pins user owner V6 and web Actor V6;
 `renameStack@1` and its models are unchanged.
 
 `BrickWrapper` owns intrinsic content sizing and self-contained flat/card appearance,
@@ -315,13 +326,15 @@ GitHub Activity its calendar scrolling/fades, and Link its wrapping copy column.
 ## Persistence and publication
 
 All saved creates, updates, moves, and deletes occur through registered commands.
-The browser session pins user owner release V5 and web Actor V5, with four
+The browser session pins user owner release V6 and web Actor V6, with four
 concrete Placement move contracts alongside unchanged `renameStack@1`,
-`addBrick@3`, and `updateBrick@3`. The new Actor grant map excludes generic
-`movePlacement`; owners V3/V4 and their generic declarations remain registered.
-Existing histories containing generic moves cannot currently materialize those
-moves in V5 after grant removal: framework historical-execution support remains
-unresolved. A retained-data or production cutover requires resolving that support.
+`addBrick@3`, and `updateBrick@3`. `movePlacementToRow@2` retains its V1 lineage
+and unchanged payload; valid V5 same-row move history remains supported without a
+reset or upstream change. Owner V5 remains registered for source provenance.
+The Actor grant map still excludes generic `movePlacement`; owners V3/V4 and their
+generic declarations remain registered. Pre-V5 histories containing generic moves
+still require framework historical-execution support before a retained-data or
+production cutover.
 
 The November 1, 2026 cutover used the user's explicit authorization to reset
 only QRK's local backend and affected App session data. The backend backup is

@@ -130,12 +130,13 @@ run `pnpm --dir apps/<app> dev`; this starts only that app. Its `dev:app` script
 runs the underlying HTTP server directly when needed. Frontend scripts honor
 `PORT`; direct defaults are listed above. Storybooks use 10020 for App and 10022 for Web, also overridable with `PORT`.
 
-The user aggregate registers releases `3`, `4`, and `5`; App binds its session
-to owner release `5` and web Actor `5`. Saved Bricks reorder within their Row
-from a dedicated grip, using `movePlacementToRow@1`. The other concrete commands
-create a new Row, Stack, or Section with explicit new node IDs; the current canvas
-exposes no cross-row dragging. Historical generic move declarations remain with
-the older releases. See [editor conventions](wiki/brick-layout-conventions.md#insertion-movement-and-selection).
+The user aggregate registers releases `3`, `4`, `5`, and `6`; App binds its session
+to owner release `6` and web Actor `6`. Saved Bricks use a dedicated grip to join
+existing Rows or create new Rows across the current Wall's existing Stacks and
+Sections. Joins use `movePlacementToRow@2`; new Rows use
+`movePlacementToNewRow@1` with an explicit `newRowId`. Stack/Section creation
+commands remain available without canvas gestures. Historical declarations remain
+registered. See [editor conventions](wiki/brick-layout-conventions.md#insertion-movement-and-selection).
 
 Packages are pinned to Zerospin `38.1.1`. Existing framework `36` storage needs a
 lossless migration before this runtime starts against it. Preserve retained
@@ -152,6 +153,8 @@ cookies, preferences, and the unrelated debug database were preserved. API
 storage and production were untouched. Fresh local V5 initialization works;
 adopting V5 against histories containing generic `movePlacement` commands still
 requires unresolved framework support for historical execution after grant removal.
+V6 uses the same-named V1-to-V2 move contract lineage for current valid V5 history;
+this cross-row update includes no additional reset or upstream framework change.
 
 App's `useConnectedAggregateSession` receives its pure `userSessionDefinition`,
 `userApplicationLayer`, credentials schema and authored `sharedWorkerUrl` directly.

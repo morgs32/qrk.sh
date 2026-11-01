@@ -8,7 +8,7 @@ import { siteV1 as Site } from "@qrk.sh/zerospin/src/aggregates/user/models/site
 import { userV1 as User } from "@qrk.sh/zerospin/src/aggregates/user/models/user/UserV1";
 import { addBrickV3 as addBrick } from "@qrk.sh/zerospin/src/aggregates/user/contracts/wall/AddBrickContractV3";
 import { addWallSectionV1 as addWallSection } from "@qrk.sh/zerospin/src/aggregates/user/contracts/wall/AddWallSectionContractV1";
-import { movePlacementToRowV1 as movePlacementToRow } from "@qrk.sh/zerospin/src/aggregates/user/contracts/wall/MovePlacementToRowContractV1";
+import { movePlacementToRowV2 as movePlacementToRow } from "@qrk.sh/zerospin/src/aggregates/user/contracts/wall/MovePlacementToRowContractV2";
 import { movePlacementToNewRowV1 as movePlacementToNewRow } from "@qrk.sh/zerospin/src/aggregates/user/contracts/wall/MovePlacementToNewRowContractV1";
 import { movePlacementToNewStackV1 as movePlacementToNewStack } from "@qrk.sh/zerospin/src/aggregates/user/contracts/wall/MovePlacementToNewStackContractV1";
 import { movePlacementToNewSectionV1 as movePlacementToNewSection } from "@qrk.sh/zerospin/src/aggregates/user/contracts/wall/MovePlacementToNewSectionContractV1";
@@ -33,8 +33,8 @@ export const userSessionDefinition = makeAggregateSessionDefinition({
   aggregateName: "user",
   sessionName: "userSession",
   actorName: "web",
-  actorVersion: 5,
-  aggregateVersion: 5,
+  actorVersion: 6,
+  aggregateVersion: 6,
   models: {
     wall: Wall,
     brick: Brick,

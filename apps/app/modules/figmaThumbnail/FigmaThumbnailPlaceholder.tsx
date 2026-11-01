@@ -5,7 +5,10 @@ import { figmaCardView } from "./FigmaCard";
 export function FigmaThumbnailPlaceholder() {
   return (
     <figmaCardView.Component>
-      <div data-figma-thumbnail-placeholder className="flex h-full min-h-0 flex-col">
+      <div
+        data-figma-thumbnail-placeholder
+        className="flex h-full min-h-0 flex-[1_0_auto] flex-col"
+      >
         <Skeleton
           aria-hidden="true"
           className="min-h-[200px] min-w-[200px] flex-1 rounded-none motion-reduce:animate-none"

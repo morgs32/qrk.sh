@@ -97,6 +97,22 @@
 .wall-placement,
 .wall-shadow-placeholder {
   flex: 0 1 auto;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Stretch the visible Brick and cloned shadow through their nested hosts. */
+.wall-placement-content,
+.wall-shadow-placeholder > [inert],
+:is(.wall-placement, .wall-shadow-placeholder) .brick-hover-surface {
+  display: flex;
+  flex-direction: column;
+  flex: 1 0 auto;
+}
+
+:is(.wall-placement, .wall-shadow-placeholder) .brick-content,
+:is(.wall-placement, .wall-shadow-placeholder) .brick-content > * {
+  flex: 1 0 auto;
 }
 
 .wall-placement {

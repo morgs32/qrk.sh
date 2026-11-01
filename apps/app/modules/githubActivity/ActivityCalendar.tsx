@@ -56,7 +56,7 @@ export const activityCalendarView = makeComponentView(activityCalendarComponent,
     return (
       <div
         data-github-activity
-        className="flex h-full min-w-0 w-full items-center overflow-hidden bg-white px-3 py-2 [&_[class$=legend-colors]]:ml-0!"
+        className="flex h-full min-w-0 w-full flex-[1_0_auto] items-center overflow-hidden bg-white px-3 py-2 [&_[class$=legend-colors]]:ml-0!"
       >
         <div className="flex min-w-0 w-full items-start">
           {/* Match the calendar's 18px month header, 11px row pitch, and 1px top padding. */}

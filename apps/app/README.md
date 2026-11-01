@@ -11,6 +11,25 @@ first; the next press closes the workspace drawer.
 | ---- | ------------------------- | ----------------------- |
 | User | `zerospin/node.worker.ts` | `userSessionDefinition` |
 
+## Wall dragging
+
+Saved Bricks reorder only within their current Row, using the grip beside the
+action menu. The source stays in place at 40% opacity; a blue insertion line marks
+the destination without changing layout. Brick content remains interactive,
+selection and the drawer remain open, and drawer-template insertion keeps its
+existing shadow feedback. Cancellation and unchanged drops stage no move.
+
+The session pins user owner V5 and web Actor V5. Same-row drops stage
+`movePlacementToRow@1`; `movePlacementToNewRow@1`,
+`movePlacementToNewStack@1`, and `movePlacementToNewSection@1` accept explicit
+IDs for the containers they create. They have no generic identity seed. Their
+cross-row canvas gestures are not exposed in this pass.
+
+Fresh local V5 initialization follows the specifically authorized backend and
+App-session reset recorded in the [root README](../../README.md). Existing generic
+move history still needs framework historical-execution support before a retained-data
+V5 cutover; the local reset establishes no production migration path.
+
 ## Development
 
 ```sh

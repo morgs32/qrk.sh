@@ -8,7 +8,10 @@ import { siteV1 as Site } from "@qrk.sh/zerospin/src/aggregates/user/models/site
 import { userV1 as User } from "@qrk.sh/zerospin/src/aggregates/user/models/user/UserV1";
 import { addBrickV3 as addBrick } from "@qrk.sh/zerospin/src/aggregates/user/contracts/wall/AddBrickContractV3";
 import { addWallSectionV1 as addWallSection } from "@qrk.sh/zerospin/src/aggregates/user/contracts/wall/AddWallSectionContractV1";
-import { movePlacementV2 as movePlacement } from "@qrk.sh/zerospin/src/aggregates/user/contracts/wall/MovePlacementContractV2";
+import { movePlacementToRowV1 as movePlacementToRow } from "@qrk.sh/zerospin/src/aggregates/user/contracts/wall/MovePlacementToRowContractV1";
+import { movePlacementToNewRowV1 as movePlacementToNewRow } from "@qrk.sh/zerospin/src/aggregates/user/contracts/wall/MovePlacementToNewRowContractV1";
+import { movePlacementToNewStackV1 as movePlacementToNewStack } from "@qrk.sh/zerospin/src/aggregates/user/contracts/wall/MovePlacementToNewStackContractV1";
+import { movePlacementToNewSectionV1 as movePlacementToNewSection } from "@qrk.sh/zerospin/src/aggregates/user/contracts/wall/MovePlacementToNewSectionContractV1";
 import { moveStackV1 as moveStack } from "@qrk.sh/zerospin/src/aggregates/user/contracts/wall/MoveStackContractV1";
 import { renameStackV1 as renameStack } from "@qrk.sh/zerospin/src/aggregates/user/contracts/wall/RenameStackContractV1";
 import { deleteBrickV2 as deleteBrick } from "@qrk.sh/zerospin/src/aggregates/user/contracts/wall/DeleteBrickContractV2";
@@ -30,8 +33,8 @@ export const userSessionDefinition = makeAggregateSessionDefinition({
   aggregateName: "user",
   sessionName: "userSession",
   actorName: "web",
-  actorVersion: 4,
-  aggregateVersion: 4,
+  actorVersion: 5,
+  aggregateVersion: 5,
   models: {
     wall: Wall,
     brick: Brick,
@@ -44,7 +47,10 @@ export const userSessionDefinition = makeAggregateSessionDefinition({
   contracts: {
     addBrick,
     addWallSection,
-    movePlacement,
+    movePlacementToRow,
+    movePlacementToNewRow,
+    movePlacementToNewStack,
+    movePlacementToNewSection,
     moveStack,
     renameStack,
     deleteBrick,

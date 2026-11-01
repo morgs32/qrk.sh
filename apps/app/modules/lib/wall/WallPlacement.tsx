@@ -1,5 +1,5 @@
 import { Menu } from "@base-ui/react/menu";
-import { Ellipsis } from "lucide-react";
+import { Ellipsis, GripVertical } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { cn } from "cn";
 import { Button } from "../../components/ui/button";
@@ -67,6 +67,15 @@ export function WallPlacement(props: {
         }}
       >
         <BrickAction>
+          <Button
+            type="button"
+            data-wall-drag-handle
+            variant="ghost"
+            className="size-7 cursor-grab rounded-none p-0 active:cursor-grabbing"
+            aria-label={`Move Brick ${placement.brickId} within row`}
+          >
+            <GripVertical className="size-4" aria-hidden="true" />
+          </Button>
           <Menu.Root open={menuOpen} onOpenChange={setMenuOpen}>
             <Menu.Trigger
               id={triggerId}

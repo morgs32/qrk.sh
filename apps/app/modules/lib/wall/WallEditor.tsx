@@ -6,6 +6,7 @@ import type { IInferModelRow } from "@zerospin/core/models/types";
 import { makeId, makeIdSchema, stageAggregateSessionCommand } from "@zerospin/sdk/browser";
 import { combine } from "@atlaskit/pragmatic-drag-and-drop/combine";
 import {
+  draggable,
   dropTargetForElements,
   monitorForElements,
   type ElementEventBasePayload,
@@ -14,6 +15,8 @@ import {
   attachClosestEdge,
   extractClosestEdge,
 } from "@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge";
+import { pointerOutsideOfPreview } from "@atlaskit/pragmatic-drag-and-drop/utils/pointer-outside-of-preview";
+import { setCustomNativeDragPreview } from "@atlaskit/pragmatic-drag-and-drop/utils/set-custom-native-drag-preview";
 import { isNonEmptySpec } from "@json-render/core";
 import { Fragment, useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { brickV2 } from "@qrk.sh/zerospin/src/aggregates/user/models/brick/BrickV2";
@@ -38,6 +41,13 @@ const DrawerBrickData = Schema.Struct({
   state: Schema.Unknown,
 });
 
+const WallPlacementData = Schema.Struct({
+  type: Schema.Literal("wall-placement"),
+  wallId: makeIdSchema(wallV1),
+  rowId: Schema.String,
+  placementId: Schema.String,
+});
+
 /** Shared interactive Wall; its host owns navigation and the surrounding page chrome. */
 export function WallEditor(props: {
   wallId: IInferModelRow<typeof wallV1>["id"];
@@ -55,6 +65,10 @@ export function WallEditor(props: {
   const returnFocusId = useRef<string | null>(null);
   const scope = useId();
   const [deletingBrickId, setDeletingBrickId] = useState<string | null>(null);
+  const [moveFeedback, setMoveFeedback] = useState<{
+    rowId: string;
+    left: number;
+  } | null>(null);
   const [dropFeedback, setDropFeedback] = useState<{
     target: typeof wallInsertionTargetSchema.Type;
     ownerRowId: string | null;
@@ -120,6 +134,55 @@ export function WallEditor(props: {
     const element = wallRef.current;
     if (element === null) throw new Error("Missing Wall editor");
     const { sections } = makeWallLayoutView({ wall });
+    let movingElement: HTMLElement | null = null;
+    const onMoveDrag = (props: ElementEventBasePayload) => {
+      const { source, location } = props;
+      const data = Schema.decodeUnknownResult(WallPlacementData)(source.data);
+      const innermost = location.current.dropTargets[0];
+      const target = Schema.decodeUnknownResult(wallInsertionTargetSchema)(innermost?.data);
+      if (
+        movingElement?.querySelector("[data-wall-drag-handle]") !== source.element ||
+        Result.isFailure(data) ||
+        Result.isFailure(target) ||
+        target.success.kind !== "row" ||
+        target.success.wallId !== wall.id ||
+        target.success.rowId !== data.success.rowId
+      ) {
+        setMoveFeedback(null);
+        return;
+      }
+      const destination = target.success;
+      const row = sections
+        .flatMap((section) => section.stacks)
+        .flatMap((stack) => stack.rows)
+        .find((row) => row.id === destination.rowId);
+      const sourceIndex = row?.placements.findIndex(
+        (placement) => placement.id === data.success.placementId,
+      );
+      if (
+        row === undefined ||
+        sourceIndex === undefined ||
+        sourceIndex < 0 ||
+        destination.beforePlacementId === data.success.placementId ||
+        destination.beforePlacementId === (row.placements[sourceIndex + 1]?.id ?? null)
+      ) {
+        setMoveFeedback(null);
+        return;
+      }
+      const anchorId =
+        destination.beforePlacementId ?? row.placements[row.placements.length - 1].id;
+      const anchor = innermost.element.querySelector<HTMLElement>(
+        `[data-wall-placement-id="${CSS.escape(anchorId)}"]`,
+      );
+      if (anchor === null) throw new Error(`Missing move destination Placement ${anchorId}`);
+      const rect = anchor.getBoundingClientRect();
+      setMoveFeedback({
+        rowId: row.id,
+        left:
+          (destination.beforePlacementId === null ? rect.right : rect.left) -
+          innermost.element.getBoundingClientRect().left,
+      });
+    };
     const onDrag = (props: ElementEventBasePayload) => {
       const { location } = props;
       const innermost = location.current.dropTargets[0];
@@ -145,6 +208,70 @@ export function WallEditor(props: {
       }));
     };
     const cleanups = [
+      monitorForElements({
+        canMonitor: ({ source }) =>
+          Schema.is(WallPlacementData)(source.data) &&
+          source.data.wallId === wall.id &&
+          element.contains(source.element),
+        onDragStart: ({ source }) => {
+          movingElement = source.element.closest<HTMLElement>("[data-wall-placement-id]");
+          if (movingElement === null) throw new Error("Missing moving Placement");
+          movingElement.dataset.wallMoving = "true";
+        },
+        onDrag: onMoveDrag,
+        onDropTargetChange: onMoveDrag,
+        onDrop: ({ source, location }) => {
+          const wasMoving =
+            movingElement?.querySelector("[data-wall-drag-handle]") === source.element;
+          movingElement?.removeAttribute("data-wall-moving");
+          movingElement = null;
+          setMoveFeedback(null);
+          const data = Schema.decodeUnknownResult(WallPlacementData)(source.data);
+          const target = Schema.decodeUnknownResult(wallInsertionTargetSchema)(
+            location.current.dropTargets[0]?.data,
+          );
+          if (
+            !wasMoving ||
+            !source.element.isConnected ||
+            Result.isFailure(data) ||
+            Result.isFailure(target) ||
+            target.success.kind !== "row" ||
+            target.success.wallId !== wall.id ||
+            target.success.rowId !== data.success.rowId
+          )
+            return;
+          const destination = target.success;
+          const row = sections
+            .flatMap((section) => section.stacks)
+            .flatMap((stack) => stack.rows)
+            .find((row) => row.id === destination.rowId);
+          const sourceIndex = row?.placements.findIndex(
+            (placement) => placement.id === data.success.placementId,
+          );
+          if (
+            row === undefined ||
+            sourceIndex === undefined ||
+            sourceIndex < 0 ||
+            destination.beforePlacementId === data.success.placementId ||
+            destination.beforePlacementId === (row.placements[sourceIndex + 1]?.id ?? null)
+          )
+            return;
+          const beforePlacement =
+            destination.beforePlacementId === null
+              ? null
+              : row.placements.find((placement) => placement.id === destination.beforePlacementId);
+          if (beforePlacement === undefined) return;
+          stageAggregateSessionCommand({
+            session,
+            contractName: "movePlacementToRow",
+            payload: {
+              placementId: row.placements[sourceIndex].id,
+              rowId: row.id,
+              beforePlacementId: beforePlacement === null ? null : beforePlacement.id,
+            },
+          });
+        },
+      }),
       monitorForElements({
         canMonitor: ({ source }) => Schema.is(DrawerBrickData)(source.data),
         onDragStart: ({ source }) => {
@@ -247,6 +374,12 @@ export function WallEditor(props: {
             dropTargetForElements({
               element: rowElement,
               canDrop: ({ source }) => {
+                if (Schema.is(WallPlacementData)(source.data))
+                  return (
+                    source.data.wallId === wall.id &&
+                    source.data.rowId === row.id &&
+                    row.placements.some((placement) => placement.id === source.data.placementId)
+                  );
                 if (!Schema.is(DrawerBrickData)(source.data)) return false;
                 const module = modulesHash[source.data.moduleId];
                 return (
@@ -256,6 +389,22 @@ export function WallEditor(props: {
                 );
               },
               getData: ({ source, input }) => {
+                if (Schema.is(WallPlacementData)(source.data)) {
+                  const before = row.placements.find((placement) => {
+                    const cell = rowElement.querySelector<HTMLElement>(
+                      `[data-wall-placement-id="${CSS.escape(placement.id)}"]`,
+                    );
+                    if (cell === null) throw new Error(`Missing Placement ${placement.id}`);
+                    const rect = cell.getBoundingClientRect();
+                    return input.clientX < rect.left + rect.width / 2;
+                  });
+                  return {
+                    wallId: wall.id,
+                    kind: "row",
+                    rowId: row.id,
+                    beforePlacementId: before?.id ?? null,
+                  };
+                }
                 const data = Schema.decodeUnknownSync(DrawerBrickData)(source.data);
                 const canCombine = canShareRow({
                   incomingVariant: modulesHash[data.moduleId].variants.default,
@@ -286,7 +435,8 @@ export function WallEditor(props: {
                       : (stack.rows[rowIndex + 1]?.id ?? null),
                 };
               },
-              getDropEffect: () => "copy",
+              getDropEffect: ({ source }) =>
+                Schema.is(WallPlacementData)(source.data) ? "move" : "copy",
             }),
           );
           for (const [placementIndex, placement] of row.placements.entries()) {
@@ -294,6 +444,43 @@ export function WallEditor(props: {
               `[data-wall-placement-id="${CSS.escape(placement.id)}"]`,
             );
             if (placementElement === null) throw new Error(`Missing Placement ${placement.id}`);
+            const handle = placementElement.querySelector<HTMLElement>("[data-wall-drag-handle]");
+            if (handle === null)
+              throw new Error(`Missing drag handle for Placement ${placement.id}`);
+            cleanups.push(
+              draggable({
+                element: handle,
+                getInitialData: () => ({
+                  type: "wall-placement",
+                  wallId: wall.id,
+                  rowId: row.id,
+                  placementId: placement.id,
+                }),
+                onGenerateDragPreview: ({ nativeSetDragImage }) => {
+                  const surface =
+                    placementElement.querySelector<HTMLElement>(".brick-hover-surface");
+                  if (surface === null)
+                    throw new Error(`Missing Brick surface ${placement.brickId}`);
+                  setCustomNativeDragPreview({
+                    nativeSetDragImage,
+                    getOffset: pointerOutsideOfPreview({ x: "16px", y: "8px" }),
+                    render: ({ container }) => {
+                      const appearance = getComputedStyle(surface);
+                      const rect = surface.getBoundingClientRect();
+                      container.classList.add("qrk-bricks", "brick-drag-preview");
+                      container.classList.toggle("dark", surface.closest(".dark") !== null);
+                      container.style.font = appearance.font;
+                      container.style.color = appearance.color;
+                      const copy = surface.cloneNode(true);
+                      if (!(copy instanceof HTMLElement)) throw new Error("Missing Brick preview");
+                      copy.style.width = `${rect.width}px`;
+                      copy.style.height = `${rect.height}px`;
+                      container.append(copy);
+                    },
+                  });
+                },
+              }),
+            );
             cleanups.push(
               dropTargetForElements({
                 element: placementElement,
@@ -348,6 +535,9 @@ export function WallEditor(props: {
     }
     return () => {
       combine(...cleanups)();
+      movingElement?.removeAttribute("data-wall-moving");
+      movingElement = null;
+      setMoveFeedback(null);
       setDropFeedback(null);
       setShadowSource(null);
       shadowRowHeights.current.clear();
@@ -421,6 +611,14 @@ export function WallEditor(props: {
                           data-wall-row-id={row.id}
                           className="relative flow-root min-w-0"
                         >
+                          {moveFeedback?.rowId === row.id && (
+                            <div
+                              data-wall-move-indicator
+                              aria-hidden="true"
+                              className="pointer-events-none absolute inset-y-0 z-20 w-0.5 -translate-x-1/2 bg-[#1f9bfc]"
+                              style={{ left: moveFeedback.left }}
+                            />
+                          )}
                           {dropTarget?.kind === "stack" &&
                             dropTarget.stackId === stack.id &&
                             dropFeedback?.ownerRowId === row.id &&

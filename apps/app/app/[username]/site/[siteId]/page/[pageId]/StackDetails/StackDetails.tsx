@@ -1,7 +1,7 @@
 "use client";
 
 import { useSearch } from "@tanstack/react-router";
-import { useLiveQuery } from "@zerospin/react";
+import { useLiveQuery, useSession } from "@zerospin/react";
 import { makeIdSchema, stageAggregateSessionCommand } from "@zerospin/sdk/browser";
 import { pageV1 } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV1";
 import { siteV1 } from "@qrk.sh/zerospin/src/aggregates/user/models/site/SiteV1";
@@ -11,7 +11,7 @@ import { useId, useLayoutEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
-import { UserUI } from "@/zerospin/UserUI";
+import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
 
 const ParamsSchema = Schema.Struct({
   username: Schema.String,
@@ -23,22 +23,22 @@ const ParamsSchema = Schema.Struct({
 export function StackDetails() {
   const params = useValidatedParams(ParamsSchema);
   const search = useSearch({ from: "/$username/site/$siteId/page/$pageId" });
-  const session = UserUI.useSession();
+  const session = useSession(userSessionDefinition);
   const inputId = useId();
   const [draft, setDraft] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
-  const { data: wall } = useLiveQuery({
+  const { data: walls } = useLiveQuery({
     session,
-    key: { siteId: params.siteId, pageId: params.pageId, breakpoint: search.breakpoint },
-    query: (db, { siteId, pageId, breakpoint }) =>
-      db.query.wall.findFirst({
+    key: { siteId: params.siteId, pageId: params.pageId },
+    query: (db, { siteId, pageId }) =>
+      db.query.wall.findMany({
         where: {
           pageId: { eq: pageId },
-          breakpoint: { eq: breakpoint },
           page: { siteId: { eq: siteId } },
         },
       }),
   });
+  const wall = walls.find((entry) => entry.breakpoint === search.breakpoint);
   const stack = wall?.layout.sections
     .flatMap((section) => section.stacks)
     .find((entry) => entry.id === params.stackId);

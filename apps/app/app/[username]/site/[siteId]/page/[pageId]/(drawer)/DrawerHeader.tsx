@@ -4,7 +4,7 @@ import { Link, useMatches, useNavigate, useSearch } from "@tanstack/react-router
 import { Result, Schema } from "effect";
 import { isEqual } from "es-toolkit";
 import { ArrowLeft, FileText, Globe, Layers, X } from "lucide-react";
-import { useLiveQuery } from "@zerospin/react";
+import { useLiveQuery, useSession } from "@zerospin/react";
 import { makeIdSchema, makeId, stageAggregateSessionCommand } from "@zerospin/sdk/browser";
 import { makeEffectSchema } from "@zerospin/shapes";
 import { modulesHash } from "../../../../../../../modules/lib/modulesHash";
@@ -16,7 +16,7 @@ import { makePageSnapshotV2 } from "@qrk.sh/zerospin/src/aggregates/user/snapsho
 
 import { Button } from "@/components/ui/button";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
-import { UserUI } from "@/zerospin/UserUI";
+import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
 
 const ParamsSchema = Schema.Struct({
   username: Schema.String,
@@ -31,7 +31,7 @@ export function DrawerHeader() {
   const routeId = useMatches({ select: (matches) => matches.at(-1)?.routeId });
   const navigate = useNavigate();
   const search = useSearch({ from: "/$username/site/$siteId/page/$pageId" });
-  const session = UserUI.useSession();
+  const session = useSession(userSessionDefinition);
   const isSiteSettings = routeId === "/$username/site/$siteId/page/$pageId/_drawer/site-settings";
   const isPageSettings = routeId === "/$username/site/$siteId/page/$pageId/_drawer/page-settings";
   const isStackDetails = routeId === "/$username/site/$siteId/page/$pageId/_drawer/stack/$stackId";

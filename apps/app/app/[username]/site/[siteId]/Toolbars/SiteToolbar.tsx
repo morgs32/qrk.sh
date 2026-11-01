@@ -6,12 +6,12 @@ import { useMemo } from "react";
 import { ArrowLeft, File, Globe, Plus, RectangleHorizontal } from "lucide-react";
 import { WallPreviewToolbar } from "../../../../../modules/lib/WallPreviewToolbar";
 import { useSearch } from "@tanstack/react-router";
-import { useLiveQuery } from "@zerospin/react";
+import { useLiveQuery, useSession } from "@zerospin/react";
 import { makeIdSchema } from "@zerospin/sdk/browser";
 import { siteV1 as Site } from "@qrk.sh/zerospin/src/aggregates/user/models/site/SiteV1";
 
 import { useValidatedParams } from "@/hooks/useValidatedParams";
-import { UserUI } from "@/zerospin/UserUI";
+import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
 import { PublishSiteDialog } from "../page/[pageId]/(drawer)/PublishSiteDialog";
 
 import { ToolbarSeparator } from "./ToolbarSeparator";
@@ -31,7 +31,7 @@ const toolbarPresenceTransition = {
 export function SiteToolbar() {
   const reducedMotion = useReducedMotion();
   const params = useValidatedParams(ParamsSchema);
-  const session = UserUI.useSession();
+  const session = useSession(userSessionDefinition);
   const { data: site } = useLiveQuery({
     session,
     key: params.siteId,

@@ -7,8 +7,8 @@ import { Copy, RefreshCw } from "lucide-react";
 
 import "./error.css";
 
-export default function AppError(props: { error: unknown }) {
-  const { error } = props;
+export default function AppError(props: { error: unknown; retry?: () => void }) {
+  const { error, retry } = props;
   const [copyState, setCopyState] = useState<"idle" | "copied" | "failed">("idle");
   const [detailsOpen, setDetailsOpen] = useState(process.env.NODE_ENV === "development");
 
@@ -180,12 +180,10 @@ export default function AppError(props: { error: unknown }) {
           <button
             type="button"
             className="zerospin-route-error__button"
-            onClick={() => {
-              window.location.reload();
-            }}
+            onClick={retry ?? (() => window.location.reload())}
           >
             <RefreshCw aria-hidden="true" />
-            Reload application
+            {retry === undefined ? "Reload application" : "Retry session"}
           </button>
         </footer>
       </article>

@@ -5,7 +5,7 @@ import { useReducedMotion } from "framer-motion";
 import { useMatches } from "@tanstack/react-router";
 import { useAuth } from "@clerk/react";
 import { ClerkOfflineError } from "@clerk/react/errors";
-import { useLiveQuery } from "@zerospin/react";
+import { useLiveQuery, useSession } from "@zerospin/react";
 import { makeIdSchema } from "@zerospin/sdk/browser";
 import { Schema } from "effect";
 import { SWRConfig } from "swr";
@@ -16,7 +16,7 @@ import { Toolbars } from "../../Toolbars/Toolbars";
 import { ValidBreakpoint } from "./ValidBreakpoint";
 import { useBreakpointGuard } from "./useBreakpointGuard";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
-import { UserUI } from "@/zerospin/UserUI";
+import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
 import NotFound from "@/app/not-found";
 
 const ParamsSchema = Schema.Struct({
@@ -37,7 +37,7 @@ export default function PageLayout(props: { children: ReactNode }) {
   const drawerSpace = useRef<HTMLDivElement>(null);
   const hasReservedDrawerSpace = useRef(false);
   const { getToken } = useAuth();
-  const session = UserUI.useSession();
+  const session = useSession(userSessionDefinition);
   const { breakpoint, previewRef } = useBreakpointGuard();
   const scrollRef = useCallback<RefCallback<HTMLDivElement>>(
     (element) => {

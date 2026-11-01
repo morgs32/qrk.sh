@@ -1,4 +1,4 @@
-import { useLiveQuery } from "@zerospin/react";
+import { useLiveQuery, useSession } from "@zerospin/react";
 import { makeIdSchema } from "@zerospin/sdk/browser";
 import { Schema } from "effect";
 import { siteV1 } from "@qrk.sh/zerospin/src/aggregates/user/models/site/SiteV1";
@@ -6,13 +6,13 @@ import { siteV1 } from "@qrk.sh/zerospin/src/aggregates/user/models/site/SiteV1"
 import { SiteSettings } from "@/app/[username]/site/[siteId]/page/[pageId]/SiteSettings/SiteSettings";
 import NotFound from "@/app/not-found";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
-import { UserUI } from "@/zerospin/UserUI";
+import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
 
 const ParamsSchema = Schema.Struct({ siteId: makeIdSchema(siteV1) });
 
 export default function Page() {
   const { siteId } = useValidatedParams(ParamsSchema);
-  const session = UserUI.useSession();
+  const session = useSession(userSessionDefinition);
   const { data: site } = useLiveQuery({
     session,
     key: siteId,

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { useLiveQuery } from "@zerospin/react";
+import { useLiveQuery, useSession } from "@zerospin/react";
 import { makeId, stageAggregateSessionCommand } from "@zerospin/sdk/browser";
 import { pageSnapshotV2 as PageSnapshot } from "@qrk.sh/zerospin/src/aggregates/user/models/pageSnapshot/PageSnapshotV2";
 
@@ -18,11 +18,11 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { UserUI } from "@/zerospin/UserUI";
+import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
 
 export function PublishSiteDialog(props: { siteId: `sit_${string}` }) {
   const { siteId } = props;
-  const session = UserUI.useSession();
+  const session = useSession(userSessionDefinition);
   const [open, setOpen] = useState(false);
   const [selectedPageIds, setSelectedPageIds] = useState<Array<`pag_${string}`>>([]);
   const { data: pages } = useLiveQuery({

@@ -1,4 +1,4 @@
-import { MockAggregateSession } from "@zerospin/react";
+import { SessionProvider, SessionReady, useMockAggregateSession } from "@zerospin/react";
 import { prefixId } from "@zerospin/sdk/browser";
 import { Schema } from "effect";
 import { useState } from "react";
@@ -27,7 +27,6 @@ import { BREAKPOINTS, PREVIEW_BORDER_WIDTH } from "../modules/lib/breakpoints";
 import { makePlacementId } from "@qrk.sh/zerospin/src/modules/lib/makePlacementId";
 import { swatchAndIconV1 } from "@qrk.sh/zerospin/src/modules/swatchAndIcon/swatchAndIconV1";
 import { modulesHash } from "../modules/lib/modulesHash";
-import { UserUI } from "@/zerospin/UserUI";
 import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
 import { StackDetails } from "../app/[username]/site/[siteId]/page/[pageId]/StackDetails/StackDetails";
 
@@ -212,174 +211,168 @@ function WallEditorStory(props: {
     minHeight: "100%",
   };
 
+  const session = useMockAggregateSession(userSessionDefinition, { claims, resources });
   return (
-    <MockAggregateSession
-      definition={userSessionDefinition}
-      claims={claims}
-      resources={resources}
-      renderError={(error, retry) => (
-        <div role="alert">
-          {error.message}
-          <Button type="button" variant="outline" onClick={retry}>
-            Retry
-          </Button>
-        </div>
-      )}
-    >
-      {({ session, isLoaded }) =>
-        isLoaded ? (
-          <UserUI session={session}>
+    <SessionProvider session={session}>
+      <SessionReady
+        definition={userSessionDefinition}
+        fallback={<p role="status">Opening local session…</p>}
+        renderError={(error, retry) => (
+          <div role="alert">
+            {error.message}
+            <Button type="button" variant="outline" onClick={retry}>
+              Retry
+            </Button>
+          </div>
+        )}
+      >
+        <div
+          ref={(element) => {
+            if (element === null) return;
+            const observer = new MutationObserver(() => {
+              setShadowVisible(element.querySelector(".wall-shadow-placeholder") !== null);
+            });
+            observer.observe(element, { childList: true, subtree: true });
+            return () => observer.disconnect();
+          }}
+          className="flex h-dvh min-h-0 flex-col overflow-hidden bg-zinc-100 text-zinc-900 antialiased"
+        >
+          <header className="flex h-14 shrink-0 items-center justify-between gap-4 border-b border-zinc-200 bg-white px-6">
+            <h1 className="text-sm font-medium tracking-tight">Wall editor</h1>
+            {fixture !== "default" && resources.brick.length > 0 ? (
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={selectedBrickId !== null}
+                  onChange={(event) =>
+                    setSelectedBrickId(event.target.checked ? resources.brick[0].id : null)
+                  }
+                />
+                Selected placement
+              </label>
+            ) : null}
             <div
-              ref={(element) => {
-                if (element === null) return;
-                const observer = new MutationObserver(() => {
-                  setShadowVisible(element.querySelector(".wall-shadow-placeholder") !== null);
-                });
-                observer.observe(element, { childList: true, subtree: true });
-                return () => observer.disconnect();
-              }}
-              className="flex h-dvh min-h-0 flex-col overflow-hidden bg-zinc-100 text-zinc-900 antialiased"
+              aria-label="Preview breakpoint"
+              className="flex items-center gap-1 rounded-lg border border-zinc-200 bg-zinc-50 p-1"
             >
-              <header className="flex h-14 shrink-0 items-center justify-between gap-4 border-b border-zinc-200 bg-white px-6">
-                <h1 className="text-sm font-medium tracking-tight">Wall editor</h1>
-                {fixture !== "default" && resources.brick.length > 0 ? (
-                  <label className="flex items-center gap-2 text-sm">
-                    <input
-                      type="checkbox"
-                      checked={selectedBrickId !== null}
-                      onChange={(event) =>
-                        setSelectedBrickId(event.target.checked ? resources.brick[0].id : null)
-                      }
-                    />
-                    Selected placement
-                  </label>
-                ) : null}
-                <div
-                  aria-label="Preview breakpoint"
-                  className="flex items-center gap-1 rounded-lg border border-zinc-200 bg-zinc-50 p-1"
-                >
-                  {BREAKPOINTS.map((entry) => {
-                    const Icon = { sm: Smartphone, md: Tablet, lg: Laptop, xl: Monitor }[entry.id];
-                    return (
-                      <Button
-                        key={entry.id}
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        aria-label={`${entry.id} preview, ${entry.previewWidth}px`}
-                        aria-pressed={entry.id === breakpoint.id}
-                        onClick={() => setBreakpoint(entry)}
-                        className={`h-7 gap-2 rounded-md px-2.5 text-xs tabular-nums ${entry.id === breakpoint.id ? "bg-white text-zinc-950 shadow-sm" : "text-zinc-500"}`}
-                      >
-                        <Icon className="size-3.5" aria-hidden="true" />
-                        <span>{entry.previewWidth}</span>
-                      </Button>
-                    );
-                  })}
+              {BREAKPOINTS.map((entry) => {
+                const Icon = { sm: Smartphone, md: Tablet, lg: Laptop, xl: Monitor }[entry.id];
+                return (
+                  <Button
+                    key={entry.id}
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    aria-label={`${entry.id} preview, ${entry.previewWidth}px`}
+                    aria-pressed={entry.id === breakpoint.id}
+                    onClick={() => setBreakpoint(entry)}
+                    className={`h-7 gap-2 rounded-md px-2.5 text-xs tabular-nums ${entry.id === breakpoint.id ? "bg-white text-zinc-950 shadow-sm" : "text-zinc-500"}`}
+                  >
+                    <Icon className="size-3.5" aria-hidden="true" />
+                    <span>{entry.previewWidth}</span>
+                  </Button>
+                );
+              })}
+            </div>
+          </header>
+          <div className={`flex min-h-0 flex-1 flex-col ${verticalAtLg ? "lg:flex-row" : ""}`}>
+            <main className="min-h-0 min-w-0 flex-1 overflow-auto px-8 py-6">
+              {fixture !== "default" ? (
+                <div className="mb-3 flex flex-wrap gap-x-6 gap-y-1 text-xs text-zinc-600">
+                  <p>
+                    {resources.brick.length > 0
+                      ? `Existing placement — ${shadowFixture ? "Swatch and Icon" : modulesHash[fixture].label}`
+                      : "Existing placement absent — empty Wall"}
+                  </p>
+                  <p role="status" data-testid="shadow-status">
+                    {shadowVisible
+                      ? `Insertion shadow — ${modulesHash[fixture].label}`
+                      : "Shadow absent — not dragging or cancelled"}
+                  </p>
                 </div>
-              </header>
-              <div className={`flex min-h-0 flex-1 flex-col ${verticalAtLg ? "lg:flex-row" : ""}`}>
-                <main className="min-h-0 min-w-0 flex-1 overflow-auto px-8 py-6">
-                  {fixture !== "default" ? (
-                    <div className="mb-3 flex flex-wrap gap-x-6 gap-y-1 text-xs text-zinc-600">
-                      <p>
-                        {resources.brick.length > 0
-                          ? `Existing placement — ${shadowFixture ? "Swatch and Icon" : modulesHash[fixture].label}`
-                          : "Existing placement absent — empty Wall"}
-                      </p>
-                      <p role="status" data-testid="shadow-status">
-                        {shadowVisible
-                          ? `Insertion shadow — ${modulesHash[fixture].label}`
-                          : "Shadow absent — not dragging or cancelled"}
-                      </p>
-                    </div>
-                  ) : null}
-                  <div
-                    className="wall-preview-frame relative isolate flex w-full flex-col"
-                    style={previewStyle}
-                    data-breakpoint={breakpoint.id}
-                  >
-                    <BrowserChrome breakpoint={breakpoint.id} />
-                    <div
-                      role="region"
-                      aria-label={`${breakpoint.id} page preview`}
-                      className="flex flex-1 flex-col"
-                    >
-                      <SiteHeader siteId={siteId} />
-                      <WallEditor
-                        key={wallId}
-                        wallId={wallId}
-                        selectedBrickId={selectedBrickId}
-                        onEditBrick={fixture === "default" ? undefined : setSelectedBrickId}
-                      />
-                    </div>
-                  </div>
-                </main>
+              ) : null}
+              <div
+                className="wall-preview-frame relative isolate flex w-full flex-col"
+                style={previewStyle}
+                data-breakpoint={breakpoint.id}
+              >
+                <BrowserChrome breakpoint={breakpoint.id} />
                 <div
-                  className={`h-[280px] min-w-0 shrink-0 ${verticalAtLg ? "lg:h-full lg:w-[420px]" : ""}`}
+                  role="region"
+                  aria-label={`${breakpoint.id} page preview`}
+                  className="flex flex-1 flex-col"
                 >
-                  <Drawer
-                    side="bottom"
-                    layoutMode="flow"
-                    animated={false}
-                    aria-label="Bricks drawer"
-                    className={verticalAtLg ? "lg:border-t-0 lg:border-l" : undefined}
-                  >
-                    <header className="flex h-12 shrink-0 items-center justify-between gap-4 border-b border-zinc-200 bg-white px-6">
-                      <div className="flex items-baseline gap-3">
-                        <p className="text-xs text-zinc-500">
-                          {fixture === "default"
-                            ? "Drag a brick onto your page"
-                            : `Source preview — ${modulesHash[fixture].label}`}
-                        </p>
-                      </div>
-                      <span className="flex items-center gap-2 text-xs text-zinc-400">
-                        <MoveHorizontal
-                          className={`size-3.5 ${verticalAtLg ? "lg:hidden" : ""}`}
-                          aria-hidden="true"
-                        />
-                        {verticalAtLg ? (
-                          <MoveVertical className="hidden size-3.5 lg:block" aria-hidden="true" />
-                        ) : null}
-                        Scroll to browse
-                      </span>
-                    </header>
-                    <div className="min-h-0 flex-1">
-                      {fixture === "default" ? (
-                        <ModuleFilmstrip
-                          verticalAtLg={verticalAtLg}
-                          breakpoint={breakpoint.id}
-                          cardStyle={cardStyle}
-                          renderModuleLink={(brickModule) => <span>{brickModule.label}</span>}
-                        />
-                      ) : (
-                        <ModulePreview
-                          brickModule={modulesHash[fixture]}
-                          breakpoint={breakpoint.id}
-                          cardStyle={cardStyle}
-                          moduleLink={<span>{modulesHash[fixture].label}</span>}
-                          moduleAction={() => (
-                            <Button
-                              type="button"
-                              aria-label="Preview brick action"
-                              onClick={() => setSelectedBrickId(null)}
-                            >
-                              Clear selection
-                            </Button>
-                          )}
-                        />
-                      )}
-                    </div>
-                  </Drawer>
+                  <SiteHeader siteId={siteId} />
+                  <WallEditor
+                    key={wallId}
+                    wallId={wallId}
+                    selectedBrickId={selectedBrickId}
+                    onEditBrick={fixture === "default" ? undefined : setSelectedBrickId}
+                  />
                 </div>
               </div>
+            </main>
+            <div
+              className={`h-[280px] min-w-0 shrink-0 ${verticalAtLg ? "lg:h-full lg:w-[420px]" : ""}`}
+            >
+              <Drawer
+                side="bottom"
+                layoutMode="flow"
+                animated={false}
+                aria-label="Bricks drawer"
+                className={verticalAtLg ? "lg:border-t-0 lg:border-l" : undefined}
+              >
+                <header className="flex h-12 shrink-0 items-center justify-between gap-4 border-b border-zinc-200 bg-white px-6">
+                  <div className="flex items-baseline gap-3">
+                    <p className="text-xs text-zinc-500">
+                      {fixture === "default"
+                        ? "Drag a brick onto your page"
+                        : `Source preview — ${modulesHash[fixture].label}`}
+                    </p>
+                  </div>
+                  <span className="flex items-center gap-2 text-xs text-zinc-400">
+                    <MoveHorizontal
+                      className={`size-3.5 ${verticalAtLg ? "lg:hidden" : ""}`}
+                      aria-hidden="true"
+                    />
+                    {verticalAtLg ? (
+                      <MoveVertical className="hidden size-3.5 lg:block" aria-hidden="true" />
+                    ) : null}
+                    Scroll to browse
+                  </span>
+                </header>
+                <div className="min-h-0 flex-1">
+                  {fixture === "default" ? (
+                    <ModuleFilmstrip
+                      verticalAtLg={verticalAtLg}
+                      breakpoint={breakpoint.id}
+                      cardStyle={cardStyle}
+                      renderModuleLink={(brickModule) => <span>{brickModule.label}</span>}
+                    />
+                  ) : (
+                    <ModulePreview
+                      brickModule={modulesHash[fixture]}
+                      breakpoint={breakpoint.id}
+                      cardStyle={cardStyle}
+                      moduleLink={<span>{modulesHash[fixture].label}</span>}
+                      moduleAction={() => (
+                        <Button
+                          type="button"
+                          aria-label="Preview brick action"
+                          onClick={() => setSelectedBrickId(null)}
+                        >
+                          Clear selection
+                        </Button>
+                      )}
+                    />
+                  )}
+                </div>
+              </Drawer>
             </div>
-          </UserUI>
-        ) : (
-          <p role="status">Opening local session…</p>
-        )
-      }
-    </MockAggregateSession>
+          </div>
+        </div>
+      </SessionReady>
+    </SessionProvider>
   );
 }
 
@@ -526,30 +519,24 @@ export const StackNameEditor: StoryObj<typeof meta> = {
         }),
       });
     });
+    const session = useMockAggregateSession(userSessionDefinition, { claims, resources });
     return (
-      <MockAggregateSession
-        definition={userSessionDefinition}
-        claims={claims}
-        resources={resources}
-        renderError={(error, retry) => (
-          <div role="alert">
-            {error.message}
-            <Button type="button" onClick={retry}>
-              Retry
-            </Button>
-          </div>
-        )}
-      >
-        {({ session, isLoaded }) =>
-          isLoaded ? (
-            <UserUI session={session}>
-              <RouterProvider router={router} />
-            </UserUI>
-          ) : (
-            <p role="status">Opening local session…</p>
-          )
-        }
-      </MockAggregateSession>
+      <SessionProvider session={session}>
+        <SessionReady
+          definition={userSessionDefinition}
+          fallback={<p role="status">Opening local session…</p>}
+          renderError={(error, retry) => (
+            <div role="alert">
+              {error.message}
+              <Button type="button" onClick={retry}>
+                Retry
+              </Button>
+            </div>
+          )}
+        >
+          <RouterProvider router={router} />
+        </SessionReady>
+      </SessionProvider>
     );
   },
   play: async ({ canvasElement }) => {
@@ -576,17 +563,17 @@ export const StackNameEditor: StoryObj<typeof meta> = {
 
     await userEvent.clear(input);
     await userEvent.type(input, "  Featured  ");
-    await userEvent.click(canvas.getByRole("button", { name: "Save", exact: true }));
+    await userEvent.click(canvas.getByRole("button", { name: "Save" }));
     const savedName = await canvas.findByRole("button", { name: "Edit stack Featured" });
     await waitFor(() => expect(input).toHaveValue("Featured"));
-    expect(canvas.getByRole("button", { name: "Save", exact: true })).toBeDisabled();
+    expect(canvas.getByRole("button", { name: "Save" })).toBeDisabled();
 
     await userEvent.clear(input);
     await userEvent.type(input, "Unsubmitted name");
     // Selecting the same route keeps its existing draft.
     await userEvent.click(savedName);
     expect(input).toHaveValue("Unsubmitted name");
-    await userEvent.click(canvas.getByRole("button", { name: "Cancel", exact: true }));
+    await userEvent.click(canvas.getByRole("button", { name: "Cancel" }));
     expect(input).toHaveValue("Featured");
     expect(input).toBeVisible();
     expect(stack).toHaveClass("is-selected-stack");

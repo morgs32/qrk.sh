@@ -563,17 +563,17 @@ export const StackNameEditor: StoryObj<typeof meta> = {
 
     await userEvent.clear(input);
     await userEvent.type(input, "  Featured  ");
-    await userEvent.click(canvas.getByRole("button", { name: "Save", exact: true }));
+    await userEvent.click(canvas.getByRole("button", { name: "Save" }));
     const savedName = await canvas.findByRole("button", { name: "Edit stack Featured" });
     await waitFor(() => expect(input).toHaveValue("Featured"));
-    expect(canvas.getByRole("button", { name: "Save", exact: true })).toBeDisabled();
+    expect(canvas.getByRole("button", { name: "Save" })).toBeDisabled();
 
     await userEvent.clear(input);
     await userEvent.type(input, "Unsubmitted name");
     // Selecting the same route keeps its existing draft.
     await userEvent.click(savedName);
     expect(input).toHaveValue("Unsubmitted name");
-    await userEvent.click(canvas.getByRole("button", { name: "Cancel", exact: true }));
+    await userEvent.click(canvas.getByRole("button", { name: "Cancel" }));
     expect(input).toHaveValue("Featured");
     expect(input).toBeVisible();
     expect(stack).toHaveClass("is-selected-stack");

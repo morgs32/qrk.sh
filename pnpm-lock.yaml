@@ -217,6 +217,9 @@ importers:
       '@tanstack/markdown':
         specifier: 1.0.0
         version: 1.0.0(react@19.2.7)
+      '@tanstack/react-hotkeys':
+        specifier: 0.21.0
+        version: 0.21.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       '@tanstack/react-router':
         specifier: 1.170.45
         version: 1.170.45(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
@@ -4216,6 +4219,10 @@ packages:
     resolution: {integrity: sha512-w1+YvwmTkwt5n8yUqEH3IWZ9DsmorCZW/EQ3KYHnqEgIkOZpH54NvW6/Epq3Dzb8H0ifIeYX8PExvrNLIH5FIA==}
     engines: {node: '>=20.19'}
 
+  '@tanstack/hotkeys@0.23.0':
+    resolution: {integrity: sha512-hzlv1O6Ll6Q+lGuKpcbEgAEsojQnLCwlrL/S+GU0DtVHpgH+QnmvUQfjJ88TZB0BDEpEbAm+PGgZW7djZlRGdA==}
+    engines: {node: '>=20'}
+
   '@tanstack/intent@0.5.5':
     resolution: {integrity: sha512-Ei5RqUWgV96HrezTEyDbScy0wZN+17dNo59Am8/3ncv0YIaIxApkiX5LkM488wxe4a1Imdi09nhjFxblxwLMSQ==}
     engines: {node: '>=20.12.0'}
@@ -4250,6 +4257,13 @@ packages:
     peerDependenciesMeta:
       '@tanstack/react-start':
         optional: true
+
+  '@tanstack/react-hotkeys@0.21.0':
+    resolution: {integrity: sha512-KKzI3AYYAIF2kS53UKwIN637WcWtstAQVmknKhFB8W77HOXK5k7SO0iR46ZEqfIvvUcrtLu6xB7Ceu0WUKz0Pg==}
+    engines: {node: '>=20'}
+    peerDependencies:
+      react: 19.2.7
+      react-dom: 19.2.7
 
   '@tanstack/react-router@1.170.45':
     resolution: {integrity: sha512-6tuiIAFb82zsk/YxveJRyGjbsm6kIfgUuoH7qCp2R2aSHveW6W0t/6j+Sn4m1iIlA2lLU4cvooqks08/YMOThw==}
@@ -12552,6 +12566,8 @@ snapshots:
 
   '@tanstack/history@1.162.5': {}
 
+  '@tanstack/hotkeys@0.23.0': {}
+
   '@tanstack/intent@0.5.5': {}
 
   '@tanstack/markdown@1.0.0(react@19.2.7)':
@@ -12573,6 +12589,12 @@ snapshots:
       '@tanstack/react-start': 1.169.3(@vitejs/plugin-rsc@0.5.38(@types/node@25.9.5)(esbuild@0.28.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react-server-dom-webpack@19.2.7(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))(@voidzero-dev/vite-plus-core@1.0.0(@types/node@25.9.5)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))(esbuild@0.28.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
     transitivePeerDependencies:
       - react-dom
+
+  '@tanstack/react-hotkeys@0.21.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)':
+    dependencies:
+      '@tanstack/hotkeys': 0.23.0
+      react: 19.2.7
+      react-dom: 19.2.7(react@19.2.7)
 
   '@tanstack/react-router@1.170.45(react-dom@19.2.7(react@19.2.7))(react@19.2.7)':
     dependencies:
@@ -13282,7 +13304,7 @@ snapshots:
       pathe: 2.0.3
       sirv: 3.0.2
       tinyrainbow: 3.1.1
-      vitest: 5.0.1(@opentelemetry/api@1.10.0)(@types/node@25.5.2)(@vitest/browser-preview@5.0.1)(@vitest/ui@5.0.1(vitest@5.0.1))(@voidzero-dev/vite-plus-core@1.0.0(@types/node@25.5.2)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))
+      vitest: 5.0.1(@opentelemetry/api@1.10.0)(@types/node@25.9.5)(@vitest/browser-preview@5.0.1)(@vitest/ui@5.0.1(vitest@5.0.1))(@voidzero-dev/vite-plus-core@1.0.0(@types/node@25.9.5)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(typescript@6.0.2)(yaml@2.9.1))
 
   '@vitest/utils@3.2.4':
     dependencies:

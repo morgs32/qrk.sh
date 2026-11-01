@@ -27,18 +27,18 @@ export function StackDetails() {
   const inputId = useId();
   const [draft, setDraft] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
-  const { data: wall } = useLiveQuery({
+  const { data: walls } = useLiveQuery({
     session,
-    key: { siteId: params.siteId, pageId: params.pageId, breakpoint: search.breakpoint },
-    query: (db, { siteId, pageId, breakpoint }) =>
-      db.query.wall.findFirst({
+    key: { siteId: params.siteId, pageId: params.pageId },
+    query: (db, { siteId, pageId }) =>
+      db.query.wall.findMany({
         where: {
           pageId: { eq: pageId },
-          breakpoint: { eq: breakpoint },
           page: { siteId: { eq: siteId } },
         },
       }),
   });
+  const wall = walls.find((entry) => entry.breakpoint === search.breakpoint);
   const stack = wall?.layout.sections
     .flatMap((section) => section.stacks)
     .find((entry) => entry.id === params.stackId);

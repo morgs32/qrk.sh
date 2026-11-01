@@ -1,6 +1,5 @@
-"use client";
-
 import { useSession } from "@zerospin/react";
+("use client");
 
 import { Globe } from "lucide-react";
 import { useLayoutEffect, useState } from "react";

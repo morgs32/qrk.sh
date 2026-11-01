@@ -1,6 +1,5 @@
-"use client";
-
 import { useSession } from "@zerospin/react";
+("use client");
 
 import { stageAggregateSessionCommand } from "@zerospin/sdk/browser";
 

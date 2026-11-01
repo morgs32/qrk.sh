@@ -22,6 +22,11 @@ const clerkProxy = clerkMiddleware(async (auth, request) => {
 
 export default function proxy(request: NextRequest, event: NextFetchEvent) {
   const pathname = request.nextUrl.pathname;
+  if (/^\/__dev(?:\/|$)/.test(pathname)) {
+    if (process.env.NODE_ENV !== "development")
+      return new NextResponse("Not found", { status: 404 });
+    return NextResponse.next();
+  }
   if (
     process.env.NODE_ENV === "development" &&
     (request.method === "GET" || request.method === "HEAD") &&

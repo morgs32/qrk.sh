@@ -1,8 +1,10 @@
 <!-- intent-skills:start -->
+
 ## Skill Loading
 
 Use the repository’s installed Intent. If it is unavailable, report the missing dependency instead of downloading a replacement.
 Before editing files for a substantial task:
+
 - Run `pnpm exec intent list` from the workspace root to see available local skills.
 - If a listed skill matches the task, run `pnpm exec intent load <package>#<skill>` before changing files.
 - Use the loaded `SKILL.md` guidance while making the change.
@@ -98,3 +100,30 @@ Plans created by agents must include gratuitous annotated examples and annotated
 - Run workspace targets through `pnpm nx`; use available Nx MCP tools where relevant. Check `nx_docs` or `--help` for unfamiliar flags/configuration; consult `node_modules/@nx/<plugin>/PLUGIN.md` when present for plugin guidance.
 
 <!-- nx configuration end-->
+
+## Development sign-in URLs
+
+Open these links in the browser used for testing:
+
+- [Web sign-in and normal App handoff](https://qrk.localhost/__dev/log-me-in/morgan.intrator%40gmail.com?returnTo=/replace)
+- [App shortcut](https://app.qrk.localhost/__dev/log-me-in/morgan.intrator%40gmail.com)
+
+The route is `/__dev/log-me-in/<email>?returnTo=<path>`. Replace the URL-encoded email
+with an existing user in the configured Clerk development application. Unknown accounts
+are never created. Web remains the authentication owner. The App development shortcut
+forwards to Web; `/replace` performs the existing handoff to the signed-in username on
+App. `returnTo` paths belong to the Web origin.
+
+The development page loads Clerk directly, without waiting for domain sessions. A
+same-origin POST looks up the user and issues a 60-second sign-in ticket when needed.
+Matching browser identities reuse their session; switching ends the active session before
+activating the requested user. Tickets stay out of URLs and responses are uncached. `curl`
+does not sign in the browser.
+
+Only relative, same-origin return destinations are accepted; missing or unsafe values fall
+back to `/`. Both Clerk keys must be development keys. Web login requests return 404 in
+production and do not load the development login implementation. The App shortcut is
+registered only by the development server. Do not add authentication to unauthenticated
+scaffolds or change domain permissions for these shortcuts.
+
+Run the focused HTTP tests with `node --experimental-strip-types --test apps/web/dev/handleDevelopmentSignIn.spec.mjs`. These tests mock Clerk requests and create no accounts.

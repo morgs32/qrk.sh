@@ -11,6 +11,42 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [
+      {
+        name: "development-sign-in-handoff",
+        apply: "serve",
+        configureServer(server) {
+          server.middlewares.use((request, response, next) => {
+            const url = new URL(
+              request.url ?? "/",
+              "http://development.invalid",
+            );
+            if (!/^\/__dev\/log-me-in\/[^/]+$/.test(url.pathname))
+              return next();
+            if (mode === "production" || process.env.NODE_ENV === "production") {
+              response.statusCode = 404;
+              response.end("Not found");
+              return;
+            }
+            if (request.method !== "GET") {
+              response.statusCode = 405;
+              response.end("Method not allowed");
+              return;
+            }
+            const target = new URL(
+              url.pathname,
+              env.NEXT_PUBLIC_WEB_ORIGIN ?? "https://qrk.localhost",
+            );
+            target.searchParams.set(
+              "returnTo",
+              url.searchParams.get("returnTo") ?? "/replace",
+            );
+            response.statusCode = 302;
+            response.setHeader("Cache-Control", "no-store");
+            response.setHeader("Location", target.href);
+            response.end();
+          });
+        },
+      },
       tailwindcss(),
       tanstackStart({
         srcDirectory: ".",

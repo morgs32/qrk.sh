@@ -10,7 +10,10 @@ export function BrickShell({
   className?: string;
 } & Omit<ComponentPropsWithoutRef<"div">, "children" | "className">) {
   return (
-    <div {...props} className={cn("flex h-full min-h-0 w-full flex-col", className)}>
+    <div
+      {...props}
+      className={cn("flex h-full min-h-0 w-full flex-[1_0_auto] flex-col", className)}
+    >
       {children}
     </div>
   );

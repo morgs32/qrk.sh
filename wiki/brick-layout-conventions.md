@@ -1,6 +1,6 @@
 # Brick preview and editor conventions
 
-**updated:** 2026-10-29
+**updated:** 2026-11-01
 
 ## App owns saved editing
 
@@ -21,8 +21,9 @@ persisted layouts are unchanged. Moves and Brick deletion prune empty Rows,
 Stacks, and Sections. Stack capacity
 is 1 / 2 / 3 / 4 per Section at sm / md / lg / xl, counted after move cleanup.
 Rows lay out Bricks at their module preferred widths and shrink them toward
-module minimum widths when crowded, with natural content height and no arbitrary
-Placement-count cap. Each Row scrolls horizontally when its minimums
+module minimum widths when crowded. Each Row derives its height from its tallest
+current Brick or insertion shadow and stretches every visible surface to match,
+with no arbitrary Placement-count cap. Each Row scrolls horizontally when its minimums
 do not fit, without widening neighboring Stacks or changing saved order.
 The former `Page.wallId`, `Wall.label`, `Brick.wallId`, Placement grid geometry,
 visibility, and duplicated breakpoint attribute are removed. Placement derives
@@ -74,9 +75,19 @@ with drawer previews. Their cells shrink without growing to fill unused Row spac
 Placement and shadow cells share `flex: 0 1 auto`; their inline preferred and
 minimum widths include the configured Brick gap for two half-gap padding insets.
 An empty Wall preserves the same outer half-gap allowance. These rules retain
-module content dimensions while allowing shrink without growth.
+module content widths while allowing horizontal shrink without growth.
 Each Row contains a flex scroll element with Placements and any temporary
-insertion shadow.
+insertion shadow, using `align-items: stretch` with automatic height. Placement
+and shadow cells are column flex containers; their content hosts, BrickWrapper,
+clipping content layer, and module roots grow vertically with `flex: 1 0 auto`.
+The wrapper/root growth rules are scoped to Placements and shadows. Catalog and
+native pointer previews retain their natural heights. A taller shadow grows the
+Row immediately; a shorter one fills its height. Leaving, cancellation, or
+removing the tallest Brick lets the Row shrink naturally. These heights are
+derived by CSS, with no saved geometry or equal-height measurements. Existing
+module CSS minimums apply; shared `defaultHeight` and `minHeight` metadata are
+not newly enforced. Drag-start height measurements still serve stable drop
+targeting, independently of visible stretching.
 It uses the containing Wall's logical breakpoint and Placement spec, regardless
 of cell width. Every module has a 320px
 minimum except Swatch and Icon at 160px, constant across all breakpoints.
@@ -213,7 +224,8 @@ updates only the embedded Stack's name. Stack IDs, Rows, Placements, and other
 Walls are preserved. The browser pins user owner V4 and web actor V4; owner V3 is
 retained for history. Models are unchanged and no storage reset is required.
 
-`BrickWrapper` owns intrinsic height and self-contained flat/card appearance.
+`BrickWrapper` owns intrinsic content sizing and self-contained flat/card appearance,
+and stretches vertically inside a Wall Row.
 Its outer surface allows visible overflow. Its internal `.brick-content` layer
 owns content clipping, inherited corner rounding, and the query container.
 Saved border paint remains at z-index 18, interaction paint at 19 outside the
@@ -335,9 +347,10 @@ storage were preserved.
 ## Brick dimension stories
 
 Preview, placed, and shadow content use the existing BrickWrapper surface with
-natural height and self-contained flat/card styling. At equal content widths,
-state, and effective spec their content boxes match independently of hover,
-focus, selection, or saved border width. Placement and shadow cells share
+self-contained flat/card styling. Preview surfaces retain natural height;
+placed and shadow surfaces fill their Row's tallest content. Without a taller
+neighbor, equal content widths, state, and effective spec produce matching
+heights independently of hover, focus, selection, or saved border width. Placement and shadow cells share
 `flex: 0 1 auto`; inline preferred/minimum widths include the configured Brick
 gap as two half-gap insets, including the empty-Wall perimeter allowance.
 
@@ -348,3 +361,9 @@ production drag path, remains visible for inspection, and cancels without a drop
 The native pointer image is a separate presentation with its retained 2px blue
 edge. Paint/action-visibility assertions complement geometry checks, and real
 pointer interaction verifies CSS hover.
+
+Equal Height Rows and Equal Height Rows With Gaps exercise mixed-height Figma
+and Swatch surfaces across all four breakpoints, with zero-gap flat and 12px-gap
+card appearances. Their command-backed drop and deletion checks verify Row
+growth, shorter-shadow stretching, equality after placement, and natural shrink
+after leaving, cancellation, or removal.

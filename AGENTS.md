@@ -103,7 +103,8 @@ Plans created by agents must include gratuitous annotated examples and annotated
 
 ## Development sign-in URLs
 
-Open these links in the browser used for testing:
+Open these links in the browser used for testing. If Portless adds a branch or
+worktree prefix, use the origin printed by the running development server:
 
 - [Web sign-in and normal App handoff](https://qrk.localhost/__dev/log-me-in/morgan.intrator%40gmail.com?returnTo=/replace)
 - [App shortcut](https://app.qrk.localhost/__dev/log-me-in/morgan.intrator%40gmail.com)

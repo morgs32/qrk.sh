@@ -2,8 +2,8 @@
 
 import { makeId, makeIdSchema, stageAggregateSessionCommand } from "@zerospin/sdk/browser";
 import { WallModuleAction } from "../../../../../../../modules/lib/wall/WallModuleAction";
-import { UserUI } from "@/zerospin/UserUI";
-import { useLiveQuery } from "@zerospin/react";
+import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
+import { useLiveQuery, useSession } from "@zerospin/react";
 import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 
 import { ModuleFilmstrip } from "../../../../../../../modules/lib/ModuleFilmstrip";
@@ -28,7 +28,7 @@ export function Modules() {
   const breakpoint = BREAKPOINTS.find((entry) => entry.id === search.breakpoint);
   const params = useValidatedParams(ParamsSchema);
   const navigate = useNavigate();
-  const session = UserUI.useSession();
+  const session = useSession(userSessionDefinition);
   const { data: site } = useLiveQuery({
     session,
     key: params.siteId,

@@ -135,16 +135,18 @@ release `2` and Actor version `2`. Historical declarations remain registered for
 replay. Shared Brick border widths belong to BrickV2 and default to `0` when
 historical creation commands replay.
 
-Packages are pinned to Zerospin `37.0.1`. Existing framework `36` storage needs a
+Packages are pinned to Zerospin `38.1.1`. Existing framework `36` storage needs a
 lossless migration before this runtime starts against it. Preserve retained
 commands, identities, checkpoints and model rows; no storage reset is authorized
 for this upgrade. The earlier integer-version cutover's reset approval does not
 apply here.
 
-App's `ConnectedAggregateSession` receives its pure `userSessionDefinition`,
+App's `useConnectedAggregateSession` receives its pure `userSessionDefinition`,
 `userApplicationLayer`, credentials schema and authored `sharedWorkerUrl` directly.
 Zerospin validates the `node.worker.ts` artifact and constructs its SharedWorker.
-Zerospin chooses its name from the runtime version and persistent session identity.
+Zerospin chooses its name from the runtime version, declaration/backend scope and
+requested aggregate ID. The SharedWorker authenticates each attachment and selects
+its identity-specific Node/database.
 App uses Vite's `?sharedworker&url` import for the authored worker
 and `@zerospin/browser/sqlite.wasm?url` for the matching installed SQLite asset.
 App and Web use independently allocated internal ports at their existing HTTPS
@@ -158,8 +160,10 @@ App bundles installed Zerospin packages with
 `ssr.noExternal` so their extensionless ESM imports resolve through Vite.
 
 App prerenders a static document shell and initializes its routes in the
-browser. `ConnectedAggregateSession` owns a fresh facade for its Clerk binding; its
-`isLoaded` callback gates readers until the initialized database is published. The
+browser. `useConnectedAggregateSession` owns the Clerk-bound facade and replaces its
+internal generation when identity changes. `SessionProvider` publishes the handle
+without replacing its children; `SessionReady` gates readers until the initialized
+database is published and owns local retry/error presentation. The
 dashboard uses the installed Silkscreen font for its `QRK.SH` wordmark.
 Browser-owned data and editor drafts stay under the content readiness gate.
 Persistent Router layouts retain the editor across drawers; the drawer shell

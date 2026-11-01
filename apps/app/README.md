@@ -43,10 +43,12 @@ is not connected yet.
 ## Startup timing
 
 Frontend timing is active with the currently installed Zerospin release.
-The initializer now receives the bundler SharedWorker URL as `sharedWorkerUrl`;
+The managed session hook receives the bundler SharedWorker URL as `sharedWorkerUrl`;
 Zerospin owns worker creation. Native session/SharedWorker phase instrumentation,
 early failed-session inspection and session-startup correlation still require
-activating native diagnostics for development builds.
+activating native diagnostics for development builds. The hook observes nonterminal
+failures before initialization; ready-only session diagnostics read retained startup
+telemetry beneath `SessionReady`, and terminal startup errors use its error view.
 
 Development builds emit native Effect logs for `navigation.html`,
 `navigation.dom`, `navigation.first-contentful-paint`, `clerk.ready`,

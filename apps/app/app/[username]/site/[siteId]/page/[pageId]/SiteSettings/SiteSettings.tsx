@@ -1,5 +1,7 @@
 "use client";
 
+import { useSession } from "@zerospin/react";
+
 import { stageAggregateSessionCommand } from "@zerospin/sdk/browser";
 
 /* oxlint-disable next/no-img-element -- App uses Vite, so Next image optimization is unavailable. */
@@ -18,7 +20,7 @@ import useSWR from "swr";
 import { CopyButton } from "./CopyButton";
 import { SearchPreviewCard } from "../SearchPreviewCard";
 
-import { UserUI } from "@/zerospin/UserUI";
+import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { FieldLabel } from "@/components/ui/field-label";
@@ -90,7 +92,7 @@ export function SiteSettings(props: {
   const params = useValidatedParams(ParamsSchema);
   const username = useUsername();
   const { getToken } = useAuth();
-  const session = UserUI.useSession();
+  const session = useSession(userSessionDefinition);
   const siteId = site.id;
   const navigate = useNavigate();
   const search = useSearch({ from: "/$username/site/$siteId/page/$pageId" });

@@ -1,5 +1,7 @@
 "use client";
 
+import { useSession } from "@zerospin/react";
+
 import { Globe } from "lucide-react";
 import { useLayoutEffect, useState } from "react";
 import { createPortal } from "react-dom";
@@ -7,7 +9,7 @@ import { useNavigate, useSearch } from "@tanstack/react-router";
 import { stageAggregateSessionCommand } from "@zerospin/sdk/browser";
 import { Schema } from "effect";
 
-import { UserUI } from "@/zerospin/UserUI";
+import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
 import { Button } from "@/components/ui/button";
 
 import { Card, CardContent } from "@/components/ui/card";
@@ -27,7 +29,7 @@ export function PageSettings(props: {
 }) {
   const { page } = props;
   const params = useValidatedParams(ParamsSchema);
-  const session = UserUI.useSession();
+  const session = useSession(userSessionDefinition);
   const navigate = useNavigate();
   const search = useSearch({ from: "/$username/site/$siteId/page/$pageId" });
   const [fields, setFields] = useState(() => ({
@@ -101,9 +103,7 @@ export function PageSettings(props: {
                   >
                     {fields.title}
                   </a>
-                  <p className="line-clamp-2 text-sm text-muted-foreground">
-                    {fields.description}
-                  </p>
+                  <p className="line-clamp-2 text-sm text-muted-foreground">{fields.description}</p>
                 </CardContent>
               </Card>
             </div>

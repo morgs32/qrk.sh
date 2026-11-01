@@ -4,21 +4,21 @@ import { makeIdSchema } from "@zerospin/sdk/browser";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { pageV1 } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV1";
 import { siteV1 } from "@qrk.sh/zerospin/src/aggregates/user/models/site/SiteV1";
-import { useLiveQuery } from "@zerospin/react";
+import { useLiveQuery, useSession } from "@zerospin/react";
 import { Schema } from "effect";
 
 import { BREAKPOINTS, PREVIEW_BORDER_WIDTH } from "../../../../../../modules/lib/breakpoints";
 import { BrowserChrome } from "../../../../../../modules/lib/BrowserChrome";
 import { WallEditor } from "../../../../../../modules/lib/wall/WallEditor";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
-import { UserUI } from "@/zerospin/UserUI";
+import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
 import { SiteHeader } from "../../SiteHeader";
 
 export function PagePreview(props: { breakpoint: (typeof BREAKPOINTS)[number] }) {
   const { breakpoint } = props;
   const navigate = useNavigate();
   const { brickId: selectedBrickId, stackId: selectedStackId } = useParams({ strict: false });
-  const session = UserUI.useSession();
+  const session = useSession(userSessionDefinition);
   const params = useValidatedParams(
     Schema.Struct({
       username: Schema.String,

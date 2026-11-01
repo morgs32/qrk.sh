@@ -135,7 +135,7 @@ release `2` and Actor version `2`. Historical declarations remain registered for
 replay. Shared Brick border widths belong to BrickV2 and default to `0` when
 historical creation commands replay.
 
-Packages are pinned to Zerospin `38.0.1`. Existing framework `36` storage needs a
+Packages are pinned to Zerospin `38.1.1`. Existing framework `36` storage needs a
 lossless migration before this runtime starts against it. Preserve retained
 commands, identities, checkpoints and model rows; no storage reset is authorized
 for this upgrade. The earlier integer-version cutover's reset approval does not
@@ -144,7 +144,9 @@ apply here.
 App's `useConnectedAggregateSession` receives its pure `userSessionDefinition`,
 `userApplicationLayer`, credentials schema and authored `sharedWorkerUrl` directly.
 Zerospin validates the `node.worker.ts` artifact and constructs its SharedWorker.
-Zerospin chooses its name from the runtime version and persistent session identity.
+Zerospin chooses its name from the runtime version, declaration/backend scope and
+requested aggregate ID. The SharedWorker authenticates each attachment and selects
+its identity-specific Node/database.
 App uses Vite's `?sharedworker&url` import for the authored worker
 and `@zerospin/browser/sqlite.wasm?url` for the matching installed SQLite asset.
 App and Web use independently allocated internal ports at their existing HTTPS

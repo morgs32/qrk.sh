@@ -163,3 +163,10 @@ fade. The feathered outer edge transitions into transparency.
 Focused Cross Row Moves playback passed with both blur assertions, and paused
 playback visually confirmed the soft edge. After restarting App, the live editor
 loaded both updated shadow declarations.
+
+Stepped-edge follow-up: replace the blur with crisp 1px bands: solid #1868db
+blue next to the white core, then #8bb4ed light blue outside it. The circle uses
+a 1px blue border plus a 1px light-blue ring. No blur remains.
+Focused Cross Row Moves passed with the two-band style assertions. Paused
+playback confirmed crisp edges, and the live editor loaded the updated styles
+after restarting App.

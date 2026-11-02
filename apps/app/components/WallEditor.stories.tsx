@@ -1387,11 +1387,13 @@ export const RowReorder: StoryObj<typeof meta> = {
             expect(line.getBoundingClientRect().height).toBeCloseTo(rowBox.height - 4, 1);
             expect(getComputedStyle(indicator).pointerEvents).toBe("none");
             expect(getComputedStyle(line).backgroundColor).toBe("rgb(255, 255, 255)");
-            expect(getComputedStyle(line).boxShadow).toBe("rgb(24, 104, 219) 0px 0px 3px 1px");
+            expect(getComputedStyle(line).boxShadow).toBe(
+              "rgb(24, 104, 219) 0px 0px 0px 1px, rgb(139, 180, 237) 0px 0px 0px 2px",
+            );
             expect(getComputedStyle(line, "::before").backgroundColor).toBe("rgb(255, 255, 255)");
-            expect(getComputedStyle(line, "::before").borderWidth).toBe("2px");
+            expect(getComputedStyle(line, "::before").borderWidth).toBe("1px");
             expect(getComputedStyle(line, "::before").boxShadow).toBe(
-              "rgb(24, 104, 219) 0px 0px 3px 0px",
+              "rgb(139, 180, 237) 0px 0px 0px 1px",
             );
             expect(indicator.parentElement).toBe(row.closest(".wall-editor"));
             expect(
@@ -1746,11 +1748,13 @@ export const CrossRowMoves: StoryObj<typeof meta> = {
             expect(indicator.getAttribute("data-orientation")).toBe(scenario.orientation);
             expect(getComputedStyle(indicator).pointerEvents).toBe("none");
             expect(getComputedStyle(line).backgroundColor).toBe("rgb(255, 255, 255)");
-            expect(getComputedStyle(line).boxShadow).toBe("rgb(24, 104, 219) 0px 0px 3px 1px");
+            expect(getComputedStyle(line).boxShadow).toBe(
+              "rgb(24, 104, 219) 0px 0px 0px 1px, rgb(139, 180, 237) 0px 0px 0px 2px",
+            );
             expect(getComputedStyle(line, "::before").backgroundColor).toBe("rgb(255, 255, 255)");
-            expect(getComputedStyle(line, "::before").borderWidth).toBe("2px");
+            expect(getComputedStyle(line, "::before").borderWidth).toBe("1px");
             expect(getComputedStyle(line, "::before").boxShadow).toBe(
-              "rgb(24, 104, 219) 0px 0px 3px 0px",
+              "rgb(139, 180, 237) 0px 0px 0px 1px",
             );
             if (scenario.orientation === "vertical") {
               expect(lineBox.width).toBeCloseTo(1, 1);

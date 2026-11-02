@@ -713,17 +713,12 @@ export function WallEditor(props: {
                               render={
                                 <Button
                                   variant="ghost"
-                                  className="h-7 w-3 shrink-0 rounded-none p-0 text-white hover:bg-transparent hover:text-white"
+                                  className="h-7 w-3.5 shrink-0 rounded-none p-0 text-white hover:bg-transparent hover:text-white"
                                 />
                               }
                               aria-label={`Stack ${stack.name} actions`}
                             >
-                              <Pencil
-                                className="size-3 opacity-80"
-                                fill="currentColor"
-                                strokeWidth={0}
-                                aria-hidden="true"
-                              />
+                              <Pencil className="size-3.5" strokeWidth={1.5} aria-hidden="true" />
                             </Menu.Trigger>
                             <Menu.Portal>
                               <Menu.Positioner

@@ -2,6 +2,8 @@
 
 import "@fontsource/silkscreen/400.css";
 import { Dialog } from "@base-ui/react/dialog";
+import { Menu } from "@base-ui/react/menu";
+import { ArrowLeft, ArrowRight, Ellipsis } from "lucide-react";
 import type { IInferModelRow } from "@zerospin/core/models/types";
 import { makeId, makeIdSchema, stageAggregateSessionCommand } from "@zerospin/sdk/browser";
 import { combine } from "@atlaskit/pragmatic-drag-and-drop/combine";
@@ -706,6 +708,38 @@ export function WallEditor(props: {
                               <span className="truncate">{stack.name}</span>
                             </Button>
                           )}
+                          <Menu.Root>
+                            <Menu.Trigger
+                              render={
+                                <Button
+                                  variant="ghost"
+                                  className="size-7 shrink-0 rounded-none p-0 text-white hover:bg-transparent hover:text-white"
+                                />
+                              }
+                              aria-label={`Stack ${stack.name} actions`}
+                            >
+                              <Ellipsis className="size-4" aria-hidden="true" />
+                            </Menu.Trigger>
+                            <Menu.Portal>
+                              <Menu.Positioner
+                                side="bottom"
+                                align="start"
+                                sideOffset={0}
+                                className="z-[90]"
+                              >
+                                <Menu.Popup className="w-max min-w-[90px] max-w-[var(--available-width)] max-h-[var(--available-height)] overflow-y-auto rounded-none border border-[#dedede] bg-white p-0 font-mono text-[15px] leading-[18px] font-normal text-[#111] shadow-[2px_3px_0_#0005] outline-none">
+                                  <Menu.Item className="flex min-h-5 cursor-pointer items-center gap-2 px-0.5 py-px outline-none data-[highlighted]:bg-[color-mix(in_srgb,#fff,#111_6%)]">
+                                    <ArrowLeft className="size-4" aria-hidden="true" />
+                                    Insert left
+                                  </Menu.Item>
+                                  <Menu.Item className="flex min-h-5 cursor-pointer items-center gap-2 px-0.5 py-px outline-none data-[highlighted]:bg-[color-mix(in_srgb,#fff,#111_6%)]">
+                                    <ArrowRight className="size-4" aria-hidden="true" />
+                                    Insert right
+                                  </Menu.Item>
+                                </Menu.Popup>
+                              </Menu.Positioner>
+                            </Menu.Portal>
+                          </Menu.Root>
                         </StackAction>
                       ) : null}
                       {stack.rows.map((row) => (

@@ -713,7 +713,7 @@ export function WallEditor(props: {
                               render={
                                 <Button
                                   variant="ghost"
-                                  className="size-7 shrink-0 rounded-none p-0 text-white hover:bg-transparent hover:text-white"
+                                  className="h-7 w-3 shrink-0 rounded-none p-0 text-white hover:bg-transparent hover:text-white"
                                 />
                               }
                               aria-label={`Stack ${stack.name} actions`}

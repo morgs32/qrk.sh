@@ -1,10 +1,18 @@
-import { SessionProvider, SessionReady, useMockAggregateSession } from "@zerospin/react";
-import { prefixId } from "@zerospin/sdk/browser";
+import {
+  SessionProvider,
+  SessionReady,
+  useLiveQuery,
+  useMockAggregateSession,
+  useSession,
+} from "@zerospin/react";
+import { prefixId, stageAggregateSessionCommand } from "@zerospin/sdk/browser";
 import type { IInferResource } from "@zerospin/core/models/types";
+import { sessionRepoDbConfig } from "@zerospin/core/aggregateSession/sessionRepoDbConfig";
+import { makeShapeCodecs } from "@zerospin/shapes";
 import { Schema } from "effect";
 import { useState } from "react";
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { expect, fireEvent, userEvent, waitFor, within } from "storybook/test";
+import { expect, fireEvent, spyOn, userEvent, waitFor, within } from "storybook/test";
 import { Laptop, Monitor, MoveHorizontal, MoveVertical, Smartphone, Tablet } from "lucide-react";
 import {
   createMemoryHistory,
@@ -46,6 +54,7 @@ function makeResources(
   fixture: "default" | "swatch-and-icon" | "article",
   crossRowFixture = false,
   sizingFixture = false,
+  resizeFixture = false,
 ) {
   const timestamps = {
     createdAt: new Date("2026-10-20T00:00:00.000Z"),
@@ -53,7 +62,7 @@ function makeResources(
   };
   const bricks: IInferResource<typeof brick>[] = emptyWall
     ? []
-    : (crossRowFixture
+    : (crossRowFixture || resizeFixture
         ? [0, 1, 2, 3, 4]
         : sizingFixture
           ? [0, 1, 2, 3]
@@ -68,7 +77,8 @@ function makeResources(
           id: prefixId(brick, `story-${position}`),
           pageId,
           moduleId:
-            (crossRowFixture && position === 4) || (sizingFixture && position === 3)
+            ((crossRowFixture || resizeFixture) && position === 4) ||
+            (sizingFixture && position === 3)
               ? "article"
               : fixture === "default"
                 ? "swatch-and-icon"
@@ -76,8 +86,9 @@ function makeResources(
           borderWidth,
           stateRevision: 0,
           state:
-            (crossRowFixture && position === 4) || (sizingFixture && position === 3)
-              ? sizingFixture
+            ((crossRowFixture || resizeFixture) && position === 4) ||
+            (sizingFixture && position === 3)
+              ? sizingFixture || resizeFixture
                 ? {
                     title: "Content taller than its row minimum",
                     subtitle: "Natural height sizing fixture",
@@ -225,23 +236,32 @@ function makeResources(
                         id: prefixId({ abbreviation: "stk" }, `story-${id}`),
                         name: "Stack 1",
                         rows: (fixture === "default"
-                          ? sizingFixture
+                          ? sizingFixture || resizeFixture
                             ? [0, 1, 2]
                             : [0, 1]
                           : [0]
                         ).map((position) => ({
-                          minHeight: sizingFixture
-                            ? position === 1
-                              ? 360
-                              : position === 2
-                                ? 90
-                                : null
-                            : null,
+                          minHeight:
+                            sizingFixture || resizeFixture
+                              ? position === 1
+                                ? 360
+                                : position === 2
+                                  ? 90
+                                  : null
+                              : null,
                           id: prefixId({ abbreviation: "row" }, `story-${id}-${position}`),
                           placementIds: bricks
                             .filter(
                               (_, index) =>
-                                (index < 2 ? 0 : sizingFixture ? index - 1 : 1) === position,
+                                (resizeFixture
+                                  ? index < 3
+                                    ? 0
+                                    : index - 2
+                                  : index < 2
+                                    ? 0
+                                    : sizingFixture
+                                      ? index - 1
+                                      : 1) === position,
                             )
                             .map((entry) => makePlacementId(entry.id, id)),
                         })),
@@ -276,6 +296,135 @@ function makeResources(
   };
 }
 
+/** Read the mounted mock session's journal rather than observing a mocked commit callback. */
+function ResizeDiagnostics(props: { wallId: IInferResource<typeof wall>["id"] }) {
+  const { wallId } = props;
+  const session = useSession(userSessionDefinition);
+  const [journal, setJournal] = useState("[]");
+  const { data: currentWall } = useLiveQuery({
+    session,
+    key: wallId,
+    query: (db, id) =>
+      db.query.wall.findFirstOrThrow({
+        where: { id: { eq: id } },
+        with: { placements: true },
+      }),
+  });
+  const rows = currentWall.layout.sections.flatMap((section) =>
+    section.stacks.flatMap((stack) => stack.rows),
+  );
+  return (
+    <div
+      className="mb-3 flex flex-wrap items-center gap-2 text-xs"
+      data-testid="resize-diagnostics"
+    >
+      <Button
+        size="sm"
+        variant="outline"
+        onClick={() => {
+          const state = session.store.getState();
+          if (state.initialized === null) throw new Error("The story session is not initialized");
+          setJournal(
+            JSON.stringify(
+              state.initialized.db
+                .select()
+                .from(sessionRepoDbConfig.schema.commands)
+                .all()
+                .filter(
+                  ({ commandName }) =>
+                    commandName === "setRowWidthWeights" || commandName === "setRowMinHeight",
+                )
+                .map(({ commandName, payload }) => ({
+                  commandName,
+                  payload:
+                    commandName === "setRowWidthWeights"
+                      ? Schema.decodeUnknownSync(
+                          Schema.fromJsonString(
+                            makeShapeCodecs(
+                              userSessionDefinition.contracts.setRowWidthWeights.payload,
+                            ).rowCodec,
+                          ),
+                        )(payload)
+                      : Schema.decodeUnknownSync(
+                          Schema.fromJsonString(
+                            makeShapeCodecs(userSessionDefinition.contracts.setRowMinHeight.payload)
+                              .rowCodec,
+                          ),
+                        )(payload),
+                })),
+            ),
+          );
+        }}
+      >
+        Read resize journal
+      </Button>
+      <Button
+        size="sm"
+        variant="outline"
+        onClick={() => {
+          const row = rows[0];
+          if (row === undefined) throw new Error("Missing first story Row");
+          const result = stageAggregateSessionCommand({
+            session,
+            contractName: "setRowMinHeight",
+            payload: { wallId, rowId: row.id, minHeight: row.minHeight === 191 ? 192 : 191 },
+          });
+          if (result._tag === "Failure") throw new Error(result.failure.message);
+        }}
+      >
+        Change active Row sizing
+      </Button>
+      <Button
+        size="sm"
+        variant="outline"
+        onClick={() => {
+          const row = rows[1];
+          if (row === undefined) throw new Error("Missing sibling story Row");
+          const result = stageAggregateSessionCommand({
+            session,
+            contractName: "setRowMinHeight",
+            payload: { wallId, rowId: row.id, minHeight: row.minHeight === 201 ? 202 : 201 },
+          });
+          if (result._tag === "Failure") throw new Error(result.failure.message);
+        }}
+      >
+        Change sibling Row sizing
+      </Button>
+      <Button
+        size="sm"
+        variant="outline"
+        onClick={() => {
+          const first = rows[0];
+          const second = rows[1];
+          if (first === undefined || second === undefined || first.placementIds[0] === undefined)
+            throw new Error("Missing membership fixtures");
+          const result = stageAggregateSessionCommand({
+            session,
+            contractName: "movePlacementToRow",
+            payload: {
+              placementId: first.placementIds[0],
+              rowId: second.id,
+              beforePlacementId: null,
+            },
+          });
+          if (result._tag === "Failure") throw new Error(result.failure.message);
+        }}
+      >
+        Move active Row member
+      </Button>
+      <output className="sr-only" data-testid="resize-journal">
+        {journal}
+      </output>
+      <output className="sr-only" data-testid="resize-canonical">
+        {JSON.stringify({
+          rows,
+          placements: currentWall.placements.map(({ id, widthWeight }) => ({ id, widthWeight })),
+        })}
+      </output>
+    </div>
+  );
+}
+
 function WallEditorStory(props: {
   emptyWall: boolean;
   brickGap: number;
@@ -288,6 +437,7 @@ function WallEditorStory(props: {
   shadowFixture: boolean;
   crossRowFixture: boolean;
   sizingFixture: boolean;
+  resizeFixture: boolean;
 }) {
   const {
     emptyWall,
@@ -301,8 +451,10 @@ function WallEditorStory(props: {
     shadowFixture,
     crossRowFixture,
     sizingFixture,
+    resizeFixture,
   } = props;
   const [shadowVisible, setShadowVisible] = useState(false);
+  const [editorVisible, setEditorVisible] = useState(true);
   const [resources] = useState(() =>
     makeResources(
       emptyWall,
@@ -313,6 +465,7 @@ function WallEditorStory(props: {
       shadowFixture ? "swatch-and-icon" : fixture,
       crossRowFixture,
       sizingFixture,
+      resizeFixture,
     ),
   );
   const [selectedBrickId, setSelectedBrickId] = useState<string | null>(() =>
@@ -393,6 +546,19 @@ function WallEditorStory(props: {
           </header>
           <div className={`flex min-h-0 flex-1 flex-col ${verticalAtLg ? "lg:flex-row" : ""}`}>
             <main className="min-h-0 min-w-0 flex-1 overflow-auto px-8 py-6">
+              {resizeFixture ? (
+                <>
+                  <ResizeDiagnostics wallId={wallId} />
+                  <Button
+                    className="mb-3"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setEditorVisible((visible) => !visible)}
+                  >
+                    {editorVisible ? "Unmount Wall editor" : "Mount Wall editor"}
+                  </Button>
+                </>
+              ) : null}
               {fixture !== "default" ? (
                 <div className="mb-3 flex flex-wrap gap-x-6 gap-y-1 text-xs text-zinc-600">
                   <p>
@@ -419,12 +585,14 @@ function WallEditorStory(props: {
                   className="flex flex-1 flex-col"
                 >
                   <SiteHeader siteId={siteId} />
-                  <WallEditor
-                    key={wallId}
-                    wallId={wallId}
-                    selectedBrickId={selectedBrickId}
-                    onEditBrick={fixture === "default" ? undefined : setSelectedBrickId}
-                  />
+                  {editorVisible ? (
+                    <WallEditor
+                      key={wallId}
+                      wallId={wallId}
+                      selectedBrickId={selectedBrickId}
+                      onEditBrick={fixture === "default" ? undefined : setSelectedBrickId}
+                    />
+                  ) : null}
                 </div>
               </div>
             </main>
@@ -539,11 +707,12 @@ const meta = {
     const shadowFixture = context.id.includes("--shadow-brick");
     const crossRowFixture = context.id.includes("--cross-row-");
     const sizingFixture = context.id.includes("--sizing-foundation");
+    const resizeFixture = context.id.includes("--pointer-resize");
     const populatedFixture =
       context.id.endsWith("--preview-brick") || context.id.endsWith("--placement-brick");
     return (
       <WallEditorStory
-        key={`${emptyWall}-${brickGap}-${stickyNavbar}-${borderWidth}-${cardStyle}-${fixture}-${selected}-${shadowFixture}-${crossRowFixture}-${sizingFixture}`}
+        key={`${emptyWall}-${brickGap}-${stickyNavbar}-${borderWidth}-${cardStyle}-${fixture}-${selected}-${shadowFixture}-${crossRowFixture}-${sizingFixture}-${resizeFixture}`}
         emptyWall={populatedFixture ? false : emptyWall}
         brickGap={brickGap}
         stickyNavbar={stickyNavbar}
@@ -555,6 +724,7 @@ const meta = {
         shadowFixture={shadowFixture}
         crossRowFixture={crossRowFixture}
         sizingFixture={sizingFixture}
+        resizeFixture={resizeFixture}
       />
     );
   },
@@ -631,6 +801,540 @@ export const SizingFoundation: StoryObj<typeof meta> = {
 
 export const SizingFoundationWithGaps: StoryObj<typeof meta> = {
   ...SizingFoundation,
+  args: { brickGap: 12, cardStyle: true },
+};
+
+/** Synthetic plays stub capture locally; the separate Native story uses genuine browser capture. */
+export const PointerResize: StoryObj<typeof meta> = {
+  args: { brickGap: 0, cardStyle: false },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const document = canvasElement.ownerDocument;
+    const window = document.defaultView;
+    if (window === null) throw new Error("Missing story window");
+    await document.fonts.ready;
+    await canvas.findByRole("button", { name: "Read resize journal" }, { timeout: 10000 });
+    const captures = new WeakMap<HTMLElement, Set<number>>();
+    const setCapture = spyOn(HTMLElement.prototype, "setPointerCapture").mockImplementation(
+      function (this: HTMLElement, pointerId: number) {
+        const pointers = captures.get(this) ?? new Set<number>();
+        pointers.add(pointerId);
+        captures.set(this, pointers);
+      },
+    );
+    const hasCapture = spyOn(HTMLElement.prototype, "hasPointerCapture").mockImplementation(
+      function (this: HTMLElement, pointerId: number) {
+        return captures.get(this)?.has(pointerId) ?? false;
+      },
+    );
+    const releaseCapture = spyOn(HTMLElement.prototype, "releasePointerCapture").mockImplementation(
+      function (this: HTMLElement, pointerId: number) {
+        captures.get(this)?.delete(pointerId);
+      },
+    );
+    let commandCount = 0;
+    try {
+      for (const entry of BREAKPOINTS) {
+        await userEvent.click(
+          canvas.getByRole("button", { name: `${entry.id} preview, ${entry.previewWidth}px` }),
+        );
+        const wallId = prefixId(wall, `story-${entry.id}`);
+        const rowId = prefixId({ abbreviation: "row" }, `story-${entry.id}-0`);
+        const row = canvasElement.querySelector<HTMLElement>(`[data-wall-row-id="${rowId}"]`);
+        const grip = row?.querySelector<HTMLElement>("[data-wall-width-resize-handle]");
+        const heightGrip = row?.querySelector<HTMLElement>("[data-wall-height-resize-handle]");
+        if (!row || !grip || !heightGrip) throw new Error("Missing resize fixtures");
+        const placements = Array.from(
+          row.querySelectorAll<HTMLElement>("[data-wall-placement-id]"),
+        );
+        const surfaces = placements.map((placement) => {
+          const surface = placement.querySelector<HTMLElement>(".brick-hover-surface");
+          if (surface === null) throw new Error("Missing resize surface");
+          return surface;
+        });
+        expect(surfaces).toHaveLength(3);
+        const widths = surfaces.map((surface) => surface.getBoundingClientRect().width);
+        const x = grip.getBoundingClientRect().x;
+        const y = grip.getBoundingClientRect().y + 20;
+        const delta = Math.max(0, widths[1] - 160);
+        fireEvent.pointerDown(grip, {
+          pointerId: 7,
+          pointerType: "mouse",
+          isPrimary: true,
+          button: 0,
+          clientX: x,
+          clientY: y,
+        });
+        fireEvent.pointerMove(grip, {
+          pointerId: 7,
+          pointerType: "mouse",
+          isPrimary: true,
+          clientX: x + 10000,
+          clientY: y,
+        });
+        await waitFor(() => {
+          expect(surfaces[0].getBoundingClientRect().width).toBeCloseTo(widths[0] + delta, 1);
+          expect(surfaces[1].getBoundingClientRect().width).toBeCloseTo(160, 1);
+          expect(surfaces[2].getBoundingClientRect().width).toBeCloseTo(widths[2], 1);
+        });
+        fireEvent.click(canvas.getByRole("button", { name: "Read resize journal" }));
+        await waitFor(() => {
+          expect(JSON.parse(canvas.getByTestId("resize-journal").innerText)).toHaveLength(
+            commandCount,
+          );
+        });
+        fireEvent.pointerUp(grip, {
+          pointerId: 7,
+          pointerType: "mouse",
+          isPrimary: true,
+          clientX: x + 10000,
+          clientY: y,
+        });
+        if (delta > 0.5) commandCount += 1;
+        await waitFor(() => {
+          const canonical = JSON.parse(canvas.getByTestId("resize-canonical").innerText);
+          if (delta > 0.5) {
+            for (let index = 0; index < placements.length; index += 1) {
+              expect(canonical.placements).toContainEqual({
+                id: placements[index].dataset.wallPlacementId,
+                widthWeight: expect.closeTo(
+                  widths[index] + (index === 0 ? delta : index === 1 ? -delta : 0),
+                  1,
+                ),
+              });
+            }
+          }
+          expect(surfaces[2].getBoundingClientRect().width).toBeCloseTo(widths[2], 1);
+        });
+        fireEvent.click(canvas.getByRole("button", { name: "Read resize journal" }));
+        await waitFor(() => {
+          const journal = JSON.parse(canvas.getByTestId("resize-journal").innerText);
+          expect(journal).toHaveLength(commandCount);
+          if (delta > 0.5) {
+            expect(journal.at(-1)).toEqual({
+              commandName: "setRowWidthWeights",
+              payload: {
+                wallId,
+                rowId,
+                placements: placements.map((placement, index) => ({
+                  placementId: placement.dataset.wallPlacementId,
+                  widthWeight: expect.closeTo(
+                    widths[index] + (index === 0 ? delta : index === 1 ? -delta : 0),
+                    1,
+                  ),
+                })),
+              },
+            });
+          }
+        });
+
+        // A sub-threshold gesture preserves both the saved weights and command journal.
+        fireEvent.pointerDown(grip, {
+          pointerId: 8,
+          pointerType: "pen",
+          isPrimary: true,
+          button: 0,
+          clientX: x,
+          clientY: y,
+        });
+        fireEvent.pointerUp(grip, {
+          pointerId: 8,
+          pointerType: "pen",
+          isPrimary: true,
+          clientX: x + 1,
+          clientY: y,
+        });
+        const beforeHeight = surfaces[0].getBoundingClientRect().height;
+        const heightY = heightGrip.getBoundingClientRect().y;
+        fireEvent.pointerDown(heightGrip, {
+          pointerId: 9,
+          pointerType: "touch",
+          isPrimary: true,
+          button: 0,
+          clientX: x,
+          clientY: heightY,
+        });
+        fireEvent.pointerMove(heightGrip, {
+          pointerId: 9,
+          pointerType: "touch",
+          isPrimary: true,
+          clientX: x,
+          clientY: heightY + 35.25,
+        });
+        await waitFor(() =>
+          expect(surfaces[0].getBoundingClientRect().height).toBeCloseTo(beforeHeight + 35.25, 1),
+        );
+        for (const surface of surfaces)
+          expect(surface.getBoundingClientRect().height).toBeCloseTo(beforeHeight + 35.25, 1);
+        fireEvent.click(canvas.getByRole("button", { name: "Read resize journal" }));
+        await waitFor(() =>
+          expect(JSON.parse(canvas.getByTestId("resize-journal").innerText)).toHaveLength(
+            commandCount,
+          ),
+        );
+        fireEvent.pointerUp(heightGrip, {
+          pointerId: 9,
+          pointerType: "touch",
+          isPrimary: true,
+          clientX: x,
+          clientY: heightY + 50.5,
+        });
+        commandCount += 1;
+        await waitFor(() => {
+          const canonical = JSON.parse(canvas.getByTestId("resize-canonical").innerText);
+          expect(canonical.rows[0].minHeight).toBeCloseTo(beforeHeight + 50.5, 1);
+          expect(surfaces[0].getBoundingClientRect().height).toBeCloseTo(beforeHeight + 50.5, 1);
+        });
+        fireEvent.click(canvas.getByRole("button", { name: "Read resize journal" }));
+        await waitFor(() => {
+          const journal = JSON.parse(canvas.getByTestId("resize-journal").innerText);
+          expect(journal).toHaveLength(commandCount);
+          expect(journal.at(-1)).toEqual({
+            commandName: "setRowMinHeight",
+            payload: { wallId, rowId, minHeight: expect.closeTo(beforeHeight + 50.5, 1) },
+          });
+        });
+        fireEvent.doubleClick(heightGrip);
+        commandCount += 1;
+        await waitFor(() => {
+          const canonical = JSON.parse(canvas.getByTestId("resize-canonical").innerText);
+          expect(canonical.rows[0].minHeight).toBeNull();
+          expect(surfaces[0].getBoundingClientRect().height).toBeCloseTo(beforeHeight, 1);
+        });
+        fireEvent.doubleClick(heightGrip);
+        const contentRowId = prefixId({ abbreviation: "row" }, `story-${entry.id}-2`);
+        const contentRow = canvasElement.querySelector<HTMLElement>(
+          `[data-wall-row-id="${contentRowId}"]`,
+        );
+        const contentGrip = contentRow?.querySelector<HTMLElement>(
+          "[data-wall-height-resize-handle]",
+        );
+        const contentSurface = contentRow?.querySelector<HTMLElement>(".brick-hover-surface");
+        if (!contentGrip || !contentSurface) throw new Error("Missing content height fixture");
+        const naturalHeight = contentSurface.getBoundingClientRect().height;
+        const contentY = contentGrip.getBoundingClientRect().y;
+        expect(naturalHeight).toBeGreaterThan(360);
+        fireEvent.pointerDown(contentGrip, {
+          pointerId: 10,
+          pointerType: "mouse",
+          isPrimary: true,
+          button: 0,
+          clientX: x,
+          clientY: contentY,
+        });
+        fireEvent.pointerMove(contentGrip, {
+          pointerId: 10,
+          pointerType: "mouse",
+          isPrimary: true,
+          clientX: x,
+          clientY: contentY - 10000,
+        });
+        fireEvent.pointerUp(contentGrip, {
+          pointerId: 10,
+          pointerType: "mouse",
+          isPrimary: true,
+          clientX: x,
+          clientY: contentY - 10000,
+        });
+        await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
+        await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
+        expect(contentSurface.getBoundingClientRect().height).toBeCloseTo(naturalHeight, 1);
+        fireEvent.click(canvas.getByRole("button", { name: "Read resize journal" }));
+        await waitFor(() => {
+          const journal = JSON.parse(canvas.getByTestId("resize-journal").innerText);
+          expect(journal).toHaveLength(commandCount);
+          expect(journal.at(-1)).toEqual({
+            commandName: "setRowMinHeight",
+            payload: { wallId, rowId, minHeight: null },
+          });
+        });
+
+        // Touch reset requires two completed taps; a single tap and an automatic repeat are no-ops.
+        const resetRowId = prefixId({ abbreviation: "row" }, `story-${entry.id}-1`);
+        const resetRow = canvasElement.querySelector<HTMLElement>(
+          `[data-wall-row-id="${resetRowId}"]`,
+        );
+        const resetGrip = resetRow?.querySelector<HTMLElement>("[data-wall-height-resize-handle]");
+        const resetSurface = resetRow?.querySelector<HTMLElement>(".brick-hover-surface");
+        if (!resetGrip || !resetSurface) throw new Error("Missing touch reset fixture");
+        expect(resetSurface.getBoundingClientRect().height).toBeCloseTo(360, 1);
+        const resetY = resetGrip.getBoundingClientRect().y;
+        for (const pointerId of [14, 15]) {
+          fireEvent.pointerDown(resetGrip, {
+            pointerId,
+            pointerType: "touch",
+            isPrimary: true,
+            button: 0,
+            clientX: x,
+            clientY: resetY,
+          });
+          fireEvent.pointerUp(resetGrip, {
+            pointerId,
+            pointerType: "touch",
+            isPrimary: true,
+            clientX: x,
+            clientY: resetY,
+          });
+          if (pointerId === 14)
+            fireEvent.click(canvas.getByRole("button", { name: "Read resize journal" }));
+        }
+        await waitFor(() =>
+          expect(JSON.parse(canvas.getByTestId("resize-journal").innerText)).toHaveLength(
+            commandCount,
+          ),
+        );
+        commandCount += 1;
+        await waitFor(() => {
+          const canonical = JSON.parse(canvas.getByTestId("resize-canonical").innerText);
+          expect(canonical.rows[1].minHeight).toBeNull();
+          expect(resetSurface.getBoundingClientRect().height).toBeCloseTo(90, 1);
+        });
+        fireEvent.click(canvas.getByRole("button", { name: "Read resize journal" }));
+        await waitFor(() => {
+          const journal = JSON.parse(canvas.getByTestId("resize-journal").innerText);
+          expect(journal).toHaveLength(commandCount);
+          expect(journal.at(-1)).toEqual({
+            commandName: "setRowMinHeight",
+            payload: { wallId, rowId: resetRowId, minHeight: null },
+          });
+        });
+        for (const pointerId of [16, 17]) {
+          fireEvent.pointerDown(resetGrip, {
+            pointerId,
+            pointerType: "touch",
+            isPrimary: true,
+            button: 0,
+            clientX: x,
+            clientY: resetY,
+          });
+          fireEvent.pointerUp(resetGrip, {
+            pointerId,
+            pointerType: "touch",
+            isPrimary: true,
+            clientX: x,
+            clientY: resetY,
+          });
+        }
+        await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
+        fireEvent.click(canvas.getByRole("button", { name: "Read resize journal" }));
+        await waitFor(() =>
+          expect(JSON.parse(canvas.getByTestId("resize-journal").innerText)).toHaveLength(
+            commandCount,
+          ),
+        );
+
+        // At the module's 64px minimum, the divider must leave the corner Move control clear.
+        const shortY = heightGrip.getBoundingClientRect().y;
+        fireEvent.pointerDown(heightGrip, {
+          pointerId: 18,
+          pointerType: "mouse",
+          isPrimary: true,
+          button: 0,
+          clientX: x,
+          clientY: shortY,
+        });
+        fireEvent.pointerMove(heightGrip, {
+          pointerId: 18,
+          pointerType: "mouse",
+          isPrimary: true,
+          clientX: x,
+          clientY: shortY - 10000,
+        });
+        fireEvent.pointerUp(heightGrip, {
+          pointerId: 18,
+          pointerType: "mouse",
+          isPrimary: true,
+          clientX: x,
+          clientY: shortY - 10000,
+        });
+        commandCount += 1;
+        await waitFor(() => {
+          const canonical = JSON.parse(canvas.getByTestId("resize-canonical").innerText);
+          expect(canonical.rows[0].minHeight).toBeCloseTo(64, 1);
+          for (const surface of surfaces)
+            expect(surface.getBoundingClientRect().height).toBeCloseTo(64, 1);
+          const moveButton = placements[0].querySelector<HTMLElement>("[data-wall-drag-handle]");
+          if (moveButton === null) throw new Error("Missing short Row Move control");
+          expect(grip.getBoundingClientRect().left).toBeGreaterThanOrEqual(
+            moveButton.getBoundingClientRect().right,
+          );
+        });
+        await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
+        await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
+        fireEvent.click(canvas.getByRole("button", { name: "Read resize journal" }));
+        await waitFor(() => {
+          const journal = JSON.parse(canvas.getByTestId("resize-journal").innerText);
+          expect(journal).toHaveLength(commandCount);
+          expect(journal.at(-1)).toEqual({
+            commandName: "setRowMinHeight",
+            payload: { wallId, rowId, minHeight: expect.closeTo(64, 1) },
+          });
+        });
+      }
+    } finally {
+      releaseCapture.mockRestore();
+      hasCapture.mockRestore();
+      setCapture.mockRestore();
+    }
+  },
+};
+
+export const PointerResizeWithGaps: StoryObj<typeof meta> = {
+  ...PointerResize,
+  args: { brickGap: 12, cardStyle: true },
+};
+
+export const PointerResizeCancellation: StoryObj<typeof meta> = {
+  args: { brickGap: 12, cardStyle: true },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const document = canvasElement.ownerDocument;
+    const window = document.defaultView;
+    if (window === null) throw new Error("Missing story window");
+    await document.fonts.ready;
+    await canvas.findByRole("button", { name: "Read resize journal" }, { timeout: 10000 });
+    await userEvent.click(canvas.getByRole("button", { name: "md preview, 720px" }));
+    const captures = new WeakMap<HTMLElement, Set<number>>();
+    const setCapture = spyOn(HTMLElement.prototype, "setPointerCapture").mockImplementation(
+      function (this: HTMLElement, pointerId: number) {
+        const pointers = captures.get(this) ?? new Set<number>();
+        pointers.add(pointerId);
+        captures.set(this, pointers);
+      },
+    );
+    const hasCapture = spyOn(HTMLElement.prototype, "hasPointerCapture").mockImplementation(
+      function (this: HTMLElement, pointerId: number) {
+        return captures.get(this)?.has(pointerId) ?? false;
+      },
+    );
+    const releaseCapture = spyOn(HTMLElement.prototype, "releasePointerCapture").mockImplementation(
+      function (this: HTMLElement, pointerId: number) {
+        captures.get(this)?.delete(pointerId);
+      },
+    );
+    let commandCount = 0;
+    let breakpoint = "md";
+    try {
+      for (const reason of [
+        "sibling",
+        "Escape",
+        "pointercancel",
+        "capture",
+        "blur",
+        "saved sizing",
+        "membership",
+        "breakpoint",
+        "unmount",
+      ]) {
+        const rowId = prefixId({ abbreviation: "row" }, `story-${breakpoint}-0`);
+        const row = canvasElement.querySelector<HTMLElement>(`[data-wall-row-id="${rowId}"]`);
+        const grip = row?.querySelector<HTMLElement>("[data-wall-width-resize-handle]");
+        const surface = row?.querySelector<HTMLElement>(".brick-hover-surface");
+        if (!grip || !surface) throw new Error(`Missing cancellation fixture: ${reason}`);
+        const x = grip.getBoundingClientRect().x;
+        const y = grip.getBoundingClientRect().y + 12;
+        const beforeWidth = surface.getBoundingClientRect().width;
+        fireEvent.pointerDown(grip, {
+          pointerId: 12,
+          pointerType: "mouse",
+          isPrimary: true,
+          button: 0,
+          clientX: x,
+          clientY: y,
+        });
+        fireEvent.pointerMove(grip, {
+          pointerId: 12,
+          pointerType: "mouse",
+          isPrimary: true,
+          clientX: x + 30,
+          clientY: y,
+        });
+        // Escape also exercises cancellation before the queued animation frame runs.
+        if (reason !== "Escape") {
+          await waitFor(() =>
+            expect(surface.getBoundingClientRect().width).toBeCloseTo(beforeWidth + 30, 1),
+          );
+        }
+        switch (reason) {
+          case "sibling":
+            fireEvent.click(canvas.getByRole("button", { name: "Change sibling Row sizing" }));
+            commandCount += 1;
+            await waitFor(() =>
+              expect(surface.getBoundingClientRect().width).toBeCloseTo(beforeWidth + 30, 1),
+            );
+            break;
+          case "Escape":
+            fireEvent.keyDown(document, { key: "Escape" });
+            break;
+          case "pointercancel":
+            fireEvent.pointerCancel(grip, { pointerId: 12, pointerType: "mouse", isPrimary: true });
+            break;
+          case "capture":
+            captures.get(grip)?.delete(12);
+            fireEvent.lostPointerCapture(grip, {
+              pointerId: 12,
+              pointerType: "mouse",
+              isPrimary: true,
+            });
+            break;
+          case "blur":
+            fireEvent.blur(window);
+            break;
+          case "saved sizing":
+            fireEvent.click(canvas.getByRole("button", { name: "Change active Row sizing" }));
+            commandCount += 1;
+            break;
+          case "membership":
+            fireEvent.click(canvas.getByRole("button", { name: "Move active Row member" }));
+            break;
+          case "breakpoint":
+            await userEvent.click(canvas.getByRole("button", { name: "xl preview, 1440px" }));
+            breakpoint = "xl";
+            break;
+          case "unmount":
+            fireEvent.click(canvas.getByRole("button", { name: "Unmount Wall editor" }));
+            break;
+        }
+        fireEvent.pointerUp(grip, {
+          pointerId: 12,
+          pointerType: "mouse",
+          isPrimary: true,
+          clientX: x + 30,
+          clientY: y,
+        });
+        if (reason === "sibling") commandCount += 1;
+        await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
+        await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
+        if (["Escape", "pointercancel", "capture", "blur"].includes(reason)) {
+          expect(surface.getBoundingClientRect().width).toBeCloseTo(beforeWidth, 1);
+        }
+        fireEvent.click(canvas.getByRole("button", { name: "Read resize journal" }));
+        await waitFor(() =>
+          expect(JSON.parse(canvas.getByTestId("resize-journal").innerText)).toHaveLength(
+            commandCount,
+          ),
+        );
+        if (reason === "sibling") {
+          const journal = JSON.parse(canvas.getByTestId("resize-journal").innerText);
+          expect(journal.at(-1).commandName).toBe("setRowWidthWeights");
+        }
+        if (reason === "unmount") {
+          fireEvent.click(canvas.getByRole("button", { name: "Mount Wall editor" }));
+          await waitFor(() =>
+            expect(canvasElement.querySelector(`[data-wall-row-id="${rowId}"]`)).not.toBeNull(),
+          );
+        }
+      }
+    } finally {
+      releaseCapture.mockRestore();
+      hasCapture.mockRestore();
+      setCapture.mockRestore();
+    }
+  },
+};
+
+/** No capture stubs or synthetic play: use this fixture for native mouse, pen, and touch input. */
+export const PointerResizeNative: StoryObj<typeof meta> = {
   args: { brickGap: 12, cardStyle: true },
 };
 

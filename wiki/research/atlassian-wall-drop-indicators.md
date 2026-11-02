@@ -103,3 +103,33 @@ check the rendered Atlassian line's geometry and stock color, accounting for its
 4px terminal radius. A paused cross-Row story visually confirmed the horizontal
 line and terminal; the live editor reloaded successfully. No bundle-size
 comparison was performed.
+
+## Overlay above preview chrome
+
+The move indicator now renders directly inside the Wall editor root, outside
+`PreviewSection`'s query container. Its pointer-transparent `z-70` wrapper sits
+above the Stack controls (`z-30`), navbar (`z-50`), and browser chrome (`z-60`)
+within the isolated preview frame. Brick content retains its existing layer.
+[Overlay and measurement](../../apps/app/modules/lib/wall/WallEditor.tsx),
+[preview frame](../../apps/app/app/[username]/site/[siteId]/page/[pageId]/PagePreview.tsx),
+[navbar](../../apps/app/app/[username]/site/[siteId]/SiteHeader.tsx),
+[browser chrome](../../apps/app/modules/lib/BrowserChrome.tsx).
+
+Bounds come from the destination Row/Stack relative to the Wall root. Vertical
+seams retain the before-Placement anchor (or trailing edge), so resizing can
+recalculate the original insertion coordinate. Drag updates, resize observation,
+DOM removal observation, and captured scroll events refresh the overlay while
+it is active; leaving valid targets, dropping, cancellation, and removed targets
+clear it. Observers and listeners are disposed with the active feedback.
+Command resolution and drawer shadows are unchanged.
+
+Overlay verification: App `tsc --noEmit --incremental false` and the Nx App
+production build passed. All six move stories passed after restarting Storybook
+and confirming it served the new overlay source. Row Reorder additionally checks
+root-level layering, insertion coordinates, destination resizing without another
+drag update, scroll alignment, and removal of the active anchor. Existing stories
+retain no-op, cancellation, drop, cross-Row and empty-destination checks with zero
+and nonzero gaps. Paused cross-Row playback visually confirmed the line and
+terminal over both the sticky navbar and browser chrome while scrolling. The
+live App reloaded without console errors; selected Stack controls stayed visible
+at `z-30`, with their outline at `z-29`.

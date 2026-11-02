@@ -63,13 +63,14 @@ export function WallEditor(props: {
   const { wallId, selectedBrickId, selectedStackId, onEditBrick, onEditStack, onBrickDeleted } =
     props;
   const wallRef = useRef<HTMLDivElement>(null);
+  const moveIndicatorRef = useRef<HTMLDivElement>(null);
   const shadowTargetRef = useRef<typeof wallInsertionTargetSchema.Type | null>(null);
   const shadowRowHeights = useRef(new Map<HTMLElement, number>());
   const returnFocusId = useRef<string | null>(null);
   const scope = useId();
   const [deletingBrickId, setDeletingBrickId] = useState<string | null>(null);
   const [moveFeedback, setMoveFeedback] = useState<
-    | { kind: "row"; rowId: string; left: number }
+    | { kind: "row"; rowId: string; beforePlacementId: string | null }
     | { kind: "stack"; stackId: string; rowId: string | null; edge: "top" | "bottom" }
     | null
   >(null);
@@ -102,6 +103,72 @@ export function WallEditor(props: {
     // The ghost's drop payload follows its committed, visible position.
     shadowTargetRef.current = dropTarget;
   }, [dropTarget]);
+
+  useLayoutEffect(() => {
+    if (moveFeedback === null) return;
+    const root = wallRef.current;
+    const indicator = moveIndicatorRef.current;
+    if (root === null || indicator === null) throw new Error("Missing move indicator host");
+    const target = root.querySelector<HTMLElement>(
+      moveFeedback.kind === "row"
+        ? `[data-wall-row-id="${CSS.escape(moveFeedback.rowId)}"]`
+        : moveFeedback.rowId === null
+          ? `[data-wall-stack-id="${CSS.escape(moveFeedback.stackId)}"]`
+          : `[data-wall-row-id="${CSS.escape(moveFeedback.rowId)}"]`,
+    );
+    if (target === null) {
+      setMoveFeedback(null);
+      return;
+    }
+    const updateBounds = () => {
+      if (!root.contains(target)) {
+        setMoveFeedback(null);
+        return;
+      }
+      const rootBox = root.getBoundingClientRect();
+      const targetBox = target.getBoundingClientRect();
+      let left = targetBox.left;
+      if (moveFeedback.kind === "row") {
+        const placements = target.querySelectorAll<HTMLElement>("[data-wall-placement-id]");
+        const anchor =
+          moveFeedback.beforePlacementId === null
+            ? placements[placements.length - 1]
+            : target.querySelector<HTMLElement>(
+                `[data-wall-placement-id="${CSS.escape(moveFeedback.beforePlacementId)}"]`,
+              );
+        if (moveFeedback.beforePlacementId !== null && anchor === null) {
+          setMoveFeedback(null);
+          return;
+        }
+        if (anchor !== undefined && anchor !== null) {
+          const anchorBox = anchor.getBoundingClientRect();
+          left = moveFeedback.beforePlacementId === null ? anchorBox.right : anchorBox.left;
+        }
+      }
+      // Only feedback escapes the query container; content keeps its existing layer.
+      indicator.style.left = `${left - rootBox.left}px`;
+      indicator.style.top = `${targetBox.top - rootBox.top}px`;
+      indicator.style.width = `${moveFeedback.kind === "row" ? 0 : targetBox.width}px`;
+      indicator.style.height = `${targetBox.height}px`;
+    };
+    updateBounds();
+    const resize = new ResizeObserver(updateBounds);
+    resize.observe(root);
+    resize.observe(target);
+    target
+      .querySelectorAll("[data-wall-placement-id]")
+      .forEach((placement) => resize.observe(placement));
+    const mutations = new MutationObserver(updateBounds);
+    mutations.observe(root, { childList: true, subtree: true });
+    document.addEventListener("scroll", updateBounds, true);
+    window.addEventListener("resize", updateBounds);
+    return () => {
+      resize.disconnect();
+      mutations.disconnect();
+      document.removeEventListener("scroll", updateBounds, true);
+      window.removeEventListener("resize", updateBounds);
+    };
+  }, [moveFeedback]);
 
   const setShadowElement = useCallback(
     (element: HTMLDivElement | null) => {
@@ -236,19 +303,11 @@ export function WallEditor(props: {
       }
       const row = rows.find((row) => row.id === target.rowId);
       if (row === undefined) throw new Error(`Missing destination Row ${target.rowId}`);
-      let left = 0;
-      if (row.placements.length > 0) {
-        const anchorId = target.beforePlacementId ?? row.placements[row.placements.length - 1].id;
-        const anchor = innermost.element.querySelector<HTMLElement>(
-          `[data-wall-placement-id="${CSS.escape(anchorId)}"]`,
-        );
-        if (anchor === null) throw new Error(`Missing move destination Placement ${anchorId}`);
-        const rect = anchor.getBoundingClientRect();
-        left =
-          (target.beforePlacementId === null ? rect.right : rect.left) -
-          innermost.element.getBoundingClientRect().left;
-      }
-      setMoveFeedback({ kind: "row", rowId: row.id, left });
+      setMoveFeedback({
+        kind: "row",
+        rowId: row.id,
+        beforePlacementId: target.beforePlacementId,
+      });
     };
     const onDrag = (props: ElementEventBasePayload) => {
       const { location } = props;
@@ -668,6 +727,20 @@ export function WallEditor(props: {
         className="wall-editor relative flex min-w-0 flex-1 flex-col outline-none"
         aria-label={`${wall.breakpoint} Wall editor`}
       >
+        {moveFeedback !== null && (
+          <div
+            ref={moveIndicatorRef}
+            data-wall-move-indicator
+            data-orientation={moveFeedback.kind === "row" ? "vertical" : "horizontal"}
+            aria-hidden="true"
+            className="pointer-events-none absolute z-70"
+          >
+            <DropIndicator
+              edge={moveFeedback.kind === "row" ? "left" : moveFeedback.edge}
+              gap="0px"
+            />
+          </div>
+        )}
         <PreviewSection
           className={`flex-1 ${dropTarget?.kind === "wall" ? "bg-blue-50 outline-2 outline-blue-500 -outline-offset-2" : "bg-[#E6AA80]"}`}
         >
@@ -681,18 +754,6 @@ export function WallEditor(props: {
                       data-wall-stack-id={stack.id}
                       className={`group/stack relative min-h-[50px] min-w-0 ${stack.id === selectedStackId ? "is-selected-stack after:pointer-events-none after:absolute after:inset-0 after:z-[29] after:border after:border-[#1f9bfc] after:content-['']" : ""} ${stack.rows.length === 0 && dropTarget?.kind === "stack" && dropTarget.stackId === stack.id ? "bg-blue-50 outline outline-blue-500 -outline-offset-2" : ""}`}
                     >
-                      {moveFeedback?.kind === "stack" &&
-                        moveFeedback.stackId === stack.id &&
-                        moveFeedback.rowId === null && (
-                          <div
-                            data-wall-move-indicator
-                            data-orientation="horizontal"
-                            aria-hidden="true"
-                            className="pointer-events-none absolute inset-0 z-20"
-                          >
-                            <DropIndicator edge={moveFeedback.edge} gap="0px" />
-                          </div>
-                        )}
                       {stack.rows.some((row) => row.placements.length > 0) ? (
                         <StackAction>
                           {onEditStack === undefined ? (
@@ -748,26 +809,6 @@ export function WallEditor(props: {
                           data-wall-row-id={row.id}
                           className="relative flow-root min-w-0"
                         >
-                          {moveFeedback?.rowId === row.id && (
-                            <div
-                              data-wall-move-indicator
-                              data-orientation={
-                                moveFeedback.kind === "row" ? "vertical" : "horizontal"
-                              }
-                              aria-hidden="true"
-                              className={`pointer-events-none absolute inset-y-0 z-20 ${moveFeedback.kind === "row" ? "w-0" : "inset-x-0"}`}
-                              style={
-                                moveFeedback.kind === "row"
-                                  ? { left: moveFeedback.left }
-                                  : undefined
-                              }
-                            >
-                              <DropIndicator
-                                edge={moveFeedback.kind === "row" ? "left" : moveFeedback.edge}
-                                gap="0px"
-                              />
-                            </div>
-                          )}
                           {dropTarget?.kind === "stack" &&
                             dropTarget.stackId === stack.id &&
                             dropFeedback?.ownerRowId === row.id &&

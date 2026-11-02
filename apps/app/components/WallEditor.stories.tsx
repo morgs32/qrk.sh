@@ -1387,6 +1387,16 @@ export const RowReorder: StoryObj<typeof meta> = {
             expect(line.getBoundingClientRect().height).toBeCloseTo(rowBox.height - 4, 1);
             expect(getComputedStyle(indicator).pointerEvents).toBe("none");
             expect(getComputedStyle(line).backgroundColor).toBe("rgb(24, 104, 219)");
+            expect(indicator.parentElement).toBe(row.closest(".wall-editor"));
+            expect(line.getBoundingClientRect().left + 1).toBeCloseTo(
+              scenario.after ? targetBox.right : targetBox.left,
+              1,
+            );
+            const chrome = canvasElement.querySelector(".wall-preview-chrome");
+            if (chrome === null) throw new Error("Missing preview chrome");
+            expect(Number(getComputedStyle(indicator).zIndex)).toBeGreaterThan(
+              Number(getComputedStyle(chrome).zIndex),
+            );
           } else expect(indicator).toBeNull();
         });
         expect(canvasElement.querySelector(".wall-shadow-placeholder")).toBeNull();
@@ -1394,6 +1404,43 @@ export const RowReorder: StoryObj<typeof meta> = {
         expect(source.getBoundingClientRect().height).toBeCloseTo(sourceBox.height, 1);
         expect(row.getBoundingClientRect().height).toBeCloseTo(rowBox.height, 1);
 
+        if (scenario.finish === "cancel") {
+          const line = canvasElement.querySelector<HTMLElement>("[data-wall-move-indicator] > div");
+          const scroll = row.closest("main");
+          if (line === null || scroll === null) throw new Error("Missing overlay resize fixture");
+          const minHeight = target.style.minHeight;
+          const scrollTop = scroll.scrollTop;
+          try {
+            target.style.minHeight = `${rowBox.height + 20}px`;
+            await waitFor(() =>
+              expect(line.getBoundingClientRect().height).toBeCloseTo(
+                row.getBoundingClientRect().height - 4,
+                1,
+              ),
+            );
+            scroll.scrollTop += 32;
+            await waitFor(() =>
+              expect(line.getBoundingClientRect().top).toBeCloseTo(
+                row.getBoundingClientRect().top + 4,
+                1,
+              ),
+            );
+          } finally {
+            target.style.minHeight = minHeight;
+            scroll.scrollTop = scrollTop;
+          }
+          const parent = target.parentElement;
+          const next = target.nextSibling;
+          if (parent === null) throw new Error("Missing target parent");
+          try {
+            target.remove();
+            await waitFor(() =>
+              expect(canvasElement.querySelector("[data-wall-move-indicator]")).toBeNull(),
+            );
+          } finally {
+            parent.insertBefore(target, next);
+          }
+        }
         if (scenario.finish === "outside") {
           fireEvent.dragOver(document.body, { dataTransfer, clientX: 0, clientY: 0 });
           await waitFor(() =>

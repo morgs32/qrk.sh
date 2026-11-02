@@ -1,12 +1,13 @@
 import { expect, it } from "@effect/vitest";
 import { makeQueryDbVersion, NanoIdFactory } from "@zerospin/sdk";
 import { makeSystemHarness } from "@zerospin/sdk/testing";
-import { Effect, Result, Schema } from "effect";
+import { Effect, Exit, Result, Schema } from "effect";
 import { encodePayload } from "@zerospin/core/contracts/encodePayload";
 import { decodeAndAdaptPayload } from "@zerospin/core/contracts/decodeAndAdaptPayload/decodeAndAdaptPayload";
 import * as TestClock from "effect/testing/TestClock";
 
 import { userAggregateV5 } from "../src/aggregates/user/UserV5";
+import { userAggregateV8 } from "../src/aggregates/user/UserV8";
 import { userAggregateV7 } from "../src/aggregates/user/UserV7";
 import { movePlacementToRowV1 } from "../src/aggregates/user/contracts/wall/MovePlacementToRowContractV1";
 import { movePlacementToRowV2 } from "../src/aggregates/user/contracts/wall/MovePlacementToRowContractV2";
@@ -774,4 +775,460 @@ it.effect(
       ]);
       expect(layout.sections[0].stacks[0].rows[0].minHeight).toBe(180);
     }),
+);
+
+it.effect("persists atomic Row sizing with current membership, ownership, and publication", () =>
+  Effect.gen(function* () {
+    const harness = yield* makeSystemHarness({ system });
+    const owner = { release: userAggregateV8, aggregateId: "acct_sizing" };
+    const db = makeQueryDbVersion({ models: userAggregateV8.models });
+    const actor = {
+      aggregateName: userAggregateV8.name,
+      aggregateVersion: userAggregateV8.version,
+      aggregateId: owner.aggregateId,
+      actorName: "web",
+      actorVersion: 8,
+      claims: { aggregateId: owner.aggregateId, clerkUserId: "user_sizing" },
+      externalOutcome: null,
+      nodeId: "node_sizing",
+      sessionName: "userSession",
+    };
+    let pushIndex = 1;
+    yield* harness.push({
+      kind: "system",
+      id: "cmd_sizing_create_user",
+      commandName: "createUser",
+      contractVersion: 1,
+      aggregateName: actor.aggregateName,
+      aggregateVersion: actor.aggregateVersion,
+      aggregateId: owner.aggregateId,
+      externalOutcome: null,
+      payload: {
+        id: "usr_sizing",
+        clerkUserId: actor.claims.clerkUserId,
+        username: null,
+        displayName: null,
+      },
+    });
+    yield* harness.push({
+      ...actor,
+      kind: "actor",
+      id: "cmd_sizing_create_site",
+      commandName: "createSite",
+      contractVersion: 1,
+      pushIndex: pushIndex++,
+      payload: {
+        id: "sit_sizing",
+        userId: "usr_sizing",
+        slug: "sizing",
+        name: null,
+        description: null,
+      },
+    });
+    yield* harness.push({
+      ...actor,
+      kind: "actor",
+      id: "cmd_sizing_create_page",
+      commandName: "createPage",
+      contractVersion: 2,
+      pushIndex: pushIndex++,
+      payload: {
+        id: "pag_sizing",
+        siteId: "sit_sizing",
+        slug: null,
+        title: null,
+        description: null,
+      },
+    });
+    yield* harness.push({
+      ...actor,
+      kind: "actor",
+      id: "cmd_sizing_add_a",
+      commandName: "addBrick",
+      contractVersion: 4,
+      pushIndex: pushIndex++,
+      payload: {
+        id: "brk_sizing_a",
+        pageId: "pag_sizing",
+        moduleId: "swatch-and-icon",
+        state: swatchAndIconV1.defaultState,
+        target: { kind: "wall", wallId: "wal_pag_sizing_lg", beforeSectionId: null },
+      },
+    });
+    yield* harness.flush();
+    const initial = yield* harness.query(
+      owner,
+      db.query.wall.findFirst({ where: { id: { eq: "wal_pag_sizing_lg" } } }),
+    );
+    if (initial === undefined) expect.fail("Expected the command-created Wall");
+    const stack = initial.layout.sections[0].stacks[0];
+    const rowId = stack.rows[0].id;
+    for (const letter of ["b", "c"]) {
+      yield* harness.push({
+        ...actor,
+        kind: "actor",
+        id: `cmd_sizing_add_${letter}`,
+        commandName: "addBrick",
+        contractVersion: 4,
+        pushIndex: pushIndex++,
+        payload: {
+          id: `brk_sizing_${letter}`,
+          pageId: "pag_sizing",
+          moduleId: "swatch-and-icon",
+          state: swatchAndIconV1.defaultState,
+          target:
+            letter === "b"
+              ? { kind: "row", wallId: initial.id, rowId, beforePlacementId: null }
+              : { kind: "stack", wallId: initial.id, stackId: stack.id, beforeRowId: null },
+        },
+      });
+    }
+    yield* harness.flush();
+    const wallsBefore = yield* harness.query(owner, db.query.wall.findMany({}));
+    const placementsBefore = yield* harness.query(owner, db.query.placement.findMany({}));
+    const bricksBefore = yield* harness.query(owner, db.query.brick.findMany({}));
+    const wallBefore = wallsBefore.find((wall) => wall.id === initial.id);
+    if (wallBefore === undefined) expect.fail("Expected the command-created Wall");
+    const otherRow = wallBefore.layout.sections[0].stacks[0].rows[1];
+    const a = makePlacementId("brk_sizing_a", "lg");
+    const b = makePlacementId("brk_sizing_b", "lg");
+    const c = makePlacementId("brk_sizing_c", "lg");
+    const widthPayload = {
+      wallId: initial.id,
+      rowId,
+      // Submitted order does not change the saved Row order.
+      placements: [
+        { placementId: b, widthWeight: 1 },
+        { placementId: a, widthWeight: 2 },
+      ],
+    };
+    yield* harness.push({
+      ...actor,
+      kind: "actor",
+      id: "cmd_sizing_weights",
+      commandName: "setRowWidthWeights",
+      contractVersion: 1,
+      pushIndex: pushIndex++,
+      payload: widthPayload,
+    });
+    yield* harness.push({
+      ...actor,
+      kind: "actor",
+      id: "cmd_sizing_height",
+      commandName: "setRowMinHeight",
+      contractVersion: 1,
+      pushIndex: pushIndex++,
+      payload: { wallId: initial.id, rowId, minHeight: 180.5 },
+    });
+    yield* harness.flush();
+    const sizedWalls = yield* harness.query(owner, db.query.wall.findMany({}));
+    const sizedPlacements = yield* harness.query(owner, db.query.placement.findMany({}));
+    const sizedWall = sizedWalls.find((wall) => wall.id === initial.id);
+    if (sizedWall === undefined) expect.fail("Expected the sized Wall");
+    expect(sizedWall.layout.sections[0].stacks[0].rows).toEqual([
+      { id: rowId, minHeight: 180.5, placementIds: [a, b] },
+      otherRow,
+    ]);
+    for (const placement of sizedPlacements) {
+      const previous = placementsBefore.find((entry) => entry.id === placement.id);
+      expect(placement).toEqual(
+        placement.id === a
+          ? { ...previous, widthWeight: 2 }
+          : placement.id === b
+            ? { ...previous, widthWeight: 1 }
+            : previous,
+      );
+    }
+    expect(sizedWalls.filter((wall) => wall.id !== initial.id)).toEqual(
+      wallsBefore.filter((wall) => wall.id !== initial.id),
+    );
+    expect(yield* harness.query(owner, db.query.brick.findMany({}))).toEqual(bricksBefore);
+
+    // No-op commands leave timestamps unchanged even at a later execution time.
+    yield* TestClock.adjust("1 second");
+    yield* harness.push({
+      ...actor,
+      kind: "actor",
+      id: "cmd_sizing_same_weights",
+      commandName: "setRowWidthWeights",
+      contractVersion: 1,
+      pushIndex: pushIndex++,
+      payload: widthPayload,
+    });
+    yield* harness.push({
+      ...actor,
+      kind: "actor",
+      id: "cmd_sizing_same_height",
+      commandName: "setRowMinHeight",
+      contractVersion: 1,
+      pushIndex: pushIndex++,
+      payload: { wallId: initial.id, rowId, minHeight: 180.5 },
+    });
+    yield* harness.flush();
+    expect(yield* harness.query(owner, db.query.wall.findMany({}))).toEqual(sizedWalls);
+    expect(yield* harness.query(owner, db.query.placement.findMany({}))).toEqual(sizedPlacements);
+
+    // Well-formed commands refuse stale membership and inaccessible targets atomically.
+    for (const [index, entry] of [
+      {
+        commandName: "setRowWidthWeights",
+        payload: { ...widthPayload, placements: [widthPayload.placements[0]] },
+      },
+      { commandName: "setRowWidthWeights", payload: { ...widthPayload, placements: [] } },
+      {
+        commandName: "setRowWidthWeights",
+        payload: {
+          ...widthPayload,
+          placements: [
+            { placementId: a, widthWeight: 3 },
+            { placementId: a, widthWeight: 4 },
+          ],
+        },
+      },
+      {
+        commandName: "setRowWidthWeights",
+        payload: {
+          ...widthPayload,
+          placements: [
+            { placementId: a, widthWeight: 3 },
+            { placementId: c, widthWeight: 4 },
+          ],
+        },
+      },
+      {
+        commandName: "setRowWidthWeights",
+        payload: {
+          ...widthPayload,
+          placements: [
+            { placementId: a, widthWeight: 3 },
+            { placementId: makePlacementId("brk_sizing_b", "sm"), widthWeight: 4 },
+          ],
+        },
+      },
+      {
+        commandName: "setRowWidthWeights",
+        payload: {
+          ...widthPayload,
+          placements: [
+            { placementId: a, widthWeight: 1e308 },
+            { placementId: b, widthWeight: 1e308 },
+          ],
+        },
+      },
+      {
+        commandName: "setRowWidthWeights",
+        payload: { ...widthPayload, rowId: "row_sizing_missing" },
+      },
+      {
+        commandName: "setRowWidthWeights",
+        payload: { ...widthPayload, wallId: "wal_sizing_missing" },
+      },
+      {
+        commandName: "setRowMinHeight",
+        payload: { wallId: initial.id, rowId: "row_sizing_missing", minHeight: 90 },
+      },
+      {
+        commandName: "setRowMinHeight",
+        payload: { wallId: "wal_sizing_missing", rowId, minHeight: 90 },
+      },
+    ].entries()) {
+      const refusal = yield* harness
+        .push({
+          ...actor,
+          kind: "actor",
+          id: `cmd_sizing_refusal_${index}`,
+          contractVersion: 1,
+          pushIndex: pushIndex++,
+          ...entry,
+        })
+        .pipe(Effect.exit);
+      expect(Exit.isFailure(refusal)).toBe(true);
+      yield* harness.flush();
+      expect(yield* harness.query(owner, db.query.wall.findMany({}))).toEqual(sizedWalls);
+      expect(yield* harness.query(owner, db.query.placement.findMany({}))).toEqual(sizedPlacements);
+    }
+    for (const commandName of ["setRowWidthWeights", "setRowMinHeight"]) {
+      const refusal = yield* harness
+        .push({
+          ...actor,
+          kind: "actor",
+          id: `cmd_sizing_foreign_${commandName}`,
+          commandName,
+          claims: { aggregateId: owner.aggregateId, clerkUserId: "user_someone_else" },
+          contractVersion: 1,
+          pushIndex: pushIndex++,
+          payload:
+            commandName === "setRowWidthWeights"
+              ? widthPayload
+              : { wallId: initial.id, rowId, minHeight: 90 },
+        })
+        .pipe(Effect.exit);
+      expect(Exit.isFailure(refusal)).toBe(true);
+      yield* harness.flush();
+      expect(yield* harness.query(owner, db.query.wall.findMany({}))).toEqual(sizedWalls);
+      expect(yield* harness.query(owner, db.query.placement.findMany({}))).toEqual(sizedPlacements);
+    }
+    // The actual SDK encoding boundary rejects malformed sizing before execution.
+    for (const [index, entry] of [
+      {
+        commandName: "setRowWidthWeights",
+        payload: {
+          ...widthPayload,
+          placements: [
+            { placementId: a, widthWeight: 0 },
+            { placementId: b, widthWeight: 1 },
+          ],
+        },
+      },
+      { commandName: "setRowMinHeight", payload: { wallId: initial.id, rowId, minHeight: 44 } },
+    ].entries()) {
+      expect(
+        Exit.isFailure(
+          yield* harness
+            .push({
+              ...actor,
+              kind: "actor",
+              id: `cmd_sizing_malformed_${index}`,
+              contractVersion: 1,
+              pushIndex: pushIndex++,
+              ...entry,
+            })
+            .pipe(Effect.exit),
+        ),
+      ).toBe(true);
+      yield* harness.flush();
+      expect(yield* harness.query(owner, db.query.wall.findMany({}))).toEqual(sizedWalls);
+      expect(yield* harness.query(owner, db.query.placement.findMany({}))).toEqual(sizedPlacements);
+    }
+
+    yield* harness.push({
+      ...actor,
+      kind: "actor",
+      id: "cmd_sizing_auto",
+      commandName: "setRowMinHeight",
+      contractVersion: 1,
+      pushIndex: pushIndex++,
+      payload: { wallId: initial.id, rowId, minHeight: null },
+    });
+    yield* harness.flush();
+    const automatic = yield* harness.query(
+      owner,
+      db.query.wall.findFirst({ where: { id: { eq: initial.id } } }),
+    );
+    expect(automatic?.layout.sections[0].stacks[0].rows[0].minHeight).toBeNull();
+    yield* harness.push({
+      ...actor,
+      kind: "actor",
+      id: "cmd_sizing_minimum",
+      commandName: "setRowMinHeight",
+      contractVersion: 1,
+      pushIndex: pushIndex++,
+      payload: { wallId: initial.id, rowId, minHeight: 45 },
+    });
+    yield* harness.push({
+      ...actor,
+      kind: "actor",
+      id: "cmd_sizing_move_out",
+      commandName: "movePlacementToNewRow",
+      contractVersion: 2,
+      pushIndex: pushIndex++,
+      payload: {
+        placementId: a,
+        stackId: stack.id,
+        newRowId: "row_sizing_moved",
+        beforeRowId: null,
+      },
+    });
+    yield* harness.flush();
+    const moved = yield* harness.query(
+      owner,
+      db.query.wall.findFirst({ where: { id: { eq: initial.id } } }),
+    );
+    expect(moved?.layout.sections[0].stacks[0].rows).toEqual([
+      { id: rowId, minHeight: 45, placementIds: [b] },
+      otherRow,
+      { id: "row_sizing_moved", minHeight: null, placementIds: [a] },
+    ]);
+    expect(yield* harness.query(owner, db.query.placement.findMany({}))).toEqual(sizedPlacements);
+    yield* harness.push({
+      ...actor,
+      kind: "actor",
+      id: "cmd_sizing_move_back",
+      commandName: "movePlacementToRow",
+      contractVersion: 3,
+      pushIndex: pushIndex++,
+      payload: { placementId: a, rowId, beforePlacementId: b },
+    });
+    yield* harness.push({
+      ...actor,
+      kind: "actor",
+      id: "cmd_sizing_publish_values",
+      commandName: "publishSite",
+      contractVersion: 3,
+      pushIndex: pushIndex++,
+      payload: {
+        siteId: "sit_sizing",
+        pages: [{ pageId: "pag_sizing", snapshotId: "psn_sizing_values" }],
+      },
+    });
+    yield* harness.flush();
+    const snapshot = yield* harness.query(
+      owner,
+      db.query.pageSnapshot.findFirst({ where: { id: { eq: "psn_sizing_values" } } }),
+    );
+    const publishedRow = snapshot?.content.walls.find((wall) => wall.breakpoint === "lg")
+      ?.sections[0].stacks[0].rows[0];
+    expect(publishedRow?.minHeight).toBe(45);
+    expect(
+      publishedRow?.placements.map((placement) => ({
+        id: placement.id,
+        widthWeight: placement.widthWeight,
+      })),
+    ).toEqual([
+      { id: a, widthWeight: 2 },
+      { id: b, widthWeight: 1 },
+    ]);
+
+    yield* harness.push({
+      ...actor,
+      kind: "actor",
+      id: "cmd_sizing_delete_target",
+      commandName: "deleteBrick",
+      contractVersion: 3,
+      pushIndex: pushIndex++,
+      payload: { brickId: "brk_sizing_c" },
+    });
+    yield* harness.flush();
+    const afterDeletion = yield* harness.query(owner, db.query.wall.findMany({}));
+    const remainingPlacements = yield* harness.query(owner, db.query.placement.findMany({}));
+    for (const commandName of ["setRowWidthWeights", "setRowMinHeight"]) {
+      expect(
+        Exit.isFailure(
+          yield* harness
+            .push({
+              ...actor,
+              kind: "actor",
+              id: `cmd_sizing_deleted_${commandName}`,
+              commandName,
+              contractVersion: 1,
+              pushIndex: pushIndex++,
+              payload:
+                commandName === "setRowWidthWeights"
+                  ? {
+                      wallId: initial.id,
+                      rowId: otherRow.id,
+                      placements: [{ placementId: c, widthWeight: 3 }],
+                    }
+                  : { wallId: initial.id, rowId: otherRow.id, minHeight: 90 },
+            })
+            .pipe(Effect.exit),
+        ),
+      ).toBe(true);
+      yield* harness.flush();
+      expect(yield* harness.query(owner, db.query.wall.findMany({}))).toEqual(afterDeletion);
+      expect(yield* harness.query(owner, db.query.placement.findMany({}))).toEqual(
+        remainingPlacements,
+      );
+    }
+  }).pipe(Effect.provide(NanoIdFactory)),
 );

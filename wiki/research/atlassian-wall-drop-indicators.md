@@ -156,3 +156,10 @@ Outline follow-up: increased the blue line shadow and terminal border to 2px.
 The focused Cross Row Moves story passed after restarting stale Storybook;
 computed styles confirmed both 2px values, and paused playback verified the
 heavier outline visually. The white line core remains 1px.
+
+Fade follow-up: the line now uses a 3px blurred blue shadow with 1px spread;
+the white-filled circle retains its 2px blue border and adds a 3px outer blue
+fade. The feathered outer edge transitions into transparency.
+Focused Cross Row Moves playback passed with both blur assertions, and paused
+playback visually confirmed the soft edge. After restarting App, the live editor
+loaded both updated shadow declarations.

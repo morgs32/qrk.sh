@@ -220,15 +220,18 @@ a higher floor (`90 | 180 | 360 | 720`), and every current variant omits it.
 `defaultHeight: null` also identifies variable-height content for Row sharing.
 The shared `canShareRow` rule lets an empty Row accept any variant, but a
 nonempty Row can contain only fixed-height variants. Fixed variants with different
-heights may share. Available width does not veto a destination: cells shrink
-toward their minimum widths, then the Row overflows horizontally. `addBrick` and
-`movePlacementToRow@2` enforce exclusivity before recording mutations and refuse
+heights may share. Available width does not veto a destination: cells divide the
+Row by saved weights, respect minimum widths, then overflow horizontally when
+those minimums do not fit. `addBrick@4` and `movePlacementToRow@3` enforce exclusivity before recording mutations and refuse
 rather than choosing another destination. Same-row move checks exclude the moving
-Placement from the destination's existing members. Applying preferred heights and
-module content fitting remain deferred.
+Placement from the destination's existing members. Automatic Rows apply the
+tallest module preferred height as their surface minimum. A saved Row `minHeight`
+replaces that preference, while module minimums and natural content can grow
+the shared height. Module content retains its own fitting behavior.
 
-Each Placement persists a required `variantId`, currently `"default"`, alongside
-its spec. Different breakpoint placements own their variant identities
+Each Placement persists a required `variantId`, currently `"default"`, and positive
+`widthWeight` alongside its spec. Creation initializes the weight from the selected
+variant’s positive, finite `defaultWidth`; moves preserve it. Different breakpoint placements own their variant identities
 independently. The module renderer receives that identity explicitly and selects
 the matching view; preview examples select `variants.default` directly. There
 is no variant picker or switching command while every module has one choice.
@@ -236,8 +239,10 @@ is no variant picker or switching command while every module has one choice.
 Catalog previews render authored module content at that resolved preview width.
 The App catalog keeps its module selection/insertion controls separate from live
 preview content. Ordinary links, forms, Image file selection, and module-owned
-interactions remain available. Placed Bricks and insertion shadows use the same
-preferred width with natural content height, leaving unused Row space on the right.
+interactions remain available. Placed Bricks and existing-Row insertion shadows
+use relative growth weights to fill the Row; module minimums may override ideal
+ratios. New-Row shadows fill the available width. Visible Brick surfaces stretch
+to the shared Row height, with gaps outside the surface minimum.
 
 Link's copy column uses CSS half width and ordinary URL/title wrapping; no
 font-size or column-width fitting runs. Map Place owns a 200px CSS minimum height
@@ -361,13 +366,16 @@ Breakpoint derives from that Wall; content/spec changes leave layout arrays alon
 
 State-save and spec-update command declarations belong to QRK's user aggregate
 and bind concrete model versions there. App's current user release and web actor
-are V4; the browser session pins both with `renameStack@1` alongside unchanged
-`addBrick@3` and `updateBrick@3`, retaining BrickV2 and PageSnapshotV2. User V3 stays
-registered for history. The name editor changes no models and requires no storage
-reset. The earlier Swatch creation cutover removed obsolete creation contracts and their
+are V7; the browser session pins both with WallV2, PlacementV2, and PageSnapshotV3.
+Affected commands use the corresponding next versions, including `addBrick@4`,
+`updateBrick@4`, and `movePlacementToRow@3`. User V3–V6 remain registered for
+retained source interpretation. New-release command evaluation initializes sizing
+from existing creation inputs without resetting data. Publication and dirty-state
+comparison include Row minimums and Placement weights through the same V3 builder.
+The earlier Swatch creation cutover removed obsolete creation contracts and their
 adapters. Existing null Swatches are not retained through a
-fallback or repair path. The authorized local cutover backs up and resets QRK's
-Zerospin development storage; it does not reset remote data, API storage, or
+fallback or repair path. That earlier authorized local cutover backed up and reset QRK's
+Zerospin development storage; it did not reset remote data, API storage, or
 credentials. App supplies module schemas, input normalization, and provider
 operations; it does not construct
 contracts from injected host models or versions.

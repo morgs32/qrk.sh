@@ -99,6 +99,10 @@ export function makeModuleVersion<
     throw new Error("makeModuleVersion: version must be a positive safe integer");
   }
 
+  if (!Number.isFinite(variants.default.defaultWidth) || variants.default.defaultWidth <= 0) {
+    throw new Error("makeModuleVersion: defaultWidth must be a positive finite number");
+  }
+
   const catalog = makeCatalogFromComponents(components);
   const defaultState = decodeDefaultData(stateShape, suppliedDefaultState);
 

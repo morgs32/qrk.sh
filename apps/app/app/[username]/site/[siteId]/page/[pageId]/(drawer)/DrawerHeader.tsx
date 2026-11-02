@@ -12,8 +12,8 @@ import { modulesHash } from "../../../../../../../modules/lib/modulesHash";
 import { brickV2 } from "@qrk.sh/zerospin/src/aggregates/user/models/brick/BrickV2";
 import { pageV1 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV1";
 import { siteV1 as Site } from "@qrk.sh/zerospin/src/aggregates/user/models/site/SiteV1";
-import { pageSnapshotV2 as PageSnapshot } from "@qrk.sh/zerospin/src/aggregates/user/models/pageSnapshot/PageSnapshotV2";
-import { makePageSnapshotV2 } from "@qrk.sh/zerospin/src/aggregates/user/snapshots/makePageSnapshotV2";
+import { pageSnapshotV3 as PageSnapshot } from "@qrk.sh/zerospin/src/aggregates/user/models/pageSnapshot/PageSnapshotV3";
+import { makePageSnapshotV3 } from "@qrk.sh/zerospin/src/aggregates/user/snapshots/makePageSnapshotV3";
 
 import { Button } from "@/components/ui/button";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
@@ -78,7 +78,7 @@ export function DrawerHeader() {
   const savedContent =
     page === undefined
       ? null
-      : makePageSnapshotV2({
+      : makePageSnapshotV3({
           page,
           bricks: page.bricks,
           walls: page.walls,

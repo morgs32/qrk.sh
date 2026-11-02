@@ -20,10 +20,13 @@ The first Brick drop creates the required Section, Stack, and Row. Existing
 persisted layouts are unchanged. Moves and Brick deletion prune empty Rows,
 Stacks, and Sections. Stack capacity
 is 1 / 2 / 3 / 4 per Section at sm / md / lg / xl, counted after move cleanup.
-Rows lay out Bricks at their module preferred widths and shrink them toward
-module minimum widths when crowded. Each Row derives its height from its tallest
-current Brick or insertion shadow and stretches every visible surface to match,
-with no arbitrary Placement-count cap. Each Row scrolls horizontally when its minimums
+Rows divide all available width according to each Placement’s saved positive
+`widthWeight`, initially its module preferred width. Module minimum widths
+constrain the resulting proportions. Each Row owns `minHeight`: null selects
+automatic module preferred heights; a saved pixel minimum replaces that preference.
+The shared 45px floor, module minimums, and taller content or insertion shadows
+can grow the Row, and every visible surface stretches to match. There is no
+arbitrary Placement-count cap. Each Row scrolls horizontally when its minimums
 do not fit, without widening neighboring Stacks or changing saved order.
 The former `Page.wallId`, `Wall.label`, `Brick.wallId`, Placement grid geometry,
 visibility, and duplicated breakpoint attribute are removed. Placement derives
@@ -70,24 +73,19 @@ control supply route/visual inputs; its Brick-detail route returns to the Wall
 without mounting edit forms. Drops and deletion use ordinary commands and
 reactive queries rather than local fixture mutations.
 
-A placed Brick and insertion shadow share the module preferred and minimum widths
-with drawer previews. Their cells shrink without growing to fill unused Row space.
-Placement and shadow cells share `flex: 0 1 auto`; their inline preferred and
-minimum widths include the configured Brick gap for two half-gap padding insets.
-An empty Wall preserves the same outer half-gap allowance. These rules retain
-module content widths while allowing horizontal shrink without growth.
-Each Row contains a flex scroll element with Placements and any temporary
-insertion shadow, using `align-items: stretch` with automatic height. Placement
-and shadow cells are column flex containers; their content hosts, BrickWrapper,
-clipping content layer, and module roots grow vertically with `flex: 1 0 auto`.
-The wrapper/root growth rules are scoped to Placements and shadows. Catalog and
-native pointer previews retain their natural heights. A taller shadow grows the
-Row immediately; a shorter one fills its height. Leaving, cancellation, or
-removing the tallest Brick lets the Row shrink naturally. These heights are
-derived by CSS, with no saved geometry or equal-height measurements. Existing
-module CSS minimums apply; shared `defaultHeight` and `minHeight` metadata are
-not newly enforced. Drag-start height measurements still serve stable drop
-targeting, independently of visible stretching.
+Placed Bricks use zero flex basis and normalized growth weights, filling their
+Row horizontally. An existing-Row insertion shadow contributes its module
+preferred width as a temporary weight. A new-Row or empty-Wall shadow fills the
+available width. Cell minimum widths include the configured Brick gap for two
+half-gap padding insets; outer half-gap allowances remain unchanged.
+Each Row applies a common surface-height floor plus gap insets. Null `minHeight`
+uses the tallest member or incoming shadow’s module preferred height; an explicit
+minimum replaces that preference. Module minimums and the shared 45px floor still
+apply. Natural content may grow beyond this floor. Placement and shadow cells
+remain column flex containers whose content hosts and module roots stretch.
+Leaving or cancelling removes the shadow’s temporary contribution. Catalog and
+native pointer previews retain their own module sizing. Drag-start height
+measurements still serve stable drop targeting independently of rendered sizing.
 It uses the containing Wall's logical breakpoint and Placement spec, regardless
 of cell width. Every module has a 320px
 minimum except Swatch and Icon at 160px, constant across all breakpoints.
@@ -326,11 +324,12 @@ GitHub Activity its calendar scrolling/fades, and Link its wrapping copy column.
 ## Persistence and publication
 
 All saved creates, updates, moves, and deletes occur through registered commands.
-The browser session pins user owner release V6 and web Actor V6, with four
-concrete Placement move contracts alongside unchanged `renameStack@1`,
-`addBrick@3`, and `updateBrick@3`. `movePlacementToRow@2` retains its V1 lineage
-and unchanged payload; valid V5 same-row move history remains supported without a
-reset or upstream change. Owner V5 remains registered for source provenance.
+The browser session pins user owner release V7 and web Actor V7, using WallV2,
+PlacementV2 and PageSnapshotV3. Concrete next-version commands bind those models;
+new Placements get their module default width as a weight and new Rows get a null
+minimum. Retained releases V3–V6 keep their original declarations. V7 evaluates
+supported retained creation/movement commands to initialize its own sizing data;
+this change performs no storage reset or direct row backfill.
 The Actor grant map still excludes generic `movePlacement`; owners V3/V4 and their
 generic declarations remain registered. Pre-V5 histories containing generic moves
 still require framework historical-execution support before a retained-data or
@@ -352,7 +351,8 @@ finalized canonical outcome. Spec/provider completions retain revision/request
 checks and tolerate deleted Bricks.
 
 Immutable publication snapshots contain shared Bricks once and all four ordered
-Wall → Section → Stack → Row → Placement/spec hierarchies. The same builder drives
+Wall → Section → Stack → Row → Placement/spec hierarchies, including Row minimum
+heights and Placement width weights. The same V3 builder drives
 saved-versus-published comparison, so movement changes dirty state. Generation,
 revisions, and editor bookkeeping stay outside snapshots. Public website rendering
 remains deferred.

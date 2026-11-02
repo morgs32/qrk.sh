@@ -45,6 +45,7 @@ function makeResources(
   cardStyle: boolean,
   fixture: "default" | "swatch-and-icon" | "article",
   crossRowFixture = false,
+  sizingFixture = false,
 ) {
   const timestamps = {
     createdAt: new Date("2026-10-20T00:00:00.000Z"),
@@ -52,35 +53,51 @@ function makeResources(
   };
   const bricks: IInferResource<typeof brick>[] = emptyWall
     ? []
-    : (crossRowFixture ? [0, 1, 2, 3, 4] : fixture === "default" ? [0, 1, 2] : [0]).map(
-        (position) =>
-          Schema.decodeUnknownSync(Schema.toType(brick.resourceJsonCodec))({
-            ...timestamps,
-            modelName: brick.modelName,
-            version: brick.version,
-            id: prefixId(brick, `story-${position}`),
-            pageId,
-            moduleId:
-              crossRowFixture && position === 4
-                ? "article"
-                : fixture === "default"
-                  ? "swatch-and-icon"
-                  : fixture,
-            borderWidth,
-            stateRevision: 0,
-            state:
-              crossRowFixture && position === 4
-                ? structuredClone(modulesHash.article.def.state)
-                : fixture === "default"
-                  ? {
-                      ...swatchAndIconV1.defaultState,
-                      payload: {
-                        hash: "",
-                        color: ["#4A7C59", "#D4A373", "#577590", "#9D8ABF"][position],
-                      },
-                    }
-                  : structuredClone(modulesHash[fixture].def.state),
-          }),
+    : (crossRowFixture
+        ? [0, 1, 2, 3, 4]
+        : sizingFixture
+          ? [0, 1, 2, 3]
+          : fixture === "default"
+            ? [0, 1, 2]
+            : [0]
+      ).map((position) =>
+        Schema.decodeUnknownSync(Schema.toType(brick.resourceJsonCodec))({
+          ...timestamps,
+          modelName: brick.modelName,
+          version: brick.version,
+          id: prefixId(brick, `story-${position}`),
+          pageId,
+          moduleId:
+            (crossRowFixture && position === 4) || (sizingFixture && position === 3)
+              ? "article"
+              : fixture === "default"
+                ? "swatch-and-icon"
+                : fixture,
+          borderWidth,
+          stateRevision: 0,
+          state:
+            (crossRowFixture && position === 4) || (sizingFixture && position === 3)
+              ? sizingFixture
+                ? {
+                    title: "Content taller than its row minimum",
+                    subtitle: "Natural height sizing fixture",
+                    content: Array.from(
+                      { length: 24 },
+                      (_, index) =>
+                        `Paragraph ${index + 1}: Natural content can grow beyond a saved row minimum without clipping or scrolling the brick.`,
+                    ).join("\n\n"),
+                  }
+                : structuredClone(modulesHash.article.def.state)
+              : fixture === "default"
+                ? {
+                    ...swatchAndIconV1.defaultState,
+                    payload: {
+                      hash: "",
+                      color: ["#4A7C59", "#D4A373", "#577590", "#9D8ABF"][position],
+                    },
+                  }
+                : structuredClone(modulesHash[fixture].def.state),
+        }),
       );
   return {
     user: [
@@ -148,12 +165,14 @@ function makeResources(
                         name: "Source stack",
                         rows: [
                           {
+                            minHeight: null,
                             id: prefixId({ abbreviation: "row" }, `story-${id}-0`),
                             placementIds: bricks
                               .slice(0, 2)
                               .map((entry) => makePlacementId(entry.id, id)),
                           },
                           {
+                            minHeight: null,
                             id: prefixId({ abbreviation: "row" }, `story-${id}-1`),
                             placementIds: [makePlacementId(bricks[2].id, id)],
                           },
@@ -169,14 +188,17 @@ function makeResources(
                         name: "Destination stack",
                         rows: [
                           {
+                            minHeight: null,
                             id: prefixId({ abbreviation: "row" }, `story-${id}-2`),
                             placementIds: [makePlacementId(bricks[3].id, id)],
                           },
                           {
+                            minHeight: null,
                             id: prefixId({ abbreviation: "row" }, `story-${id}-3`),
                             placementIds: [makePlacementId(bricks[4].id, id)],
                           },
                           {
+                            minHeight: null,
                             id: prefixId({ abbreviation: "row" }, `story-${id}-empty`),
                             placementIds: [],
                           },
@@ -202,10 +224,25 @@ function makeResources(
                       {
                         id: prefixId({ abbreviation: "stk" }, `story-${id}`),
                         name: "Stack 1",
-                        rows: (fixture === "default" ? [0, 1] : [0]).map((position) => ({
+                        rows: (fixture === "default"
+                          ? sizingFixture
+                            ? [0, 1, 2]
+                            : [0, 1]
+                          : [0]
+                        ).map((position) => ({
+                          minHeight: sizingFixture
+                            ? position === 1
+                              ? 360
+                              : position === 2
+                                ? 90
+                                : null
+                            : null,
                           id: prefixId({ abbreviation: "row" }, `story-${id}-${position}`),
                           placementIds: bricks
-                            .filter((_, index) => (index < 2 ? 0 : 1) === position)
+                            .filter(
+                              (_, index) =>
+                                (index < 2 ? 0 : sizingFixture ? index - 1 : 1) === position,
+                            )
                             .map((entry) => makePlacementId(entry.id, id)),
                         })),
                       },
@@ -217,7 +254,7 @@ function makeResources(
     ),
     brick: bricks,
     placement: BREAKPOINTS.flatMap(({ id }) =>
-      bricks.map((entry) =>
+      bricks.map((entry, index) =>
         Schema.decodeUnknownSync(Schema.toType(placement.resourceJsonCodec))({
           ...timestamps,
           modelName: placement.modelName,
@@ -226,6 +263,10 @@ function makeResources(
           brickId: entry.id,
           wallId: prefixId(wall, `story-${id}`),
           variantId: "default",
+          widthWeight:
+            sizingFixture && index === 0
+              ? 480
+              : modulesHash[entry.moduleId].variants.default.defaultWidth,
           specRevision: 0,
           generation: null,
           spec: modulesHash[entry.moduleId].variants.default.spec,
@@ -246,6 +287,7 @@ function WallEditorStory(props: {
   selected: boolean;
   shadowFixture: boolean;
   crossRowFixture: boolean;
+  sizingFixture: boolean;
 }) {
   const {
     emptyWall,
@@ -258,6 +300,7 @@ function WallEditorStory(props: {
     selected,
     shadowFixture,
     crossRowFixture,
+    sizingFixture,
   } = props;
   const [shadowVisible, setShadowVisible] = useState(false);
   const [resources] = useState(() =>
@@ -269,6 +312,7 @@ function WallEditorStory(props: {
       cardStyle,
       shadowFixture ? "swatch-and-icon" : fixture,
       crossRowFixture,
+      sizingFixture,
     ),
   );
   const [selectedBrickId, setSelectedBrickId] = useState<string | null>(() =>
@@ -492,13 +536,14 @@ const meta = {
       fixture,
       selected,
     } = props;
-    const shadowFixture = context.id.endsWith("--shadow-brick");
+    const shadowFixture = context.id.includes("--shadow-brick");
     const crossRowFixture = context.id.includes("--cross-row-");
+    const sizingFixture = context.id.includes("--sizing-foundation");
     const populatedFixture =
       context.id.endsWith("--preview-brick") || context.id.endsWith("--placement-brick");
     return (
       <WallEditorStory
-        key={`${emptyWall}-${brickGap}-${stickyNavbar}-${borderWidth}-${cardStyle}-${fixture}-${selected}-${shadowFixture}-${crossRowFixture}`}
+        key={`${emptyWall}-${brickGap}-${stickyNavbar}-${borderWidth}-${cardStyle}-${fixture}-${selected}-${shadowFixture}-${crossRowFixture}-${sizingFixture}`}
         emptyWall={populatedFixture ? false : emptyWall}
         brickGap={brickGap}
         stickyNavbar={stickyNavbar}
@@ -509,6 +554,7 @@ const meta = {
         selected={selected}
         shadowFixture={shadowFixture}
         crossRowFixture={crossRowFixture}
+        sizingFixture={sizingFixture}
       />
     );
   },
@@ -526,6 +572,67 @@ const meta = {
 export default meta;
 export const Default: StoryObj<typeof meta> = {};
 export const EmptyWall: StoryObj<typeof meta> = { args: { emptyWall: true } };
+
+/** Persisted preferences control proportions and minimums without limiting content. */
+export const SizingFoundation: StoryObj<typeof meta> = {
+  args: { brickGap: 0, cardStyle: false },
+  play: async ({ canvasElement, args }) => {
+    const canvas = within(canvasElement);
+    const document = canvasElement.ownerDocument;
+    await document.fonts.ready;
+    await canvas.findByRole("button", { name: "sm preview, 360px" }, { timeout: 10000 });
+    for (const entry of BREAKPOINTS) {
+      await userEvent.click(
+        canvas.getByRole("button", { name: `${entry.id} preview, ${entry.previewWidth}px` }),
+      );
+      const rowId = prefixId({ abbreviation: "row" }, `story-${entry.id}-0`);
+      await waitFor(() => {
+        const row = canvasElement.querySelector<HTMLElement>(`[data-wall-row-id="${rowId}"]`);
+        const line = row?.querySelector<HTMLElement>("[data-wall-row-content]");
+        const placements = Array.from(
+          row?.querySelectorAll<HTMLElement>("[data-wall-placement-id]") ?? [],
+        );
+        if (!row || !line || placements.length !== 2) throw new Error("Missing sizing Row");
+        const surfaces = placements.map((placement) =>
+          placement.querySelector<HTMLElement>(".brick-hover-surface"),
+        );
+        const first = surfaces[0];
+        const second = surfaces[1];
+        if (!first || !second) throw new Error("Missing sizing surfaces");
+        const firstBox = first.getBoundingClientRect();
+        const secondBox = second.getBoundingClientRect();
+        const lineBox = line.getBoundingClientRect();
+        expect(placements[0].getBoundingClientRect().left).toBeCloseTo(lineBox.left + 0.5, 1);
+        expect(placements[1].getBoundingClientRect().right).toBeCloseTo(lineBox.right - 0.5, 1);
+        expect(firstBox.width).toBeGreaterThanOrEqual(159.9);
+        expect(secondBox.width).toBeGreaterThanOrEqual(159.9);
+        expect(secondBox.left - firstBox.right).toBeCloseTo(args.brickGap, 1);
+        if (firstBox.width + secondBox.width >= 480) {
+          expect(firstBox.width / secondBox.width).toBeCloseTo(2, 1);
+        }
+        expect(firstBox.height).toBeCloseTo(90, 1);
+        expect(secondBox.height).toBeCloseTo(firstBox.height, 1);
+
+        const minimumRowId = prefixId({ abbreviation: "row" }, `story-${entry.id}-1`);
+        const minimumSurface = canvasElement.querySelector<HTMLElement>(
+          `[data-wall-row-id="${minimumRowId}"] .brick-hover-surface`,
+        );
+        const contentRowId = prefixId({ abbreviation: "row" }, `story-${entry.id}-2`);
+        const contentSurface = canvasElement.querySelector<HTMLElement>(
+          `[data-wall-row-id="${contentRowId}"] .brick-hover-surface`,
+        );
+        if (!minimumSurface || !contentSurface) throw new Error("Missing height fixtures");
+        expect(minimumSurface.getBoundingClientRect().height).toBeCloseTo(360, 1);
+        expect(contentSurface.getBoundingClientRect().height).toBeGreaterThan(360);
+      });
+    }
+  },
+};
+
+export const SizingFoundationWithGaps: StoryObj<typeof meta> = {
+  ...SizingFoundation,
+  args: { brickGap: 12, cardStyle: true },
+};
 
 /** The real drawer stages renames against the story's command-backed session. */
 export const StackNameEditor: StoryObj<typeof meta> = {
@@ -667,7 +774,7 @@ export const VerticalDrawer: StoryObj<typeof meta> = {
   },
 };
 
-/** Same content and width through the actual catalog and Wall render paths. */
+/** Module-sized catalog content and a stretched Wall placement share their appearance. */
 export const PreviewBrick: StoryObj<typeof meta> = {
   args: { fixture: "swatch-and-icon", emptyWall: false },
   argTypes: {
@@ -683,6 +790,7 @@ export const PreviewBrick: StoryObj<typeof meta> = {
     },
   },
   play: async ({ canvasElement, args }) => {
+    if (args.fixture === "default") throw new Error("Choose a concrete Brick fixture");
     const document = canvasElement.ownerDocument;
     await document.fonts.ready;
     await waitFor(
@@ -708,9 +816,13 @@ export const PreviewBrick: StoryObj<typeof meta> = {
     if (!surface || !content || !actions) throw new Error("Missing catalog Brick surface");
     const action = within(source).getByRole("button", { name: "Preview brick action" });
     const before = surface.getBoundingClientRect();
-    // Content boxes match; the Wall's half-gap padding is measured separately.
-    expect(before.width).toBeCloseTo(placed.getBoundingClientRect().width, 1);
-    expect(before.height).toBeCloseTo(placed.getBoundingClientRect().height, 1);
+    // Catalog previews retain module sizing; the singleton placement fills its Row.
+    const variant = modulesHash[args.fixture].variants.default;
+    expect(before.width).toBeCloseTo(variant.defaultWidth, 1);
+    expect(placed.getBoundingClientRect().width).toBeCloseTo(BREAKPOINTS[0].previewWidth, 1);
+    if (variant.defaultHeight !== null) {
+      expect(placed.getBoundingClientRect().height).toBeCloseTo(variant.defaultHeight, 1);
+    }
     expect(getComputedStyle(surface).overflow).toBe("visible");
     expect(getComputedStyle(content).overflow).toBe("hidden");
     expect(getComputedStyle(surface).borderRadius).toBe(args.cardStyle ? "8px" : "0px");
@@ -836,6 +948,7 @@ export const ShadowBrick: StoryObj<typeof meta> = {
     },
   },
   play: async ({ canvasElement, args }) => {
+    if (args.fixture === "default") throw new Error("Choose a concrete Brick fixture");
     const document = canvasElement.ownerDocument;
     await document.fonts.ready;
     await waitFor(
@@ -895,6 +1008,8 @@ export const ShadowBrick: StoryObj<typeof meta> = {
       );
       if (!nativeCopy) throw new Error("Missing native Brick drag preview");
       const nativePaint = getComputedStyle(nativeCopy, "::after");
+      expect(nativeCopy.getBoundingClientRect().width).toBeCloseTo(sourceBox.width, 1);
+      expect(nativeCopy.getBoundingClientRect().height).toBeCloseTo(sourceBox.height, 1);
       expect(nativePaint.opacity).toBe("1");
       expect(nativePaint.borderWidth).toBe("2px");
       expect(nativePaint.borderColor).toBe("rgb(31, 155, 252)");
@@ -917,8 +1032,12 @@ export const ShadowBrick: StoryObj<typeof meta> = {
       const shadow = canvasElement.querySelector<HTMLElement>(".wall-shadow-placeholder");
       const shadowSurface = shadow?.querySelector<HTMLElement>(".brick-hover-surface");
       if (!shadow || !shadowSurface) throw new Error("Missing insertion shadow surface");
-      expect(shadowSurface.getBoundingClientRect().width).toBeCloseTo(sourceBox.width, 1);
-      expect(shadowSurface.getBoundingClientRect().height).toBeCloseTo(sourceBox.height, 1);
+      // A new Row fills the Wall, including the empty-Wall half-gap allowance.
+      expect(shadowSurface.getBoundingClientRect().width).toBeCloseTo(entry.previewWidth, 1);
+      const variant = modulesHash[args.fixture].variants.default;
+      expect(shadowSurface.getBoundingClientRect().height).toBeGreaterThanOrEqual(
+        Math.max(45, variant.minHeight ?? 45, variant.defaultHeight ?? 45),
+      );
       expect(
         shadow.getBoundingClientRect().height - shadowSurface.getBoundingClientRect().height,
       ).toBeCloseTo(args.brickGap, 1);
@@ -938,6 +1057,26 @@ export const ShadowBrick: StoryObj<typeof meta> = {
           "Insertion shadow",
         ),
       );
+
+      if (entry.id === "sm" && args.emptyWall) {
+        const shadowBox = shadowSurface.getBoundingClientRect();
+        fireEvent.drop(shadow, {
+          dataTransfer,
+          clientX: shadowBox.x + shadowBox.width / 2,
+          clientY: shadowBox.y + shadowBox.height / 2,
+        });
+        fireEvent.dragEnd(source, { dataTransfer });
+        await waitFor(() => {
+          const committed = canvasElement.querySelector<HTMLElement>(
+            "[data-wall-placement-id] .brick-hover-surface",
+          );
+          if (!committed) throw new Error("Missing committed empty-Wall Brick");
+          expect(canvasElement.querySelectorAll("[data-wall-placement-id]")).toHaveLength(1);
+          expect(canvasElement.querySelector(".wall-shadow-placeholder")).toBeNull();
+          expect(committed.getBoundingClientRect().width).toBeCloseTo(shadowBox.width, 1);
+          expect(committed.getBoundingClientRect().height).toBeCloseTo(shadowBox.height, 1);
+        });
+      }
 
       if (entry.id === "sm" && args.fixture === "swatch-and-icon" && row && placed) {
         // Inserting beside a Swatch shrinks both cells; compare the matched widths.
@@ -978,6 +1117,20 @@ export const ShadowBrick: StoryObj<typeof meta> = {
         );
       }
     }
+  },
+};
+
+export const ShadowBrickEmptyWallWithGaps: StoryObj<typeof meta> = {
+  ...ShadowBrick,
+  play: ShadowBrick.play,
+  args: { fixture: "swatch-and-icon", emptyWall: true, brickGap: 12, cardStyle: true },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Checks an empty Wall's insertion shadow at every breakpoint with a gap, then drops at sm and verifies that the committed visible surface matches the preview geometry.",
+      },
+    },
   },
 };
 
@@ -1129,6 +1282,13 @@ export const EqualHeightRows: StoryObj<typeof meta> = {
           const shadow = row.querySelector<HTMLElement>(".wall-shadow-placeholder");
           const shadowSurface = shadow?.querySelector<HTMLElement>(".brick-hover-surface");
           if (!shadow || !shadowSurface) throw new Error("Missing taller insertion shadow");
+          expect(surface.getBoundingClientRect().width).toBeGreaterThanOrEqual(
+            modulesHash["swatch-and-icon"].variants.default.minWidth,
+          );
+          expect(shadowSurface.getBoundingClientRect().width).toBeGreaterThanOrEqual(
+            modulesHash["figma-thumbnail"].variants.default.minWidth,
+          );
+          if (entry.id === "sm") expect(row.scrollWidth).toBeGreaterThan(row.clientWidth);
           expect(surface.getBoundingClientRect().height).toBeGreaterThan(naturalHeight);
           expect(shadowSurface.getBoundingClientRect().height).toBeCloseTo(
             surface.getBoundingClientRect().height,

@@ -1,5 +1,5 @@
 import { Menu } from "@base-ui/react/menu";
-import { Ellipsis, GripVertical } from "lucide-react";
+import { Pencil, GripVertical } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { cn } from "cn";
 import { Button } from "../../components/ui/button";
@@ -73,7 +73,7 @@ export function WallPlacement(props: {
               render={<Button variant="ghost" className="size-7 rounded-none p-0" />}
               aria-label={`Brick ${placement.brickId} actions`}
             >
-              <Ellipsis className="size-4" aria-hidden="true" />
+              <Pencil className="size-4" aria-hidden="true" />
             </Menu.Trigger>
             <Menu.Portal>
               <Menu.Positioner side="bottom" align="end" sideOffset={0} className="z-[90]">

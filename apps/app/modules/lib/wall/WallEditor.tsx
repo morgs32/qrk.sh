@@ -3,7 +3,7 @@
 import "@fontsource/silkscreen/400.css";
 import { Dialog } from "@base-ui/react/dialog";
 import { Menu } from "@base-ui/react/menu";
-import { ArrowLeft, ArrowRight, Ellipsis } from "lucide-react";
+import { ArrowLeft, ArrowRight, Pencil } from "lucide-react";
 import type { IInferModelRow } from "@zerospin/core/models/types";
 import { makeId, makeIdSchema, stageAggregateSessionCommand } from "@zerospin/sdk/browser";
 import { combine } from "@atlaskit/pragmatic-drag-and-drop/combine";
@@ -718,7 +718,7 @@ export function WallEditor(props: {
                               }
                               aria-label={`Stack ${stack.name} actions`}
                             >
-                              <Ellipsis className="size-4" aria-hidden="true" />
+                              <Pencil className="size-4" aria-hidden="true" />
                             </Menu.Trigger>
                             <Menu.Portal>
                               <Menu.Positioner

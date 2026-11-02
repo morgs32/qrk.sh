@@ -857,6 +857,7 @@ export const PointerResize: StoryObj<typeof meta> = {
         const x = grip.getBoundingClientRect().x;
         const y = grip.getBoundingClientRect().y + 20;
         const delta = Math.max(0, widths[1] - 160);
+        expect(canvasElement.querySelector("[data-wall-resize-readout]")).toBeNull();
         fireEvent.pointerDown(grip, {
           pointerId: 7,
           pointerType: "mouse",
@@ -864,6 +865,32 @@ export const PointerResize: StoryObj<typeof meta> = {
           button: 0,
           clientX: x,
           clientY: y,
+        });
+        expect(canvasElement.querySelector("[data-wall-resize-readout]")).toBeNull();
+        fireEvent.pointerMove(grip, {
+          pointerId: 7,
+          pointerType: "mouse",
+          isPrimary: true,
+          clientX: x + 13.25,
+          clientY: y,
+        });
+        await waitFor(() => {
+          const readout = grip.querySelector<HTMLElement>("[data-wall-resize-readout]");
+          if (readout === null) throw new Error("Missing active width readout");
+          expect(canvasElement.querySelectorAll("[data-wall-resize-readout]")).toHaveLength(1);
+          expect(surfaces[0].getBoundingClientRect().width).toBeCloseTo(
+            widths[0] + Math.min(13.25, delta),
+            1,
+          );
+          expect(surfaces[1].getBoundingClientRect().width).toBeCloseTo(
+            widths[1] - Math.min(13.25, delta),
+            1,
+          );
+          expect(readout.textContent).toBe(
+            `${Math.round(surfaces[0].getBoundingClientRect().width)} px | ${Math.round(surfaces[1].getBoundingClientRect().width)} px`,
+          );
+          expect(window.getComputedStyle(readout).pointerEvents).toBe("none");
+          expect(readout.tabIndex).toBe(-1);
         });
         fireEvent.pointerMove(grip, {
           pointerId: 7,
@@ -876,6 +903,10 @@ export const PointerResize: StoryObj<typeof meta> = {
           expect(surfaces[0].getBoundingClientRect().width).toBeCloseTo(widths[0] + delta, 1);
           expect(surfaces[1].getBoundingClientRect().width).toBeCloseTo(160, 1);
           expect(surfaces[2].getBoundingClientRect().width).toBeCloseTo(widths[2], 1);
+          expect(canvasElement.querySelectorAll("[data-wall-resize-readout]")).toHaveLength(1);
+          expect(grip.querySelector("[data-wall-resize-readout]")?.textContent).toBe(
+            `${Math.round(surfaces[0].getBoundingClientRect().width)} px | ${Math.round(surfaces[1].getBoundingClientRect().width)} px`,
+          );
         });
         fireEvent.click(canvas.getByRole("button", { name: "Read resize journal" }));
         await waitFor(() => {
@@ -905,6 +936,7 @@ export const PointerResize: StoryObj<typeof meta> = {
             }
           }
           expect(surfaces[2].getBoundingClientRect().width).toBeCloseTo(widths[2], 1);
+          expect(canvasElement.querySelector("[data-wall-resize-readout]")).toBeNull();
         });
         fireEvent.click(canvas.getByRole("button", { name: "Read resize journal" }));
         await waitFor(() => {
@@ -937,6 +969,16 @@ export const PointerResize: StoryObj<typeof meta> = {
           clientX: x,
           clientY: y,
         });
+        expect(canvasElement.querySelector("[data-wall-resize-readout]")).toBeNull();
+        fireEvent.pointerMove(grip, {
+          pointerId: 8,
+          pointerType: "pen",
+          isPrimary: true,
+          clientX: x + 1,
+          clientY: y,
+        });
+        await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
+        expect(canvasElement.querySelector("[data-wall-resize-readout]")).toBeNull();
         fireEvent.pointerUp(grip, {
           pointerId: 8,
           pointerType: "pen",
@@ -954,6 +996,7 @@ export const PointerResize: StoryObj<typeof meta> = {
           clientX: x,
           clientY: heightY,
         });
+        expect(canvasElement.querySelector("[data-wall-resize-readout]")).toBeNull();
         fireEvent.pointerMove(heightGrip, {
           pointerId: 9,
           pointerType: "touch",
@@ -961,9 +1004,13 @@ export const PointerResize: StoryObj<typeof meta> = {
           clientX: x,
           clientY: heightY + 35.25,
         });
-        await waitFor(() =>
-          expect(surfaces[0].getBoundingClientRect().height).toBeCloseTo(beforeHeight + 35.25, 1),
-        );
+        await waitFor(() => {
+          expect(surfaces[0].getBoundingClientRect().height).toBeCloseTo(beforeHeight + 35.25, 1);
+          expect(canvasElement.querySelectorAll("[data-wall-resize-readout]")).toHaveLength(1);
+          expect(heightGrip.querySelector("[data-wall-resize-readout]")?.textContent).toBe(
+            `${Math.round(surfaces[0].getBoundingClientRect().height)} px`,
+          );
+        });
         for (const surface of surfaces)
           expect(surface.getBoundingClientRect().height).toBeCloseTo(beforeHeight + 35.25, 1);
         fireEvent.click(canvas.getByRole("button", { name: "Read resize journal" }));
@@ -984,6 +1031,7 @@ export const PointerResize: StoryObj<typeof meta> = {
           const canonical = JSON.parse(canvas.getByTestId("resize-canonical").innerText);
           expect(canonical.rows[0].minHeight).toBeCloseTo(beforeHeight + 50.5, 1);
           expect(surfaces[0].getBoundingClientRect().height).toBeCloseTo(beforeHeight + 50.5, 1);
+          expect(canvasElement.querySelector("[data-wall-resize-readout]")).toBeNull();
         });
         fireEvent.click(canvas.getByRole("button", { name: "Read resize journal" }));
         await waitFor(() => {
@@ -1000,8 +1048,10 @@ export const PointerResize: StoryObj<typeof meta> = {
           const canonical = JSON.parse(canvas.getByTestId("resize-canonical").innerText);
           expect(canonical.rows[0].minHeight).toBeNull();
           expect(surfaces[0].getBoundingClientRect().height).toBeCloseTo(beforeHeight, 1);
+          expect(canvasElement.querySelector("[data-wall-resize-readout]")).toBeNull();
         });
         fireEvent.doubleClick(heightGrip);
+        expect(canvasElement.querySelector("[data-wall-resize-readout]")).toBeNull();
         const contentRowId = prefixId({ abbreviation: "row" }, `story-${entry.id}-2`);
         const contentRow = canvasElement.querySelector<HTMLElement>(
           `[data-wall-row-id="${contentRowId}"]`,
@@ -1029,6 +1079,47 @@ export const PointerResize: StoryObj<typeof meta> = {
           clientX: x,
           clientY: contentY - 10000,
         });
+        await waitFor(() => {
+          expect(contentSurface.getBoundingClientRect().height).toBeCloseTo(naturalHeight, 1);
+          expect(canvasElement.querySelectorAll("[data-wall-resize-readout]")).toHaveLength(1);
+          expect(contentGrip.querySelector("[data-wall-resize-readout]")?.textContent).toBe(
+            `${Math.round(contentSurface.getBoundingClientRect().height)} px`,
+          );
+        });
+        const articleContent = contentSurface.querySelector<HTMLElement>(
+          '[aria-label="Article content"]',
+        );
+        if (articleContent === null) throw new Error("Missing Article content fixture");
+        const extraContent = document.createElement("p");
+        extraContent.textContent =
+          "Story-only content growth while the captured pointer remains stationary.";
+        extraContent.style.minHeight = "137.5px";
+        try {
+          articleContent.append(extraContent);
+          await waitFor(() => {
+            expect(contentSurface.getBoundingClientRect().height).toBeGreaterThan(
+              naturalHeight + 100,
+            );
+            expect(canvasElement.querySelectorAll("[data-wall-resize-readout]")).toHaveLength(1);
+            expect(contentGrip.querySelector("[data-wall-resize-readout]")?.textContent).toBe(
+              `${Math.round(contentSurface.getBoundingClientRect().height)} px`,
+            );
+          });
+          fireEvent.click(canvas.getByRole("button", { name: "Read resize journal" }));
+          await waitFor(() =>
+            expect(JSON.parse(canvas.getByTestId("resize-journal").innerText)).toHaveLength(
+              commandCount,
+            ),
+          );
+        } finally {
+          extraContent.remove();
+        }
+        await waitFor(() => {
+          expect(contentSurface.getBoundingClientRect().height).toBeCloseTo(naturalHeight, 1);
+          expect(contentGrip.querySelector("[data-wall-resize-readout]")?.textContent).toBe(
+            `${Math.round(naturalHeight)} px`,
+          );
+        });
         fireEvent.pointerUp(contentGrip, {
           pointerId: 10,
           pointerType: "mouse",
@@ -1039,6 +1130,7 @@ export const PointerResize: StoryObj<typeof meta> = {
         await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
         await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
         expect(contentSurface.getBoundingClientRect().height).toBeCloseTo(naturalHeight, 1);
+        expect(canvasElement.querySelector("[data-wall-resize-readout]")).toBeNull();
         fireEvent.click(canvas.getByRole("button", { name: "Read resize journal" }));
         await waitFor(() => {
           const journal = JSON.parse(canvas.getByTestId("resize-journal").innerText);
@@ -1068,6 +1160,7 @@ export const PointerResize: StoryObj<typeof meta> = {
             clientX: x,
             clientY: resetY,
           });
+          expect(canvasElement.querySelector("[data-wall-resize-readout]")).toBeNull();
           fireEvent.pointerUp(resetGrip, {
             pointerId,
             pointerType: "touch",
@@ -1075,6 +1168,7 @@ export const PointerResize: StoryObj<typeof meta> = {
             clientX: x,
             clientY: resetY,
           });
+          expect(canvasElement.querySelector("[data-wall-resize-readout]")).toBeNull();
           if (pointerId === 14)
             fireEvent.click(canvas.getByRole("button", { name: "Read resize journal" }));
         }
@@ -1107,6 +1201,7 @@ export const PointerResize: StoryObj<typeof meta> = {
             clientX: x,
             clientY: resetY,
           });
+          expect(canvasElement.querySelector("[data-wall-resize-readout]")).toBeNull();
           fireEvent.pointerUp(resetGrip, {
             pointerId,
             pointerType: "touch",
@@ -1114,6 +1209,7 @@ export const PointerResize: StoryObj<typeof meta> = {
             clientX: x,
             clientY: resetY,
           });
+          expect(canvasElement.querySelector("[data-wall-resize-readout]")).toBeNull();
         }
         await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
         fireEvent.click(canvas.getByRole("button", { name: "Read resize journal" }));
@@ -1151,6 +1247,7 @@ export const PointerResize: StoryObj<typeof meta> = {
         await waitFor(() => {
           const canonical = JSON.parse(canvas.getByTestId("resize-canonical").innerText);
           expect(canonical.rows[0].minHeight).toBeCloseTo(64, 1);
+          expect(canvasElement.querySelector("[data-wall-resize-readout]")).toBeNull();
           for (const surface of surfaces)
             expect(surface.getBoundingClientRect().height).toBeCloseTo(64, 1);
           const moveButton = placements[0].querySelector<HTMLElement>("[data-wall-drag-handle]");
@@ -1230,10 +1327,13 @@ export const PointerResizeCancellation: StoryObj<typeof meta> = {
         const row = canvasElement.querySelector<HTMLElement>(`[data-wall-row-id="${rowId}"]`);
         const grip = row?.querySelector<HTMLElement>("[data-wall-width-resize-handle]");
         const surface = row?.querySelector<HTMLElement>(".brick-hover-surface");
-        if (!grip || !surface) throw new Error(`Missing cancellation fixture: ${reason}`);
+        const rightSurface = row?.querySelectorAll<HTMLElement>(".brick-hover-surface")[1];
+        if (!grip || !surface || !rightSurface)
+          throw new Error(`Missing cancellation fixture: ${reason}`);
         const x = grip.getBoundingClientRect().x;
         const y = grip.getBoundingClientRect().y + 12;
         const beforeWidth = surface.getBoundingClientRect().width;
+        expect(canvasElement.querySelector("[data-wall-resize-readout]")).toBeNull();
         fireEvent.pointerDown(grip, {
           pointerId: 12,
           pointerType: "mouse",
@@ -1242,6 +1342,7 @@ export const PointerResizeCancellation: StoryObj<typeof meta> = {
           clientX: x,
           clientY: y,
         });
+        expect(canvasElement.querySelector("[data-wall-resize-readout]")).toBeNull();
         fireEvent.pointerMove(grip, {
           pointerId: 12,
           pointerType: "mouse",
@@ -1251,17 +1352,27 @@ export const PointerResizeCancellation: StoryObj<typeof meta> = {
         });
         // Escape also exercises cancellation before the queued animation frame runs.
         if (reason !== "Escape") {
-          await waitFor(() =>
-            expect(surface.getBoundingClientRect().width).toBeCloseTo(beforeWidth + 30, 1),
-          );
+          await waitFor(() => {
+            expect(surface.getBoundingClientRect().width).toBeCloseTo(beforeWidth + 30, 1);
+            expect(canvasElement.querySelectorAll("[data-wall-resize-readout]")).toHaveLength(1);
+            expect(grip.querySelector("[data-wall-resize-readout]")?.textContent).toBe(
+              `${Math.round(surface.getBoundingClientRect().width)} px | ${Math.round(rightSurface.getBoundingClientRect().width)} px`,
+            );
+          });
+        } else {
+          expect(canvasElement.querySelector("[data-wall-resize-readout]")).toBeNull();
         }
         switch (reason) {
           case "sibling":
             fireEvent.click(canvas.getByRole("button", { name: "Change sibling Row sizing" }));
             commandCount += 1;
-            await waitFor(() =>
-              expect(surface.getBoundingClientRect().width).toBeCloseTo(beforeWidth + 30, 1),
-            );
+            await waitFor(() => {
+              expect(surface.getBoundingClientRect().width).toBeCloseTo(beforeWidth + 30, 1);
+              expect(canvasElement.querySelectorAll("[data-wall-resize-readout]")).toHaveLength(1);
+              expect(grip.querySelector("[data-wall-resize-readout]")?.textContent).toBe(
+                `${Math.round(surface.getBoundingClientRect().width)} px | ${Math.round(rightSurface.getBoundingClientRect().width)} px`,
+              );
+            });
             break;
           case "Escape":
             fireEvent.keyDown(document, { key: "Escape" });
@@ -1305,6 +1416,7 @@ export const PointerResizeCancellation: StoryObj<typeof meta> = {
         if (reason === "sibling") commandCount += 1;
         await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
         await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
+        expect(canvasElement.querySelector("[data-wall-resize-readout]")).toBeNull();
         if (["Escape", "pointercancel", "capture", "blur"].includes(reason)) {
           expect(surface.getBoundingClientRect().width).toBeCloseTo(beforeWidth, 1);
         }
@@ -1323,6 +1435,7 @@ export const PointerResizeCancellation: StoryObj<typeof meta> = {
           await waitFor(() =>
             expect(canvasElement.querySelector(`[data-wall-row-id="${rowId}"]`)).not.toBeNull(),
           );
+          expect(canvasElement.querySelector("[data-wall-resize-readout]")).toBeNull();
         }
       }
     } finally {

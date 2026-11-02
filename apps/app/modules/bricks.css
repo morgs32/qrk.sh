@@ -266,6 +266,28 @@
   height: 4px;
 }
 
+.wall-resize-readout {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 6px);
+  transform: translateX(-50%);
+  width: max-content;
+  padding: 2px 6px;
+  border-radius: 3px;
+  background: #111;
+  color: white;
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  line-height: 16px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.wall-width-resize-grip > .wall-resize-readout {
+  left: 0;
+}
+
 @media (hover: hover) and (pointer: fine) {
   .wall-resize-grip {
     opacity: 0;
@@ -274,6 +296,10 @@
   [data-wall-row-id]:hover > [data-wall-row-content] > .wall-width-resize-slot > .wall-resize-grip {
     opacity: 1;
   }
+}
+
+.wall-resize-grip[data-wall-resize-active] {
+  opacity: 1;
 }
 
 .wall-editor[data-wall-resize-disabled] .wall-resize-grip {

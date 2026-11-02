@@ -844,6 +844,7 @@ export function WallEditor(props: {
                       ) : null}
                       {stack.rows.map((row) => {
                         const rowPreview = resize.preview?.rowId === row.id ? resize.preview : null;
+                        const rowReadout = resize.readout?.rowId === row.id ? resize.readout : null;
                         const rowMinHeight =
                           rowPreview?.kind === "height" ? rowPreview.minHeight : row.minHeight;
                         const rowPlacements =
@@ -906,6 +907,12 @@ export function WallEditor(props: {
                             >
                               {rowPlacements.map((placement, placementIndex) => {
                                 const nextPlacement = rowPlacements[placementIndex + 1];
+                                const widthReadout =
+                                  rowReadout?.kind === "width" &&
+                                  rowReadout.leftPlacementId === placement.id &&
+                                  rowReadout.rightPlacementId === nextPlacement?.id
+                                    ? rowReadout
+                                    : null;
                                 const brick = placement.brick;
                                 const module = modulesHash[brick.moduleId];
                                 const Component = module.component;
@@ -965,6 +972,9 @@ export function WallEditor(props: {
                                           data-row-id={row.id}
                                           data-left-placement-id={placement.id}
                                           data-right-placement-id={nextPlacement.id}
+                                          data-wall-resize-active={
+                                            widthReadout === null ? undefined : ""
+                                          }
                                           className="wall-resize-grip wall-width-resize-grip"
                                           draggable={false}
                                           onPointerDown={(event) =>
@@ -980,7 +990,16 @@ export function WallEditor(props: {
                                             event.preventDefault();
                                             event.stopPropagation();
                                           }}
-                                        />
+                                        >
+                                          {widthReadout !== null && (
+                                            <span
+                                              data-wall-resize-readout
+                                              className="wall-resize-readout"
+                                            >
+                                              {`${Math.round(widthReadout.leftWidth)} px | ${Math.round(widthReadout.rightWidth)} px`}
+                                            </span>
+                                          )}
+                                        </span>
                                       </span>
                                     )}
                                   </Fragment>
@@ -995,6 +1014,9 @@ export function WallEditor(props: {
                               aria-hidden="true"
                               data-wall-height-resize-handle
                               data-row-id={row.id}
+                              data-wall-resize-active={
+                                rowReadout?.kind === "height" ? "" : undefined
+                              }
                               className="wall-resize-grip wall-height-resize-grip z-20"
                               draggable={false}
                               onPointerDown={(event) =>
@@ -1006,7 +1028,13 @@ export function WallEditor(props: {
                                 event.preventDefault();
                                 event.stopPropagation();
                               }}
-                            />
+                            >
+                              {rowReadout?.kind === "height" && (
+                                <span data-wall-resize-readout className="wall-resize-readout">
+                                  {`${Math.round(rowReadout.height)} px`}
+                                </span>
+                              )}
+                            </span>
                             {dropTarget?.kind === "stack" &&
                               dropTarget.stackId === stack.id &&
                               dropFeedback?.ownerRowId === row.id &&

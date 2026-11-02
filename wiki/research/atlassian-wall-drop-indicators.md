@@ -133,3 +133,21 @@ and nonzero gaps. Paused cross-Row playback visually confirmed the line and
 terminal over both the sticky navbar and browser chrome while scrolling. The
 live App reloaded without console errors; selected Stack controls stayed visible
 at `z-30`, with their outline at `z-29`.
+
+## Local white-and-blue rendering
+
+QRK now owns the small `WallDropIndicator` renderer and stylesheet, using the
+same circle-ended geometry for the three edges used by Wall moves. The line has
+a 1px white core with a 1px blue shadow; its 8px terminal has an opaque white fill
+and 1px blue border. The overlay, anchors, bounds observers, and drag decisions
+are unchanged. The unused Atlassian React indicator dependency was removed;
+Pragmatic core and hitbox remain installed for drag handling.
+[Local renderer](../../apps/app/modules/lib/wall/WallDropIndicator.tsx),
+[local styling](../../apps/app/modules/lib/wall/WallDropIndicator.css).
+
+Local-renderer verification: App typecheck and Nx production build passed. All six
+move stories passed with the 1px white core, blue shadow, white terminal fill,
+and unchanged seam alignment assertions. Paused playback visually confirmed
+horizontal and vertical treatments, including a vertical line and terminal over
+the browser chrome. The live editor session loaded blank without console errors;
+visual verification for this rendering change used Storybook.

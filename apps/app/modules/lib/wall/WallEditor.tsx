@@ -7,7 +7,6 @@ import { ArrowLeft, ArrowRight, Pencil } from "lucide-react";
 import type { IInferModelRow } from "@zerospin/core/models/types";
 import { makeId, makeIdSchema, stageAggregateSessionCommand } from "@zerospin/sdk/browser";
 import { combine } from "@atlaskit/pragmatic-drag-and-drop/combine";
-import { DropIndicator } from "@atlaskit/pragmatic-drag-and-drop-react-drop-indicator/box";
 import {
   draggable,
   dropTargetForElements,
@@ -33,6 +32,7 @@ import { Button } from "../../components/ui/button";
 import { StackAction } from "../../components/StackAction";
 import { BrickWrapper } from "../../components/brick/BrickWrapper";
 import { WallPlacement } from "./WallPlacement";
+import { WallDropIndicator } from "./WallDropIndicator";
 import { PreviewSection } from "../PreviewSection";
 import { modulesHash } from "../modulesHash";
 import { makeWallLayoutView } from "./makeWallLayoutView";
@@ -735,10 +735,7 @@ export function WallEditor(props: {
             aria-hidden="true"
             className="pointer-events-none absolute z-70"
           >
-            <DropIndicator
-              edge={moveFeedback.kind === "row" ? "left" : moveFeedback.edge}
-              gap="0px"
-            />
+            <WallDropIndicator edge={moveFeedback.kind === "row" ? "left" : moveFeedback.edge} />
           </div>
         )}
         <PreviewSection

@@ -1,0 +1,50 @@
+.wall-drop-indicator {
+  position: absolute;
+  pointer-events: none;
+  color: #1868db;
+  background: white;
+  box-shadow: 0 0 0 1px currentColor;
+}
+
+.wall-drop-indicator::before {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  box-sizing: border-box;
+  width: 8px;
+  height: 8px;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  background: white;
+}
+
+.wall-drop-indicator:is([data-edge="top"], [data-edge="bottom"]) {
+  left: 4px;
+  right: 0;
+  height: 1px;
+}
+
+.wall-drop-indicator:is([data-edge="top"], [data-edge="bottom"])::before {
+  left: -8px;
+  top: -3.5px;
+}
+
+.wall-drop-indicator[data-edge="top"] {
+  top: -0.5px;
+}
+
+.wall-drop-indicator[data-edge="bottom"] {
+  bottom: -0.5px;
+}
+
+.wall-drop-indicator[data-edge="left"] {
+  left: -0.5px;
+  top: 4px;
+  bottom: 0;
+  width: 1px;
+}
+
+.wall-drop-indicator[data-edge="left"]::before {
+  left: -3.5px;
+  top: -8px;
+}

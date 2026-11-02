@@ -14,7 +14,6 @@
   "dependencies": {
     "@atlaskit/pragmatic-drag-and-drop": "4.0.0",
     "@atlaskit/pragmatic-drag-and-drop-hitbox": "3.0.0",
-    "@atlaskit/pragmatic-drag-and-drop-react-drop-indicator": "4.2.4",
     "@clerk/react": "6.17.8",
     "@fontsource-variable/geist": "^5.2.8",
     "@fontsource/silkscreen": "^5.2.7",

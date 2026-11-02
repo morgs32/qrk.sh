@@ -1381,17 +1381,19 @@ export const RowReorder: StoryObj<typeof meta> = {
           if (scenario.indicator) {
             if (!indicator) throw new Error("Missing Row move indicator");
             const line = indicator.firstElementChild;
-            if (!(line instanceof HTMLElement)) throw new Error("Missing Atlassian drop indicator");
-            expect(line.getBoundingClientRect().width).toBeCloseTo(2, 1);
+            if (!(line instanceof HTMLElement)) throw new Error("Missing Wall drop indicator");
+            expect(line.getBoundingClientRect().width).toBeCloseTo(1, 1);
             // The line begins after the 4px terminal radius.
             expect(line.getBoundingClientRect().height).toBeCloseTo(rowBox.height - 4, 1);
             expect(getComputedStyle(indicator).pointerEvents).toBe("none");
-            expect(getComputedStyle(line).backgroundColor).toBe("rgb(24, 104, 219)");
+            expect(getComputedStyle(line).backgroundColor).toBe("rgb(255, 255, 255)");
+            expect(getComputedStyle(line).boxShadow).toBe("rgb(24, 104, 219) 0px 0px 0px 1px");
+            expect(getComputedStyle(line, "::before").backgroundColor).toBe("rgb(255, 255, 255)");
+            expect(getComputedStyle(line, "::before").borderWidth).toBe("1px");
             expect(indicator.parentElement).toBe(row.closest(".wall-editor"));
-            expect(line.getBoundingClientRect().left + 1).toBeCloseTo(
-              scenario.after ? targetBox.right : targetBox.left,
-              1,
-            );
+            expect(
+              line.getBoundingClientRect().left + line.getBoundingClientRect().width / 2,
+            ).toBeCloseTo(scenario.after ? targetBox.right : targetBox.left, 1);
             const chrome = canvasElement.querySelector(".wall-preview-chrome");
             if (chrome === null) throw new Error("Missing preview chrome");
             expect(Number(getComputedStyle(indicator).zIndex)).toBeGreaterThan(
@@ -1736,16 +1738,19 @@ export const CrossRowMoves: StoryObj<typeof meta> = {
           else {
             if (!indicator) throw new Error("Missing cross-Row insertion line");
             const line = indicator.firstElementChild;
-            if (!(line instanceof HTMLElement)) throw new Error("Missing Atlassian drop indicator");
+            if (!(line instanceof HTMLElement)) throw new Error("Missing Wall drop indicator");
             const lineBox = line.getBoundingClientRect();
             expect(indicator.getAttribute("data-orientation")).toBe(scenario.orientation);
             expect(getComputedStyle(indicator).pointerEvents).toBe("none");
-            expect(getComputedStyle(line).backgroundColor).toBe("rgb(24, 104, 219)");
+            expect(getComputedStyle(line).backgroundColor).toBe("rgb(255, 255, 255)");
+            expect(getComputedStyle(line).boxShadow).toBe("rgb(24, 104, 219) 0px 0px 0px 1px");
+            expect(getComputedStyle(line, "::before").backgroundColor).toBe("rgb(255, 255, 255)");
+            expect(getComputedStyle(line, "::before").borderWidth).toBe("1px");
             if (scenario.orientation === "vertical") {
-              expect(lineBox.width).toBeCloseTo(2, 1);
+              expect(lineBox.width).toBeCloseTo(1, 1);
               expect(lineBox.height).toBeCloseTo(rowBox.height - 4, 1);
             } else {
-              expect(lineBox.height).toBeCloseTo(2, 1);
+              expect(lineBox.height).toBeCloseTo(1, 1);
               expect(lineBox.width).toBeCloseTo(rowBox.width - 4, 1);
               expect(lineBox.top + lineBox.height / 2).toBeCloseTo(
                 clientY < rowBox.top + rowBox.height / 2 ? rowBox.top : rowBox.bottom,

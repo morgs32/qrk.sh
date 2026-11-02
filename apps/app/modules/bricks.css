@@ -93,12 +93,20 @@
     0 1px 6px rgb(0 0 0 / 4%);
 }
 
-/* Inline width supplies the preferred size; cells shrink without growing. */
+/* Row cells share all available width; inline weights set their proportions. */
 .wall-placement,
 .wall-shadow-placeholder {
-  flex: 0 1 auto;
   display: flex;
   flex-direction: column;
+}
+
+.wall-placement {
+  flex: 1 1 0;
+}
+
+/* Only an existing-Row shadow participates in horizontal weighted sizing. */
+.wall-shadow-placeholder {
+  flex: 0 1 auto;
 }
 
 /* Stretch the visible Brick and cloned shadow through their nested hosts. */

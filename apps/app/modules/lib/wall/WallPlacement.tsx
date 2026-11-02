@@ -9,7 +9,7 @@ export function WallPlacement(props: {
   placement: {
     id: string;
     brickId: string;
-    defaultWidth: number;
+    widthWeight: number;
     minWidth: number;
     content: ReactNode;
   };
@@ -27,7 +27,7 @@ export function WallPlacement(props: {
     <div
       data-wall-placement-id={placement.id}
       style={{
-        width: placement.defaultWidth + brickGap,
+        flexGrow: placement.widthWeight,
         minWidth: placement.minWidth + brickGap,
         padding: brickGap / 2,
       }}

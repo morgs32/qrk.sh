@@ -718,7 +718,12 @@ export function WallEditor(props: {
                               }
                               aria-label={`Stack ${stack.name} actions`}
                             >
-                              <Pencil className="size-4" aria-hidden="true" />
+                              <Pencil
+                                className="size-3 opacity-80"
+                                fill="currentColor"
+                                strokeWidth={0}
+                                aria-hidden="true"
+                              />
                             </Menu.Trigger>
                             <Menu.Portal>
                               <Menu.Positioner

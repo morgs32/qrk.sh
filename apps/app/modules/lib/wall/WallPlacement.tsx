@@ -73,7 +73,12 @@ export function WallPlacement(props: {
               render={<Button variant="ghost" className="size-7 rounded-none p-0" />}
               aria-label={`Brick ${placement.brickId} actions`}
             >
-              <Pencil className="size-4" aria-hidden="true" />
+              <Pencil
+                className="size-3 opacity-80"
+                fill="currentColor"
+                strokeWidth={0}
+                aria-hidden="true"
+              />
             </Menu.Trigger>
             <Menu.Portal>
               <Menu.Positioner side="bottom" align="end" sideOffset={0} className="z-[90]">

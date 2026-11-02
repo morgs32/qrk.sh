@@ -67,15 +67,6 @@ export function WallPlacement(props: {
         }}
       >
         <BrickAction>
-          <Button
-            type="button"
-            data-wall-drag-handle
-            variant="ghost"
-            className="size-7 cursor-grab rounded-none p-0 active:cursor-grabbing"
-            aria-label={`Move Brick ${placement.brickId}`}
-          >
-            <GripVertical className="size-4" aria-hidden="true" />
-          </Button>
           <Menu.Root open={menuOpen} onOpenChange={setMenuOpen}>
             <Menu.Trigger
               id={triggerId}
@@ -105,6 +96,15 @@ export function WallPlacement(props: {
               </Menu.Positioner>
             </Menu.Portal>
           </Menu.Root>
+          <Button
+            type="button"
+            data-wall-drag-handle
+            variant="ghost"
+            className="size-7 cursor-grab rounded-none p-0 active:cursor-grabbing"
+            aria-label={`Move Brick ${placement.brickId}`}
+          >
+            <GripVertical className="size-4" aria-hidden="true" />
+          </Button>
         </BrickAction>
         {placement.content}
       </div>

@@ -290,8 +290,9 @@ trigger or a surviving control. Each outer Row uses `flow-root` to contain its
 flex element's -0.5px margin; 0.5px padding and a 49px minimum retain the Row's
 48px outer minimum, content positions and widths, scroll range, Placement
 padding/minimum widths, and drop geometry.
-Container deletion, hiding, resizing, and production zoom remain outside the
-feature. The separate `/dev/page/<pageId>/<breakpoint>` route is removed; its
+Container deletion, hiding, and production zoom remain outside the feature.
+Pointer sizing uses the grips described below. The separate
+`/dev/page/<pageId>/<breakpoint>` route is removed; its
 historical implementation is recorded in
 [Plan 038](./archive/plans/038-plan-development-brick-drops.md).
 
@@ -342,8 +343,38 @@ Only changed Placement weights produce model operations.
 least 45. It changes only the target Row, preserving its layout identity and
 membership. Both commands verify ownership through Wall → Page → Site → User;
 identical values record no model operations. Their values flow into existing V3
-publication snapshots and saved-versus-published comparison. Handles, controls,
-and temporary preview state remain subsequent work.
+publication snapshots and saved-versus-published comparison.
+
+### Pointer resizing
+
+`WallEditor` calls `useWallResize` once. Its local React draft overlays one Row
+while a primary mouse, pen, or touch pointer is captured. Internal divider grips
+trade visible surface width between adjacent Bricks, clamping both module
+minimums. The complete Row's resulting surface widths become its submitted
+weights, preserving the other Bricks' visible widths even when minimums have
+overridden the saved proportions. Gap padding stays outside those measurements.
+
+The bottom grip changes the Row's shared surface height. Module minimums and
+natural content constrain the result; release saves the final rendered height
+as `minHeight`. Double-click or double-tap restores automatic height (`null`).
+An unchanged visible result preserves the original saved setting and stages no
+command. Grips overlay the layout without consuming space, reveal on desktop
+Row hover, and stay visible without hover. Native Brick/catalog dragging hides
+and disables them. Divider hit areas sit on the following Brick's side of the
+seam, keeping the preceding Brick's action buttons clear even on short Rows.
+
+Movement activates after 3px and previews coalesce to animation frames. Release
+applies the final position and stages one existing V8 sizing command, with a
+0.5px no-op tolerance and fractional geometry retained. The mounted live-query
+store refreshes synchronously; staging and clearing the local draft require no
+second optimistic cache or confirmation waiter. Existing session reporting owns
+staging failures and later canonical reconciliation.
+
+Escape, pointer cancellation, unexpected capture loss, window blur, unmount,
+Wall/breakpoint changes, and changes to the active Row's ordered membership,
+variants, saved sizing, gap, or available width discard the gesture. Changes to
+other Rows do not. Keyboard resizing, numeric controls, auto-scroll, and Zustand
+remain subsequent work.
 
 The Actor grant map still excludes generic `movePlacement`; owners V3/V4 and their
 generic declarations remain registered. Pre-V5 histories containing generic moves

@@ -213,3 +213,82 @@
   background-color: transparent;
   color: inherit;
 }
+
+/* Resize grips occupy overlays, so cell sizing and the shared gap stay unchanged. */
+.wall-resize-grip {
+  position: absolute;
+  display: block;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-drag: none;
+  opacity: 1;
+}
+
+.wall-resize-grip::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 2px;
+  background: rgb(var(--brick-accent-rgb));
+  box-shadow: 0 0 0 1px white;
+}
+
+.wall-width-resize-grip {
+  left: 0;
+  top: 50%;
+  width: 24px;
+  height: 24px;
+  /* Keep the previous Brick's top-right action targets clear on short Rows. */
+  transform: translateY(-50%);
+  cursor: col-resize;
+}
+
+.wall-width-resize-grip::after {
+  left: 0;
+  width: 4px;
+  height: 16px;
+  pointer-events: none;
+}
+
+.wall-height-resize-grip {
+  left: 50%;
+  bottom: 0;
+  width: 32px;
+  height: 16px;
+  transform: translateX(-50%);
+  cursor: row-resize;
+}
+
+.wall-height-resize-grip::after {
+  width: 20px;
+  height: 4px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .wall-resize-grip {
+    opacity: 0;
+  }
+  [data-wall-row-id]:hover > .wall-height-resize-grip,
+  [data-wall-row-id]:hover > [data-wall-row-content] > .wall-width-resize-slot > .wall-resize-grip {
+    opacity: 1;
+  }
+}
+
+.wall-editor[data-wall-resize-disabled] .wall-resize-grip {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.wall-editor[data-wall-resizing="width"],
+.wall-editor[data-wall-resizing="width"] * {
+  cursor: col-resize !important;
+  user-select: none !important;
+}
+
+.wall-editor[data-wall-resizing="height"],
+.wall-editor[data-wall-resizing="height"] * {
+  cursor: row-resize !important;
+  user-select: none !important;
+}

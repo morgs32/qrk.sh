@@ -36,6 +36,7 @@ import { WallDropIndicator } from "./WallDropIndicator";
 import { PreviewSection } from "../PreviewSection";
 import { modulesHash } from "../modulesHash";
 import { makeWallLayoutView } from "./makeWallLayoutView";
+import { useWallResize } from "./useWallResize";
 import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
 
 const DrawerBrickData = Schema.Struct({
@@ -79,6 +80,7 @@ export function WallEditor(props: {
     ownerRowId: string | null;
   } | null>(null);
   const dropTarget = dropFeedback?.target ?? null;
+  const [nativeDragActive, setNativeDragActive] = useState(false);
   const [shadowSource, setShadowSource] = useState<{
     element: HTMLElement;
     moduleId: keyof typeof modulesHash;
@@ -98,6 +100,7 @@ export function WallEditor(props: {
   });
   const { sections } = makeWallLayoutView({ wall });
   const { brickGap } = wall.page.site;
+  const resize = useWallResize({ wallId, sections, brickGap, wallRef, disabled: nativeDragActive });
 
   useLayoutEffect(() => {
     // The ghost's drop payload follows its committed, visible position.
@@ -340,6 +343,7 @@ export function WallEditor(props: {
           source.data.wallId === wall.id &&
           element.contains(source.element),
         onDragStart: ({ source }) => {
+          setNativeDragActive(true);
           movingElement = source.element.closest<HTMLElement>("[data-wall-placement-id]");
           if (movingElement === null) throw new Error("Missing moving Placement");
           movingElement.dataset.wallMoving = "true";
@@ -348,6 +352,7 @@ export function WallEditor(props: {
         onDropTargetChange: onMoveDrag,
         onDrop: (props) => {
           const { source } = props;
+          setNativeDragActive(false);
           const move = resolveMove(props);
           movingElement?.removeAttribute("data-wall-moving");
           movingElement = null;
@@ -396,6 +401,7 @@ export function WallEditor(props: {
         canMonitor: ({ source }) => Schema.is(DrawerBrickData)(source.data),
         onDragStart: ({ source }) => {
           if (!Schema.is(DrawerBrickData)(source.data)) return;
+          setNativeDragActive(true);
           shadowRowHeights.current.clear();
           element.querySelectorAll<HTMLElement>("[data-wall-row-id]").forEach((rowElement) => {
             shadowRowHeights.current.set(rowElement, rowElement.getBoundingClientRect().height);
@@ -405,6 +411,7 @@ export function WallEditor(props: {
         onDrag,
         onDropTargetChange: onDrag,
         onDrop: ({ source, location }) => {
+          setNativeDragActive(false);
           setDropFeedback(null);
           setShadowSource(null);
           shadowRowHeights.current.clear();
@@ -689,6 +696,7 @@ export function WallEditor(props: {
       combine(...cleanups)();
       movingElement?.removeAttribute("data-wall-moving");
       movingElement = null;
+      setNativeDragActive(false);
       setMoveFeedback(null);
       setDropFeedback(null);
       setShadowSource(null);
@@ -752,6 +760,11 @@ export function WallEditor(props: {
     <>
       <div
         ref={wallRef}
+        data-wall-resizing={resize.preview?.kind}
+        data-wall-resize-disabled={nativeDragActive ? "true" : undefined}
+        onDragStartCapture={(event) => {
+          if (resize.preview !== null) event.preventDefault();
+        }}
         tabIndex={-1}
         className={`wall-editor relative flex min-w-0 flex-1 flex-col outline-none ${wall.page.site.stickyNavbar ? "[--wall-actions-sticky-top:7rem]" : "[--wall-actions-sticky-top:3rem]"}`}
         aria-label={`${wall.breakpoint} Wall editor`}
@@ -830,32 +843,46 @@ export function WallEditor(props: {
                         </StackAction>
                       ) : null}
                       {stack.rows.map((row) => {
+                        const rowPreview = resize.preview?.rowId === row.id ? resize.preview : null;
+                        const rowMinHeight =
+                          rowPreview?.kind === "height" ? rowPreview.minHeight : row.minHeight;
+                        const rowPlacements =
+                          rowPreview?.kind === "width"
+                            ? row.placements.map((placement) => {
+                                const changed = rowPreview.placements.find(
+                                  (entry) => entry.placementId === placement.id,
+                                );
+                                if (changed === undefined)
+                                  throw new Error("Missing resize preview Placement");
+                                return { ...placement, widthWeight: changed.widthWeight };
+                              })
+                            : row.placements;
                         const incomingVariant =
                           dropTarget?.kind === "row" && dropTarget.rowId === row.id
                             ? shadowVariant
                             : null;
-                        const variants = row.placements.map(
+                        const variants = rowPlacements.map(
                           (placement) =>
                             modulesHash[placement.brick.moduleId].variants[placement.variantId],
                         );
                         const minHeight = Math.max(
                           45,
-                          row.minHeight ?? 45,
+                          rowMinHeight ?? 45,
                           ...variants.map((variant) =>
                             Math.max(
                               variant.minHeight ?? 45,
-                              row.minHeight === null ? (variant.defaultHeight ?? 45) : 45,
+                              rowMinHeight === null ? (variant.defaultHeight ?? 45) : 45,
                             ),
                           ),
                           incomingVariant === null
                             ? 45
                             : Math.max(
                                 incomingVariant.minHeight ?? 45,
-                                row.minHeight === null ? (incomingVariant.defaultHeight ?? 45) : 45,
+                                rowMinHeight === null ? (incomingVariant.defaultHeight ?? 45) : 45,
                               ),
                         );
                         const totalWeight =
-                          row.placements.reduce(
+                          rowPlacements.reduce(
                             (total, placement) => total + placement.widthWeight,
                             0,
                           ) + (incomingVariant?.defaultWidth ?? 0);
@@ -877,7 +904,8 @@ export function WallEditor(props: {
                               style={{ minHeight: minHeight + brickGap + 1 }}
                               className={`relative -m-[0.5px] flex min-h-[49px] min-w-0 items-stretch p-[0.5px] ${row.placements.length === 0 && dropTarget?.kind === "row" && dropTarget.rowId === row.id ? "bg-blue-50 outline outline-blue-500 -outline-offset-2" : ""}`}
                             >
-                              {row.placements.map((placement) => {
+                              {rowPlacements.map((placement, placementIndex) => {
+                                const nextPlacement = rowPlacements[placementIndex + 1];
                                 const brick = placement.brick;
                                 const module = modulesHash[brick.moduleId];
                                 const Component = module.component;
@@ -927,6 +955,34 @@ export function WallEditor(props: {
                                           ),
                                       }}
                                     />
+                                    {nextPlacement !== undefined && (
+                                      <span
+                                        aria-hidden="true"
+                                        className="wall-width-resize-slot relative z-20 w-0 shrink-0 self-stretch"
+                                      >
+                                        <span
+                                          data-wall-width-resize-handle
+                                          data-row-id={row.id}
+                                          data-left-placement-id={placement.id}
+                                          data-right-placement-id={nextPlacement.id}
+                                          className="wall-resize-grip wall-width-resize-grip"
+                                          draggable={false}
+                                          onPointerDown={(event) =>
+                                            resize.startWidthResize({
+                                              event,
+                                              rowId: row.id,
+                                              leftPlacementId: placement.id,
+                                              rightPlacementId: nextPlacement.id,
+                                            })
+                                          }
+                                          onDragStart={(event) => event.preventDefault()}
+                                          onClick={(event) => {
+                                            event.preventDefault();
+                                            event.stopPropagation();
+                                          }}
+                                        />
+                                      </span>
+                                    )}
                                   </Fragment>
                                 );
                               })}
@@ -935,6 +991,22 @@ export function WallEditor(props: {
                                 dropTarget.beforePlacementId === null &&
                                 shadow}
                             </div>
+                            <span
+                              aria-hidden="true"
+                              data-wall-height-resize-handle
+                              data-row-id={row.id}
+                              className="wall-resize-grip wall-height-resize-grip z-20"
+                              draggable={false}
+                              onPointerDown={(event) =>
+                                resize.startHeightResize({ event, rowId: row.id })
+                              }
+                              onDoubleClick={() => resize.resetHeight({ rowId: row.id })}
+                              onDragStart={(event) => event.preventDefault()}
+                              onClick={(event) => {
+                                event.preventDefault();
+                                event.stopPropagation();
+                              }}
+                            />
                             {dropTarget?.kind === "stack" &&
                               dropTarget.stackId === stack.id &&
                               dropFeedback?.ownerRowId === row.id &&

@@ -124,7 +124,8 @@ internal best-effort reporter for final synchronous initialization and the three
 asynchronous escape seams. Invocation and internal RPC observers stay inside
 existing interruption masks so actual cancellation cleanup defects remain visible.
 The fixed package group was published as **38.2.1** to the configured local registry;
-this QRK change adopts matching exact pins without modifying installed packages.
+[QRK PR #51](https://github.com/morgs32/qrk.sh/pull/51) adopts matching exact pins
+without modifying installed packages.
 
 Verification: 22 upstream Workerd tests, system-worker typecheck/lint, and the
 19 configured release-group library builds passed. QRK frozen install, all 17

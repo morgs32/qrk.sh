@@ -1,6 +1,6 @@
 # Brick preview and editor conventions
 
-**updated:** 2026-11-01
+**updated:** 2026-11-02
 
 ## App owns saved editing
 
@@ -324,12 +324,27 @@ GitHub Activity its calendar scrolling/fades, and Link its wrapping copy column.
 ## Persistence and publication
 
 All saved creates, updates, moves, and deletes occur through registered commands.
-The browser session pins user owner release V7 and web Actor V7, using WallV2,
+The browser session pins user owner release V8 and web Actor V8, using WallV2,
 PlacementV2 and PageSnapshotV3. Concrete next-version commands bind those models;
 new Placements get their module default width as a weight and new Rows get a null
-minimum. Retained releases V3–V6 keep their original declarations. V7 evaluates
+minimum. V8 adds sizing commands while retaining those exact models and existing
+commands. Retained releases V3–V7 keep their original declarations. V7 and V8 evaluate
 supported retained creation/movement commands to initialize its own sizing data;
 this change performs no storage reset or direct row backfill.
+`setRowWidthWeights` saves every current Row Placement's positive finite weight
+in one command. The total must also be finite. Each Placement ID must appear
+exactly once; submitted array order does not reorder the Row, and values are
+stored without normalization. Stale, duplicate, missing, and foreign membership
+refuse before updates are recorded. An empty list is valid only for an empty Row.
+Only changed Placement weights produce model operations.
+
+`setRowMinHeight` saves null for automatic height or a finite pixel minimum of at
+least 45. It changes only the target Row, preserving its layout identity and
+membership. Both commands verify ownership through Wall → Page → Site → User;
+identical values record no model operations. Their values flow into existing V3
+publication snapshots and saved-versus-published comparison. Handles, controls,
+and temporary preview state remain subsequent work.
+
 The Actor grant map still excludes generic `movePlacement`; owners V3/V4 and their
 generic declarations remain registered. Pre-V5 histories containing generic moves
 still require framework historical-execution support before a retained-data or

@@ -25,6 +25,8 @@ import { createSiteV1 as createSite } from "@qrk.sh/zerospin/src/aggregates/user
 import { updatePageSettingsV1 as updatePageSettings } from "@qrk.sh/zerospin/src/aggregates/user/contracts/updatePageSettings/UpdatePageSettingsV1";
 import { updateSiteSettingsV1 as updateSiteSettings } from "@qrk.sh/zerospin/src/aggregates/user/contracts/updateSiteSettings/UpdateSiteSettingsV1";
 import { setBrickBorderWidthV1 as setBrickBorderWidth } from "@qrk.sh/zerospin/src/aggregates/user/contracts/brick/SetBrickBorderWidthV1";
+import { setRowWidthWeightsV1 as setRowWidthWeights } from "@qrk.sh/zerospin/src/aggregates/user/contracts/wall/SetRowWidthWeightsV1";
+import { setRowMinHeightV1 as setRowMinHeight } from "@qrk.sh/zerospin/src/aggregates/user/contracts/wall/SetRowMinHeightV1";
 import { userClaims } from "@qrk.sh/zerospin/src/claims";
 
 export const userSessionDefinition = makeAggregateSessionDefinition({
@@ -33,8 +35,8 @@ export const userSessionDefinition = makeAggregateSessionDefinition({
   aggregateName: "user",
   sessionName: "userSession",
   actorName: "web",
-  actorVersion: 7,
-  aggregateVersion: 7,
+  actorVersion: 8,
+  aggregateVersion: 8,
   models: {
     wall: Wall,
     brick: Brick,
@@ -56,6 +58,8 @@ export const userSessionDefinition = makeAggregateSessionDefinition({
     deleteBrick,
     updateBrick,
     setBrickBorderWidth,
+    setRowWidthWeights,
+    setRowMinHeight,
     generateBrickSpec,
     publishSite,
     publishPage,

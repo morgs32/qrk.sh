@@ -72,7 +72,7 @@ export function WallPlacement(props: {
             data-wall-drag-handle
             variant="ghost"
             className="size-7 cursor-grab rounded-none p-0 active:cursor-grabbing"
-            aria-label={`Move Brick ${placement.brickId} within row`}
+            aria-label={`Move Brick ${placement.brickId}`}
           >
             <GripVertical className="size-4" aria-hidden="true" />
           </Button>

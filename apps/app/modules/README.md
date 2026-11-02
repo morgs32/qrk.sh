@@ -219,14 +219,13 @@ content height. The shared height floor is 45px. Optional `minHeight` declares
 a higher floor (`90 | 180 | 360 | 720`), and every current variant omits it.
 `defaultHeight: null` also identifies variable-height content for Row sharing.
 The shared `canShareRow` rule lets an empty Row accept any variant, but a
-nonempty Row can contain only fixed-height variants. The adopted PagePreview canvas
-combines this rule with minimum-width fitting at the rendered Row width; fixed
-variants with different heights may share. `addBrick` enforces exclusivity before
-recording mutations and refuses rather than choosing another destination.
-Cross-row sharing enforcement in `movePlacementToRow` remains deferred; the
-canvas limits saved-Brick dragging to its current Row, preserving its membership.
-Applying preferred heights,
-row equalization, and module content fitting remain deferred.
+nonempty Row can contain only fixed-height variants. Fixed variants with different
+heights may share. Available width does not veto a destination: cells shrink
+toward their minimum widths, then the Row overflows horizontally. `addBrick` and
+`movePlacementToRow@2` enforce exclusivity before recording mutations and refuse
+rather than choosing another destination. Same-row move checks exclude the moving
+Placement from the destination's existing members. Applying preferred heights and
+module content fitting remain deferred.
 
 Each Placement persists a required `variantId`, currently `"default"`, alongside
 its spec. Different breakpoint placements own their variant identities
@@ -389,20 +388,33 @@ to leave insertion feedback visible. Its detached container retains the source's
 font, text color, and Brick theme. The floating copy keeps a 2px `#1F9BFC`
 edge without relying on hover, removes interaction halos and card shadows, and
 hides editor action controls. This pointer-following image is distinct from the
-borderless insertion shadow on the Wall. WallEditor owns production drop targeting;
-saved Wall Bricks remain undraggable. Module Page limits apply before accepting
-any destination. Compatible Rows use top/bottom quarters for new Rows and their
-middle half for left/right Placement insertion. Incompatible Rows use top/bottom
-halves for new Rows.
-Insertion feedback opens temporary space using a copy of the drawer's existing
+borderless insertion shadow on the Wall. WallEditor owns production drop targeting.
+Module Page limits apply before accepting drawer templates. Compatible Rows use
+top/bottom quarters for new Rows and their middle half for left/right Placement
+insertion. Incompatible Rows use top/bottom halves for new Rows.
+
+Saved Wall Bricks drag only from their action-menu grip. They may join existing
+Rows or create Rows across existing Stacks and Sections in the same Wall. For
+compatible populated Rows, the top/bottom 8px create Rows and the remaining area
+joins or reorders horizontally; incompatible Rows offer new Rows through their
+top/bottom halves. Empty Rows accept a Placement directly, and empty Stack
+backgrounds create their first Row. No canvas gesture creates a Stack or Section.
+The source remains in place at 40% opacity. Noninteractive 2px blue lines mark
+joins vertically and new Rows horizontally without changing layout. Selection,
+content interactions, and the open drawer are preserved. Unchanged or invalidated
+drops stage nothing; singleton Rows are not replaced at their existing position.
+Existing-Row drops use `movePlacementToRow@2`; new-Row drops use
+`movePlacementToNewRow@1` with `newRowId` allocated only after an accepted drop.
+
+Drawer-template insertion feedback opens temporary space using a copy of the drawer's existing
 `.brick-hover-surface` at 40% opacity, without an added border, outline, or halo,
 without rerendering its module or reading providers. Preview and shadow content
 use the same natural height as placed content; the shadow has no separate minimum
 height and retains the flat/card treatment. It occupies a Placement slot in a compatible Row, a new Row
 in a Stack, or the first slot in an empty Wall. Its content is inert and ignores
 pointer events; its host accepts drops at the visible slot's stable
-before-Placement or before-Row destination. No thin-line or rectangle indicator
-variants remain.
+before-Placement or before-Row destination. Drawer templates use this shadow;
+saved-Placement moves use the insertion lines described above.
 Each Row's drop-target wrapper contains its real content and its owned
 before/after shadow. Local feedback retains the owning Row separately from the
 canonical before-Row destination: after Row A remains owned by A even when its

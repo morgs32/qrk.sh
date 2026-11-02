@@ -65,10 +65,11 @@ export function WallEditor(props: {
   const returnFocusId = useRef<string | null>(null);
   const scope = useId();
   const [deletingBrickId, setDeletingBrickId] = useState<string | null>(null);
-  const [moveFeedback, setMoveFeedback] = useState<{
-    rowId: string;
-    left: number;
-  } | null>(null);
+  const [moveFeedback, setMoveFeedback] = useState<
+    | { kind: "row"; rowId: string; left: number }
+    | { kind: "stack"; stackId: string; rowId: string | null; edge: "top" | "bottom" }
+    | null
+  >(null);
   const [dropFeedback, setDropFeedback] = useState<{
     target: typeof wallInsertionTargetSchema.Type;
     ownerRowId: string | null;
@@ -135,53 +136,116 @@ export function WallEditor(props: {
     if (element === null) throw new Error("Missing Wall editor");
     const { sections } = makeWallLayoutView({ wall });
     let movingElement: HTMLElement | null = null;
-    const onMoveDrag = (props: ElementEventBasePayload) => {
+    const stacks = sections.flatMap((section) => section.stacks);
+    const rows = stacks.flatMap((stack) => stack.rows);
+    const resolveMove = (props: ElementEventBasePayload) => {
       const { source, location } = props;
       const data = Schema.decodeUnknownResult(WallPlacementData)(source.data);
-      const innermost = location.current.dropTargets[0];
-      const target = Schema.decodeUnknownResult(wallInsertionTargetSchema)(innermost?.data);
+      const target = Schema.decodeUnknownResult(wallInsertionTargetSchema)(
+        location.current.dropTargets[0]?.data,
+      );
       if (
         movingElement?.querySelector("[data-wall-drag-handle]") !== source.element ||
+        !source.element.isConnected ||
         Result.isFailure(data) ||
         Result.isFailure(target) ||
-        target.success.kind !== "row" ||
+        data.success.wallId !== wall.id ||
         target.success.wallId !== wall.id ||
-        target.success.rowId !== data.success.rowId
-      ) {
-        setMoveFeedback(null);
-        return;
-      }
+        (target.success.kind !== "row" && target.success.kind !== "stack")
+      )
+        return null;
       const destination = target.success;
-      const row = sections
-        .flatMap((section) => section.stacks)
-        .flatMap((stack) => stack.rows)
-        .find((row) => row.id === destination.rowId);
-      const sourceIndex = row?.placements.findIndex(
+      const sourceRow = rows.find((row) => row.id === data.success.rowId);
+      const placement = sourceRow?.placements.find(
         (placement) => placement.id === data.success.placementId,
       );
-      if (
-        row === undefined ||
-        sourceIndex === undefined ||
-        sourceIndex < 0 ||
-        destination.beforePlacementId === data.success.placementId ||
-        destination.beforePlacementId === (row.placements[sourceIndex + 1]?.id ?? null)
-      ) {
+      if (sourceRow === undefined || placement === undefined) return null;
+      if (destination.kind === "row") {
+        const row = rows.find((row) => row.id === destination.rowId);
+        if (
+          row === undefined ||
+          (destination.beforePlacementId !== null &&
+            !row.placements.some((entry) => entry.id === destination.beforePlacementId))
+        )
+          return null;
+        const sourceIndex = sourceRow.placements.indexOf(placement);
+        if (
+          row === sourceRow &&
+          (destination.beforePlacementId === placement.id ||
+            destination.beforePlacementId === (sourceRow.placements[sourceIndex + 1]?.id ?? null))
+        )
+          return null;
+        if (
+          !canShareRow({
+            incomingVariant: modulesHash[placement.brick.moduleId].variants[placement.variantId],
+            existingVariants: row.placements
+              .filter((entry) => entry.id !== placement.id)
+              .map((entry) => modulesHash[entry.brick.moduleId].variants[entry.variantId]),
+          })
+        )
+          return null;
+      } else {
+        const stack = stacks.find((stack) => stack.id === destination.stackId);
+        if (
+          stack === undefined ||
+          (destination.beforeRowId !== null &&
+            !stack.rows.some((row) => row.id === destination.beforeRowId))
+        )
+          return null;
+        const sourceRowIndex = stack.rows.indexOf(sourceRow);
+        if (
+          sourceRow.placements.length === 1 &&
+          sourceRowIndex >= 0 &&
+          (destination.beforeRowId === sourceRow.id ||
+            destination.beforeRowId === (stack.rows[sourceRowIndex + 1]?.id ?? null))
+        )
+          return null;
+      }
+      return { placement, target: destination };
+    };
+    const onMoveDrag = (props: ElementEventBasePayload) => {
+      const { location } = props;
+      const move = resolveMove(props);
+      if (move === null) {
         setMoveFeedback(null);
         return;
       }
-      const anchorId =
-        destination.beforePlacementId ?? row.placements[row.placements.length - 1].id;
-      const anchor = innermost.element.querySelector<HTMLElement>(
-        `[data-wall-placement-id="${CSS.escape(anchorId)}"]`,
-      );
-      if (anchor === null) throw new Error(`Missing move destination Placement ${anchorId}`);
-      const rect = anchor.getBoundingClientRect();
-      setMoveFeedback({
-        rowId: row.id,
-        left:
-          (destination.beforePlacementId === null ? rect.right : rect.left) -
-          innermost.element.getBoundingClientRect().left,
-      });
+      const { target } = move;
+      const innermost = location.current.dropTargets[0];
+      if (target.kind === "stack") {
+        const stack = stacks.find((stack) => stack.id === target.stackId);
+        if (stack === undefined) throw new Error(`Missing destination Stack ${target.stackId}`);
+        const ownerRowId = innermost.element.getAttribute("data-wall-row-id");
+        setMoveFeedback({
+          kind: "stack",
+          stackId: stack.id,
+          rowId: ownerRowId,
+          edge:
+            ownerRowId === null
+              ? stack.rows.length === 0
+                ? "top"
+                : "bottom"
+              : target.beforeRowId === ownerRowId
+                ? "top"
+                : "bottom",
+        });
+        return;
+      }
+      const row = rows.find((row) => row.id === target.rowId);
+      if (row === undefined) throw new Error(`Missing destination Row ${target.rowId}`);
+      let left = 0;
+      if (row.placements.length > 0) {
+        const anchorId = target.beforePlacementId ?? row.placements[row.placements.length - 1].id;
+        const anchor = innermost.element.querySelector<HTMLElement>(
+          `[data-wall-placement-id="${CSS.escape(anchorId)}"]`,
+        );
+        if (anchor === null) throw new Error(`Missing move destination Placement ${anchorId}`);
+        const rect = anchor.getBoundingClientRect();
+        left =
+          (target.beforePlacementId === null ? rect.right : rect.left) -
+          innermost.element.getBoundingClientRect().left;
+      }
+      setMoveFeedback({ kind: "row", rowId: row.id, left });
     };
     const onDrag = (props: ElementEventBasePayload) => {
       const { location } = props;
@@ -220,56 +284,50 @@ export function WallEditor(props: {
         },
         onDrag: onMoveDrag,
         onDropTargetChange: onMoveDrag,
-        onDrop: ({ source, location }) => {
-          const wasMoving =
-            movingElement?.querySelector("[data-wall-drag-handle]") === source.element;
+        onDrop: (props) => {
+          const { source } = props;
+          const move = resolveMove(props);
           movingElement?.removeAttribute("data-wall-moving");
           movingElement = null;
           setMoveFeedback(null);
-          const data = Schema.decodeUnknownResult(WallPlacementData)(source.data);
-          const target = Schema.decodeUnknownResult(wallInsertionTargetSchema)(
-            location.current.dropTargets[0]?.data,
-          );
-          if (
-            !wasMoving ||
-            !source.element.isConnected ||
-            Result.isFailure(data) ||
-            Result.isFailure(target) ||
-            target.success.kind !== "row" ||
-            target.success.wallId !== wall.id ||
-            target.success.rowId !== data.success.rowId
-          )
-            return;
-          const destination = target.success;
-          const row = sections
-            .flatMap((section) => section.stacks)
-            .flatMap((stack) => stack.rows)
-            .find((row) => row.id === destination.rowId);
-          const sourceIndex = row?.placements.findIndex(
-            (placement) => placement.id === data.success.placementId,
-          );
-          if (
-            row === undefined ||
-            sourceIndex === undefined ||
-            sourceIndex < 0 ||
-            destination.beforePlacementId === data.success.placementId ||
-            destination.beforePlacementId === (row.placements[sourceIndex + 1]?.id ?? null)
-          )
-            return;
-          const beforePlacement =
-            destination.beforePlacementId === null
-              ? null
-              : row.placements.find((placement) => placement.id === destination.beforePlacementId);
-          if (beforePlacement === undefined) return;
-          stageAggregateSessionCommand({
-            session,
-            contractName: "movePlacementToRow",
-            payload: {
-              placementId: row.placements[sourceIndex].id,
-              rowId: row.id,
-              beforePlacementId: beforePlacement === null ? null : beforePlacement.id,
-            },
-          });
+          if (move === null || !source.element.isConnected) return;
+          const { placement, target } = move;
+          if (target.kind === "row") {
+            const row = rows.find((row) => row.id === target.rowId);
+            if (row === undefined) throw new Error(`Missing destination Row ${target.rowId}`);
+            const before =
+              target.beforePlacementId === null
+                ? null
+                : row.placements.find((entry) => entry.id === target.beforePlacementId);
+            if (before === undefined) throw new Error("Missing destination Placement anchor");
+            stageAggregateSessionCommand({
+              session,
+              contractName: "movePlacementToRow",
+              payload: {
+                placementId: placement.id,
+                rowId: row.id,
+                beforePlacementId: before === null ? null : before.id,
+              },
+            });
+          } else {
+            const stack = stacks.find((stack) => stack.id === target.stackId);
+            if (stack === undefined) throw new Error(`Missing destination Stack ${target.stackId}`);
+            const before =
+              target.beforeRowId === null
+                ? null
+                : stack.rows.find((row) => row.id === target.beforeRowId);
+            if (before === undefined) throw new Error("Missing destination Row anchor");
+            stageAggregateSessionCommand({
+              session,
+              contractName: "movePlacementToNewRow",
+              payload: {
+                placementId: placement.id,
+                stackId: stack.id,
+                newRowId: session.runSync(makeId({ abbreviation: "row" })),
+                beforeRowId: before === null ? null : before.id,
+              },
+            });
+          }
         },
       }),
       monitorForElements({
@@ -345,6 +403,11 @@ export function WallEditor(props: {
           dropTargetForElements({
             element: stackElement,
             canDrop: ({ source }) => {
+              if (Schema.is(WallPlacementData)(source.data))
+                return (
+                  source.data.wallId === wall.id &&
+                  wall.placements.some((placement) => placement.id === source.data.placementId)
+                );
               if (!Schema.is(DrawerBrickData)(source.data)) return false;
               const module = modulesHash[source.data.moduleId];
               return (
@@ -359,7 +422,8 @@ export function WallEditor(props: {
               stackId: stack.id,
               beforeRowId: null,
             }),
-            getDropEffect: () => "copy",
+            getDropEffect: ({ source }) =>
+              Schema.is(WallPlacementData)(source.data) ? "move" : "copy",
           }),
         );
         for (const [rowIndex, row] of stack.rows.entries()) {
@@ -377,8 +441,7 @@ export function WallEditor(props: {
                 if (Schema.is(WallPlacementData)(source.data))
                   return (
                     source.data.wallId === wall.id &&
-                    source.data.rowId === row.id &&
-                    row.placements.some((placement) => placement.id === source.data.placementId)
+                    wall.placements.some((placement) => placement.id === source.data.placementId)
                   );
                 if (!Schema.is(DrawerBrickData)(source.data)) return false;
                 const module = modulesHash[source.data.moduleId];
@@ -390,6 +453,33 @@ export function WallEditor(props: {
               },
               getData: ({ source, input }) => {
                 if (Schema.is(WallPlacementData)(source.data)) {
+                  const incoming = wall.placements.find(
+                    (placement) => placement.id === source.data.placementId,
+                  );
+                  if (incoming === undefined) throw new Error("Missing moving Placement");
+                  const canCombine = canShareRow({
+                    incomingVariant:
+                      modulesHash[incoming.brick.moduleId].variants[incoming.variantId],
+                    existingVariants: row.placements
+                      .filter((placement) => placement.id !== incoming.id)
+                      .map(
+                        (placement) =>
+                          modulesHash[placement.brick.moduleId].variants[placement.variantId],
+                      ),
+                  });
+                  const rect = rowElement.getBoundingClientRect();
+                  const beforeRow = canCombine
+                    ? input.clientY < rect.top + 8
+                    : input.clientY < rect.top + rect.height / 2;
+                  const afterRow = canCombine ? input.clientY >= rect.bottom - 8 : !beforeRow;
+                  if (row.placements.length > 0 && (beforeRow || afterRow)) {
+                    return {
+                      wallId: wall.id,
+                      kind: "stack",
+                      stackId: stack.id,
+                      beforeRowId: beforeRow ? row.id : (stack.rows[rowIndex + 1]?.id ?? null),
+                    };
+                  }
                   const before = row.placements.find((placement) => {
                     const cell = rowElement.querySelector<HTMLElement>(
                       `[data-wall-placement-id="${CSS.escape(placement.id)}"]`,
@@ -588,6 +678,17 @@ export function WallEditor(props: {
                       data-wall-stack-id={stack.id}
                       className={`group/stack relative min-h-[50px] min-w-0 ${stack.id === selectedStackId ? "is-selected-stack after:pointer-events-none after:absolute after:inset-0 after:z-[29] after:border after:border-[#1f9bfc] after:content-['']" : ""} ${stack.rows.length === 0 && dropTarget?.kind === "stack" && dropTarget.stackId === stack.id ? "bg-blue-50 outline outline-blue-500 -outline-offset-2" : ""}`}
                     >
+                      {moveFeedback?.kind === "stack" &&
+                        moveFeedback.stackId === stack.id &&
+                        moveFeedback.rowId === null && (
+                          <div
+                            data-wall-move-indicator
+                            data-orientation="horizontal"
+                            aria-hidden="true"
+                            className="pointer-events-none absolute right-0 left-0 z-20 h-0.5 -translate-y-1/2 bg-[#1f9bfc]"
+                            style={{ top: moveFeedback.edge === "top" ? 0 : "100%" }}
+                          />
+                        )}
                       {stack.rows.some((row) => row.placements.length > 0) ? (
                         <StackAction>
                           {onEditStack === undefined ? (
@@ -614,9 +715,16 @@ export function WallEditor(props: {
                           {moveFeedback?.rowId === row.id && (
                             <div
                               data-wall-move-indicator
+                              data-orientation={
+                                moveFeedback.kind === "row" ? "vertical" : "horizontal"
+                              }
                               aria-hidden="true"
-                              className="pointer-events-none absolute inset-y-0 z-20 w-0.5 -translate-x-1/2 bg-[#1f9bfc]"
-                              style={{ left: moveFeedback.left }}
+                              className={`pointer-events-none absolute z-20 bg-[#1f9bfc] ${moveFeedback.kind === "row" ? "inset-y-0 w-0.5 -translate-x-1/2" : "right-0 left-0 h-0.5 -translate-y-1/2"}`}
+                              style={
+                                moveFeedback.kind === "row"
+                                  ? { left: moveFeedback.left }
+                                  : { top: moveFeedback.edge === "top" ? 0 : "100%" }
+                              }
                             />
                           )}
                           {dropTarget?.kind === "stack" &&

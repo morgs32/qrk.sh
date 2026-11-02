@@ -2,9 +2,14 @@ import { expect, it } from "@effect/vitest";
 import { makeQueryDbVersion, NanoIdFactory } from "@zerospin/sdk";
 import { makeSystemHarness } from "@zerospin/sdk/testing";
 import { Effect } from "effect";
+import { encodePayload } from "@zerospin/core/contracts/encodePayload";
+import { decodeAndAdaptPayload } from "@zerospin/core/contracts/decodeAndAdaptPayload/decodeAndAdaptPayload";
 import * as TestClock from "effect/testing/TestClock";
 
 import { userAggregateV5 } from "../src/aggregates/user/UserV5";
+import { userAggregateV6 } from "../src/aggregates/user/UserV6";
+import { movePlacementToRowV1 } from "../src/aggregates/user/contracts/wall/MovePlacementToRowContractV1";
+import { movePlacementToRowV2 } from "../src/aggregates/user/contracts/wall/MovePlacementToRowContractV2";
 import { swatchAndIconV1 } from "../src/modules/swatchAndIcon/swatchAndIconV1";
 import { makePlacementId } from "../src/modules/lib/makePlacementId";
 import { system } from "../src/system";
@@ -132,6 +137,20 @@ it.effect("moves Placements with explicit structural intentions and atomic refus
       { placementId: b, beforePlacementId: c, expected: [b, c, a] },
       { placementId: b, beforePlacementId: null, expected: [c, a, b] },
     ].entries()) {
+      const retainedPayload = {
+        placementId: move.placementId,
+        rowId: row.id,
+        beforePlacementId: move.beforePlacementId,
+      };
+      const encoded = yield* encodePayload(movePlacementToRowV1, {
+        version: 1,
+        payload: retainedPayload,
+      });
+      expect(
+        yield* decodeAndAdaptPayload(movePlacementToRowV2, {
+          command: { commandName: "movePlacementToRow", contractVersion: 1, payload: encoded },
+        }),
+      ).toEqual(retainedPayload);
       yield* harness.push({
         ...actor,
         kind: "actor",
@@ -404,5 +423,208 @@ it.effect("moves Placements with explicit structural intentions and atomic refus
       expect(finalWalls.find((entry) => entry.id === unchanged.id)).toEqual(unchanged);
     expect(yield* harness.query(owner, db.query.placement.findMany({}))).toEqual(placementsBefore);
     expect(yield* harness.query(owner, db.query.brick.findMany({}))).toEqual(bricksBefore);
+  }).pipe(Effect.provide(NanoIdFactory)),
+);
+
+it.effect("joins compatible Rows and refuses variable-height sharing atomically", () =>
+  Effect.gen(function* () {
+    const harness = yield* makeSystemHarness({ system });
+    const owner = { release: userAggregateV6, aggregateId: "acct_row_sharing" };
+    const db = makeQueryDbVersion({ models: userAggregateV6.models });
+    const actor = {
+      aggregateName: userAggregateV6.name,
+      aggregateVersion: userAggregateV6.version,
+      aggregateId: owner.aggregateId,
+      actorName: "web",
+      actorVersion: 6,
+      claims: { aggregateId: owner.aggregateId, clerkUserId: "user_row_sharing" },
+      externalOutcome: null,
+      nodeId: "node_row_sharing",
+      sessionName: "userSession",
+    };
+    let pushIndex = 1;
+    yield* harness.push({
+      kind: "system",
+      id: "cmd_sharing_user",
+      commandName: "createUser",
+      contractVersion: 1,
+      aggregateName: userAggregateV6.name,
+      aggregateVersion: userAggregateV6.version,
+      aggregateId: owner.aggregateId,
+      externalOutcome: null,
+      payload: {
+        id: "usr_row_sharing",
+        clerkUserId: actor.claims.clerkUserId,
+        username: null,
+        displayName: null,
+      },
+    });
+    yield* harness.push({
+      ...actor,
+      kind: "actor",
+      id: "cmd_sharing_site",
+      commandName: "createSite",
+      contractVersion: 1,
+      pushIndex: pushIndex++,
+      payload: {
+        id: "sit_row_sharing",
+        userId: "usr_row_sharing",
+        slug: "row-sharing",
+        name: null,
+        description: null,
+      },
+    });
+    yield* harness.push({
+      ...actor,
+      kind: "actor",
+      id: "cmd_sharing_page",
+      commandName: "createPage",
+      contractVersion: 1,
+      pushIndex: pushIndex++,
+      payload: {
+        id: "pag_row_sharing",
+        siteId: "sit_row_sharing",
+        slug: null,
+        title: null,
+        description: null,
+      },
+    });
+    yield* harness.push({
+      ...actor,
+      kind: "actor",
+      id: "cmd_sharing_brick_a",
+      commandName: "addBrick",
+      contractVersion: 3,
+      pushIndex: pushIndex++,
+      payload: {
+        id: "brk_sharing_a",
+        pageId: "pag_row_sharing",
+        moduleId: "swatch-and-icon",
+        state: swatchAndIconV1.defaultState,
+        target: { kind: "wall", wallId: "wal_pag_row_sharing_lg", beforeSectionId: null },
+      },
+    });
+    yield* harness.flush();
+    const initial = yield* harness.query(
+      owner,
+      db.query.wall.findFirst({ where: { id: { eq: "wal_pag_row_sharing_lg" } } }),
+    );
+    if (initial === undefined) expect.fail("Expected the command-created Wall");
+    const stack = initial.layout.sections[0].stacks[0];
+    const fixedRow = stack.rows[0];
+    for (const entry of [
+      { id: "brk_sharing_b", moduleId: "swatch-and-icon", state: swatchAndIconV1.defaultState },
+      { id: "brk_sharing_article", moduleId: "article", state: null },
+    ]) {
+      yield* harness.push({
+        ...actor,
+        kind: "actor",
+        id: `cmd_sharing_${entry.id}`,
+        commandName: "addBrick",
+        contractVersion: 3,
+        pushIndex: pushIndex++,
+        payload: {
+          ...entry,
+          pageId: "pag_row_sharing",
+          target: { kind: "stack", wallId: initial.id, stackId: stack.id, beforeRowId: null },
+        },
+      });
+    }
+    yield* harness.flush();
+    const before = yield* harness.query(owner, db.query.wall.findMany({}));
+    const placements = yield* harness.query(owner, db.query.placement.findMany({}));
+    const bricks = yield* harness.query(owner, db.query.brick.findMany({}));
+    const a = makePlacementId("brk_sharing_a", "lg");
+    const b = makePlacementId("brk_sharing_b", "lg");
+    const article = makePlacementId("brk_sharing_article", "lg");
+    yield* harness.push({
+      ...actor,
+      kind: "actor",
+      id: "cmd_sharing_compatible_join",
+      commandName: "movePlacementToRow",
+      contractVersion: 2,
+      pushIndex: pushIndex++,
+      payload: { placementId: b, rowId: fixedRow.id, beforePlacementId: a },
+    });
+    yield* harness.flush();
+    const joined = yield* harness.query(
+      owner,
+      db.query.wall.findFirst({ where: { id: { eq: initial.id } } }),
+    );
+    if (joined === undefined) expect.fail("Expected the command-created Wall");
+    expect(joined.layout.sections[0].stacks[0].rows[0]).toEqual({
+      id: fixedRow.id,
+      placementIds: [b, a],
+    });
+    const articleRow = joined.layout.sections[0].stacks[0].rows[1];
+    expect(articleRow.placementIds).toEqual([article]);
+
+    // Both directions of illegal sharing refuse without changing any model row.
+    for (const [index, move] of [
+      { placementId: a, rowId: articleRow.id },
+      { placementId: article, rowId: fixedRow.id },
+    ].entries()) {
+      const refusal = yield* harness
+        .push({
+          ...actor,
+          kind: "actor",
+          id: `cmd_sharing_refused_${index}`,
+          commandName: "movePlacementToRow",
+          contractVersion: 2,
+          pushIndex: pushIndex++,
+          payload: { ...move, beforePlacementId: null },
+        })
+        .pipe(Effect.flip);
+      expect(refusal.status).toBe(409);
+      yield* harness.flush();
+      expect(
+        yield* harness.query(owner, db.query.wall.findFirst({ where: { id: { eq: initial.id } } })),
+      ).toEqual(joined);
+    }
+    expect(yield* harness.query(owner, db.query.placement.findMany({}))).toEqual(placements);
+    expect(yield* harness.query(owner, db.query.brick.findMany({}))).toEqual(bricks);
+    const afterJoin = yield* harness.query(owner, db.query.wall.findMany({}));
+    for (const otherWall of before.filter((entry) => entry.id !== initial.id))
+      expect(afterJoin.find((entry) => entry.id === otherWall.id)).toEqual(otherWall);
+
+    // An authored empty Stack receives its first Row without adding another container.
+    yield* harness.push({
+      ...actor,
+      kind: "actor",
+      id: "cmd_sharing_empty_section",
+      commandName: "addWallSection",
+      contractVersion: 1,
+      pushIndex: pushIndex++,
+      payload: { id: "sharing_empty", wallId: initial.id, beforeSectionId: null },
+    });
+    yield* harness.push({
+      ...actor,
+      kind: "actor",
+      id: "cmd_sharing_first_row",
+      commandName: "movePlacementToNewRow",
+      contractVersion: 1,
+      pushIndex: pushIndex++,
+      payload: {
+        placementId: article,
+        stackId: "stk_sharing_empty",
+        newRowId: "row_sharing_empty",
+        beforeRowId: null,
+      },
+    });
+    yield* harness.flush();
+    const withFirstRow = yield* harness.query(
+      owner,
+      db.query.wall.findFirst({ where: { id: { eq: initial.id } } }),
+    );
+    if (withFirstRow === undefined) expect.fail("Expected the command-created Wall");
+    expect(withFirstRow.layout.sections.at(-1)?.stacks).toEqual([
+      {
+        id: "stk_sharing_empty",
+        name: "Stack",
+        rows: [{ id: "row_sharing_empty", placementIds: [article] }],
+      },
+    ]);
+    expect(yield* harness.query(owner, db.query.placement.findMany({}))).toEqual(placements);
+    expect(yield* harness.query(owner, db.query.brick.findMany({}))).toEqual(bricks);
   }).pipe(Effect.provide(NanoIdFactory)),
 );

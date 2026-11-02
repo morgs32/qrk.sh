@@ -1380,10 +1380,13 @@ export const RowReorder: StoryObj<typeof meta> = {
           const indicator = canvasElement.querySelector<HTMLElement>("[data-wall-move-indicator]");
           if (scenario.indicator) {
             if (!indicator) throw new Error("Missing Row move indicator");
-            expect(indicator.getBoundingClientRect().width).toBeCloseTo(2, 1);
-            expect(indicator.getBoundingClientRect().height).toBeCloseTo(rowBox.height, 1);
+            const line = indicator.firstElementChild;
+            if (!(line instanceof HTMLElement)) throw new Error("Missing Atlassian drop indicator");
+            expect(line.getBoundingClientRect().width).toBeCloseTo(2, 1);
+            // The line begins after the 4px terminal radius.
+            expect(line.getBoundingClientRect().height).toBeCloseTo(rowBox.height - 4, 1);
             expect(getComputedStyle(indicator).pointerEvents).toBe("none");
-            expect(getComputedStyle(indicator).backgroundColor).toBe("rgb(31, 155, 252)");
+            expect(getComputedStyle(line).backgroundColor).toBe("rgb(24, 104, 219)");
           } else expect(indicator).toBeNull();
         });
         expect(canvasElement.querySelector(".wall-shadow-placeholder")).toBeNull();
@@ -1685,16 +1688,18 @@ export const CrossRowMoves: StoryObj<typeof meta> = {
           if (scenario.orientation === null) expect(indicator).toBeNull();
           else {
             if (!indicator) throw new Error("Missing cross-Row insertion line");
-            const lineBox = indicator.getBoundingClientRect();
+            const line = indicator.firstElementChild;
+            if (!(line instanceof HTMLElement)) throw new Error("Missing Atlassian drop indicator");
+            const lineBox = line.getBoundingClientRect();
             expect(indicator.getAttribute("data-orientation")).toBe(scenario.orientation);
             expect(getComputedStyle(indicator).pointerEvents).toBe("none");
-            expect(getComputedStyle(indicator).backgroundColor).toBe("rgb(31, 155, 252)");
+            expect(getComputedStyle(line).backgroundColor).toBe("rgb(24, 104, 219)");
             if (scenario.orientation === "vertical") {
               expect(lineBox.width).toBeCloseTo(2, 1);
-              expect(lineBox.height).toBeCloseTo(rowBox.height, 1);
+              expect(lineBox.height).toBeCloseTo(rowBox.height - 4, 1);
             } else {
               expect(lineBox.height).toBeCloseTo(2, 1);
-              expect(lineBox.width).toBeCloseTo(rowBox.width, 1);
+              expect(lineBox.width).toBeCloseTo(rowBox.width - 4, 1);
               expect(lineBox.top + lineBox.height / 2).toBeCloseTo(
                 clientY < rowBox.top + rowBox.height / 2 ? rowBox.top : rowBox.bottom,
                 1,

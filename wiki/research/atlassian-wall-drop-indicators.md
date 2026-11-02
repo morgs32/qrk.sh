@@ -87,3 +87,19 @@ for this recommendation.
    outlines using the existing Wall stories and browser.
 
 No runtime, visual, or bundle-size verification was performed for this research.
+
+## Implementation outcome
+
+Implemented November 1, 2026: App pins the indicator package to `4.2.4`, and
+WallEditor renders its stock circle-ended indicator in both move-feedback
+branches. Positioning wrappers retain the existing Row-relative coordinate,
+Row/Stack edges, layering, and test markers. Drawer shadows and move resolution
+are unchanged. Installation added 13 packages to the workspace.
+
+Verification: App production build passed. Storybook reported PASS for
+Row Reorder, Row Reorder With Gaps, Cross Row Moves, Cross Row Moves With Gaps,
+Cross Row Empty Row, and Cross Row Empty Stack. Existing story assertions now
+check the rendered Atlassian line's geometry and stock color, accounting for its
+4px terminal radius. A paused cross-Row story visually confirmed the horizontal
+line and terminal; the live editor reloaded successfully. No bundle-size
+comparison was performed.

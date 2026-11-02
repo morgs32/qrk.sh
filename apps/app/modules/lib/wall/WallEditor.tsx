@@ -5,6 +5,7 @@ import { Dialog } from "@base-ui/react/dialog";
 import type { IInferModelRow } from "@zerospin/core/models/types";
 import { makeId, makeIdSchema, stageAggregateSessionCommand } from "@zerospin/sdk/browser";
 import { combine } from "@atlaskit/pragmatic-drag-and-drop/combine";
+import { DropIndicator } from "@atlaskit/pragmatic-drag-and-drop-react-drop-indicator/box";
 import {
   draggable,
   dropTargetForElements,
@@ -685,9 +686,10 @@ export function WallEditor(props: {
                             data-wall-move-indicator
                             data-orientation="horizontal"
                             aria-hidden="true"
-                            className="pointer-events-none absolute right-0 left-0 z-20 h-0.5 -translate-y-1/2 bg-[#1f9bfc]"
-                            style={{ top: moveFeedback.edge === "top" ? 0 : "100%" }}
-                          />
+                            className="pointer-events-none absolute inset-0 z-20"
+                          >
+                            <DropIndicator edge={moveFeedback.edge} gap="0px" />
+                          </div>
                         )}
                       {stack.rows.some((row) => row.placements.length > 0) ? (
                         <StackAction>
@@ -719,13 +721,18 @@ export function WallEditor(props: {
                                 moveFeedback.kind === "row" ? "vertical" : "horizontal"
                               }
                               aria-hidden="true"
-                              className={`pointer-events-none absolute z-20 bg-[#1f9bfc] ${moveFeedback.kind === "row" ? "inset-y-0 w-0.5 -translate-x-1/2" : "right-0 left-0 h-0.5 -translate-y-1/2"}`}
+                              className={`pointer-events-none absolute inset-y-0 z-20 ${moveFeedback.kind === "row" ? "w-0" : "inset-x-0"}`}
                               style={
                                 moveFeedback.kind === "row"
                                   ? { left: moveFeedback.left }
-                                  : { top: moveFeedback.edge === "top" ? 0 : "100%" }
+                                  : undefined
                               }
-                            />
+                            >
+                              <DropIndicator
+                                edge={moveFeedback.kind === "row" ? "left" : moveFeedback.edge}
+                                gap="0px"
+                              />
+                            </div>
                           )}
                           {dropTarget?.kind === "stack" &&
                             dropTarget.stackId === stack.id &&

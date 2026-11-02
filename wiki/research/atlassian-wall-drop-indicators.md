@@ -138,8 +138,8 @@ at `z-30`, with their outline at `z-29`.
 
 QRK now owns the small `WallDropIndicator` renderer and stylesheet, using the
 same circle-ended geometry for the three edges used by Wall moves. The line has
-a 1px white core with a 1px blue shadow; its 8px terminal has an opaque white fill
-and 1px blue border. The overlay, anchors, bounds observers, and drag decisions
+a 1px white core with a 2px blue shadow; its 8px terminal has an opaque white fill
+and 2px blue border. The overlay, anchors, bounds observers, and drag decisions
 are unchanged. The unused Atlassian React indicator dependency was removed;
 Pragmatic core and hitbox remain installed for drag handling.
 [Local renderer](../../apps/app/modules/lib/wall/WallDropIndicator.tsx),
@@ -151,3 +151,8 @@ and unchanged seam alignment assertions. Paused playback visually confirmed
 horizontal and vertical treatments, including a vertical line and terminal over
 the browser chrome. The live editor session loaded blank without console errors;
 visual verification for this rendering change used Storybook.
+
+Outline follow-up: increased the blue line shadow and terminal border to 2px.
+The focused Cross Row Moves story passed after restarting stale Storybook;
+computed styles confirmed both 2px values, and paused playback verified the
+heavier outline visually. The white line core remains 1px.

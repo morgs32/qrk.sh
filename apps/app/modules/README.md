@@ -401,7 +401,7 @@ top/bottom halves. Empty Rows accept a Placement directly, and empty Stack
 backgrounds create their first Row. No canvas gesture creates a Stack or Section.
 The source remains in place at 40% opacity. A local, pointer-transparent drop
 indicator marks joins vertically and new Rows horizontally without changing
-layout: a 1px white line has a 1px blue shadow, with a white-filled 8px circle
+layout: a 1px white line has a 2px blue shadow, with a white-filled 8px circle
 outlined in blue. Selection, content interactions, and the open drawer are
 preserved. Unchanged or invalidated
 drops stage nothing; singleton Rows are not replaced at their existing position.

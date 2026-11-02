@@ -494,6 +494,14 @@ region, with its own real top border and bottom divider. The optional sticky
 site navbar sits below it. The full frame has no border or ring; browser/footer
 corners remain rounded without clipping descendants. The footer remains part
 of WallEditor and is 64px tall.
+Stack and placed-Brick action bars stick below the browser bar and any sticky
+navbar while their owner remains visible. Full-height, pointer-transparent hosts
+bound each bar to its own Stack or Brick without consuming layout space. The Wall
+sets a 7rem sticky offset with a sticky navbar and 3rem otherwise. Existing
+visibility rules and action layers remain; drawer-preview actions stay absolute,
+and move indicators remain above the controls at z-70. The Cross Row Sticky
+Actions stories exercise both navbar settings, owner-bottom boundaries, menu
+interaction, and unchanged content geometry.
 The Wall Editor story uses the same section widths and a full-width scroll
 owner. Its frame has a minimum width of the selected content width plus both
 side borders, so oversized selections scroll horizontally rather than silently

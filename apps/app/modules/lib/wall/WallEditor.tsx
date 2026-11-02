@@ -724,7 +724,7 @@ export function WallEditor(props: {
       <div
         ref={wallRef}
         tabIndex={-1}
-        className="wall-editor relative flex min-w-0 flex-1 flex-col outline-none"
+        className={`wall-editor relative flex min-w-0 flex-1 flex-col outline-none ${wall.page.site.stickyNavbar ? "[--wall-actions-sticky-top:7rem]" : "[--wall-actions-sticky-top:3rem]"}`}
         aria-label={`${wall.breakpoint} Wall editor`}
       >
         {moveFeedback !== null && (

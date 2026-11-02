@@ -10,6 +10,10 @@ import { canShareRow } from "../../../../modules/lib/canShareRow";
 export const movePlacementToRowV3 = upgradeAggregateContractRelease(movePlacementToRowV2, {
   version: 3,
   payload: {},
+  down: Effect.fn("movePlacementToRowV3.down")(function* (props) {
+    const { payload } = props;
+    return payload;
+  }),
   models: { wall, placement },
   operations: { updateWall: wall.operations.update },
   program: Effect.fn("movePlacementToRow.program")(function* (props) {

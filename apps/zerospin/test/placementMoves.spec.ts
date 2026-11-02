@@ -11,6 +11,7 @@ import { userAggregateV8 } from "../src/aggregates/user/UserV8";
 import { userAggregateV7 } from "../src/aggregates/user/UserV7";
 import { movePlacementToRowV1 } from "../src/aggregates/user/contracts/wall/MovePlacementToRowContractV1";
 import { movePlacementToRowV2 } from "../src/aggregates/user/contracts/wall/MovePlacementToRowContractV2";
+import { movePlacementToRowV3 } from "../src/aggregates/user/contracts/wall/MovePlacementToRowContractV3";
 import { swatchAndIconV1 } from "../src/modules/swatchAndIcon/swatchAndIconV1";
 import { makePlacementId } from "../src/modules/lib/makePlacementId";
 import { system } from "../src/system";
@@ -157,6 +158,21 @@ it.effect("moves Placements with explicit structural intentions and atomic refus
           command: { commandName: "movePlacementToRow", contractVersion: 1, payload: encoded },
         }),
       ).toEqual(retainedPayload);
+      const latestEncoded = yield* encodePayload(movePlacementToRowV3, {
+        version: 3,
+        payload: retainedPayload,
+      });
+      for (const olderRelease of [movePlacementToRowV2, movePlacementToRowV1]) {
+        expect(
+          yield* decodeAndAdaptPayload(olderRelease, {
+            command: {
+              commandName: "movePlacementToRow",
+              contractVersion: 3,
+              payload: latestEncoded,
+            },
+          }),
+        ).toEqual(retainedPayload);
+      }
       yield* harness.push({
         ...actor,
         kind: "actor",

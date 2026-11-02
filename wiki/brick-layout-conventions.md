@@ -332,6 +332,13 @@ minimum. V8 adds sizing commands while retaining those exact models and existing
 commands. Retained releases V3–V7 keep their original declarations. V7 and V8 evaluate
 supported retained creation/movement commands to initialize its own sizing data;
 this change performs no storage reset or direct row backfill.
+
+`movePlacementToRow` keeps the same payload across contract V1, V2 and V3.
+V2 and V3 declare explicit identity `down` adapters so retained User V5 and V6
+releases can replay V3 commands through both reverse edges. Each release still
+evaluates its own program against its selected models; payload adaptation does
+not copy model rows between releases.
+
 `setRowWidthWeights` saves every current Row Placement's positive finite weight
 in one command. The total must also be finite. Each Placement ID must appear
 exactly once; submitted array order does not reorder the Row, and values are

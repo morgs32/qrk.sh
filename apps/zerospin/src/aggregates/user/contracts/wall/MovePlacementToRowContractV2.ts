@@ -10,6 +10,10 @@ export const movePlacementToRowV2 = upgradeAggregateContractRelease(movePlacemen
   version: 2,
   models: { brick },
   payload: {},
+  down: Effect.fn("movePlacementToRowV2.down")(function* (props) {
+    const { payload } = props;
+    return payload;
+  }),
   operations: {},
   program: Effect.fn("movePlacementToRow.program")(function* (props) {
     const { db, payload, operations, failures, claims } = props;

@@ -1,0 +1,6 @@
+{
+  "effect": "4.0.2",
+  "node": "v24.13.1",
+  "span": "probe",
+  "frameHasSourceStack": false
+}

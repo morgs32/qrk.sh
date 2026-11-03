@@ -1,0 +1,136 @@
+{
+  "date": "2026-11-03",
+  "sdk": "39.0.0",
+  "effect": "4.0.2",
+  "wrangler": "4.128.0",
+  "profileCoordinates": "lineNumber is zero-based; self time assigns timeDeltas[i] to samples[i]",
+  "bundleSha256": "558db319785570824d377749539aee4b489fbe6ef8ef7a4ce8994b49f865682c",
+  "runs": [
+    {
+      "run": 1,
+      "originalProfileSha256": "7ce37e0d870fa540e758976d3fa93eae3d57f445dbec4c27ec142224e106abb9",
+      "publishedProfileSha256": "f0de3b1e1c54bdd0c8762269c177c134717d618d573eb4664c15aecfd29a8859",
+      "activeMs": 265.898,
+      "frames": [
+        {
+          "name": "Effect.fn",
+          "lineNumber": 8515,
+          "selfMs": 49.93
+        },
+        {
+          "name": "makeFn",
+          "lineNumber": 31207,
+          "selfMs": 13.717
+        },
+        {
+          "name": "makeTx builder",
+          "lineNumber": 42985,
+          "selfMs": 9.814
+        },
+        {
+          "name": "rpcMethod",
+          "lineNumber": 99846,
+          "selfMs": 12.559
+        },
+        {
+          "name": "GitHub activity samples",
+          "lineNumber": 67408,
+          "selfMs": 5.027
+        }
+      ]
+    },
+    {
+      "run": 2,
+      "originalProfileSha256": "e896bef21b088eefa82a6c96db9db7bec0e03cde127b7604a29836a82ef32857",
+      "publishedProfileSha256": "e78c253d47cd7055fbd1c55571c971a5055c0c96ddca56a085a73a5f6c8f711e",
+      "activeMs": 257.085,
+      "frames": [
+        {
+          "name": "Effect.fn",
+          "lineNumber": 8515,
+          "selfMs": 44.196
+        },
+        {
+          "name": "makeFn",
+          "lineNumber": 31207,
+          "selfMs": 16.104
+        },
+        {
+          "name": "makeTx builder",
+          "lineNumber": 42985,
+          "selfMs": 7.562
+        },
+        {
+          "name": "rpcMethod",
+          "lineNumber": 99846,
+          "selfMs": 11.318
+        },
+        {
+          "name": "GitHub activity samples",
+          "lineNumber": 67408,
+          "selfMs": 6.263
+        }
+      ]
+    },
+    {
+      "run": 3,
+      "originalProfileSha256": "83f8d129f2c0ce7da500bbece517b3ffcdab1489ae3ef3ac8fc081764b5f6531",
+      "publishedProfileSha256": "6d44855ab566ae22dddbc8bed15cf1ba73aa3d2d6baf7dfebc5896cd1f5b05b4",
+      "activeMs": 267.963,
+      "frames": [
+        {
+          "name": "Effect.fn",
+          "lineNumber": 8515,
+          "selfMs": 43.633
+        },
+        {
+          "name": "makeFn",
+          "lineNumber": 31207,
+          "selfMs": 15.841
+        },
+        {
+          "name": "makeTx builder",
+          "lineNumber": 42985,
+          "selfMs": 13.803
+        },
+        {
+          "name": "rpcMethod",
+          "lineNumber": 99846,
+          "selfMs": 6.285
+        },
+        {
+          "name": "GitHub activity samples",
+          "lineNumber": 67408,
+          "selfMs": 8.572
+        }
+      ]
+    }
+  ],
+  "meanFrames": [
+    {
+      "name": "Effect.fn",
+      "lineNumber": 8515,
+      "meanSelfMs": 45.91966666666667
+    },
+    {
+      "name": "makeFn",
+      "lineNumber": 31207,
+      "meanSelfMs": 15.220666666666666
+    },
+    {
+      "name": "makeTx builder",
+      "lineNumber": 42985,
+      "meanSelfMs": 10.393
+    },
+    {
+      "name": "rpcMethod",
+      "lineNumber": 99846,
+      "meanSelfMs": 10.054
+    },
+    {
+      "name": "GitHub activity samples",
+      "lineNumber": 67408,
+      "meanSelfMs": 6.620666666666666
+    }
+  ]
+}

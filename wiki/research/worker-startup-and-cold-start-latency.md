@@ -1,5 +1,8 @@
 # Worker startup CPU and request cold starts
 
+Measurement artifacts, attribution method and source-revision notes are preserved in
+[the evidence directory](./evidence/qrk-startup-39/README.md).
+
 Researched 2026-11-03 against Cloudflare's current documentation and QRK's saved
 Zerospin 39.0.0 deployment/profile artifacts. Research only; no implementation,
 configuration, deployment, storage, or registry changes were made.
@@ -11,7 +14,7 @@ version `495cfbd0-1a34-4e14-832d-88ad2630a765`. This passed the platform's
 **1000 ms startup limit**, which covers parsing and executing global-scope code
 before request handlers. It is a deployment startup measurement, not an observed
 HTTP request's time to first byte.
-[Deployment output](/private/tmp/qrk-startup-39/regular-deploy.log),
+[Deployment output](./evidence/qrk-startup-39/deployment.txt),
 [startup limit and measurement](https://developers.cloudflare.com/workers/platform/limits/#worker-startup-time).
 
 It is related to a cold start: Cloudflare defines a complete cold start as loading
@@ -43,7 +46,7 @@ one-second limit is an acceptance ceiling, not a recommended latency objective.
 The inspected primary sources provide no workload-matched percentile that would
 justify calling QRK's complete request cold start typical or atypical from this
 number alone.
-[Measured candidate](/private/tmp/qrk-startup-39/regular-deploy.log),
+[Measured candidate](./evidence/qrk-startup-39/deployment.txt),
 [platform ceiling](https://developers.cloudflare.com/workers/platform/limits/#worker-startup-time).
 
 QRK's saved local profiles show active CPU of 265.9, 257.1, and 268.0 ms, with a
@@ -51,9 +54,9 @@ QRK's saved local profiles show active CPU of 265.9, 257.1, and 268.0 ms, with a
 finding expensive functions, but its duration is not a substitute for Cloudflare
 startup time because it runs on different hardware. Sampled function costs are
 leads for experiments, not guaranteed remote savings.
-[Sample 1](/private/tmp/qrk-startup-39/startup-1.log),
-[sample 2](/private/tmp/qrk-startup-39/startup-2.log),
-[sample 3](/private/tmp/qrk-startup-39/startup-3.log),
+[Sample 1](./evidence/qrk-startup-39/startup-1.txt),
+[sample 2](./evidence/qrk-startup-39/startup-2.txt),
+[sample 3](./evidence/qrk-startup-39/startup-3.txt),
 [Wrangler profiler limitations](https://developers.cloudflare.com/workers/wrangler/commands/workers/#startup).
 
 ## Highest-value next investigations
@@ -68,12 +71,12 @@ leads for experiments, not guaranteed remote savings.
    proof that 82 ms would disappear, and `makeFn` is not simply a second
    `Effect.fn` wrapper. Effect documents `fnUntraced` as removing tracing spans and
    stack traces, so that substitution changes observability semantics.
-   [Profile](/private/tmp/qrk-startup-39/startup-1.cpuprofile),
-   [Effect definition capture](/Users/morgs32/GitHub/qrk.sh/node_modules/effect/src/internal/effect.ts:1275),
-   [fnUntraced semantics](/Users/morgs32/GitHub/qrk.sh/node_modules/effect/src/Effect.ts:22890),
-   [makeFn](/Users/morgs32/GitHub/zerospin/packages/logger/src/makeFn.ts:26),
-   [makeTx](/Users/morgs32/GitHub/zerospin/packages/core/src/drizzle/make/makeTx.ts:43),
-   [rpcMethod](/Users/morgs32/GitHub/zerospin/packages/system-worker/src/makeRpcApi/makeRpcApi.ts:237).
+   [Profile](./evidence/qrk-startup-39/startup-1.cpuprofile),
+   [Effect definition capture](https://github.com/Effect-TS/effect/blob/effect%404.0.2/packages/effect/src/internal/effect.ts),
+   [fnUntraced semantics](https://github.com/Effect-TS/effect/blob/effect%404.0.2/packages/effect/src/Effect.ts),
+   [makeFn](https://github.com/morgs32/zerospin/blob/7074eaa66f27ba4966e686cdd7f3a138b10cafd2/packages/logger/src/makeFn.ts#L26),
+   [makeTx](https://github.com/morgs32/zerospin/blob/7074eaa66f27ba4966e686cdd7f3a138b10cafd2/packages/core/src/drizzle/make/makeTx.ts#L43),
+   [rpcMethod](https://github.com/morgs32/zerospin/blob/7074eaa66f27ba4966e686cdd7f3a138b10cafd2/packages/system-worker/src/makeRpcApi/makeRpcApi.ts#L237).
 2. **Keep preview/catalog work out of the backend's import path.** QRK imports
    complete module versions; their factory builds a generation catalog and
    decodes preview defaults eagerly. The GitHub activity module also generates
@@ -81,11 +84,11 @@ leads for experiments, not guaranteed remote savings.
    Keep native backend component/state/spec facts module-owned, while preparing
    preview data and generation catalogs where their App/API consumers need them,
    or precomputing suitable static data before deployment.
-   [Backend imports](/Users/morgs32/GitHub/qrk.sh/apps/zerospin/src/modules/backendLibrary.ts:1),
-   [module construction](/Users/morgs32/GitHub/qrk.sh/apps/zerospin/src/modules/make/makeModuleVersion.ts:106),
-   [sample generation](/Users/morgs32/GitHub/qrk.sh/apps/zerospin/src/modules/githubActivity/githubActivityV1.ts:39),
-   [preview consumer](/Users/morgs32/GitHub/qrk.sh/apps/app/modules/lib/ModulePreview.tsx:28),
-   [generation consumer](/Users/morgs32/GitHub/qrk.sh/apps/api/modules/generateSpec.ts:130).
+   [Backend imports](https://github.com/morgs32/qrk.sh/blob/bc6e079b768191d40269515524ccb2ece51f8c76/apps/zerospin/src/modules/backendLibrary.ts#L1),
+   [module construction](https://github.com/morgs32/qrk.sh/blob/bc6e079b768191d40269515524ccb2ece51f8c76/apps/zerospin/src/modules/make/makeModuleVersion.ts#L106),
+   [sample generation](https://github.com/morgs32/qrk.sh/blob/bc6e079b768191d40269515524ccb2ece51f8c76/apps/zerospin/src/modules/githubActivity/githubActivityV1.ts#L39),
+   [preview consumer](https://github.com/morgs32/qrk.sh/blob/bc6e079b768191d40269515524ccb2ece51f8c76/apps/app/modules/lib/ModulePreview.tsx#L28),
+   [generation consumer](https://github.com/morgs32/qrk.sh/blob/bc6e079b768191d40269515524ccb2ece51f8c76/apps/api/modules/generateSpec.ts#L130).
 3. **Construct the current Actor once.** Actor9 imports a chain back to Actor3;
    each upgrade reconstructs native Actor facts and captures selections again.
    A direct current declaration could reuse its owned authentication/identity
@@ -93,9 +96,9 @@ leads for experiments, not guaranteed remote savings.
    registered release, canonical selection, and required Contract upgrade chain.
    This opportunity has no measured saving yet and can overlap instrumentation
    costs above.
-   [Actor chain](/Users/morgs32/GitHub/qrk.sh/apps/zerospin/src/aggregates/user/actors/userActorV9.ts:2),
-   [Actor upgrade](/Users/morgs32/GitHub/zerospin/packages/core/src/aggregateActor/updateAggregateActorRelease.ts:120),
-   [selection capture](/Users/morgs32/GitHub/zerospin/packages/core/src/aggregateActor/make/makeAggregateActorRelease/makeAggregateActorRelease.ts:311).
+   [Actor chain](./evidence/qrk-startup-39/bundle-source-excerpts.md#actor-upgrade-chain),
+   [Actor upgrade](https://github.com/morgs32/zerospin/blob/7074eaa66f27ba4966e686cdd7f3a138b10cafd2/packages/core/src/aggregateActor/updateAggregateActorRelease.ts#L120),
+   [selection capture](https://github.com/morgs32/zerospin/blob/7074eaa66f27ba4966e686cdd7f3a138b10cafd2/packages/core/src/aggregateActor/make/makeAggregateActorRelease/makeAggregateActorRelease.ts#L311).
 
 ## Measuring the user-visible result
 

@@ -370,6 +370,18 @@ Row hover, and stay visible without hover. Native Brick/catalog dragging hides
 and disables them. Divider hit areas sit on the following Brick's side of the
 seam, keeping the preceding Brick's action buttons clear even on short Rows.
 
+After the 3px drag threshold, one pointer-inert readout appears above the active
+grip. A divider shows both neighboring surface widths in left-to-right order;
+the bottom grip shows the Row's actual rendered surface height. Measurements
+exclude gap padding and layout insets. The readout rounds to whole CSS pixels
+for display while preview geometry and command values retain their fractions.
+Content can hold a Row above its requested minimum, so the label measures the
+rendered surface after preview layout and follows intrinsic height changes
+through the existing Row observer. It stays visible during captured movement
+outside Row hover and clears with the gesture on release or cancellation.
+Taps and automatic-height reset do not flash a readout; constrained drags show
+the actual unchanged size. Labels add no layout space or pointer targets.
+
 Movement activates after 3px and previews coalesce to animation frames. Release
 applies the final position and stages one existing V8 sizing command, with a
 0.5px no-op tolerance and fractional geometry retained. The mounted live-query

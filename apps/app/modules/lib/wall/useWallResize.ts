@@ -57,6 +57,7 @@ export function useWallResize(props: {
     minimumHeight: number;
     availableWidth: number;
     activated: boolean;
+    previewCommitted: boolean;
     finishing: boolean;
     leftPlacementId: IInferModelRow<typeof placementV2>["id"] | null;
     rightPlacementId: IInferModelRow<typeof placementV2>["id"] | null;
@@ -77,6 +78,18 @@ export function useWallResize(props: {
         }[];
       }
     | { kind: "height"; rowId: typeof rowIdSchema.Type; minHeight: number }
+    | null
+  >(null);
+  const [measuredReadout, setMeasuredReadout] = useState<
+    | {
+        kind: "width";
+        rowId: typeof rowIdSchema.Type;
+        leftPlacementId: IInferModelRow<typeof placementV2>["id"];
+        rightPlacementId: IInferModelRow<typeof placementV2>["id"];
+        leftWidth: number;
+        rightWidth: number;
+      }
+    | { kind: "height"; rowId: typeof rowIdSchema.Type; height: number }
     | null
   >(null);
 
@@ -108,6 +121,7 @@ export function useWallResize(props: {
     if (current?.target.hasPointerCapture(current.pointerId))
       current.target.releasePointerCapture(current.pointerId);
     setDraft(null);
+    setMeasuredReadout(null);
   }, []);
 
   const updatePreview = (current: NonNullable<typeof gesture.current>) => {
@@ -138,6 +152,65 @@ export function useWallResize(props: {
     });
   };
 
+  const updateReadout = (current: NonNullable<typeof gesture.current>) => {
+    if (
+      gesture.current !== current ||
+      !current.activated ||
+      !current.previewCommitted ||
+      current.finishing
+    )
+      return;
+    if (current.kind === "height") {
+      const surface = current.line.querySelector<HTMLElement>(".brick-hover-surface");
+      const height =
+        surface?.getBoundingClientRect().height ??
+        current.line.getBoundingClientRect().height - current.brickGap - 1;
+      setMeasuredReadout((previous) => {
+        if (gesture.current !== current || !current.activated || current.finishing) return previous;
+        if (
+          previous?.kind === "height" &&
+          previous.rowId === current.rowId &&
+          previous.height === height
+        )
+          return previous;
+        return { kind: "height", rowId: current.rowId, height };
+      });
+      return;
+    }
+    const { leftPlacementId, rightPlacementId } = current;
+    if (leftPlacementId === null || rightPlacementId === null)
+      throw new Error("Missing resize readout neighbors");
+    const left = current.line.querySelector<HTMLElement>(
+      `[data-wall-placement-id="${CSS.escape(leftPlacementId)}"] .brick-hover-surface`,
+    );
+    const right = current.line.querySelector<HTMLElement>(
+      `[data-wall-placement-id="${CSS.escape(rightPlacementId)}"] .brick-hover-surface`,
+    );
+    if (left === null || right === null) throw new Error("Missing resize readout surfaces");
+    const leftWidth = left.getBoundingClientRect().width;
+    const rightWidth = right.getBoundingClientRect().width;
+    setMeasuredReadout((previous) => {
+      if (gesture.current !== current || !current.activated || current.finishing) return previous;
+      if (
+        previous?.kind === "width" &&
+        previous.rowId === current.rowId &&
+        previous.leftPlacementId === leftPlacementId &&
+        previous.rightPlacementId === rightPlacementId &&
+        previous.leftWidth === leftWidth &&
+        previous.rightWidth === rightWidth
+      )
+        return previous;
+      return {
+        kind: "width",
+        rowId: current.rowId,
+        leftPlacementId,
+        rightPlacementId,
+        leftWidth,
+        rightWidth,
+      };
+    });
+  };
+
   useLayoutEffect(() => {
     latest.current = { wallId, sections, brickGap, disabled };
     const current = gesture.current;
@@ -155,7 +228,14 @@ export function useWallResize(props: {
       clearGesture();
       return;
     }
-    if (!current.finishing || draft === null) return;
+    if (!current.finishing) {
+      if (current.activated && draft !== null) {
+        current.previewCommitted = true;
+        updateReadout(current);
+      }
+      return;
+    }
+    if (draft === null) return;
 
     // The final preview has rendered. Measure its visible result before handing back to the live query.
     if (current.kind === "height") {
@@ -266,6 +346,7 @@ export function useWallResize(props: {
       ),
       availableWidth: line.getBoundingClientRect().width,
       activated: false,
+      previewCommitted: false,
       finishing: false,
       leftPlacementId,
       rightPlacementId,
@@ -356,11 +437,12 @@ export function useWallResize(props: {
     };
     const blur = () => clearGesture();
     const resized = new ResizeObserver(() => {
-      if (
-        gesture.current === current &&
-        Math.abs(line.getBoundingClientRect().width - current.availableWidth) > 0.5
-      )
+      if (gesture.current !== current) return;
+      if (Math.abs(line.getBoundingClientRect().width - current.availableWidth) > 0.5) {
         clearGesture();
+        return;
+      }
+      updateReadout(current);
     });
     current.cleanup = () => {
       target.removeEventListener("pointermove", move);
@@ -425,5 +507,7 @@ export function useWallResize(props: {
     sizingSignature(renderedRow) === current.signature
       ? draft
       : null;
-  return { preview, startWidthResize, startHeightResize, resetHeight };
+  const readout =
+    preview !== null && current?.activated && !current.finishing ? measuredReadout : null;
+  return { preview, readout, startWidthResize, startHeightResize, resetHeight };
 }

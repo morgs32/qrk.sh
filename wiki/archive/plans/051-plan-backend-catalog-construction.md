@@ -1,6 +1,6 @@
 # 051 — Keep catalog construction out of the Zerospin backend
 
-**Status:** Implementation and local verification complete; ready PR publication remains.
+**Status:** Complete. Implemented and verified in [PR #58](https://github.com/morgs32/qrk.sh/pull/58), ready for review and stacked on PR #56.
 
 ## Problem and agreed behavior
 
@@ -15,7 +15,7 @@
 1. Component metadata describes an allowed component; it is not a React component. `propsShape` contains Zerospin descriptors, from which the existing Effect and Zod schema builders derive their respective schemas.
 2. API catalogs remain eager once per isolate. Per-request construction would move work onto requests and is unnecessary for removing the backend dependency edge.
 3. Separate imports establish the ownership boundary. Lazy getters, dynamic-import machinery, caches, and a second component vocabulary are unnecessary.
-4. Reference [ADR 001](../adrs/001-wall-owned-layout-tree.md) for the existing distinction between shared Brick content and Placement-owned rendering specs; this change preserves it.
+4. Reference [ADR 001](../../adrs/001-wall-owned-layout-tree.md) for the existing distinction between shared Brick content and Placement-owned rendering specs; this change preserves it.
 
 ## Annotated examples
 
@@ -86,10 +86,11 @@ qrk.sh/
 1. All ten catalog JSON schemas and standalone prompts match the baseline exactly. Native metadata-key rejection and API unknown-module/missing-provider-key rejection pass without provider calls.
 2. The isolated SDK 39 base passes 17 backend tests in four files, App/API typechecks, App client/server build with prerendering, and API dry-run build.
 3. The matched backend bundle shrank from 5169.39 to 4329.92 KiB (839.47 KiB, 16.2%). Catalog/json-render/Zod runtime sections are absent from the candidate.
-4. Median local active startup CPU across three profiles per bundle fell from 421.173 to 364.753 ms (13.4%). These are matched local results, not the earlier feature bundle's remote timing. See the [research evidence](../research/backend-module-preview-catalog-startup.md#implemented-catalog-separation-and-matched-verification).
+4. Median local active startup CPU across three profiles per bundle fell from 421.173 to 364.753 ms (13.4%). These are matched local results, not the earlier feature bundle's remote timing. See the [research evidence](../../research/backend-module-preview-catalog-startup.md#implemented-catalog-separation-and-matched-verification).
 5. Module documentation was reconciled. No domain glossary changes or ADR are warranted by this routine, reversible construction change. Source/naming updates leave System registrations and canonical selections unchanged.
 6. The main checkout's 28 unrelated changed files and staged patch remain byte-identical; the PR work is isolated in `/private/tmp/qrk-backend-module-catalogs`.
 
 ## Remaining work
 
-1. Publish the ready PR and archive this plan with its link.
+None. The preview-state separation described in the research note is a separate,
+future change, outside this completed catalog extraction.

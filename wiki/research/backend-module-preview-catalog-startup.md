@@ -208,3 +208,7 @@ logs, and `measurements.json` are under
 `wrangler check startup --workerBundle <bundle> --outfile <profile>`; builds
 used `wrangler deploy --dry-run --outfile <bundle>` with the same local config
 and an empty env file.
+
+
+Implementation: [PR #58](https://github.com/morgs32/qrk.sh/pull/58), with the
+[completed plan](../archive/plans/051-plan-backend-catalog-construction.md).

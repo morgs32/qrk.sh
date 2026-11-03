@@ -103,8 +103,17 @@ Plans created by agents must include gratuitous annotated examples and annotated
 
 ## Development sign-in URLs
 
-Open these links in the browser used for testing. If Portless adds a branch or
-worktree prefix, use the origin printed by the running development server:
+Use only this repository's existing, configured Portless `.localhost` URLs and
+`__dev` sign-in routes for local development and permitted browser verification.
+Reuse the documented URLs and running services; start or restart those same
+configured services when needed. Do not substitute raw `localhost:PORT` or
+`127.0.0.1:PORT` URLs, create extra aliases or subdomains for verification, or
+start parallel app servers merely to obtain a fresh browser origin. Keep any
+authorized storage isolation behind the existing URLs and follow this
+repository's storage rules. Use a different origin only when the user explicitly
+requests it.
+
+Open the existing sign-in links in the browser used for testing:
 
 - [Web sign-in and normal App handoff](https://qrk.localhost/__dev/log-me-in/morgan.intrator%40gmail.com?returnTo=/replace)
 - [App shortcut](https://app.qrk.localhost/__dev/log-me-in/morgan.intrator%40gmail.com)

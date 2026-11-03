@@ -2,7 +2,7 @@
 
 **Date:** 2026-10-19  
 **Focus:** Continue QRK's offline app loading and user-controlled update prompt work.  
-**Status:** Research complete; application implementation and runtime verification have not started. No implementation plan was created.
+**Status:** Research complete; local baseline verification performed on 2026-11-03. Application caching and update-prompt implementation have not started. No implementation plan was created.
 
 ## Goal
 
@@ -14,8 +14,44 @@ The user explicitly clarified that installability is unnecessary. Do not resume 
 
 1. Used `$research` with a background agent to investigate TanStack Start and Vite PWA against primary sources and QRK's current frontend.
 2. Saved and revised [the research note](../research/tanstack-pwa.md) around the user's clarified scope. It contains the proposed plugin settings, update lifecycle, source citations, QRK integration constraints, and unverified behavior; use that document instead of repeating the investigation.
-3. Confirmed the distinction between cached application loading and offline authentication/data/session readiness. The latter has not been demonstrated for QRK.
-4. Made documentation changes only in this conversation. No application dependency, configuration, backend, storage, or deployment changes were performed.
+3. Confirmed the distinction between cached application loading and offline authentication/data/session readiness. Full offline startup remains unverified; the bounded baseline observations below do not establish it.
+4. The original research changed documentation only. Later local verification and its explicitly authorized storage reset are recorded below; no caching implementation or deployment occurred.
+
+## Baseline verification — 2026-11-03
+
+1. Load the requested URL; no bookmark or automatic last-page selection is
+   required. Preserve existing routing ownership while implementing caching.
+2. The user explicitly authorized resetting only the local QRK Zerospin store.
+   Read-only inspection found one pre-registry SystemSpec and zero aggregates or
+   registered Repos. The existing CLI's `--clean` rebuilt that store; the backend
+   accepted the current SystemSpec. Other stores, Clerk accounts and keys were
+   preserved. Subsequent restarts omitted `--clean`.
+3. Existing `__dev` sign-in reached a working dashboard. Blocking Clerk's `/v1/`
+   API requests while application assets and the backend remained reachable still
+   allowed that remembered dashboard session to reopen. This is short-term
+   cached-sign-in evidence, not indefinite offline authentication or cold reload.
+4. Created the local `Offline verification` Site and its Page through App. Saved
+   the title `Offline verification page` and verified it after an online reload.
+   With browser offline emulation enabled and the QRK backend stopped, normal
+   Page Settings Save staged the description `Saved while offline during local
+   verification.` The session later failed with `node-credentials-timeout`
+   (five-second credential acquisition deadline). After restoring networking and
+   restarting the same backend without another reset, Retry and reload retained
+   the edit. A read-only `AggregateVersionRepo.page` query confirmed that exact
+   description on `pag_3ItCZZWBSq2ZHUHSkElQH`.
+5. Full offline document reload currently fails with
+   `ERR_INTERNET_DISCONNECTED`. Retrying session initialization while the App is
+   loaded but offline also failed fetching SQLite WASM in `openAggregateReplica`.
+   Cache the worker/WASM dependencies as well as App resources; separately
+   investigate why offline credential acquisition can terminate a remembered
+   session. These observations do not establish a new authentication design.
+6. Restored normal browser networking and the backend, then verified the saved
+   page again. No automated test files, application code or provider integrations
+   changed. Editor-content verification is no longer blocked on fixture approval:
+   the user's local-development authorization is recorded in root `AGENTS.md`.
+   The initial baseline used SDK 41.0.0. A concurrent 42.0.0 upgrade began
+   during follow-up; the final browser bundle revision was not captured. Recheck
+   these observations on the finalized upgrade rather than claiming SDK 42 proof.
 
 ## Remaining
 
@@ -46,7 +82,7 @@ Before substantial edits, rerun `pnpm exec intent list` and load a matching inst
 7. [Root redirect](../../apps/app/routes/index.tsx)
 8. [Root route](../../apps/app/routes/__root.tsx)
 9. [Authentication provider](../../apps/app/app/App.tsx)
-10. [Browser session and worker import](../../apps/app/zerospin/userSession.ts)
+10. [Session ownership and worker import](../../apps/app/app/[username]/layout.tsx)
 11. [Worker entry](../../apps/app/zerospin/node.worker.ts)
 
 ## Open decisions
@@ -56,4 +92,4 @@ Before substantial edits, rerun `pnpm exec intent list` and load a matching inst
 3. Where should the prompt appear in the existing UI? Reload/Later is the proposed interaction, not an implemented component or selected placement.
 4. What should users see if the cached app loads but existing authentication/session initialization cannot complete offline? Do not claim offline editing or synchronization readiness based on a cached shell.
 
-At handoff creation, unrelated local modifications existed in `apps/app/README.md`, `apps/app/app/[username]/site/[siteId]/page/[pageId]/MainColumns.tsx`, `apps/library/README.md`, and `apps/library/bricks.css`. Preserve them and recheck `git status` before editing. Do not reset browser or backend storage to make verification pass.
+At handoff creation, unrelated local modifications existed in `apps/app/README.md`, `apps/app/app/[username]/site/[siteId]/page/[pageId]/MainColumns.tsx`, `apps/library/README.md`, and `apps/library/bricks.css`. Preserve them and recheck `git status` before editing. The one local Zerospin reset above was expressly authorized. Follow the current local-development authorization in root `AGENTS.md`; preserve other stores and projects.

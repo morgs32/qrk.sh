@@ -128,3 +128,24 @@ registered only by the development server. Do not add authentication to unauthen
 scaffolds or change domain permissions for these shortcuts.
 
 Run the focused HTTP tests with `node --experimental-strip-types --test apps/web/dev/handleDevelopmentSignIn.spec.mjs`. These tests mock Clerk requests and create no accounts.
+
+<!-- zerospin:agent-rules:start -->
+
+## Strict rule: user-only handwritten registry changes
+
+Agents **MUST NOT change an existing `canonical` selection or remove/omit any
+previously registered Aggregate, Service, or owner release from the System
+registry/SystemSpec. The user must personally handwrite those changes.**
+
+This prohibition includes temporary canonical changes, whole-registry rewrites,
+scripts, generated configuration, automation, and Studio/UI actions. General
+implementation, upgrade, repair, cleanup, or migration requests do not authorize
+these edits. Successful validation, a newer release, or apparent lack of
+remaining dependencies does not authorize them either.
+
+Agents may add candidate releases while preserving **all existing canonical
+selections and registrations**, investigate promotion/retirement eligibility,
+and present evidence and exact recommendations. Stop before editing a canonical
+selection or omitting a registration; leave that handwritten change to the user.
+
+<!-- zerospin:agent-rules:end -->

@@ -5,16 +5,16 @@ import { Schema } from "effect";
 import { makeEffectSchema, primitives } from "@zerospin/shapes";
 
 import {
-  brickBodyComponent,
-  brickFooterComponent,
-  brickShellComponent,
-  columnComponent,
-  rowComponent,
-} from "../lib/jsonRender/layoutComponents";
+  brickBodyComponentMetadata,
+  brickFooterComponentMetadata,
+  brickShellComponentMetadata,
+  columnComponentMetadata,
+  rowComponentMetadata,
+} from "../lib/jsonRender/layoutComponentMetadata";
 
 import { makeModuleVersion } from "../make/makeModuleVersion";
 
-import { mapCanvasComponent } from "./generator/MapCanvasComponent";
+import { mapCanvasComponentMetadata } from "./generator/MapCanvasComponentMetadata";
 
 import { mapPlace } from "./mapPlace";
 
@@ -51,13 +51,13 @@ export const mapPlaceV1 = makeModuleVersion(mapPlace, {
   },
   defaultSpec,
   hasPlaceholder: true,
-  components: {
-    BrickShell: brickShellComponent,
-    BrickBody: brickBodyComponent,
-    BrickFooter: brickFooterComponent,
-    Column: columnComponent,
-    Row: rowComponent,
-    MapCanvas: mapCanvasComponent,
+  componentMetadata: {
+    BrickShell: brickShellComponentMetadata,
+    BrickBody: brickBodyComponentMetadata,
+    BrickFooter: brickFooterComponentMetadata,
+    Column: columnComponentMetadata,
+    Row: rowComponentMetadata,
+    MapCanvas: mapCanvasComponentMetadata,
   },
   stateShape: {
     payload: primitives.json({ schema: makeEffectSchema(payloadShape) }),

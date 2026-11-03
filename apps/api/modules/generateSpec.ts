@@ -173,7 +173,7 @@ export async function generateSpec(props: {
     }
     const spec = specFromModelText(contentFromChatCompletion(responseBody), currentSpec);
     const validated = Schema.decodeUnknownResult(
-      makeModuleSpecDocumentSchema(entry.components),
+      makeModuleSpecDocumentSchema(entry.componentMetadata),
     )(spec);
     if (validated._tag === "Failure") {
       return {

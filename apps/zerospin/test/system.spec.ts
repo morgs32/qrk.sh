@@ -13,6 +13,7 @@ import { newHttpBatchRpcResponse, RpcTarget } from 'capnweb';
 import { vi } from 'vitest';
 
 import { system } from '../src/system';
+import { userAggregateV9 } from '../src/aggregates/user/UserV9';
 import { userAggregateV3 } from '../src/aggregates/user/UserV3';
 import { generateBrickSpecV2 } from '../src/aggregates/user/contracts/brick/GenerateBrickSpecV2';
 import { generateBrickSpecExternalV2 } from '../src/aggregates/user/contracts/brick/GenerateBrickSpecExternalV2';
@@ -30,24 +31,24 @@ it.effect('creates a user through a command and keeps site creation unavailable 
     const harness = yield* makeSystemHarness({ system });
     yield* harness.push({
       kind: 'system', id: 'cmd_create_user', commandName: 'createUser', contractVersion: 1,
-      aggregateName: userAggregateV3.name, aggregateVersion: userAggregateV3.version,
+      aggregateName: userAggregateV9.name, aggregateVersion: userAggregateV9.version,
       aggregateId: 'acct_harness', externalOutcome: null,
       payload: { id: 'usr_harness', clerkUserId: 'user_harness', username: null, displayName: null },
     });
     yield* harness.flush();
-    const db = sdk.makeQueryDbVersion({ models: userAggregateV3.models });
-    expect(yield* harness.query({ release: userAggregateV3, aggregateId: 'acct_harness' },
+    const db = sdk.makeQueryDbVersion({ models: userAggregateV9.models });
+    expect(yield* harness.query({ release: userAggregateV9, aggregateId: 'acct_harness' },
       db.query.user.findFirst({ where: { id: { eq: 'usr_harness' } } })))
       .toMatchObject({ clerkUserId: 'user_harness' });
     const rejected = yield* harness.push({
       kind: 'system', id: 'cmd_create_site', commandName: 'createSite', contractVersion: 1,
-      aggregateName: userAggregateV3.name, aggregateVersion: userAggregateV3.version,
+      aggregateName: userAggregateV9.name, aggregateVersion: userAggregateV9.version,
       aggregateId: 'acct_harness', externalOutcome: null,
       payload: { id: 'sit_harness', userId: 'usr_harness', slug: 'example', name: null, description: null },
     }).pipe(Effect.flip);
     expect(rejected).toMatchObject({ code: 'system-harness-command-forbidden' });
     yield* harness.flush();
-    expect(yield* harness.query({ release: userAggregateV3, aggregateId: 'acct_harness' },
+    expect(yield* harness.query({ release: userAggregateV9, aggregateId: 'acct_harness' },
       db.query.site.findMany({}))).toEqual([]);
   }).pipe(Effect.provide(sdk.NanoIdFactory)));
 

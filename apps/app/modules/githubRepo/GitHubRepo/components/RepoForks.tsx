@@ -1,9 +1,9 @@
 import { GitFork } from "lucide-react";
 import { brickMetaIconClass } from "../../../components/brick/brickTokens";
 import { makeComponentView } from "../../../make/makeComponentView";
-import { repoForksComponent } from "@qrk.sh/zerospin/src/modules/githubRepo/generator/RepoForksComponent";
+import { repoForksComponentMetadata } from "@qrk.sh/zerospin/src/modules/githubRepo/generator/RepoForksComponentMetadata";
 
-export const repoForksView = makeComponentView(repoForksComponent, {
+export const repoForksView = makeComponentView(repoForksComponentMetadata, {
   component(props) {
     const { forks_count } = props;
     if (forks_count <= 0) {

@@ -4,16 +4,16 @@ import type { BaseComponentProps } from "@json-render/react";
 import { makeEffectSchema, type IInferDecodedRow, type IShape } from "@zerospin/shapes";
 import { Schema } from "effect";
 
-/** Bind display markup to a descriptor and adapt resolved JSON-render props once. */
-export function makeComponentView<const PROPS extends IShape>(
-  definition: { props: PROPS },
+/** Bind display markup to component metadata and adapt resolved JSON-render props once. */
+export function makeComponentView<const PROPS_SHAPE extends IShape>(
+  componentMetadata: { propsShape: PROPS_SHAPE },
   view: {
-    component: (props: PropsWithChildren<IInferDecodedRow<PROPS>>) => ReactNode;
+    component: (props: PropsWithChildren<IInferDecodedRow<PROPS_SHAPE>>) => ReactNode;
   },
 ) {
-  const { props: shape } = definition;
+  const { propsShape } = componentMetadata;
   const { component: Component } = view;
-  const decodeProps = Schema.decodeUnknownSync(Schema.toType(makeEffectSchema(shape)));
+  const decodeProps = Schema.decodeUnknownSync(Schema.toType(makeEffectSchema(propsShape)));
 
   function RegistryComponent(context: BaseComponentProps<unknown>) {
     const { props, children } = context;

@@ -1,3 +1,4 @@
+import { userAggregateV9 } from "../src/aggregates/user/UserV9";
 import { expect, it } from "@effect/vitest";
 import { makeQueryDbVersion, NanoIdFactory } from "@zerospin/sdk";
 import { makeSystemHarness } from "@zerospin/sdk/testing";
@@ -6,9 +7,6 @@ import { encodePayload } from "@zerospin/core/contracts/encodePayload";
 import { decodeAndAdaptPayload } from "@zerospin/core/contracts/decodeAndAdaptPayload/decodeAndAdaptPayload";
 import * as TestClock from "effect/testing/TestClock";
 
-import { userAggregateV5 } from "../src/aggregates/user/UserV5";
-import { userAggregateV8 } from "../src/aggregates/user/UserV8";
-import { userAggregateV7 } from "../src/aggregates/user/UserV7";
 import { movePlacementToRowV1 } from "../src/aggregates/user/contracts/wall/MovePlacementToRowContractV1";
 import { movePlacementToRowV2 } from "../src/aggregates/user/contracts/wall/MovePlacementToRowContractV2";
 import { movePlacementToRowV3 } from "../src/aggregates/user/contracts/wall/MovePlacementToRowContractV3";
@@ -24,14 +22,14 @@ import {
 it.effect("moves Placements with explicit structural intentions and atomic refusals", () =>
   Effect.gen(function* () {
     const harness = yield* makeSystemHarness({ system });
-    const owner = { release: userAggregateV5, aggregateId: "acct_moves" };
-    const db = makeQueryDbVersion({ models: userAggregateV5.models });
+    const owner = { release: userAggregateV9, aggregateId: "acct_moves" };
+    const db = makeQueryDbVersion({ models: userAggregateV9.models });
     const actor = {
-      aggregateName: userAggregateV5.name,
-      aggregateVersion: userAggregateV5.version,
+      aggregateName: userAggregateV9.name,
+      aggregateVersion: userAggregateV9.version,
       aggregateId: "acct_moves",
       actorName: "web",
-      actorVersion: 5,
+      actorVersion: 9,
       claims: { aggregateId: "acct_moves", clerkUserId: "user_moves" },
       externalOutcome: null,
       nodeId: "node_moves",
@@ -43,8 +41,8 @@ it.effect("moves Placements with explicit structural intentions and atomic refus
       id: "cmd_moves_user",
       commandName: "createUser",
       contractVersion: 1,
-      aggregateName: userAggregateV5.name,
-      aggregateVersion: userAggregateV5.version,
+      aggregateName: userAggregateV9.name,
+      aggregateVersion: userAggregateV9.version,
       aggregateId: "acct_moves",
       externalOutcome: null,
       payload: {
@@ -74,7 +72,7 @@ it.effect("moves Placements with explicit structural intentions and atomic refus
       kind: "actor",
       id: "cmd_moves_page",
       commandName: "createPage",
-      contractVersion: 1,
+      contractVersion: 2,
       pushIndex: pushIndex++,
       payload: {
         id: "pag_moves",
@@ -89,7 +87,7 @@ it.effect("moves Placements with explicit structural intentions and atomic refus
       kind: "actor",
       id: "cmd_moves_brick_a",
       commandName: "addBrick",
-      contractVersion: 3,
+      contractVersion: 5,
       pushIndex: pushIndex++,
       payload: {
         id: "brk_moves_a",
@@ -114,7 +112,7 @@ it.effect("moves Placements with explicit structural intentions and atomic refus
         kind: "actor",
         id: `cmd_moves_brick_${letter}`,
         commandName: "addBrick",
-        contractVersion: 3,
+        contractVersion: 5,
         pushIndex: pushIndex++,
         payload: {
           id: `brk_moves_${letter}`,
@@ -178,7 +176,7 @@ it.effect("moves Placements with explicit structural intentions and atomic refus
         kind: "actor",
         id: `cmd_moves_reorder_${index}`,
         commandName: "movePlacementToRow",
-        contractVersion: 1,
+        contractVersion: 4,
         pushIndex: pushIndex++,
         payload: {
           placementId: move.placementId,
@@ -210,7 +208,7 @@ it.effect("moves Placements with explicit structural intentions and atomic refus
         kind: "actor",
         id: `cmd_moves_noop_${index}`,
         commandName: "movePlacementToRow",
-        contractVersion: 1,
+        contractVersion: 4,
         pushIndex: pushIndex++,
         payload: { ...noOp, rowId: row.id },
       });
@@ -228,7 +226,7 @@ it.effect("moves Placements with explicit structural intentions and atomic refus
       kind: "actor",
       id: "cmd_moves_new_row",
       commandName: "movePlacementToNewRow",
-      contractVersion: 1,
+      contractVersion: 3,
       pushIndex: pushIndex++,
       payload: {
         placementId: a,
@@ -244,15 +242,15 @@ it.effect("moves Placements with explicit structural intentions and atomic refus
     );
     if (withNewRow === undefined) expect.fail("Expected the command-created Wall");
     expect(withNewRow.layout.sections[0].stacks[0].rows).toEqual([
-      { id: "row_moves_new", placementIds: [a] },
-      { id: row.id, placementIds: [c, b] },
+      { id: "row_moves_new", minHeight: null, placementIds: [a] },
+      { id: row.id, minHeight: null, placementIds: [c, b] },
     ]);
     yield* harness.push({
       ...actor,
       kind: "actor",
       id: "cmd_moves_new_stack",
       commandName: "movePlacementToNewStack",
-      contractVersion: 1,
+      contractVersion: 3,
       pushIndex: pushIndex++,
       payload: {
         placementId: a,
@@ -268,11 +266,11 @@ it.effect("moves Placements with explicit structural intentions and atomic refus
     );
     if (split === undefined) expect.fail("Expected the command-created Wall");
     expect(split.layout.sections[0].stacks).toEqual([
-      { ...stack, rows: [{ id: row.id, placementIds: [c, b] }] },
+      { ...stack, rows: [{ id: row.id, minHeight: null, placementIds: [c, b] }] },
       {
         id: "stk_moves_new",
         name: "Stack",
-        rows: [{ id: "row_moves_stack", placementIds: [a] }],
+        rows: [{ id: "row_moves_stack", minHeight: null, placementIds: [a] }],
       },
     ]);
     yield* harness.push({
@@ -280,7 +278,7 @@ it.effect("moves Placements with explicit structural intentions and atomic refus
       kind: "actor",
       id: "cmd_moves_new_section",
       commandName: "movePlacementToNewSection",
-      contractVersion: 1,
+      contractVersion: 3,
       pushIndex: pushIndex++,
       payload: {
         placementId: a,
@@ -303,11 +301,11 @@ it.effect("moves Placements with explicit structural intentions and atomic refus
           {
             id: "stk_moves_section",
             name: "Stack",
-            rows: [{ id: "row_moves_section", placementIds: [a] }],
+            rows: [{ id: "row_moves_section", minHeight: null, placementIds: [a] }],
           },
         ],
       },
-      { ...section, stacks: [{ ...stack, rows: [{ id: row.id, placementIds: [c, b] }] }] },
+      { ...section, stacks: [{ ...stack, rows: [{ id: row.id, minHeight: null, placementIds: [c, b] }] }] },
     ]);
 
     // Every branch refuses stale or colliding destinations without partial creation.
@@ -352,7 +350,7 @@ it.effect("moves Placements with explicit structural intentions and atomic refus
           kind: "actor",
           id: `cmd_moves_rejected_${index}`,
           commandName: rejectedMove.commandName,
-          contractVersion: 1,
+          contractVersion: rejectedMove.commandName === "movePlacementToRow" ? 4 : 3,
           pushIndex: pushIndex++,
           payload: rejectedMove.payload,
         })
@@ -366,56 +364,17 @@ it.effect("moves Placements with explicit structural intentions and atomic refus
     for (const otherWall of wallsBefore.filter((entry) => entry.id !== initialWall.id))
       expect(beforeRefusals.find((entry) => entry.id === otherWall.id)).toEqual(otherWall);
 
-    // On sm a second nonempty Stack is refused; replacing an emptied Stack fits.
+    // Content fit replaces the former one-Stack cap on sm.
     const small = wallsBefore.find((entry) => entry.breakpoint === "sm");
     if (small === undefined) expect.fail("Expected the small Wall");
     const smallSection = small.layout.sections[0];
-    const smallStack = smallSection.stacks[0];
     const smallA = makePlacementId("brk_moves_a", "sm");
-    const capacityRefusal = yield* harness
-      .push({
-        ...actor,
-        kind: "actor",
-        id: "cmd_moves_capacity_refused",
-        commandName: "movePlacementToNewStack",
-        contractVersion: 1,
-        pushIndex: pushIndex++,
-        payload: {
-          placementId: smallA,
-          sectionId: smallSection.id,
-          newStackId: "stk_moves_capacity",
-          newRowId: "row_moves_capacity",
-        },
-      })
-      .pipe(Effect.flip);
-    expect(capacityRefusal.status).toBe(409);
-    yield* harness.flush();
-    expect(
-      yield* harness.query(owner, db.query.wall.findFirst({ where: { id: { eq: small.id } } })),
-    ).toEqual(small);
-    for (const letter of ["b", "c"]) {
-      yield* harness.push({
-        ...actor,
-        kind: "actor",
-        id: `cmd_moves_small_section_${letter}`,
-        commandName: "movePlacementToNewSection",
-        contractVersion: 1,
-        pushIndex: pushIndex++,
-        payload: {
-          placementId: makePlacementId(`brk_moves_${letter}`, "sm"),
-          newSectionId: `sec_moves_small_${letter}`,
-          newStackId: `stk_moves_small_${letter}`,
-          newRowId: `row_moves_small_${letter}`,
-          beforeSectionId: null,
-        },
-      });
-    }
     yield* harness.push({
       ...actor,
       kind: "actor",
-      id: "cmd_moves_capacity_after_cleanup",
+      id: "cmd_moves_second_small_stack",
       commandName: "movePlacementToNewStack",
-      contractVersion: 1,
+      contractVersion: 3,
       pushIndex: pushIndex++,
       payload: {
         placementId: smallA,
@@ -430,16 +389,30 @@ it.effect("moves Placements with explicit structural intentions and atomic refus
       db.query.wall.findFirst({ where: { id: { eq: small.id } } }),
     );
     if (smallAfter === undefined) expect.fail("Expected the command-created Wall");
-    expect(smallAfter.layout.sections[0].stacks).toEqual([
-      {
-        id: "stk_moves_capacity",
-        name: "Stack",
-        rows: [{ id: "row_moves_capacity", placementIds: [smallA] }],
+    expect(smallAfter.layout.sections[0].stacks).toHaveLength(2);
+    expect(smallAfter.layout.sections[0].stacks[1]).toEqual({
+      id: "stk_moves_capacity",
+      name: "Stack",
+      rows: [{ id: "row_moves_capacity", minHeight: null, placementIds: [smallA] }],
+    });
+    const capacityRefusal = yield* harness.push({
+      ...actor,
+      kind: "actor",
+      id: "cmd_moves_capacity_refused",
+      commandName: "movePlacementToNewStack",
+      contractVersion: 3,
+      pushIndex: pushIndex++,
+      payload: {
+        placementId: makePlacementId("brk_moves_b", "sm"),
+        sectionId: smallSection.id,
+        newStackId: "stk_moves_too_many",
+        newRowId: "row_moves_too_many",
       },
-    ]);
-    expect(
-      smallAfter.layout.sections.flatMap((entry) => entry.stacks).map((entry) => entry.id),
-    ).not.toContain(smallStack.id);
+    }).pipe(Effect.flip);
+    expect(capacityRefusal.status).toBe(409);
+    yield* harness.flush();
+    expect(yield* harness.query(owner, db.query.wall.findFirst({ where: { id: { eq: small.id } } })))
+      .toEqual(smallAfter);
     const finalWalls = yield* harness.query(owner, db.query.wall.findMany({}));
     for (const unchanged of beforeRefusals.filter((entry) => entry.id !== small.id))
       expect(finalWalls.find((entry) => entry.id === unchanged.id)).toEqual(unchanged);
@@ -453,14 +426,14 @@ it.effect(
   () =>
     Effect.gen(function* () {
       const harness = yield* makeSystemHarness({ system });
-      const owner = { release: userAggregateV7, aggregateId: "acct_row_sharing" };
-      const db = makeQueryDbVersion({ models: userAggregateV7.models });
+      const owner = { release: userAggregateV9, aggregateId: "acct_row_sharing" };
+      const db = makeQueryDbVersion({ models: userAggregateV9.models });
       const actor = {
-        aggregateName: userAggregateV7.name,
-        aggregateVersion: userAggregateV7.version,
+        aggregateName: userAggregateV9.name,
+        aggregateVersion: userAggregateV9.version,
         aggregateId: owner.aggregateId,
         actorName: "web",
-        actorVersion: 7,
+        actorVersion: 9,
         claims: { aggregateId: owner.aggregateId, clerkUserId: "user_row_sharing" },
         externalOutcome: null,
         nodeId: "node_row_sharing",
@@ -472,8 +445,8 @@ it.effect(
         id: "cmd_sharing_user",
         commandName: "createUser",
         contractVersion: 1,
-        aggregateName: userAggregateV7.name,
-        aggregateVersion: userAggregateV7.version,
+        aggregateName: userAggregateV9.name,
+        aggregateVersion: userAggregateV9.version,
         aggregateId: owner.aggregateId,
         externalOutcome: null,
         payload: {
@@ -518,7 +491,7 @@ it.effect(
         kind: "actor",
         id: "cmd_sharing_brick_a",
         commandName: "addBrick",
-        contractVersion: 4,
+        contractVersion: 5,
         pushIndex: pushIndex++,
         payload: {
           id: "brk_sharing_a",
@@ -545,7 +518,7 @@ it.effect(
           kind: "actor",
           id: `cmd_sharing_${entry.id}`,
           commandName: "addBrick",
-          contractVersion: 4,
+          contractVersion: 5,
           pushIndex: pushIndex++,
           payload: {
             ...entry,
@@ -576,7 +549,7 @@ it.effect(
         kind: "actor",
         id: "cmd_sharing_compatible_join",
         commandName: "movePlacementToRow",
-        contractVersion: 3,
+        contractVersion: 4,
         pushIndex: pushIndex++,
         payload: { placementId: b, rowId: fixedRow.id, beforePlacementId: a },
       });
@@ -605,7 +578,7 @@ it.effect(
             kind: "actor",
             id: `cmd_sharing_refused_${index}`,
             commandName: "movePlacementToRow",
-            contractVersion: 3,
+            contractVersion: 4,
             pushIndex: pushIndex++,
             payload: { ...move, beforePlacementId: null },
           })
@@ -640,7 +613,7 @@ it.effect(
         kind: "actor",
         id: "cmd_sharing_first_row",
         commandName: "movePlacementToNewRow",
-        contractVersion: 2,
+        contractVersion: 3,
         pushIndex: pushIndex++,
         payload: {
           placementId: article,
@@ -796,14 +769,14 @@ it.effect(
 it.effect("persists atomic Row sizing with current membership, ownership, and publication", () =>
   Effect.gen(function* () {
     const harness = yield* makeSystemHarness({ system });
-    const owner = { release: userAggregateV8, aggregateId: "acct_sizing" };
-    const db = makeQueryDbVersion({ models: userAggregateV8.models });
+    const owner = { release: userAggregateV9, aggregateId: "acct_sizing" };
+    const db = makeQueryDbVersion({ models: userAggregateV9.models });
     const actor = {
-      aggregateName: userAggregateV8.name,
-      aggregateVersion: userAggregateV8.version,
+      aggregateName: userAggregateV9.name,
+      aggregateVersion: userAggregateV9.version,
       aggregateId: owner.aggregateId,
       actorName: "web",
-      actorVersion: 8,
+      actorVersion: 9,
       claims: { aggregateId: owner.aggregateId, clerkUserId: "user_sizing" },
       externalOutcome: null,
       nodeId: "node_sizing",
@@ -861,7 +834,7 @@ it.effect("persists atomic Row sizing with current membership, ownership, and pu
       kind: "actor",
       id: "cmd_sizing_add_a",
       commandName: "addBrick",
-      contractVersion: 4,
+      contractVersion: 5,
       pushIndex: pushIndex++,
       payload: {
         id: "brk_sizing_a",
@@ -885,7 +858,7 @@ it.effect("persists atomic Row sizing with current membership, ownership, and pu
         kind: "actor",
         id: `cmd_sizing_add_${letter}`,
         commandName: "addBrick",
-        contractVersion: 4,
+        contractVersion: 5,
         pushIndex: pushIndex++,
         payload: {
           id: `brk_sizing_${letter}`,
@@ -1146,7 +1119,7 @@ it.effect("persists atomic Row sizing with current membership, ownership, and pu
       kind: "actor",
       id: "cmd_sizing_move_out",
       commandName: "movePlacementToNewRow",
-      contractVersion: 2,
+      contractVersion: 3,
       pushIndex: pushIndex++,
       payload: {
         placementId: a,
@@ -1171,7 +1144,7 @@ it.effect("persists atomic Row sizing with current membership, ownership, and pu
       kind: "actor",
       id: "cmd_sizing_move_back",
       commandName: "movePlacementToRow",
-      contractVersion: 3,
+      contractVersion: 4,
       pushIndex: pushIndex++,
       payload: { placementId: a, rowId, beforePlacementId: b },
     });

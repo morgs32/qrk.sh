@@ -294,15 +294,21 @@ retain their null-state presentations and blank form drafts. Catalog `defaultSta
 examples remain separate. Placeholder skeletons respect reduced motion and contain
 no outbound interactions; a configured Brick is never reset by preview controls.
 
-`makeComponentView` binds display markup to a `defineComponent` descriptor. Its
+`defineComponentMetadata` describes an allowed component using its name, `propsShape`,
+slots, and description; it contains no React implementation. Each module exposes
+these descriptions as `componentMetadata`. `propsShape` is a Zerospin shape for
+the whole props object, matching the role of `stateShape` for module state.
+json-render Specs and React renderers retain `props` for runtime values.
+
+`makeComponentView` binds display markup to that component metadata. Its
 `.Component` accepts inferred flat props; its `.RegistryComponent` decodes resolved
-JSON-render props against the same descriptor before rendering `.Component` through
+JSON-render props against the metadata's `propsShape` before rendering `.Component` through
 JSX and forwarding children. Missing or invalid props surface schema errors rather
 than handwritten fallback values. Both components retain stable identities. Use
 member expressions directly so no file-scope component aliases are needed:
 
 ```tsx
-export const bioView = makeComponentView(bioComponent, {
+export const bioView = makeComponentView(bioComponentMetadata, {
   component(props) {
     const { bio } = props;
     return bio ? <p>{bio}</p> : null;

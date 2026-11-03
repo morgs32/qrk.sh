@@ -16,18 +16,29 @@ Placement specs/revisions/generation remain separate records. Placement's direct
 live in the QRK user aggregate; Wall and Brick bind directly to its Page table.
 
 Each new Page starts with four Walls whose layouts are `{ sections: [] }`.
-The first Brick drop creates the required Section, Stack, and Row. Existing
-persisted layouts are unchanged. Moves and Brick deletion prune empty Rows,
-Stacks, and Sections. Stack capacity
-is 1 / 2 / 3 / 4 per Section at sm / md / lg / xl, counted after move cleanup.
+The first Brick drop creates the required Section, Stack, and Row. Moves and
+Brick deletion prune only the emptied source ancestry; unrelated empty Rows,
+Stacks, and Sections remain. Stack actions can insert an empty named Stack to
+the left or right. Empty Stacks retain their actions and accept Brick drops.
+Stack capacity follows content minimums rather than breakpoint count caps.
+Stacks receive equal widths when possible; a Stack whose widest Row requires
+more keeps that minimum while the other Stacks share the remainder. Empty
+Stacks reserve 160px plus the existing cell gap allowance. Widths are automatic,
+not saved Stack preferences. Fit uses the authored Wall width, independently of
+the editor viewport. The Section track budget is the Wall width plus one gap;
+each Placement cell minimum includes its module minimum plus one gap.
 Rows divide all available width according to each Placement’s saved positive
 `widthWeight`, initially its module preferred width. Module minimum widths
 constrain the resulting proportions. Each Row owns `minHeight`: null selects
 automatic module preferred heights; a saved pixel minimum replaces that preference.
 The shared 45px floor, module minimums, and taller content or insertion shadows
 can grow the Row, and every visible surface stretches to match. There is no
-arbitrary Placement-count cap. Each Row scrolls horizontally when its minimums
-do not fit, without widening neighboring Stacks or changing saved order.
+arbitrary Placement-count cap. Commands reject additions and moves whose
+candidate Section cannot fit without violating module minimums. Site gap changes
+check every Page and Wall before saving. An unavailable destination does not
+silently wrap into another Row. New Bricks use a fresh Section at an inactive
+breakpoint only when the usual last-Stack/new-Row destination cannot fit.
+Plan 050 uses a clean local/deployed Zerospin data cutover, without legacy rules.
 The former `Page.wallId`, `Wall.label`, `Brick.wallId`, Placement grid geometry,
 visibility, and duplicated breakpoint attribute are removed. Placement derives
 its breakpoint directly from its Wall.
@@ -150,9 +161,11 @@ its visible Row even when the command anchors before the next Row. Selection and
 the open drawer remain unchanged. Cancellation, outside drops, invalidated
 destinations, and unchanged order stage no command; replacing a singleton source
 Row at its current position is also suppressed. A changed drop stages one
-`movePlacementToRow@2` or `movePlacementToNewRow@1` after checking current source,
-compatibility, and anchors. `newRowId` is allocated only for an accepted new-Row
-drop. Existing width shrink and horizontal overflow behavior remain unchanged.
+`movePlacementToRow@4` or `movePlacementToNewRow@3` after checking current source,
+compatibility, anchors, and candidate fit. Rehearsal uses disposable IDs; a
+changed accepted drop stages one command. A rejected central Row destination
+does not fall through to its parent Stack's append target. Explicit Row-creation
+edges remain available when their candidate fits.
 
 Drawer-template insertion feedback opens temporary space using a 40%-opacity copy
 of the drawer's complete `BrickWrapper` surface, without an added border, outline,
@@ -207,7 +220,8 @@ allowance preserves content dimensions and alignment at the perimeter.
 The full-width preview frame has no border; PreviewSection owns each centered
 section's real zinc-300 side borders, and the browser bar owns its real top border
 in the same color. The footer closes the frame with a zinc-300 bottom border.
-PreviewSection's outside gutters preserve overflow without changing Brick gaps.
+PreviewSection's outside gutters preserve editor-control overflow without
+changing Brick gaps; saved Row contents must still fit the Section.
 Saved content borders and flat/card appearance belong to BrickWrapper in every
 presentation, rather than separate catalog and Wall treatments.
 Target boxes still touch; the shadow temporarily participates in layout at its

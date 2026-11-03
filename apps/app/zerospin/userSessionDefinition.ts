@@ -6,13 +6,13 @@ import { pageV1 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page
 import { pageSnapshotV3 as PageSnapshot } from "@qrk.sh/zerospin/src/aggregates/user/models/pageSnapshot/PageSnapshotV3";
 import { siteV1 as Site } from "@qrk.sh/zerospin/src/aggregates/user/models/site/SiteV1";
 import { userV1 as User } from "@qrk.sh/zerospin/src/aggregates/user/models/user/UserV1";
-import { addBrickV4 as addBrick } from "@qrk.sh/zerospin/src/aggregates/user/contracts/wall/AddBrickContractV4";
+import { addBrickV5 as addBrick } from "@qrk.sh/zerospin/src/aggregates/user/contracts/wall/AddBrickContractV5";
 import { addWallSectionV2 as addWallSection } from "@qrk.sh/zerospin/src/aggregates/user/contracts/wall/AddWallSectionContractV2";
-import { movePlacementToRowV3 as movePlacementToRow } from "@qrk.sh/zerospin/src/aggregates/user/contracts/wall/MovePlacementToRowContractV3";
-import { movePlacementToNewRowV2 as movePlacementToNewRow } from "@qrk.sh/zerospin/src/aggregates/user/contracts/wall/MovePlacementToNewRowContractV2";
-import { movePlacementToNewStackV2 as movePlacementToNewStack } from "@qrk.sh/zerospin/src/aggregates/user/contracts/wall/MovePlacementToNewStackContractV2";
-import { movePlacementToNewSectionV2 as movePlacementToNewSection } from "@qrk.sh/zerospin/src/aggregates/user/contracts/wall/MovePlacementToNewSectionContractV2";
-import { moveStackV2 as moveStack } from "@qrk.sh/zerospin/src/aggregates/user/contracts/wall/MoveStackContractV2";
+import { movePlacementToRowV4 as movePlacementToRow } from "@qrk.sh/zerospin/src/aggregates/user/contracts/wall/MovePlacementToRowContractV4";
+import { movePlacementToNewRowV3 as movePlacementToNewRow } from "@qrk.sh/zerospin/src/aggregates/user/contracts/wall/MovePlacementToNewRowContractV3";
+import { movePlacementToNewStackV3 as movePlacementToNewStack } from "@qrk.sh/zerospin/src/aggregates/user/contracts/wall/MovePlacementToNewStackContractV3";
+import { movePlacementToNewSectionV3 as movePlacementToNewSection } from "@qrk.sh/zerospin/src/aggregates/user/contracts/wall/MovePlacementToNewSectionContractV3";
+import { moveStackV3 as moveStack } from "@qrk.sh/zerospin/src/aggregates/user/contracts/wall/MoveStackContractV3";
 import { renameStackV2 as renameStack } from "@qrk.sh/zerospin/src/aggregates/user/contracts/wall/RenameStackContractV2";
 import { deleteBrickV3 as deleteBrick } from "@qrk.sh/zerospin/src/aggregates/user/contracts/wall/DeleteBrickContractV3";
 import { updateBrickV4 as updateBrick } from "@qrk.sh/zerospin/src/aggregates/user/contracts/brick/UpdateBrickV4";
@@ -23,10 +23,11 @@ import { unpublishSiteV1 as unpublishSite } from "@qrk.sh/zerospin/src/aggregate
 import { createPageV2 as createPage } from "@qrk.sh/zerospin/src/aggregates/user/contracts/createPage/CreatePageV2";
 import { createSiteV1 as createSite } from "@qrk.sh/zerospin/src/aggregates/user/contracts/createSite/CreateSiteV1";
 import { updatePageSettingsV1 as updatePageSettings } from "@qrk.sh/zerospin/src/aggregates/user/contracts/updatePageSettings/UpdatePageSettingsV1";
-import { updateSiteSettingsV1 as updateSiteSettings } from "@qrk.sh/zerospin/src/aggregates/user/contracts/updateSiteSettings/UpdateSiteSettingsV1";
+import { updateSiteSettingsV2 as updateSiteSettings } from "@qrk.sh/zerospin/src/aggregates/user/contracts/updateSiteSettings/UpdateSiteSettingsV2";
 import { setBrickBorderWidthV1 as setBrickBorderWidth } from "@qrk.sh/zerospin/src/aggregates/user/contracts/brick/SetBrickBorderWidthV1";
 import { setRowWidthWeightsV1 as setRowWidthWeights } from "@qrk.sh/zerospin/src/aggregates/user/contracts/wall/SetRowWidthWeightsV1";
 import { setRowMinHeightV1 as setRowMinHeight } from "@qrk.sh/zerospin/src/aggregates/user/contracts/wall/SetRowMinHeightV1";
+import { insertStackV1 as insertStack } from "@qrk.sh/zerospin/src/aggregates/user/contracts/wall/InsertStackContractV1";
 import { userClaims } from "@qrk.sh/zerospin/src/claims";
 
 export const userSessionDefinition = makeAggregateSessionDefinition({
@@ -35,8 +36,8 @@ export const userSessionDefinition = makeAggregateSessionDefinition({
   aggregateName: "user",
   sessionName: "userSession",
   actorName: "web",
-  actorVersion: 8,
-  aggregateVersion: 8,
+  actorVersion: 9,
+  aggregateVersion: 9,
   models: {
     wall: Wall,
     brick: Brick,
@@ -49,6 +50,7 @@ export const userSessionDefinition = makeAggregateSessionDefinition({
   contracts: {
     addBrick,
     addWallSection,
+    insertStack,
     movePlacementToRow,
     movePlacementToNewRow,
     movePlacementToNewStack,

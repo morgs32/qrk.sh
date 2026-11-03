@@ -3,20 +3,20 @@ import { defaultSpec } from "./generator/defaultSpec";
 import { primitives } from "@zerospin/shapes";
 
 import {
-  brickBodyComponent,
-  brickFooterComponent,
-  brickShellComponent,
-  columnComponent,
-  rowComponent,
-} from "../lib/jsonRender/layoutComponents";
+  brickBodyComponentMetadata,
+  brickFooterComponentMetadata,
+  brickShellComponentMetadata,
+  columnComponentMetadata,
+  rowComponentMetadata,
+} from "../lib/jsonRender/layoutComponentMetadata";
 
 import { makeModuleVersion } from "../make/makeModuleVersion";
 
-import { imageCardComponent } from "./generator/ImageCardComponent";
+import { imageCardComponentMetadata } from "./generator/ImageCardComponentMetadata";
 
-import { imageCoverComponent } from "./generator/ImageCoverComponent";
+import { imageCoverComponentMetadata } from "./generator/ImageCoverComponentMetadata";
 
-import { mediaFooterComponent } from "./generator/MediaFooterComponent";
+import { mediaFooterComponentMetadata } from "./generator/MediaFooterComponentMetadata";
 
 import { image } from "./image";
 
@@ -42,15 +42,15 @@ export const imageV1 = makeModuleVersion(image, {
   },
   defaultSpec,
   hasPlaceholder: true,
-  components: {
-    BrickShell: brickShellComponent,
-    BrickBody: brickBodyComponent,
-    BrickFooter: brickFooterComponent,
-    Column: columnComponent,
-    Row: rowComponent,
-    ImageCard: imageCardComponent,
-    ImageCover: imageCoverComponent,
-    MediaFooter: mediaFooterComponent,
+  componentMetadata: {
+    BrickShell: brickShellComponentMetadata,
+    BrickBody: brickBodyComponentMetadata,
+    BrickFooter: brickFooterComponentMetadata,
+    Column: columnComponentMetadata,
+    Row: rowComponentMetadata,
+    ImageCard: imageCardComponentMetadata,
+    ImageCover: imageCoverComponentMetadata,
+    MediaFooter: mediaFooterComponentMetadata,
   },
   stateShape: dataShape,
   defaultState: defaultData,

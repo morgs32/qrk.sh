@@ -3,9 +3,9 @@
 import { Image } from "@unpic/react";
 import { useState } from "react";
 import { makeComponentView } from "../../../make/makeComponentView";
-import { avatarAndUsernameComponent } from "@qrk.sh/zerospin/src/modules/githubProfile/generator/AvatarAndUsernameComponent";
+import { avatarAndUsernameComponentMetadata } from "@qrk.sh/zerospin/src/modules/githubProfile/generator/AvatarAndUsernameComponentMetadata";
 
-export const avatarAndUsernameView = makeComponentView(avatarAndUsernameComponent, {
+export const avatarAndUsernameView = makeComponentView(avatarAndUsernameComponentMetadata, {
   component(props) {
     const { login, avatar_url } = props;
     const [avatarFailed, setAvatarFailed] = useState(false);

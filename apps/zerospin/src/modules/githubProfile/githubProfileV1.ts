@@ -5,28 +5,28 @@ import { Schema } from "effect";
 import { makeEffectSchema, primitives } from "@zerospin/shapes";
 
 import {
-  brickBodyComponent,
-  brickFooterComponent,
-  brickShellComponent,
-  columnComponent,
-  rowComponent,
-} from "../lib/jsonRender/layoutComponents";
+  brickBodyComponentMetadata,
+  brickFooterComponentMetadata,
+  brickShellComponentMetadata,
+  columnComponentMetadata,
+  rowComponentMetadata,
+} from "../lib/jsonRender/layoutComponentMetadata";
 
 import { makeModuleVersion } from "../make/makeModuleVersion";
 
-import { avatarAndUsernameComponent } from "./generator/AvatarAndUsernameComponent";
+import { avatarAndUsernameComponentMetadata } from "./generator/AvatarAndUsernameComponentMetadata";
 
-import { bioComponent } from "./generator/BioComponent";
+import { bioComponentMetadata } from "./generator/BioComponentMetadata";
 
-import { blogComponent } from "./generator/BlogComponent";
+import { blogComponentMetadata } from "./generator/BlogComponentMetadata";
 
-import { followersComponent } from "./generator/FollowersComponent";
+import { followersComponentMetadata } from "./generator/FollowersComponentMetadata";
 
-import { followingComponent } from "./generator/FollowingComponent";
+import { followingComponentMetadata } from "./generator/FollowingComponentMetadata";
 
-import { locationComponent } from "./generator/LocationComponent";
+import { locationComponentMetadata } from "./generator/LocationComponentMetadata";
 
-import { publicReposComponent } from "./generator/PublicReposComponent";
+import { publicReposComponentMetadata } from "./generator/PublicReposComponentMetadata";
 
 import { githubProfile } from "./githubProfile";
 
@@ -93,19 +93,19 @@ export const githubProfileV1 = makeModuleVersion(githubProfile, {
   },
   defaultSpec,
   hasPlaceholder: true,
-  components: {
-    BrickShell: brickShellComponent,
-    BrickBody: brickBodyComponent,
-    BrickFooter: brickFooterComponent,
-    Column: columnComponent,
-    Row: rowComponent,
-    AvatarAndUsername: avatarAndUsernameComponent,
-    Bio: bioComponent,
-    Location: locationComponent,
-    Blog: blogComponent,
-    Followers: followersComponent,
-    Following: followingComponent,
-    PublicRepos: publicReposComponent,
+  componentMetadata: {
+    BrickShell: brickShellComponentMetadata,
+    BrickBody: brickBodyComponentMetadata,
+    BrickFooter: brickFooterComponentMetadata,
+    Column: columnComponentMetadata,
+    Row: rowComponentMetadata,
+    AvatarAndUsername: avatarAndUsernameComponentMetadata,
+    Bio: bioComponentMetadata,
+    Location: locationComponentMetadata,
+    Blog: blogComponentMetadata,
+    Followers: followersComponentMetadata,
+    Following: followingComponentMetadata,
+    PublicRepos: publicReposComponentMetadata,
   },
   stateShape: {
     payload: primitives.json({ schema: makeEffectSchema(payloadShape) }),

@@ -5,7 +5,12 @@ import { Dialog } from "@base-ui/react/dialog";
 import { Menu } from "@base-ui/react/menu";
 import { ArrowLeft, ArrowRight, Pencil } from "lucide-react";
 import type { IInferModelRow } from "@zerospin/core/models/types";
-import { makeId, makeIdSchema, stageAggregateSessionCommand } from "@zerospin/sdk/browser";
+import {
+  makeId,
+  makeIdSchema,
+  stageAggregateSessionCommand,
+  validateAggregateSessionCommand,
+} from "@zerospin/sdk/browser";
 import { combine } from "@atlaskit/pragmatic-drag-and-drop/combine";
 import {
   draggable,
@@ -27,6 +32,11 @@ import { useLiveQuery, useSession } from "@zerospin/react";
 import { Result, Schema } from "effect";
 import { wallInsertionTargetSchema } from "@qrk.sh/zerospin/src/aggregates/user/layout/wallTargetSchemas";
 import { canShareRow } from "@qrk.sh/zerospin/src/modules/lib/canShareRow";
+import {
+  allocateStackWidths,
+  measureWallFit,
+  wallBreakpointWidths,
+} from "@qrk.sh/zerospin/src/aggregates/user/layout/wallSizing";
 
 import { Button } from "../../components/ui/button";
 import { StackAction } from "../../components/StackAction";
@@ -257,6 +267,21 @@ export function WallEditor(props: {
           })
         )
           return null;
+        const before =
+          destination.beforePlacementId === null
+            ? null
+            : row.placements.find((entry) => entry.id === destination.beforePlacementId);
+        if (before === undefined) throw new Error("Missing validated Placement anchor");
+        const validation = validateAggregateSessionCommand({
+          session,
+          contractName: "movePlacementToRow",
+          payload: {
+            placementId: placement.id,
+            rowId: row.id,
+            beforePlacementId: before === null ? null : before.id,
+          },
+        });
+        if (validation._tag === "Failure") return null;
       } else {
         const stack = stacks.find((stack) => stack.id === destination.stackId);
         if (
@@ -273,6 +298,22 @@ export function WallEditor(props: {
             destination.beforeRowId === (stack.rows[sourceRowIndex + 1]?.id ?? null))
         )
           return null;
+        const before =
+          destination.beforeRowId === null
+            ? null
+            : stack.rows.find((row) => row.id === destination.beforeRowId);
+        if (before === undefined) throw new Error("Missing validated Row anchor");
+        const validation = validateAggregateSessionCommand({
+          session,
+          contractName: "movePlacementToNewRow",
+          payload: {
+            placementId: placement.id,
+            stackId: stack.id,
+            newRowId: session.runSync(makeId({ abbreviation: "row" })),
+            beforeRowId: before === null ? null : before.id,
+          },
+        });
+        if (validation._tag === "Failure") return null;
       }
       return { placement, target: destination };
     };
@@ -313,10 +354,26 @@ export function WallEditor(props: {
       });
     };
     const onDrag = (props: ElementEventBasePayload) => {
-      const { location } = props;
+      const { source, location } = props;
       const innermost = location.current.dropTargets[0];
       const target = Schema.decodeUnknownResult(wallInsertionTargetSchema)(innermost?.data);
-      if (Result.isFailure(target) || target.success.wallId !== wall.id) {
+      const data = Schema.decodeUnknownResult(DrawerBrickData)(source.data);
+      if (Result.isFailure(target) || Result.isFailure(data) || target.success.wallId !== wall.id) {
+        setDropFeedback(null);
+        return;
+      }
+      const validation = validateAggregateSessionCommand({
+        session,
+        contractName: "addBrick",
+        payload: {
+          id: session.runSync(makeId(brickV2)),
+          pageId: wall.pageId,
+          moduleId: data.success.moduleId,
+          state: data.success.state,
+          target: target.success,
+        },
+      });
+      if (validation._tag === "Failure") {
         setDropFeedback(null);
         return;
       }
@@ -706,6 +763,37 @@ export function WallEditor(props: {
 
   const shadowVariant =
     shadowSource === null ? null : modulesHash[shadowSource.moduleId].variants.default;
+  const placementMinimumWidths = new Map(
+    wall.placements.map((placement) => [
+      placement.id,
+      modulesHash[placement.brick.moduleId].variants[placement.variantId].minWidth,
+    ]),
+  );
+  const displayLayout = structuredClone(wall.layout);
+  if (shadowVariant !== null && dropTarget !== null) {
+    const shadowPlacementId = "plc_wall_shadow";
+    placementMinimumWidths.set(shadowPlacementId, shadowVariant.minWidth);
+    for (const section of displayLayout.sections) {
+      for (const stack of section.stacks) {
+        if (dropTarget.kind === "stack" && dropTarget.stackId === stack.id) {
+          stack.rows.push({
+            id: "row_wall_shadow",
+            minHeight: null,
+            placementIds: [shadowPlacementId],
+          });
+        } else if (dropTarget.kind === "row") {
+          const row = stack.rows.find((row) => row.id === dropTarget.rowId);
+          row?.placementIds.push(shadowPlacementId);
+        }
+      }
+    }
+  }
+  const sectionFits = measureWallFit({
+    layout: displayLayout,
+    placementMinimumWidths,
+    wallWidth: wallBreakpointWidths[wall.breakpoint],
+    brickGap,
+  });
   const shadowRow =
     dropTarget?.kind === "row"
       ? sections
@@ -785,273 +873,342 @@ export function WallEditor(props: {
         >
           {sections.length > 0 && (
             <div className="relative min-w-0 shrink-0" style={{ margin: -brickGap / 2 }}>
-              {sections.map((section) => (
-                <section key={section.id} className="relative grid auto-cols-fr grid-flow-col">
-                  {section.stacks.map((stack) => (
-                    <div
-                      key={stack.id}
-                      data-wall-stack-id={stack.id}
-                      className={`group/stack relative min-h-[50px] min-w-0 ${stack.id === selectedStackId ? "is-selected-stack after:pointer-events-none after:absolute after:inset-0 after:z-[29] after:border after:border-[#1f9bfc] after:content-['']" : ""} ${stack.rows.length === 0 && dropTarget?.kind === "stack" && dropTarget.stackId === stack.id ? "bg-blue-50 outline outline-blue-500 -outline-offset-2" : ""}`}
-                    >
-                      {stack.rows.some((row) => row.placements.length > 0) ? (
-                        <StackAction>
-                          {onEditStack === undefined ? (
-                            <span className="min-w-0 truncate">{stack.name}</span>
-                          ) : (
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              aria-label={`Edit stack ${stack.name}`}
-                              onClick={() => onEditStack(stack.id)}
-                              className="h-7 min-w-0 shrink rounded-none px-0 text-xs font-normal text-white hover:bg-transparent hover:text-white"
-                            >
-                              <span className="truncate">{stack.name}</span>
-                            </Button>
-                          )}
-                          <Menu.Root>
-                            <Menu.Trigger
-                              render={
-                                <Button
-                                  variant="ghost"
-                                  className="h-7 w-3.5 shrink-0 rounded-none p-0 text-white hover:bg-transparent hover:text-white"
-                                />
-                              }
-                              aria-label={`Stack ${stack.name} actions`}
-                            >
-                              <Pencil className="size-3.5" strokeWidth={1.5} aria-hidden="true" />
-                            </Menu.Trigger>
-                            <Menu.Portal>
-                              <Menu.Positioner
-                                side="bottom"
-                                align="start"
-                                sideOffset={0}
-                                className="z-[90]"
+              {sections.map((section, sectionIndex) => {
+                const sizing = sectionFits[sectionIndex];
+                if (sizing === undefined || sizing.sectionId !== section.id || !sizing.fits)
+                  throw new Error("The saved Section does not fit its Wall");
+                const stackWidths = allocateStackWidths({
+                  minimumWidths: sizing.stackMinimums,
+                  availableWidth: wallBreakpointWidths[wall.breakpoint] + brickGap,
+                });
+                return (
+                  <section
+                    key={section.id}
+                    data-wall-section-id={section.id}
+                    className="relative grid"
+                    style={{
+                      gridTemplateColumns: stackWidths.map((width) => `${width}px`).join(" "),
+                    }}
+                  >
+                    {section.stacks.map((stack) => {
+                      const canInsert =
+                        validateAggregateSessionCommand({
+                          session,
+                          contractName: "insertStack",
+                          payload: {
+                            id: `${scope}-${stack.id}-insertion`,
+                            wallId: wall.id,
+                            anchorStackId: stack.id,
+                            side: "left",
+                          },
+                        })._tag === "Success";
+                      return (
+                        <div
+                          key={stack.id}
+                          data-wall-stack-id={stack.id}
+                          className={`group/stack relative min-h-[50px] min-w-0 ${stack.id === selectedStackId ? "is-selected-stack after:pointer-events-none after:absolute after:inset-0 after:z-[29] after:border after:border-[#1f9bfc] after:content-['']" : ""} ${stack.rows.length === 0 && dropTarget?.kind === "stack" && dropTarget.stackId === stack.id ? "bg-blue-50 outline outline-blue-500 -outline-offset-2" : ""}`}
+                        >
+                          <StackAction>
+                            {onEditStack === undefined ? (
+                              <span className="min-w-0 truncate">{stack.name}</span>
+                            ) : (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                aria-label={`Edit stack ${stack.name}`}
+                                onClick={() => onEditStack(stack.id)}
+                                className="h-7 min-w-0 shrink rounded-none px-0 text-xs font-normal text-white hover:bg-transparent hover:text-white"
                               >
-                                <Menu.Popup className="w-max min-w-[90px] max-w-[var(--available-width)] max-h-[var(--available-height)] overflow-y-auto rounded-none border border-[#dedede] bg-white p-0 font-mono text-[15px] leading-[18px] font-normal text-[#111] shadow-[2px_3px_0_#0005] outline-none">
-                                  <Menu.Item className="flex min-h-5 cursor-pointer items-center gap-2 px-0.5 py-px outline-none data-[highlighted]:bg-[color-mix(in_srgb,#fff,#111_6%)]">
-                                    <ArrowLeft className="size-4" aria-hidden="true" />
-                                    Insert left
-                                  </Menu.Item>
-                                  <Menu.Item className="flex min-h-5 cursor-pointer items-center gap-2 px-0.5 py-px outline-none data-[highlighted]:bg-[color-mix(in_srgb,#fff,#111_6%)]">
-                                    <ArrowRight className="size-4" aria-hidden="true" />
-                                    Insert right
-                                  </Menu.Item>
-                                </Menu.Popup>
-                              </Menu.Positioner>
-                            </Menu.Portal>
-                          </Menu.Root>
-                        </StackAction>
-                      ) : null}
-                      {stack.rows.map((row) => {
-                        const rowPreview = resize.preview?.rowId === row.id ? resize.preview : null;
-                        const rowReadout = resize.readout?.rowId === row.id ? resize.readout : null;
-                        const rowMinHeight =
-                          rowPreview?.kind === "height" ? rowPreview.minHeight : row.minHeight;
-                        const rowPlacements =
-                          rowPreview?.kind === "width"
-                            ? row.placements.map((placement) => {
-                                const changed = rowPreview.placements.find(
-                                  (entry) => entry.placementId === placement.id,
-                                );
-                                if (changed === undefined)
-                                  throw new Error("Missing resize preview Placement");
-                                return { ...placement, widthWeight: changed.widthWeight };
-                              })
-                            : row.placements;
-                        const incomingVariant =
-                          dropTarget?.kind === "row" && dropTarget.rowId === row.id
-                            ? shadowVariant
-                            : null;
-                        const variants = rowPlacements.map(
-                          (placement) =>
-                            modulesHash[placement.brick.moduleId].variants[placement.variantId],
-                        );
-                        const minHeight = Math.max(
-                          45,
-                          rowMinHeight ?? 45,
-                          ...variants.map((variant) =>
-                            Math.max(
-                              variant.minHeight ?? 45,
-                              rowMinHeight === null ? (variant.defaultHeight ?? 45) : 45,
-                            ),
-                          ),
-                          incomingVariant === null
-                            ? 45
-                            : Math.max(
-                                incomingVariant.minHeight ?? 45,
-                                rowMinHeight === null ? (incomingVariant.defaultHeight ?? 45) : 45,
+                                <span className="truncate">{stack.name}</span>
+                              </Button>
+                            )}
+                            <Menu.Root>
+                              <Menu.Trigger
+                                render={
+                                  <Button
+                                    variant="ghost"
+                                    className="h-7 w-3.5 shrink-0 rounded-none p-0 text-white hover:bg-transparent hover:text-white"
+                                  />
+                                }
+                                aria-label={`Stack ${stack.name} actions`}
+                              >
+                                <Pencil className="size-3.5" strokeWidth={1.5} aria-hidden="true" />
+                              </Menu.Trigger>
+                              <Menu.Portal>
+                                <Menu.Positioner
+                                  side="bottom"
+                                  align="start"
+                                  sideOffset={0}
+                                  className="z-[90]"
+                                >
+                                  <Menu.Popup className="w-max min-w-[90px] max-w-[var(--available-width)] max-h-[var(--available-height)] overflow-y-auto rounded-none border border-[#dedede] bg-white p-0 font-mono text-[15px] leading-[18px] font-normal text-[#111] shadow-[2px_3px_0_#0005] outline-none">
+                                    <Menu.Item
+                                      disabled={!canInsert}
+                                      title={
+                                        canInsert ? undefined : "Not enough space in this Section"
+                                      }
+                                      className="flex min-h-5 cursor-pointer items-center gap-2 px-0.5 py-px outline-none data-[highlighted]:bg-[color-mix(in_srgb,#fff,#111_6%)] data-[disabled]:cursor-default data-[disabled]:opacity-40"
+                                      onClick={() =>
+                                        stageAggregateSessionCommand({
+                                          session,
+                                          contractName: "insertStack",
+                                          payload: {
+                                            id: session.runSync(makeId({ abbreviation: "ins" })),
+                                            wallId: wall.id,
+                                            anchorStackId: stack.id,
+                                            side: "left",
+                                          },
+                                        })
+                                      }
+                                    >
+                                      <ArrowLeft className="size-4" aria-hidden="true" />
+                                      Insert left
+                                    </Menu.Item>
+                                    <Menu.Item
+                                      disabled={!canInsert}
+                                      title={
+                                        canInsert ? undefined : "Not enough space in this Section"
+                                      }
+                                      className="flex min-h-5 cursor-pointer items-center gap-2 px-0.5 py-px outline-none data-[highlighted]:bg-[color-mix(in_srgb,#fff,#111_6%)] data-[disabled]:cursor-default data-[disabled]:opacity-40"
+                                      onClick={() =>
+                                        stageAggregateSessionCommand({
+                                          session,
+                                          contractName: "insertStack",
+                                          payload: {
+                                            id: session.runSync(makeId({ abbreviation: "ins" })),
+                                            wallId: wall.id,
+                                            anchorStackId: stack.id,
+                                            side: "right",
+                                          },
+                                        })
+                                      }
+                                    >
+                                      <ArrowRight className="size-4" aria-hidden="true" />
+                                      Insert right
+                                    </Menu.Item>
+                                  </Menu.Popup>
+                                </Menu.Positioner>
+                              </Menu.Portal>
+                            </Menu.Root>
+                          </StackAction>
+                          {stack.rows.map((row) => {
+                            const rowPreview =
+                              resize.preview?.rowId === row.id ? resize.preview : null;
+                            const rowReadout =
+                              resize.readout?.rowId === row.id ? resize.readout : null;
+                            const rowMinHeight =
+                              rowPreview?.kind === "height" ? rowPreview.minHeight : row.minHeight;
+                            const rowPlacements =
+                              rowPreview?.kind === "width"
+                                ? row.placements.map((placement) => {
+                                    const changed = rowPreview.placements.find(
+                                      (entry) => entry.placementId === placement.id,
+                                    );
+                                    if (changed === undefined)
+                                      throw new Error("Missing resize preview Placement");
+                                    return { ...placement, widthWeight: changed.widthWeight };
+                                  })
+                                : row.placements;
+                            const incomingVariant =
+                              dropTarget?.kind === "row" && dropTarget.rowId === row.id
+                                ? shadowVariant
+                                : null;
+                            const variants = rowPlacements.map(
+                              (placement) =>
+                                modulesHash[placement.brick.moduleId].variants[placement.variantId],
+                            );
+                            const minHeight = Math.max(
+                              45,
+                              rowMinHeight ?? 45,
+                              ...variants.map((variant) =>
+                                Math.max(
+                                  variant.minHeight ?? 45,
+                                  rowMinHeight === null ? (variant.defaultHeight ?? 45) : 45,
+                                ),
                               ),
-                        );
-                        const totalWeight =
-                          rowPlacements.reduce(
-                            (total, placement) => total + placement.widthWeight,
-                            0,
-                          ) + (incomingVariant?.defaultWidth ?? 0);
-                        const placementCount =
-                          row.placements.length + (incomingVariant === null ? 0 : 1);
-                        return (
-                          <div
-                            key={row.id}
-                            data-wall-row-id={row.id}
-                            className="relative flow-root min-w-0"
-                          >
-                            {dropTarget?.kind === "stack" &&
-                              dropTarget.stackId === stack.id &&
-                              dropFeedback?.ownerRowId === row.id &&
-                              dropTarget.beforeRowId === row.id &&
-                              shadow}
-                            <div
-                              data-wall-row-content
-                              style={{ minHeight: minHeight + brickGap + 1 }}
-                              className={`relative -m-[0.5px] flex min-h-[49px] min-w-0 items-stretch p-[0.5px] ${row.placements.length === 0 && dropTarget?.kind === "row" && dropTarget.rowId === row.id ? "bg-blue-50 outline outline-blue-500 -outline-offset-2" : ""}`}
-                            >
-                              {rowPlacements.map((placement, placementIndex) => {
-                                const nextPlacement = rowPlacements[placementIndex + 1];
-                                const widthReadout =
-                                  rowReadout?.kind === "width" &&
-                                  rowReadout.leftPlacementId === placement.id &&
-                                  rowReadout.rightPlacementId === nextPlacement?.id
-                                    ? rowReadout
-                                    : null;
-                                const brick = placement.brick;
-                                const module = modulesHash[brick.moduleId];
-                                const Component = module.component;
-                                return (
-                                  <Fragment key={placement.id}>
-                                    {dropTarget?.kind === "row" &&
-                                      dropTarget.rowId === row.id &&
-                                      dropTarget.beforePlacementId === placement.id &&
-                                      shadow}
-                                    <WallPlacement
-                                      scope={scope}
-                                      brickGap={brickGap}
-                                      selected={brick.id === selectedBrickId}
-                                      onEditBrick={onEditBrick}
-                                      onRequestDelete={(brickId, triggerId) => {
-                                        returnFocusId.current = triggerId;
-                                        setDeletingBrickId(brickId);
-                                      }}
-                                      placement={{
-                                        id: placement.id,
-                                        brickId: brick.id,
-                                        widthWeight:
-                                          (placement.widthWeight / totalWeight) * placementCount,
-                                        minWidth: module.variants[placement.variantId].minWidth,
-                                        content:
-                                          brick.state === null || isNonEmptySpec(placement.spec) ? (
-                                            <BrickWrapper
-                                              borderWidth={brick.borderWidth}
-                                              className={
-                                                wall.page.site.cardStyle
-                                                  ? "brick-surface-card"
-                                                  : undefined
-                                              }
-                                            >
-                                              <Component
-                                                state={brick.state}
-                                                variantId={placement.variantId}
-                                                spec={
-                                                  isNonEmptySpec(placement.spec)
-                                                    ? placement.spec
-                                                    : module.variants[placement.variantId].spec
-                                                }
-                                              />
-                                            </BrickWrapper>
-                                          ) : (
-                                            <p role="alert">Invalid Brick spec</p>
-                                          ),
-                                      }}
-                                    />
-                                    {nextPlacement !== undefined && (
-                                      <span
-                                        aria-hidden="true"
-                                        className="wall-width-resize-slot relative z-20 w-0 shrink-0 self-stretch"
-                                      >
-                                        <span
-                                          data-wall-width-resize-handle
-                                          data-row-id={row.id}
-                                          data-left-placement-id={placement.id}
-                                          data-right-placement-id={nextPlacement.id}
-                                          data-wall-resize-active={
-                                            widthReadout === null ? undefined : ""
-                                          }
-                                          className="wall-resize-grip wall-width-resize-grip"
-                                          draggable={false}
-                                          onPointerDown={(event) =>
-                                            resize.startWidthResize({
-                                              event,
-                                              rowId: row.id,
-                                              leftPlacementId: placement.id,
-                                              rightPlacementId: nextPlacement.id,
-                                            })
-                                          }
-                                          onDragStart={(event) => event.preventDefault()}
-                                          onClick={(event) => {
-                                            event.preventDefault();
-                                            event.stopPropagation();
+                              incomingVariant === null
+                                ? 45
+                                : Math.max(
+                                    incomingVariant.minHeight ?? 45,
+                                    rowMinHeight === null
+                                      ? (incomingVariant.defaultHeight ?? 45)
+                                      : 45,
+                                  ),
+                            );
+                            const totalWeight =
+                              rowPlacements.reduce(
+                                (total, placement) => total + placement.widthWeight,
+                                0,
+                              ) + (incomingVariant?.defaultWidth ?? 0);
+                            const placementCount =
+                              row.placements.length + (incomingVariant === null ? 0 : 1);
+                            return (
+                              <div
+                                key={row.id}
+                                data-wall-row-id={row.id}
+                                className="relative flow-root min-w-0"
+                              >
+                                {dropTarget?.kind === "stack" &&
+                                  dropTarget.stackId === stack.id &&
+                                  dropFeedback?.ownerRowId === row.id &&
+                                  dropTarget.beforeRowId === row.id &&
+                                  shadow}
+                                <div
+                                  data-wall-row-content
+                                  style={{ minHeight: minHeight + brickGap + 1 }}
+                                  className={`relative -m-[0.5px] flex min-h-[49px] min-w-0 items-stretch p-[0.5px] ${row.placements.length === 0 && dropTarget?.kind === "row" && dropTarget.rowId === row.id ? "bg-blue-50 outline outline-blue-500 -outline-offset-2" : ""}`}
+                                >
+                                  {rowPlacements.map((placement, placementIndex) => {
+                                    const nextPlacement = rowPlacements[placementIndex + 1];
+                                    const widthReadout =
+                                      rowReadout?.kind === "width" &&
+                                      rowReadout.leftPlacementId === placement.id &&
+                                      rowReadout.rightPlacementId === nextPlacement?.id
+                                        ? rowReadout
+                                        : null;
+                                    const brick = placement.brick;
+                                    const module = modulesHash[brick.moduleId];
+                                    const Component = module.component;
+                                    return (
+                                      <Fragment key={placement.id}>
+                                        {dropTarget?.kind === "row" &&
+                                          dropTarget.rowId === row.id &&
+                                          dropTarget.beforePlacementId === placement.id &&
+                                          shadow}
+                                        <WallPlacement
+                                          scope={scope}
+                                          brickGap={brickGap}
+                                          selected={brick.id === selectedBrickId}
+                                          onEditBrick={onEditBrick}
+                                          onRequestDelete={(brickId, triggerId) => {
+                                            returnFocusId.current = triggerId;
+                                            setDeletingBrickId(brickId);
                                           }}
-                                        >
-                                          {widthReadout !== null && (
+                                          placement={{
+                                            id: placement.id,
+                                            brickId: brick.id,
+                                            widthWeight:
+                                              (placement.widthWeight / totalWeight) *
+                                              placementCount,
+                                            minWidth: module.variants[placement.variantId].minWidth,
+                                            content:
+                                              brick.state === null ||
+                                              isNonEmptySpec(placement.spec) ? (
+                                                <BrickWrapper
+                                                  borderWidth={brick.borderWidth}
+                                                  className={
+                                                    wall.page.site.cardStyle
+                                                      ? "brick-surface-card"
+                                                      : undefined
+                                                  }
+                                                >
+                                                  <Component
+                                                    state={brick.state}
+                                                    variantId={placement.variantId}
+                                                    spec={
+                                                      isNonEmptySpec(placement.spec)
+                                                        ? placement.spec
+                                                        : module.variants[placement.variantId].spec
+                                                    }
+                                                  />
+                                                </BrickWrapper>
+                                              ) : (
+                                                <p role="alert">Invalid Brick spec</p>
+                                              ),
+                                          }}
+                                        />
+                                        {nextPlacement !== undefined && (
+                                          <span
+                                            aria-hidden="true"
+                                            className="wall-width-resize-slot relative z-20 w-0 shrink-0 self-stretch"
+                                          >
                                             <span
-                                              data-wall-resize-readout
-                                              className="wall-resize-readout"
+                                              data-wall-width-resize-handle
+                                              data-row-id={row.id}
+                                              data-left-placement-id={placement.id}
+                                              data-right-placement-id={nextPlacement.id}
+                                              data-wall-resize-active={
+                                                widthReadout === null ? undefined : ""
+                                              }
+                                              className="wall-resize-grip wall-width-resize-grip"
+                                              draggable={false}
+                                              onPointerDown={(event) =>
+                                                resize.startWidthResize({
+                                                  event,
+                                                  rowId: row.id,
+                                                  leftPlacementId: placement.id,
+                                                  rightPlacementId: nextPlacement.id,
+                                                })
+                                              }
+                                              onDragStart={(event) => event.preventDefault()}
+                                              onClick={(event) => {
+                                                event.preventDefault();
+                                                event.stopPropagation();
+                                              }}
                                             >
-                                              {`${Math.round(widthReadout.leftWidth)} px | ${Math.round(widthReadout.rightWidth)} px`}
+                                              {widthReadout !== null && (
+                                                <span
+                                                  data-wall-resize-readout
+                                                  className="wall-resize-readout"
+                                                >
+                                                  {`${Math.round(widthReadout.leftWidth)} px | ${Math.round(widthReadout.rightWidth)} px`}
+                                                </span>
+                                              )}
                                             </span>
-                                          )}
-                                        </span>
-                                      </span>
-                                    )}
-                                  </Fragment>
-                                );
-                              })}
-                              {dropTarget?.kind === "row" &&
-                                dropTarget.rowId === row.id &&
-                                dropTarget.beforePlacementId === null &&
-                                shadow}
-                            </div>
-                            <span
-                              aria-hidden="true"
-                              data-wall-height-resize-handle
-                              data-row-id={row.id}
-                              data-wall-resize-active={
-                                rowReadout?.kind === "height" ? "" : undefined
-                              }
-                              className="wall-resize-grip wall-height-resize-grip z-20"
-                              draggable={false}
-                              onPointerDown={(event) =>
-                                resize.startHeightResize({ event, rowId: row.id })
-                              }
-                              onDoubleClick={() => resize.resetHeight({ rowId: row.id })}
-                              onDragStart={(event) => event.preventDefault()}
-                              onClick={(event) => {
-                                event.preventDefault();
-                                event.stopPropagation();
-                              }}
-                            >
-                              {rowReadout?.kind === "height" && (
-                                <span data-wall-resize-readout className="wall-resize-readout">
-                                  {`${Math.round(rowReadout.height)} px`}
+                                          </span>
+                                        )}
+                                      </Fragment>
+                                    );
+                                  })}
+                                  {dropTarget?.kind === "row" &&
+                                    dropTarget.rowId === row.id &&
+                                    dropTarget.beforePlacementId === null &&
+                                    shadow}
+                                </div>
+                                <span
+                                  aria-hidden="true"
+                                  data-wall-height-resize-handle
+                                  data-row-id={row.id}
+                                  data-wall-resize-active={
+                                    rowReadout?.kind === "height" ? "" : undefined
+                                  }
+                                  className="wall-resize-grip wall-height-resize-grip z-20"
+                                  draggable={false}
+                                  onPointerDown={(event) =>
+                                    resize.startHeightResize({ event, rowId: row.id })
+                                  }
+                                  onDoubleClick={() => resize.resetHeight({ rowId: row.id })}
+                                  onDragStart={(event) => event.preventDefault()}
+                                  onClick={(event) => {
+                                    event.preventDefault();
+                                    event.stopPropagation();
+                                  }}
+                                >
+                                  {rowReadout?.kind === "height" && (
+                                    <span data-wall-resize-readout className="wall-resize-readout">
+                                      {`${Math.round(rowReadout.height)} px`}
+                                    </span>
+                                  )}
                                 </span>
-                              )}
-                            </span>
-                            {dropTarget?.kind === "stack" &&
-                              dropTarget.stackId === stack.id &&
-                              dropFeedback?.ownerRowId === row.id &&
-                              dropTarget.beforeRowId !== row.id &&
-                              shadow}
-                          </div>
-                        );
-                      })}
-                      {dropTarget?.kind === "stack" &&
-                        dropTarget.stackId === stack.id &&
-                        dropFeedback?.ownerRowId === null &&
-                        dropTarget.beforeRowId === null &&
-                        shadow}
-                    </div>
-                  ))}
-                </section>
-              ))}
+                                {dropTarget?.kind === "stack" &&
+                                  dropTarget.stackId === stack.id &&
+                                  dropFeedback?.ownerRowId === row.id &&
+                                  dropTarget.beforeRowId !== row.id &&
+                                  shadow}
+                              </div>
+                            );
+                          })}
+                          {dropTarget?.kind === "stack" &&
+                            dropTarget.stackId === stack.id &&
+                            dropFeedback?.ownerRowId === null &&
+                            dropTarget.beforeRowId === null &&
+                            shadow}
+                        </div>
+                      );
+                    })}
+                  </section>
+                );
+              })}
             </div>
           )}
           {sections.length === 0 && dropTarget?.kind === "wall" && shadow}

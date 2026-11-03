@@ -1,3 +1,4 @@
+import { userAggregateV9 } from "../src/aggregates/user/UserV9";
 import { expect, it } from "@effect/vitest";
 import { makeQueryDbVersion, NanoIdFactory } from "@zerospin/sdk";
 import { makeSystemHarness } from "@zerospin/sdk/testing";
@@ -6,7 +7,6 @@ import { Effect } from "effect";
 
 import { system } from "../src/system";
 import { setBrickBorderWidthV1 } from "../src/aggregates/user/contracts/brick/SetBrickBorderWidthV1";
-import { userAggregateV3 } from "../src/aggregates/user/UserV3";
 import { makePageSnapshotV2 } from "../src/aggregates/user/snapshots/makePageSnapshotV2";
 import { swatchAndIconV1 } from "../src/modules/swatchAndIcon/swatchAndIconV1";
 
@@ -45,8 +45,8 @@ it.effect("keeps border changes unavailable to System commands", () =>
         id: "cmd_border_system",
         commandName: "setBrickBorderWidth",
         contractVersion: 1,
-        aggregateName: userAggregateV3.name,
-        aggregateVersion: userAggregateV3.version,
+        aggregateName: userAggregateV9.name,
+        aggregateVersion: userAggregateV9.version,
         aggregateId: "acct_border",
         externalOutcome: null,
         payload: { brickId: "brk_border", borderWidth: 1 },
@@ -54,10 +54,10 @@ it.effect("keeps border changes unavailable to System commands", () =>
       .pipe(Effect.flip);
     expect(rejected).toMatchObject({ code: "system-harness-command-forbidden" });
     yield* harness.flush();
-    const db = makeQueryDbVersion({ models: userAggregateV3.models });
+    const db = makeQueryDbVersion({ models: userAggregateV9.models });
     expect(
       yield* harness.query(
-        { release: userAggregateV3, aggregateId: "acct_border" },
+        { release: userAggregateV9, aggregateId: "acct_border" },
         db.query.brick.findMany({}),
       ),
     ).toEqual([]);
@@ -69,14 +69,14 @@ it.effect(
   () =>
     Effect.gen(function* () {
       const harness = yield* makeSystemHarness({ system });
-      const owner = { release: userAggregateV3, aggregateId: "acct_border" };
-      const db = makeQueryDbVersion({ models: userAggregateV3.models });
+      const owner = { release: userAggregateV9, aggregateId: "acct_border" };
+      const db = makeQueryDbVersion({ models: userAggregateV9.models });
       const actor = {
-        aggregateName: userAggregateV3.name,
-        aggregateVersion: userAggregateV3.version,
+        aggregateName: userAggregateV9.name,
+        aggregateVersion: userAggregateV9.version,
         aggregateId: "acct_border",
         actorName: "web",
-        actorVersion: 3,
+        actorVersion: 9,
         claims: { aggregateId: "acct_border", clerkUserId: "user_border" },
         externalOutcome: null,
         nodeId: "node_border",
@@ -87,8 +87,8 @@ it.effect(
         id: "cmd_border_user",
         commandName: "createUser",
         contractVersion: 1,
-        aggregateName: userAggregateV3.name,
-        aggregateVersion: userAggregateV3.version,
+        aggregateName: userAggregateV9.name,
+        aggregateVersion: userAggregateV9.version,
         aggregateId: "acct_border",
         externalOutcome: null,
         payload: {
@@ -118,7 +118,7 @@ it.effect(
         kind: "actor",
         id: "cmd_border_page",
         commandName: "createPage",
-        contractVersion: 1,
+        contractVersion: 2,
         pushIndex: 2,
         payload: {
           id: "pag_border",
@@ -138,7 +138,7 @@ it.effect(
         kind: "actor",
         id: "cmd_border_brick",
         commandName: "addBrick",
-        contractVersion: 3,
+        contractVersion: 5,
         pushIndex: 3,
         payload: {
           id: "brk_border",
@@ -238,7 +238,7 @@ it.effect(
             kind: "actor",
             id: `cmd_${entry.id}`,
             commandName: "addBrick",
-            contractVersion: 3,
+            contractVersion: 5,
             pushIndex: pushIndex++,
             payload: {
               ...entry,
@@ -256,7 +256,7 @@ it.effect(
           kind: "actor",
           id: "cmd_null_swatch_update",
           commandName: "updateBrick",
-          contractVersion: 3,
+          contractVersion: 4,
           pushIndex: pushIndex++,
           payload: { brickId: "brk_border", moduleId: "swatch-and-icon", state: null },
         })
@@ -284,7 +284,7 @@ it.effect(
         kind: "actor",
         id: "cmd_unconfigured_link",
         commandName: "addBrick",
-        contractVersion: 3,
+        contractVersion: 5,
         pushIndex: pushIndex++,
         payload: {
           id: "brk_link",

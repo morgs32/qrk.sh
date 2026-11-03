@@ -5,24 +5,24 @@ import { Schema } from "effect";
 import { makeEffectSchema, primitives } from "@zerospin/shapes";
 
 import {
-  brickBodyComponent,
-  brickFooterComponent,
-  brickShellComponent,
-  columnComponent,
-  rowComponent,
-} from "../lib/jsonRender/layoutComponents";
+  brickBodyComponentMetadata,
+  brickFooterComponentMetadata,
+  brickShellComponentMetadata,
+  columnComponentMetadata,
+  rowComponentMetadata,
+} from "../lib/jsonRender/layoutComponentMetadata";
 
 import { makeModuleVersion } from "../make/makeModuleVersion";
 
-import { repoDescriptionComponent } from "./generator/RepoDescriptionComponent";
+import { repoDescriptionComponentMetadata } from "./generator/RepoDescriptionComponentMetadata";
 
-import { repoForksComponent } from "./generator/RepoForksComponent";
+import { repoForksComponentMetadata } from "./generator/RepoForksComponentMetadata";
 
-import { repoLanguageComponent } from "./generator/RepoLanguageComponent";
+import { repoLanguageComponentMetadata } from "./generator/RepoLanguageComponentMetadata";
 
-import { repoNameComponent } from "./generator/RepoNameComponent";
+import { repoNameComponentMetadata } from "./generator/RepoNameComponentMetadata";
 
-import { repoStarsComponent } from "./generator/RepoStarsComponent";
+import { repoStarsComponentMetadata } from "./generator/RepoStarsComponentMetadata";
 
 import { githubRepo } from "./githubRepo";
 
@@ -57,17 +57,17 @@ export const githubRepoV1 = makeModuleVersion(githubRepo, {
   },
   defaultSpec,
   hasPlaceholder: true,
-  components: {
-    BrickShell: brickShellComponent,
-    BrickBody: brickBodyComponent,
-    BrickFooter: brickFooterComponent,
-    Column: columnComponent,
-    Row: rowComponent,
-    RepoName: repoNameComponent,
-    RepoDescription: repoDescriptionComponent,
-    RepoStars: repoStarsComponent,
-    RepoForks: repoForksComponent,
-    RepoLanguage: repoLanguageComponent,
+  componentMetadata: {
+    BrickShell: brickShellComponentMetadata,
+    BrickBody: brickBodyComponentMetadata,
+    BrickFooter: brickFooterComponentMetadata,
+    Column: columnComponentMetadata,
+    Row: rowComponentMetadata,
+    RepoName: repoNameComponentMetadata,
+    RepoDescription: repoDescriptionComponentMetadata,
+    RepoStars: repoStarsComponentMetadata,
+    RepoForks: repoForksComponentMetadata,
+    RepoLanguage: repoLanguageComponentMetadata,
   },
   stateShape: {
     payload: primitives.json({ schema: makeEffectSchema(payloadShape) }),

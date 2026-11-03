@@ -7,14 +7,14 @@ import { Schema } from "effect";
 import { iconSvgGraphicView } from "../SwatchAndIcon/components/IconSvgGraphic";
 import { swatchAndIconColorView } from "../SwatchAndIcon/components/SwatchAndIconColor";
 import { swatchAndIconV1 } from "@qrk.sh/zerospin/src/modules/swatchAndIcon/swatchAndIconV1";
-import { swatchAndIconColorComponent } from "@qrk.sh/zerospin/src/modules/swatchAndIcon/generator/SwatchAndIconColorComponent";
+import { swatchAndIconColorComponentMetadata } from "@qrk.sh/zerospin/src/modules/swatchAndIcon/generator/SwatchAndIconColorComponentMetadata";
 
 export const { registry } = defineRegistry(swatchAndIconV1.catalog, {
   components: {
     IconSvgGraphic: iconSvgGraphicView.RegistryComponent,
     SwatchAndIconColor(context) {
       const componentProps = Schema.decodeUnknownSync(
-        Schema.toType(makeEffectSchema(swatchAndIconColorComponent.props)),
+        Schema.toType(makeEffectSchema(swatchAndIconColorComponentMetadata.propsShape)),
       )(context.props, { onExcessProperty: "error" });
       const color = useStateValue<unknown>("/payload/color");
       if (typeof color !== "string") {

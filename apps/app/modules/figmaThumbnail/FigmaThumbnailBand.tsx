@@ -1,8 +1,8 @@
 import { Image } from "@unpic/react";
 import { makeComponentView } from "../make/makeComponentView";
-import { figmaThumbnailBandComponent } from "@qrk.sh/zerospin/src/modules/figmaThumbnail/generator/FigmaThumbnailBandComponent";
+import { figmaThumbnailBandComponentMetadata } from "@qrk.sh/zerospin/src/modules/figmaThumbnail/generator/FigmaThumbnailBandComponentMetadata";
 
-export const figmaThumbnailBandView = makeComponentView(figmaThumbnailBandComponent, {
+export const figmaThumbnailBandView = makeComponentView(figmaThumbnailBandComponentMetadata, {
   component(props) {
     const { thumbnail_url, title, imagePosition, thumbnail_height } = props;
     return (

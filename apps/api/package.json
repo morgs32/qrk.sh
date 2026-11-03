@@ -16,15 +16,15 @@
     "@qrk.sh/r2-assets": "workspace:*",
     "@qrk.sh/zerospin": "workspace:*",
     "@remix-run/route-pattern": "^0.22.1",
-    "@zerospin/core": "39.0.0",
-    "@zerospin/error": "39.0.0",
-    "@zerospin/logger": "39.0.0",
-    "@zerospin/shapes": "39.0.0",
+    "@zerospin/core": "41.0.0",
+    "@zerospin/error": "41.0.0",
+    "@zerospin/logger": "41.0.0",
+    "@zerospin/shapes": "41.0.0",
     "capnweb": "^0.12.0",
     "drizzle-orm": "npm:@zerospin/drizzle-orm@1.0.0-rc.5-qrk.3",
     "effect": "4.0.2",
     "es-toolkit": "^1.52.0",
-    "system-worker": "39.0.0"
+    "system-worker": "41.0.0"
   },
   "devDependencies": {
     "@types/node": "^25.5.2",

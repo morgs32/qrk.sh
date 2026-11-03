@@ -3,7 +3,7 @@
 ## Zerospin packages
 
 Zerospin owns its source, builds, and releases in the sibling `../zerospin`
-checkout. QRK installs exact `41.0.0` packages from the local Verdaccio registry;
+checkout. QRK installs exact `42.0.0` packages from the local Verdaccio registry;
 there is no vendored Zerospin source or consumer-side Zerospin build.
 Actor and agent selection identity uses the authored definition rather than
 generated SQL. Existing direct Drizzle dependencies use the same exact local
@@ -85,7 +85,7 @@ See [Modules](apps/app/modules/README.md) and [App](apps/app/README.md).
    On the first registry bootstrap, install, build, verify, and publish the
    release in Zerospin before installing QRK. Follow Zerospin's package release
    instructions. Existing registry storage survives restarts. A fresh checkout
-   requires the running registry with the locked `41.0.0` packages; hosted
+   requires the running registry with the locked `42.0.0` packages; hosted
    distribution and deployment-machine bootstrap are not configured here.
 
 2. Start the five application development servers through Portless:
@@ -138,11 +138,11 @@ Sections. Joins use `movePlacementToRow@2`; new Rows use
 commands remain available without canvas gestures. Historical declarations remain
 registered. See [editor conventions](wiki/brick-layout-conventions.md#insertion-movement-and-selection).
 
-Packages are pinned to Zerospin `38.1.1`. Existing framework `36` storage needs a
-lossless migration before this runtime starts against it. Preserve retained
-commands, identities, checkpoints and model rows; no storage reset is authorized
-for that framework upgrade. The separate local Row-drag cutover below does not
-extend that authorization to a framework `36` migration or production data.
+Zerospin `42.0.0` replaces AggregateChain's `admissionPosition` and
+`finalizedPosition` tables with one `commandProgress` row. Existing affected
+AggregateChain storage must be empty before this runtime starts. This package
+upgrade does not reset storage, migrate retained rows, or deploy applications.
+The dated local Row-drag cutover below is a separate historical operation.
 
 On November 1, 2026, the user authorized resetting QRK's local Zerospin backend
 and affected App session databases for fresh V5 initialization. The backend was

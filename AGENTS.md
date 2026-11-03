@@ -103,6 +103,16 @@ Plans created by agents must include gratuitous annotated examples and annotated
 
 ## Development sign-in URLs
 
+The user authorizes agents to freely operate the local QRK development flow
+entered through these `__dev` sign-in URLs, including normal App URLs after the
+redirect. Create, edit, delete, and reset local QRK verification data as needed;
+switch existing development users, simulate offline conditions, and start or
+restart the configured QRK services. Do not ask for separate confirmation for
+these local development actions or for creating a verification Site, Page, or
+Brick. This authorization is limited to local QRK development: preserve keys,
+Clerk accounts, unrelated work, and other projects. Production changes and the
+user-only handwritten registry restriction remain separately governed.
+
 Use only this repository's existing, configured Portless `.localhost` URLs and
 `__dev` sign-in routes for local development and permitted browser verification.
 Reuse the documented URLs and running services; start or restart those same

@@ -1,8 +1,8 @@
 import { MediaFooter } from "../components/brick/MediaFooter";
 import { makeComponentView } from "../make/makeComponentView";
-import { instagramMediaFooterComponent } from "@qrk.sh/zerospin/src/modules/instagram/generator/InstagramMediaFooterComponent";
+import { instagramMediaFooterComponentMetadata } from "@qrk.sh/zerospin/src/modules/instagram/generator/InstagramMediaFooterComponentMetadata";
 
-export const instagramMediaFooterView = makeComponentView(instagramMediaFooterComponent, {
+export const instagramMediaFooterView = makeComponentView(instagramMediaFooterComponentMetadata, {
   component(props) {
     const { username, followersText } = props;
     return (

@@ -1,7 +1,7 @@
 import { makeComponentView } from "../../../make/makeComponentView";
-import { swatchAndIconColorComponent } from "@qrk.sh/zerospin/src/modules/swatchAndIcon/generator/SwatchAndIconColorComponent";
+import { swatchAndIconColorComponentMetadata } from "@qrk.sh/zerospin/src/modules/swatchAndIcon/generator/SwatchAndIconColorComponentMetadata";
 
-export const swatchAndIconColorView = makeComponentView(swatchAndIconColorComponent, {
+export const swatchAndIconColorView = makeComponentView(swatchAndIconColorComponentMetadata, {
   component(props) {
     const { color, children } = props;
     return (

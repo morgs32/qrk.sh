@@ -1,9 +1,9 @@
 import { Quote } from "lucide-react";
 import { brickMetaIconClass } from "../../../components/brick/brickTokens";
 import { makeComponentView } from "../../../make/makeComponentView";
-import { bioComponent } from "@qrk.sh/zerospin/src/modules/githubProfile/generator/BioComponent";
+import { bioComponentMetadata } from "@qrk.sh/zerospin/src/modules/githubProfile/generator/BioComponentMetadata";
 
-export const bioView = makeComponentView(bioComponent, {
+export const bioView = makeComponentView(bioComponentMetadata, {
   component(props) {
     const { bio } = props;
     if (!bio) {

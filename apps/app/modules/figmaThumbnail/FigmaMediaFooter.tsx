@@ -1,8 +1,8 @@
 import { MediaFooter } from "../components/brick/MediaFooter";
 import { makeComponentView } from "../make/makeComponentView";
-import { figmaMediaFooterComponent } from "@qrk.sh/zerospin/src/modules/figmaThumbnail/generator/FigmaMediaFooterComponent";
+import { figmaMediaFooterComponentMetadata } from "@qrk.sh/zerospin/src/modules/figmaThumbnail/generator/FigmaMediaFooterComponentMetadata";
 
-export const figmaMediaFooterView = makeComponentView(figmaMediaFooterComponent, {
+export const figmaMediaFooterView = makeComponentView(figmaMediaFooterComponentMetadata, {
   component(props) {
     const { url, title } = props;
     return (

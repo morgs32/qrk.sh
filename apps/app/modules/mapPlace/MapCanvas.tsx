@@ -3,11 +3,11 @@
 import mapboxgl from "mapbox-gl";
 import { useEffect, useRef } from "react";
 import { makeComponentView } from "../make/makeComponentView";
-import { mapCanvasComponent } from "@qrk.sh/zerospin/src/modules/mapPlace/generator/MapCanvasComponent";
+import { mapCanvasComponentMetadata } from "@qrk.sh/zerospin/src/modules/mapPlace/generator/MapCanvasComponentMetadata";
 
 const MAPBOX_TOKEN = process.env.PUBLIC_MAPBOX_TOKEN;
 
-export const mapCanvasView = makeComponentView(mapCanvasComponent, {
+export const mapCanvasView = makeComponentView(mapCanvasComponentMetadata, {
   component(props) {
     const { longitude, latitude, googlePlaceId, name } = props;
     const mapContainerRef = useRef<HTMLDivElement>(null);

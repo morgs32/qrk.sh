@@ -1,7 +1,7 @@
 import { makeComponentView } from "../../../make/makeComponentView";
-import { repoDescriptionComponent } from "@qrk.sh/zerospin/src/modules/githubRepo/generator/RepoDescriptionComponent";
+import { repoDescriptionComponentMetadata } from "@qrk.sh/zerospin/src/modules/githubRepo/generator/RepoDescriptionComponentMetadata";
 
-export const repoDescriptionView = makeComponentView(repoDescriptionComponent, {
+export const repoDescriptionView = makeComponentView(repoDescriptionComponentMetadata, {
   component(props) {
     const { description: descriptionProp } = props;
     const description = descriptionProp === null ? "" : descriptionProp.trim();

@@ -1,15 +1,15 @@
 import { Schema } from "effect";
 
-import type { defineComponent } from "./defineComponent";
+import type { defineComponentMetadata } from "./defineComponentMetadata";
 import { makeComponentSpecSchema } from "./makeComponentSpecSchema";
 import { placementSpecSchema } from "./placementSpecSchema";
 
-/** Full checked json-render Spec document schema from a module's component set. */
-export function makeModuleSpecDocumentSchema(components: {
-  readonly [name: string]: ReturnType<typeof defineComponent>;
+/** Full checked json-render Spec document schema from a module's component metadata. */
+export function makeModuleSpecDocumentSchema(componentMetadata: {
+  readonly [name: string]: ReturnType<typeof defineComponentMetadata>;
 }) {
-  const [firstElementSchema, ...restElementSchemas] = Object.values(components).map((component) =>
-    makeComponentSpecSchema(component),
+  const [firstElementSchema, ...restElementSchemas] = Object.values(componentMetadata).map(
+    (metadata) => makeComponentSpecSchema(metadata),
   );
   if (firstElementSchema === undefined) {
     throw new Error("makeModuleSpecDocumentSchema: module must declare at least one component");

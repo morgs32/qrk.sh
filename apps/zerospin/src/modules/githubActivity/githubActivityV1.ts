@@ -5,16 +5,16 @@ import { makeEffectSchema, primitives } from "@zerospin/shapes";
 import { Schema } from "effect";
 
 import {
-  brickBodyComponent,
-  brickFooterComponent,
-  brickShellComponent,
-  columnComponent,
-  rowComponent,
-} from "../lib/jsonRender/layoutComponents";
+  brickBodyComponentMetadata,
+  brickFooterComponentMetadata,
+  brickShellComponentMetadata,
+  columnComponentMetadata,
+  rowComponentMetadata,
+} from "../lib/jsonRender/layoutComponentMetadata";
 
 import { makeModuleVersion } from "../make/makeModuleVersion";
 
-import { activityCalendarComponent } from "./generator/ActivityCalendarComponent";
+import { activityCalendarComponentMetadata } from "./generator/ActivityCalendarComponentMetadata";
 
 import { githubActivity } from "./githubActivity";
 
@@ -64,13 +64,13 @@ export const githubActivityV1 = makeModuleVersion(githubActivity, {
   },
   defaultSpec,
   hasPlaceholder: true,
-  components: {
-    BrickShell: brickShellComponent,
-    BrickBody: brickBodyComponent,
-    BrickFooter: brickFooterComponent,
-    Column: columnComponent,
-    Row: rowComponent,
-    ActivityCalendar: activityCalendarComponent,
+  componentMetadata: {
+    BrickShell: brickShellComponentMetadata,
+    BrickBody: brickBodyComponentMetadata,
+    BrickFooter: brickFooterComponentMetadata,
+    Column: columnComponentMetadata,
+    Row: rowComponentMetadata,
+    ActivityCalendar: activityCalendarComponentMetadata,
   },
   stateShape: {
     payload: primitives.json({ schema: makeEffectSchema(payloadShape) }),

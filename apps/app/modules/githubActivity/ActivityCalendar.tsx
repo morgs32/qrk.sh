@@ -3,9 +3,9 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import { ActivityCalendar as ReactActivityCalendar } from "react-activity-calendar";
 import { makeComponentView } from "../make/makeComponentView";
-import { activityCalendarComponent } from "@qrk.sh/zerospin/src/modules/githubActivity/generator/ActivityCalendarComponent";
+import { activityCalendarComponentMetadata } from "@qrk.sh/zerospin/src/modules/githubActivity/generator/ActivityCalendarComponentMetadata";
 
-export const activityCalendarView = makeComponentView(activityCalendarComponent, {
+export const activityCalendarView = makeComponentView(activityCalendarComponentMetadata, {
   component(props) {
     const { contributions } = props;
     const calendarRef = useRef<HTMLElement>(null);

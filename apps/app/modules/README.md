@@ -262,7 +262,7 @@ manual scrolling keeps the chosen position.
 no arbitrary-string index signature. App validates route module IDs against the
 registered module/Brick identity; Storybook binds an explicit registered module ID.
 Internal previews and state updates retain the registered ID union.
-`defineModule` declares identity; `makeModuleVersion` owns variant sizing, the catalog, `stateShape`,
+`defineModule` declares identity; `makeModuleVersion` owns variant sizing, component metadata, `stateShape`,
 canonical worker-safe `defaultSpec`, and `defaultState`. `makeModuleView` infers authored callback props from that state
 shape and decodes incoming state before rendering, discarding undeclared fields.
 Its authored wrappers are created once per variant and reused by module rendering
@@ -294,15 +294,25 @@ retain their null-state presentations and blank form drafts. Catalog `defaultSta
 examples remain separate. Placeholder skeletons respect reduced motion and contain
 no outbound interactions; a configured Brick is never reset by preview controls.
 
-`makeComponentView` binds display markup to a `defineComponent` descriptor. Its
+`defineComponentMetadata` describes an allowed component using its name, `propsShape`,
+slots, and description; it contains no React implementation. Each module exposes
+these descriptions as `componentMetadata`. `propsShape` is a Zerospin shape for
+the whole props object, matching the role of `stateShape` for module state.
+json-render Specs and React renderers retain `props` for runtime values.
+`makeCatalogFromComponentMetadata` converts the metadata into json-render catalogs.
+Each App registry builds its catalog during module initialization; API builds its
+catalog map once when its generation module initializes. Native backend module
+construction validates metadata names without importing or constructing catalogs.
+
+`makeComponentView` binds display markup to that component metadata. Its
 `.Component` accepts inferred flat props; its `.RegistryComponent` decodes resolved
-JSON-render props against the same descriptor before rendering `.Component` through
+JSON-render props against the metadata's `propsShape` before rendering `.Component` through
 JSX and forwarding children. Missing or invalid props surface schema errors rather
 than handwritten fallback values. Both components retain stable identities. Use
 member expressions directly so no file-scope component aliases are needed:
 
 ```tsx
-export const bioView = makeComponentView(bioComponent, {
+export const bioView = makeComponentView(bioComponentMetadata, {
   component(props) {
     const { bio } = props;
     return bio ? <p>{bio}</p> : null;

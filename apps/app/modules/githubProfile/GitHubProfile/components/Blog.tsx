@@ -1,9 +1,9 @@
 import { Link as LinkIcon } from "lucide-react";
 import { brickMetaIconClass } from "../../../components/brick/brickTokens";
 import { makeComponentView } from "../../../make/makeComponentView";
-import { blogComponent } from "@qrk.sh/zerospin/src/modules/githubProfile/generator/BlogComponent";
+import { blogComponentMetadata } from "@qrk.sh/zerospin/src/modules/githubProfile/generator/BlogComponentMetadata";
 
-export const blogView = makeComponentView(blogComponent, {
+export const blogView = makeComponentView(blogComponentMetadata, {
   component(props) {
     const { blog } = props;
     if (!blog) {

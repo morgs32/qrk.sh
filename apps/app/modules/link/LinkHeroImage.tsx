@@ -1,8 +1,8 @@
 import { Image } from "@unpic/react";
 import { makeComponentView } from "../make/makeComponentView";
-import { linkHeroImageComponent } from "@qrk.sh/zerospin/src/modules/link/generator/LinkHeroImageComponent";
+import { linkHeroImageComponentMetadata } from "@qrk.sh/zerospin/src/modules/link/generator/LinkHeroImageComponentMetadata";
 
-export const linkHeroImageView = makeComponentView(linkHeroImageComponent, {
+export const linkHeroImageView = makeComponentView(linkHeroImageComponentMetadata, {
   component(props) {
     const { imageUrl } = props;
     if (imageUrl.length === 0) {

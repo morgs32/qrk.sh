@@ -1,9 +1,9 @@
 import { Star } from "lucide-react";
 import { brickMetaIconClass } from "../../../components/brick/brickTokens";
 import { makeComponentView } from "../../../make/makeComponentView";
-import { repoStarsComponent } from "@qrk.sh/zerospin/src/modules/githubRepo/generator/RepoStarsComponent";
+import { repoStarsComponentMetadata } from "@qrk.sh/zerospin/src/modules/githubRepo/generator/RepoStarsComponentMetadata";
 
-export const repoStarsView = makeComponentView(repoStarsComponent, {
+export const repoStarsView = makeComponentView(repoStarsComponentMetadata, {
   component(props) {
     const { stargazers_count } = props;
     return (

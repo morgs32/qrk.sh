@@ -5,20 +5,20 @@ import { Schema } from "effect";
 import { makeEffectSchema, primitives } from "@zerospin/shapes";
 
 import {
-  brickBodyComponent,
-  brickFooterComponent,
-  brickShellComponent,
-  columnComponent,
-  rowComponent,
-} from "../lib/jsonRender/layoutComponents";
+  brickBodyComponentMetadata,
+  brickFooterComponentMetadata,
+  brickShellComponentMetadata,
+  columnComponentMetadata,
+  rowComponentMetadata,
+} from "../lib/jsonRender/layoutComponentMetadata";
 
 import { makeModuleVersion } from "../make/makeModuleVersion";
 
-import { linkCardComponent } from "./generator/LinkCardComponent";
+import { linkCardComponentMetadata } from "./generator/LinkCardComponentMetadata";
 
-import { linkCopyComponent } from "./generator/LinkCopyComponent";
+import { linkCopyComponentMetadata } from "./generator/LinkCopyComponentMetadata";
 
-import { linkHeroImageComponent } from "./generator/LinkHeroImageComponent";
+import { linkHeroImageComponentMetadata } from "./generator/LinkHeroImageComponentMetadata";
 
 import { link } from "./link";
 
@@ -58,15 +58,15 @@ export const linkV1 = makeModuleVersion(link, {
   },
   defaultSpec,
   hasPlaceholder: true,
-  components: {
-    BrickShell: brickShellComponent,
-    BrickBody: brickBodyComponent,
-    BrickFooter: brickFooterComponent,
-    Column: columnComponent,
-    Row: rowComponent,
-    LinkCard: linkCardComponent,
-    LinkCopy: linkCopyComponent,
-    LinkHeroImage: linkHeroImageComponent,
+  componentMetadata: {
+    BrickShell: brickShellComponentMetadata,
+    BrickBody: brickBodyComponentMetadata,
+    BrickFooter: brickFooterComponentMetadata,
+    Column: columnComponentMetadata,
+    Row: rowComponentMetadata,
+    LinkCard: linkCardComponentMetadata,
+    LinkCopy: linkCopyComponentMetadata,
+    LinkHeroImage: linkHeroImageComponentMetadata,
   },
   stateShape: {
     payload: primitives.json({ schema: makeEffectSchema(payloadShape) }),

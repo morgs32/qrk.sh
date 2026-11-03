@@ -1,56 +1,13 @@
-import { defineCatalog, type Catalog, type Spec } from "@json-render/core";
-import { schema } from "@json-render/react/schema";
-import { primitives, type IInferDecodedRow, type IShape } from "@zerospin/shapes";
-import { descriptorToZod, makeZodSchema } from "@zerospin/zod";
+import type { Spec } from "@json-render/core";
+import type { IInferDecodedRow, IShape } from "@zerospin/shapes";
 import { mapValues } from "es-toolkit";
 
 import type { IJsonValue } from "../types";
 import { decodeDefaultData } from "./decodeDefaultData";
-import type { defineComponent } from "./defineComponent";
+import type { defineComponentMetadata } from "./defineComponentMetadata";
 import { defineModule } from "./defineModule";
 
-const stateRefSchema = makeZodSchema({
-  $state: primitives.text(),
-});
-
-function makeCatalogFromComponents(
-  components: Record<string, ReturnType<typeof defineComponent>>,
-): Catalog {
-  const catalogComponents = mapValues(components, (component, key) => {
-    if (key !== component.type) {
-      throw new Error(
-        `makeModuleVersion: components key ${JSON.stringify(key)} must equal type ${JSON.stringify(component.type)}`,
-      );
-    }
-    const dynamicProps = makeZodSchema({}).extend(
-      mapValues(component.props, (descriptor) => {
-        const dynamicField = descriptorToZod(descriptor).or(stateRefSchema);
-        if (
-          descriptor !== undefined &&
-          typeof descriptor === "object" &&
-          "nullable" in descriptor &&
-          descriptor.nullable === true
-        ) {
-          return dynamicField.optional();
-        }
-        return dynamicField;
-      }),
-    );
-
-    return {
-      props: dynamicProps,
-      ...(component.slots === undefined ? {} : { slots: [...component.slots] }),
-      ...(component.description === undefined ? {} : { description: component.description }),
-    };
-  });
-
-  return defineCatalog(schema, {
-    components: catalogComponents,
-    actions: {},
-  });
-}
-
-/** Versioned module snapshot: components→catalog, state document. */
+/** Versioned module snapshot: component metadata and state document. */
 export function makeModuleVersion<
   const MODULE extends string,
   const ABBREVIATION extends string,
@@ -80,7 +37,7 @@ export function makeModuleVersion<
     };
     defaultSpec: Spec;
     hasPlaceholder: boolean;
-    components: Record<string, ReturnType<typeof defineComponent>>;
+    componentMetadata: Record<string, ReturnType<typeof defineComponentMetadata>>;
     stateShape: STATE_SHAPE;
     defaultState: IInferDecodedRow<STATE_SHAPE> & Readonly<Record<string, IJsonValue>>;
   },
@@ -89,7 +46,7 @@ export function makeModuleVersion<
     version,
     variants,
     defaultSpec,
-    components,
+    componentMetadata,
     stateShape,
     defaultState: suppliedDefaultState,
     hasPlaceholder,
@@ -103,7 +60,13 @@ export function makeModuleVersion<
     throw new Error("makeModuleVersion: defaultWidth must be a positive finite number");
   }
 
-  const catalog = makeCatalogFromComponents(components);
+  mapValues(componentMetadata, (metadata, key) => {
+    if (key !== metadata.type) {
+      throw new Error(
+        `makeModuleVersion: componentMetadata key ${JSON.stringify(key)} must equal type ${JSON.stringify(metadata.type)}`,
+      );
+    }
+  });
   const defaultState = decodeDefaultData(stateShape, suppliedDefaultState);
 
   const def = {
@@ -121,8 +84,7 @@ export function makeModuleVersion<
     variants,
     defaultSpec,
     hasPlaceholder,
-    catalog,
-    components,
+    componentMetadata,
     stateShape,
     defaultState,
     def,

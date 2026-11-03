@@ -1,4 +1,6 @@
 import { defineRegistry } from "@json-render/react";
+import { makeCatalogFromComponentMetadata } from "@qrk.sh/zerospin/src/modules/make/makeCatalogFromComponentMetadata";
+
 import type { ReactNode } from "react";
 
 import { BrickShell } from "../../components/brick/BrickShell";
@@ -10,17 +12,20 @@ import { repoForksView } from "../GitHubRepo/components/RepoForks";
 import { repoLanguageView } from "../GitHubRepo/components/RepoLanguage";
 import { githubRepoV1 } from "@qrk.sh/zerospin/src/modules/githubRepo/githubRepoV1";
 
-export const { registry } = defineRegistry(githubRepoV1.catalog, {
-  components: {
-    ...layoutRegistryComponents,
-    BrickShell: (props: { children?: ReactNode }) => {
-      const { children } = props;
-      return <BrickShell className="bg-white">{children}</BrickShell>;
+export const { registry } = defineRegistry(
+  makeCatalogFromComponentMetadata(githubRepoV1.componentMetadata),
+  {
+    components: {
+      ...layoutRegistryComponents,
+      BrickShell: (props: { children?: ReactNode }) => {
+        const { children } = props;
+        return <BrickShell className="bg-white">{children}</BrickShell>;
+      },
+      RepoName: repoNameView.RegistryComponent,
+      RepoDescription: repoDescriptionView.RegistryComponent,
+      RepoStars: repoStarsView.RegistryComponent,
+      RepoForks: repoForksView.RegistryComponent,
+      RepoLanguage: repoLanguageView.RegistryComponent,
     },
-    RepoName: repoNameView.RegistryComponent,
-    RepoDescription: repoDescriptionView.RegistryComponent,
-    RepoStars: repoStarsView.RegistryComponent,
-    RepoForks: repoForksView.RegistryComponent,
-    RepoLanguage: repoLanguageView.RegistryComponent,
   },
-});
+);

@@ -1,7 +1,7 @@
 import { makeComponentView } from "../make/makeComponentView";
-import { linkCardComponent } from "@qrk.sh/zerospin/src/modules/link/generator/LinkCardComponent";
+import { linkCardComponentMetadata } from "@qrk.sh/zerospin/src/modules/link/generator/LinkCardComponentMetadata";
 
-export const linkCardView = makeComponentView(linkCardComponent, {
+export const linkCardView = makeComponentView(linkCardComponentMetadata, {
   component(props) {
     const { children } = props;
     return (

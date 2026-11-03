@@ -1,9 +1,9 @@
 import { BookOpen } from "lucide-react";
 import { brickMetaIconClass } from "../../../components/brick/brickTokens";
 import { makeComponentView } from "../../../make/makeComponentView";
-import { publicReposComponent } from "@qrk.sh/zerospin/src/modules/githubProfile/generator/PublicReposComponent";
+import { publicReposComponentMetadata } from "@qrk.sh/zerospin/src/modules/githubProfile/generator/PublicReposComponentMetadata";
 
-export const publicReposView = makeComponentView(publicReposComponent, {
+export const publicReposView = makeComponentView(publicReposComponentMetadata, {
   component(props) {
     const { public_repos } = props;
     return (

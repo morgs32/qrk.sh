@@ -1,9 +1,9 @@
 import { Users } from "lucide-react";
 import { brickMetaIconClass } from "../../../components/brick/brickTokens";
 import { makeComponentView } from "../../../make/makeComponentView";
-import { followersComponent } from "@qrk.sh/zerospin/src/modules/githubProfile/generator/FollowersComponent";
+import { followersComponentMetadata } from "@qrk.sh/zerospin/src/modules/githubProfile/generator/FollowersComponentMetadata";
 
-export const followersView = makeComponentView(followersComponent, {
+export const followersView = makeComponentView(followersComponentMetadata, {
   component(props) {
     const { followers } = props;
     return (

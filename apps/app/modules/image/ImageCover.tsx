@@ -1,8 +1,8 @@
 import { Image as UnpicImage } from "@unpic/react";
 import { makeComponentView } from "../make/makeComponentView";
-import { imageCoverComponent } from "@qrk.sh/zerospin/src/modules/image/generator/ImageCoverComponent";
+import { imageCoverComponentMetadata } from "@qrk.sh/zerospin/src/modules/image/generator/ImageCoverComponentMetadata";
 
-export const imageCoverView = makeComponentView(imageCoverComponent, {
+export const imageCoverView = makeComponentView(imageCoverComponentMetadata, {
   component(props) {
     const { imageUrl, title, imagePosition } = props;
     return (

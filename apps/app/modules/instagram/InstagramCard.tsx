@@ -1,8 +1,8 @@
 import { BrickShell } from "../components/brick/BrickShell";
 import { makeComponentView } from "../make/makeComponentView";
-import { instagramCardComponent } from "@qrk.sh/zerospin/src/modules/instagram/generator/InstagramCardComponent";
+import { instagramCardComponentMetadata } from "@qrk.sh/zerospin/src/modules/instagram/generator/InstagramCardComponentMetadata";
 
-export const instagramCardView = makeComponentView(instagramCardComponent, {
+export const instagramCardView = makeComponentView(instagramCardComponentMetadata, {
   component(props) {
     const { username, children } = props;
     return (

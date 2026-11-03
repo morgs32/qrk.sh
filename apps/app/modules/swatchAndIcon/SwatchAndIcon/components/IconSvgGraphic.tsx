@@ -1,8 +1,8 @@
 import { Image } from "@unpic/react";
 import { makeComponentView } from "../../../make/makeComponentView";
-import { iconSvgGraphicComponent } from "@qrk.sh/zerospin/src/modules/swatchAndIcon/generator/IconSvgGraphicComponent";
+import { iconSvgGraphicComponentMetadata } from "@qrk.sh/zerospin/src/modules/swatchAndIcon/generator/IconSvgGraphicComponentMetadata";
 
-export const iconSvgGraphicView = makeComponentView(iconSvgGraphicComponent, {
+export const iconSvgGraphicView = makeComponentView(iconSvgGraphicComponentMetadata, {
   component(props) {
     const { name, svg } = props;
     if (svg.trim().length === 0) return null;

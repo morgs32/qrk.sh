@@ -3,12 +3,12 @@
 import { MarkdownView } from "@meowdown/react";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { makeComponentView } from "../make/makeComponentView";
-import { articleBrickComponent } from "@qrk.sh/zerospin/src/modules/article/generator/ArticleBrickComponent";
+import { articleBrickComponentMetadata } from "@qrk.sh/zerospin/src/modules/article/generator/ArticleBrickComponentMetadata";
 import { BrickShell } from "../components/brick/BrickShell";
 import "./article-font.css";
 import "./article-editor.css";
 
-export const articleBrickContentView = makeComponentView(articleBrickComponent, {
+export const articleBrickContentView = makeComponentView(articleBrickComponentMetadata, {
   component(props) {
     const { title, subtitle, content } = props;
     const [mounted, setMounted] = useState(false);

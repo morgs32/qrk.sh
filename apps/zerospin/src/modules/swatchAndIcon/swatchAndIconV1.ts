@@ -4,9 +4,9 @@ import { makeEffectSchema, primitives } from "@zerospin/shapes";
 
 import { makeModuleVersion } from "../make/makeModuleVersion";
 
-import { iconSvgGraphicComponent } from "./generator/IconSvgGraphicComponent";
+import { iconSvgGraphicComponentMetadata } from "./generator/IconSvgGraphicComponentMetadata";
 
-import { swatchAndIconColorComponent } from "./generator/SwatchAndIconColorComponent";
+import { swatchAndIconColorComponentMetadata } from "./generator/SwatchAndIconColorComponentMetadata";
 
 import { swatchAndIcon } from "./swatchAndIcon";
 
@@ -36,9 +36,9 @@ export const swatchAndIconV1 = makeModuleVersion(swatchAndIcon, {
   },
   defaultSpec,
   hasPlaceholder: false,
-  components: {
-    SwatchAndIconColor: swatchAndIconColorComponent,
-    IconSvgGraphic: iconSvgGraphicComponent,
+  componentMetadata: {
+    SwatchAndIconColor: swatchAndIconColorComponentMetadata,
+    IconSvgGraphic: iconSvgGraphicComponentMetadata,
   },
   stateShape: {
     payload: primitives.json({ schema: makeEffectSchema(payloadShape) }),

@@ -5,22 +5,22 @@ import { Schema } from "effect";
 import { makeEffectSchema, primitives } from "@zerospin/shapes";
 
 import {
-  brickBodyComponent,
-  brickFooterComponent,
-  brickShellComponent,
-  columnComponent,
-  rowComponent,
-} from "../lib/jsonRender/layoutComponents";
+  brickBodyComponentMetadata,
+  brickFooterComponentMetadata,
+  brickShellComponentMetadata,
+  columnComponentMetadata,
+  rowComponentMetadata,
+} from "../lib/jsonRender/layoutComponentMetadata";
 
 import { makeModuleVersion } from "../make/makeModuleVersion";
 
 import { figmaThumbnail } from "./figmaThumbnail";
 
-import { figmaCardComponent } from "./generator/FigmaCardComponent";
+import { figmaCardComponentMetadata } from "./generator/FigmaCardComponentMetadata";
 
-import { figmaMediaFooterComponent } from "./generator/FigmaMediaFooterComponent";
+import { figmaMediaFooterComponentMetadata } from "./generator/FigmaMediaFooterComponentMetadata";
 
-import { figmaThumbnailBandComponent } from "./generator/FigmaThumbnailBandComponent";
+import { figmaThumbnailBandComponentMetadata } from "./generator/FigmaThumbnailBandComponentMetadata";
 
 const payloadShape = {
   url: primitives.text({
@@ -55,15 +55,15 @@ export const figmaThumbnailV1 = makeModuleVersion(figmaThumbnail, {
   },
   defaultSpec,
   hasPlaceholder: true,
-  components: {
-    BrickShell: brickShellComponent,
-    BrickBody: brickBodyComponent,
-    BrickFooter: brickFooterComponent,
-    Column: columnComponent,
-    Row: rowComponent,
-    FigmaCard: figmaCardComponent,
-    FigmaThumbnailBand: figmaThumbnailBandComponent,
-    FigmaMediaFooter: figmaMediaFooterComponent,
+  componentMetadata: {
+    BrickShell: brickShellComponentMetadata,
+    BrickBody: brickBodyComponentMetadata,
+    BrickFooter: brickFooterComponentMetadata,
+    Column: columnComponentMetadata,
+    Row: rowComponentMetadata,
+    FigmaCard: figmaCardComponentMetadata,
+    FigmaThumbnailBand: figmaThumbnailBandComponentMetadata,
+    FigmaMediaFooter: figmaMediaFooterComponentMetadata,
   },
   stateShape: {
     payload: primitives.json({ schema: makeEffectSchema(payloadShape) }),

@@ -1,7 +1,7 @@
 import type { IResult } from "@zerospin/error";
 import type { ComponentType, ReactNode, SVGProps } from "react";
 
-import type { Catalog, Spec } from "@json-render/core";
+import type { Spec } from "@json-render/core";
 import {
   ActionProvider,
   Renderer,
@@ -33,7 +33,6 @@ export function makeModuleView<
     label: string;
     description: string;
     defaultSpec: Spec;
-    catalog?: Catalog;
     stateShape: IShape;
     defaultState: unknown;
     hasPlaceholder: boolean;
@@ -82,11 +81,6 @@ export function makeModuleView<
     if (module.hasPlaceholder !== (variant.placeholder !== undefined)) {
       throw new Error(
         `makeModuleView: ${JSON.stringify(module.id)} placeholder must match its declaration`,
-      );
-    }
-    if (variant.generator !== undefined && module.catalog === undefined) {
-      throw new Error(
-        `makeModuleView: ${JSON.stringify(module.id)} has no catalog; omit generator`,
       );
     }
     const Component = variant.component;

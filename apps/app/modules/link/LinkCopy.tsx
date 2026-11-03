@@ -1,9 +1,9 @@
 import { Image } from "@unpic/react";
 import { Link } from "../components/Link";
 import { makeComponentView } from "../make/makeComponentView";
-import { linkCopyComponent } from "@qrk.sh/zerospin/src/modules/link/generator/LinkCopyComponent";
+import { linkCopyComponentMetadata } from "@qrk.sh/zerospin/src/modules/link/generator/LinkCopyComponentMetadata";
 
-export const linkCopyView = makeComponentView(linkCopyComponent, {
+export const linkCopyView = makeComponentView(linkCopyComponentMetadata, {
   component(props) {
     const { url, iconUrl, title } = props;
     const href = url.length > 0 ? url : undefined;

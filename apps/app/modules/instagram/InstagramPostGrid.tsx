@@ -1,8 +1,8 @@
 import { Image } from "@unpic/react";
 import { makeComponentView } from "../make/makeComponentView";
-import { instagramPostGridComponent } from "@qrk.sh/zerospin/src/modules/instagram/generator/InstagramPostGridComponent";
+import { instagramPostGridComponentMetadata } from "@qrk.sh/zerospin/src/modules/instagram/generator/InstagramPostGridComponentMetadata";
 
-export const instagramPostGridView = makeComponentView(instagramPostGridComponent, {
+export const instagramPostGridView = makeComponentView(instagramPostGridComponentMetadata, {
   component(props) {
     const { username, postImageUrls } = props;
     if (postImageUrls.length === 0) {

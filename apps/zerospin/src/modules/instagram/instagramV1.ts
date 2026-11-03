@@ -5,20 +5,20 @@ import { makeEffectSchema, primitives } from "@zerospin/shapes";
 import { Schema } from "effect";
 
 import {
-  brickBodyComponent,
-  brickFooterComponent,
-  brickShellComponent,
-  columnComponent,
-  rowComponent,
-} from "../lib/jsonRender/layoutComponents";
+  brickBodyComponentMetadata,
+  brickFooterComponentMetadata,
+  brickShellComponentMetadata,
+  columnComponentMetadata,
+  rowComponentMetadata,
+} from "../lib/jsonRender/layoutComponentMetadata";
 
 import { makeModuleVersion } from "../make/makeModuleVersion";
 
-import { instagramCardComponent } from "./generator/InstagramCardComponent";
+import { instagramCardComponentMetadata } from "./generator/InstagramCardComponentMetadata";
 
-import { instagramMediaFooterComponent } from "./generator/InstagramMediaFooterComponent";
+import { instagramMediaFooterComponentMetadata } from "./generator/InstagramMediaFooterComponentMetadata";
 
-import { instagramPostGridComponent } from "./generator/InstagramPostGridComponent";
+import { instagramPostGridComponentMetadata } from "./generator/InstagramPostGridComponentMetadata";
 
 import { instagram } from "./instagram";
 
@@ -60,15 +60,15 @@ export const instagramV1 = makeModuleVersion(instagram, {
   },
   defaultSpec,
   hasPlaceholder: true,
-  components: {
-    BrickShell: brickShellComponent,
-    BrickBody: brickBodyComponent,
-    BrickFooter: brickFooterComponent,
-    Column: columnComponent,
-    Row: rowComponent,
-    InstagramCard: instagramCardComponent,
-    InstagramPostGrid: instagramPostGridComponent,
-    InstagramMediaFooter: instagramMediaFooterComponent,
+  componentMetadata: {
+    BrickShell: brickShellComponentMetadata,
+    BrickBody: brickBodyComponentMetadata,
+    BrickFooter: brickFooterComponentMetadata,
+    Column: columnComponentMetadata,
+    Row: rowComponentMetadata,
+    InstagramCard: instagramCardComponentMetadata,
+    InstagramPostGrid: instagramPostGridComponentMetadata,
+    InstagramMediaFooter: instagramMediaFooterComponentMetadata,
   },
   stateShape: {
     payload: primitives.json({ schema: makeEffectSchema(payloadShape) }),

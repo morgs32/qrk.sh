@@ -3,16 +3,16 @@ import { defaultSpec } from "./generator/defaultSpec";
 import { primitives } from "@zerospin/shapes";
 
 import {
-  brickBodyComponent,
-  brickFooterComponent,
-  brickShellComponent,
-  columnComponent,
-  rowComponent,
-} from "../lib/jsonRender/layoutComponents";
+  brickBodyComponentMetadata,
+  brickFooterComponentMetadata,
+  brickShellComponentMetadata,
+  columnComponentMetadata,
+  rowComponentMetadata,
+} from "../lib/jsonRender/layoutComponentMetadata";
 
 import { makeModuleVersion } from "../make/makeModuleVersion";
 
-import { articleBrickComponent } from "./generator/ArticleBrickComponent";
+import { articleBrickComponentMetadata } from "./generator/ArticleBrickComponentMetadata";
 
 import { article } from "./article";
 
@@ -36,13 +36,13 @@ export const articleV1 = makeModuleVersion(article, {
   },
   defaultSpec,
   hasPlaceholder: true,
-  components: {
-    BrickShell: brickShellComponent,
-    BrickBody: brickBodyComponent,
-    BrickFooter: brickFooterComponent,
-    Column: columnComponent,
-    Row: rowComponent,
-    ArticleBrick: articleBrickComponent,
+  componentMetadata: {
+    BrickShell: brickShellComponentMetadata,
+    BrickBody: brickBodyComponentMetadata,
+    BrickFooter: brickFooterComponentMetadata,
+    Column: columnComponentMetadata,
+    Row: rowComponentMetadata,
+    ArticleBrick: articleBrickComponentMetadata,
   },
   stateShape: dataShape,
   defaultState: {

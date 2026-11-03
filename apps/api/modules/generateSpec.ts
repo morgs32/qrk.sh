@@ -1,14 +1,20 @@
 import { buildUserPrompt, compileSpecStream, isNonEmptySpec, type Spec } from "@json-render/core";
 
+import { mapValues } from "es-toolkit";
+
+import { makeCatalogFromComponentMetadata } from "@qrk.sh/zerospin/src/modules/make/makeCatalogFromComponentMetadata";
 import { backendLibrary } from "@qrk.sh/zerospin/src/modules/backendLibrary";
 import { makeModuleSpecDocumentSchema } from "@qrk.sh/zerospin/src/modules/make/makeModuleSpecDocumentSchema";
 import { Schema } from "effect";
 import type { IRpcEither } from "./types";
 
 const GENERATE_MODEL = "gpt-5.6-luna";
+const catalogs = mapValues(backendLibrary, (module) =>
+  makeCatalogFromComponentMetadata(module.componentMetadata),
+);
 
 function backendEntryForModuleId(moduleId: string) {
-  if (moduleId in backendLibrary) {
+  if (Object.hasOwn(backendLibrary, moduleId)) {
     return backendLibrary[moduleId as keyof typeof backendLibrary];
   }
   return undefined;
@@ -96,7 +102,7 @@ export async function generateSpec(props: {
   }
 
   const entry = backendEntryForModuleId(moduleId);
-  if (entry === undefined || entry.catalog === undefined) {
+  if (entry === undefined) {
     return {
       _tag: "Left",
       left: {
@@ -127,7 +133,7 @@ export async function generateSpec(props: {
     };
   }
 
-  const catalog = entry.catalog;
+  const catalog = catalogs[entry.id];
 
   try {
     const system = catalog.prompt({ mode: "standalone" });
@@ -173,7 +179,7 @@ export async function generateSpec(props: {
     }
     const spec = specFromModelText(contentFromChatCompletion(responseBody), currentSpec);
     const validated = Schema.decodeUnknownResult(
-      makeModuleSpecDocumentSchema(entry.components),
+      makeModuleSpecDocumentSchema(entry.componentMetadata),
     )(spec);
     if (validated._tag === "Failure") {
       return {

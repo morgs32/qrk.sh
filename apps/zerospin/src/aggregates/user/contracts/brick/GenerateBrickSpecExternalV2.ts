@@ -162,7 +162,7 @@ export const generateBrickSpecExternalV2 = makeAggregateExternalContractRelease(
         return;
       }
       const decoded = Schema.decodeUnknownResult(
-        makeModuleSpecDocumentSchema(library[brickRow.moduleId].components),
+        makeModuleSpecDocumentSchema(library[brickRow.moduleId].componentMetadata),
       )(externalOutcome.success.right);
       if (decoded._tag === "Failure") {
         yield* operations.updatePlacement({

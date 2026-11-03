@@ -70,7 +70,7 @@ export const generateBrickSpecV1 = makeAggregateContractRelease(
       if (
         brickRow === undefined ||
         placementRow === undefined ||
-        Object.keys(library[brickRow.moduleId].components).length === 0
+        Object.keys(library[brickRow.moduleId].componentMetadata).length === 0
       ) {
         return yield* failures.unavailable.make({
           message: "This placement does not support spec generation",

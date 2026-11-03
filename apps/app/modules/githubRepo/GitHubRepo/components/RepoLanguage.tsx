@@ -1,5 +1,5 @@
 import { makeComponentView } from "../../../make/makeComponentView";
-import { repoLanguageComponent } from "@qrk.sh/zerospin/src/modules/githubRepo/generator/RepoLanguageComponent";
+import { repoLanguageComponentMetadata } from "@qrk.sh/zerospin/src/modules/githubRepo/generator/RepoLanguageComponentMetadata";
 
 const LANGUAGE_DOT_COLOR: Record<string, string> = {
   TypeScript: "#3178c6",
@@ -27,7 +27,7 @@ const LANGUAGE_DOT_COLOR: Record<string, string> = {
   Dockerfile: "#384d54",
 };
 
-export const repoLanguageView = makeComponentView(repoLanguageComponent, {
+export const repoLanguageView = makeComponentView(repoLanguageComponentMetadata, {
   component(props) {
     const { language } = props;
     if (language === null) {

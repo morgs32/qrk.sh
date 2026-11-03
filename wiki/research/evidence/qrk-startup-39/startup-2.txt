@@ -1,0 +1,7 @@
+ ⛅️ wrangler 4.128.0 (update available 4.157.0)
+│ Bundle: 3907.80 KiB / gzip: 683.88 KiB
+│   Profile window: 309.6 ms
+│   Sampled time: 301.7 ms
+│   Active: 257.1 ms (including 18.8 ms garbage collection)
+│   Idle: 44.6 ms
+│   Samples: 222

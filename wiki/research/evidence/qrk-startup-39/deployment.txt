@@ -1,0 +1,5 @@
+Selected verbatim lines from the successful regular-Worker deployment. Bindings and unrelated output are omitted.
+
+Worker Startup Time: 709 ms
+Uploaded qrk-zerospin (5.01 sec)
+Current Version ID: 495cfbd0-1a34-4e14-832d-88ad2630a765

@@ -38,14 +38,6 @@ const dataShape = {
   language: primitives.text({ nullable: true }),
 };
 
-const defaultData = {
-  name: "github-repo",
-  description: "A sample GitHub repository card.",
-  stargazers_count: 12,
-  forks_count: 3,
-  language: "TypeScript",
-};
-
 export const githubRepoV1 = makeModuleVersion(githubRepo, {
   version: 1,
   variants: {
@@ -72,9 +64,5 @@ export const githubRepoV1 = makeModuleVersion(githubRepo, {
   stateShape: {
     payload: primitives.json({ schema: makeEffectSchema(payloadShape) }),
     data: primitives.json({ nullable: true, schema: makeEffectSchema(dataShape) }),
-  },
-  defaultState: {
-    payload: { url: "https://github.com/morgs32/ink-steps" },
-    data: defaultData,
   },
 });

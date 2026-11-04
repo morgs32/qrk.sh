@@ -8,7 +8,7 @@ import { Effect } from "effect";
 import { system } from "../src/system";
 import { setBrickBorderWidthV1 } from "../src/aggregates/user/contracts/brick/SetBrickBorderWidthV1";
 import { makePageSnapshotV2 } from "../src/aggregates/user/snapshots/makePageSnapshotV2";
-import { swatchAndIconV1 } from "../src/modules/swatchAndIcon/swatchAndIconV1";
+import { swatchAndIconPreviewState } from "../src/modules/swatchAndIcon/swatchAndIconPreviewState";
 
 it.effect("decodes whole-pixel widths and rejects fractions at the actor command boundary", () =>
   Effect.gen(function* () {
@@ -129,9 +129,9 @@ it.effect(
         },
       });
       const capturedState = {
-        ...swatchAndIconV1.defaultState,
+        ...swatchAndIconPreviewState,
         payload: { hash: "", color: "#123456" },
-        data: { ...swatchAndIconV1.defaultState.data, name: "Captured icon" },
+        data: { ...swatchAndIconPreviewState.data, name: "Captured icon" },
       };
       yield* harness.push({
         ...actor,
@@ -320,7 +320,7 @@ it("includes shared border width in publication changes", () => {
     id: "brk_snapshot",
     pageId: "pag_snapshot",
     moduleId: "swatch-and-icon",
-    state: swatchAndIconV1.defaultState,
+    state: swatchAndIconPreviewState,
     stateRevision: 0,
     borderWidth: 0,
     createdAt: recordedAt,

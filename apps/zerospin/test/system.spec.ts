@@ -1,3 +1,4 @@
+import { swatchAndIconPreviewState } from "../src/modules/swatchAndIcon/swatchAndIconPreviewState";
 import { expect, it } from '@effect/vitest';
 import * as sdk from '@zerospin/sdk';
 import { applyOperationTx } from '@zerospin/core/contracts/applyOperationTx';
@@ -88,7 +89,7 @@ const openGenerationDb = (siteIsPublished = false) => Effect.gen(function* () {
     }).run();
     tx.insert(config.schema.brick).values({
       ...timestamps, id: 'brk_one', pageId: 'pag_one', moduleId: 'swatch-and-icon',
-      stateRevision: 0, borderWidth: 0, state: JSON.stringify(swatchAndIconV1.defaultState),
+      stateRevision: 0, borderWidth: 0, state: JSON.stringify(swatchAndIconPreviewState),
     }).run();
     tx.insert(config.schema.placement).values({
       ...timestamps, id: placementId, brickId: 'brk_one', wallId: 'wal_one',
@@ -177,7 +178,7 @@ it.effect('records canonical generation inputs and commits the validated externa
     expect(external.payload).toEqual({
       brickId: 'brk_one', breakpoint: 'lg', moduleId: 'swatch-and-icon', requestId: 'req_one',
       prompt: 'Make it green', baseStateRevision: 0, baseSpecRevision: 0,
-      state: swatchAndIconV1.defaultState, currentSpec: swatchAndIconV1.defaultSpec,
+      state: swatchAndIconPreviewState, currentSpec: swatchAndIconV1.defaultSpec,
     });
     class LibraryApiFixture extends RpcTarget {
       generateSpec(moduleId: string, prompt: string, state: unknown, currentSpec: unknown) {

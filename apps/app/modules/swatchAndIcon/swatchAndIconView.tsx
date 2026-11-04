@@ -1,3 +1,4 @@
+import { swatchAndIconPreviewState } from "@qrk.sh/zerospin/src/modules/swatchAndIcon/swatchAndIconPreviewState";
 import { SwatchAndIcon } from "./SwatchAndIcon";
 import { SwatchAndIconPreview } from "./SwatchAndIconPreview";
 import { makeModuleView } from "../make/makeModuleView";
@@ -7,6 +8,7 @@ import { SwatchAndIconForm } from "./SwatchAndIconForm";
 import { SwatchAndIconLineIcon } from "./SwatchAndIconLineIcon";
 
 export const swatchAndIconView = makeModuleView(swatchAndIconV1, {
+  defaultState: swatchAndIconPreviewState,
   LineIcon: SwatchAndIconLineIcon,
   form: SwatchAndIconForm,
   variants: {

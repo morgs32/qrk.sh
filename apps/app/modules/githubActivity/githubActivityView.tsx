@@ -1,3 +1,4 @@
+import { githubActivityPreviewState } from "@qrk.sh/zerospin/src/modules/githubActivity/githubActivityPreviewState";
 import { makeModuleView } from "../make/makeModuleView";
 import { BrickShell } from "../components/brick/BrickShell";
 import { registry } from "./generator/GitHubActivityJsonRenderRegistry";
@@ -8,6 +9,7 @@ import { GitHubActivityPlaceholder } from "./GitHubActivityPlaceholder";
 import { GitHubActivityLineIcon } from "./GitHubActivityLineIcon";
 
 export const githubActivityView = makeModuleView(githubActivityV1, {
+  defaultState: githubActivityPreviewState,
   LineIcon: GitHubActivityLineIcon,
   form: GitHubActivityForm,
   variants: {

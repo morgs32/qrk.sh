@@ -32,14 +32,6 @@ const dataShape = {
   longitude: primitives.number(),
 };
 
-const defaultData = {
-  googlePlaceId: "ChIJ7cv00DwsDogRAMDACa2m4K8",
-  name: "Downtown Chicago",
-  address: "Chicago, IL, USA",
-  latitude: 41.8781136,
-  longitude: -87.6297982,
-};
-
 export const mapPlaceV1 = makeModuleVersion(mapPlace, {
   version: 1,
   variants: {
@@ -62,9 +54,5 @@ export const mapPlaceV1 = makeModuleVersion(mapPlace, {
   stateShape: {
     payload: primitives.json({ schema: makeEffectSchema(payloadShape) }),
     data: primitives.json({ nullable: true, schema: makeEffectSchema(dataShape) }),
-  },
-  defaultState: {
-    payload: { googlePlaceId: "ChIJ7cv00DwsDogRAMDACa2m4K8" },
-    data: defaultData,
   },
 });

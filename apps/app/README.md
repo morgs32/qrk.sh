@@ -27,9 +27,9 @@ remain open, and drawer templates retain their existing shadow feedback.
 Cancellation, invalidated destinations, and unchanged drops—including replacing a
 singleton Row at its current position—stage no move.
 
-The session pins user owner V6 and web Actor V6. Existing-Row drops stage
-`movePlacementToRow@2`, which enforces the shared variant-sharing rule; new-Row
-drops stage `movePlacementToNewRow@1`, allocating `newRowId` only after an accepted
+The session pins user owner V9 and web Actor V9. Existing-Row drops stage
+`movePlacementToRow@4`, which enforces the shared variant-sharing rule; new-Row
+drops stage `movePlacementToNewRow@3`, allocating `newRowId` only after an accepted
 drop. The other concrete commands retain explicit IDs for Stack/Section creation,
 without canvas gestures. There is no generic identity seed.
 

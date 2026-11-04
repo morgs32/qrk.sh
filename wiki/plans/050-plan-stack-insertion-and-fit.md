@@ -1,6 +1,6 @@
 # 050 — Stack insertion and layouts that fit
 
-**Status:** Feature implementation and local UI checks completed. QRK consumes Zerospin 39.0.0 and the regular backend is restored: Cloudflare accepted startup at 709 ms, with authenticated health and metadata initialization passing. Matching App production deployment and final browser verification remain.
+**Status:** Feature code is on current main; production reconciliation and final fresh-session verification remain. Reviewed 2026-11-04 at `afa8ed05d`. Current source consumes SDK 42.0.3. The SDK 39 backend acceptance and App deployment below are historical rollout evidence, not confirmation of today's production versions.
 
 ## Summary
 
@@ -115,9 +115,17 @@ qrk.sh/
 6. After implementation, reconcile the existing glossary and layout conventions with the actual result. Consult [ADR 001](../adrs/001-wall-owned-layout-tree.md) for structural ownership; the Wall tree ownership remains applicable. Create an ADR only if the implemented result meets all three grill-me criteria: hard to reverse, surprising without context, and the result of a real trade-off.
 7. Record actual reset targets and verification evidence, open a ready-for-review PR for completed code, then set Remaining work to None and archive this plan after all required work is complete. Do not claim type/build or mock-session checks prove production delivery.
 
+## Current-line review — 2026-11-04
+
+1. The implementation entered main through checkpoint commit `436850f20`, which is an ancestor of reviewed main `afa8ed05d`. A new implementation PR would duplicate landed work. `InsertStackContractV1`, Actor9, `userSessionDefinition` and WallEditor's Insert left/right controls are wired. `measureWallFit` / `allocateStackWidths`, Add Brick V5 fallback and Update Site Settings V2 gap checks are present.
+2. Current `system.ts` already registers only Aggregate9 with canonical 9. This review makes no registry change. Current packages are exactly 42.0.3; the 39.0.0 dependency and startup figures describe the earlier rollout only.
+3. The retained `/private/tmp/qrk-plan050-vercel-stage-prebuilt.log` records a READY, production-target App artifact: deployment `dpl_EiW2HXMrsr9Q6FQ9nBdtbFdoomru` at `qrk-studio-awferab06-morganatwork.vercel.app`. Therefore the prior blanket statement that App deployment had not happened was incomplete. That log does not establish custom-domain promotion, current-line parity or final fresh-session behavior.
+4. The recorded Cloudflare acceptance of backend version `495cfbd0-1a34-4e14-832d-88ad2630a765` at 709 ms remains historical evidence. No current Cloudflare/Vercel inventory or production browser session was verified in this review. GitHub's deployment list returned no records; it cannot establish the deployed App or backend versions.
+5. The review required no implementation change, tests, storage operation or deployment. No reset or backup recreation should be repeated. Instagram account verification resumes separately and does not block this plan's rollout reconciliation.
+
 ## Remaining work
 
-1. Complete matching App production adoption and fresh-session verification when that rollout is authorized. The user authorized the regular backend upload: Cloudflare accepted 39.0.0 at 709 ms, version `495cfbd0-1a34-4e14-832d-88ad2630a765`. SystemSpec acceptance, initialization, and authenticated health passed. Domain, secret bindings, authorized party, and `qrk-api`'s five namespaces are preserved. Do not repeat deletion or recreate backups.
-2. Retain startup evidence: all 25 direct pins are exactly 39.0.0 and frozen installation passes. Three local profiles measured 257.1–268.0 ms active CPU (median 265.9 ms), versus 716.7 ms previously; the subsequent regular Worker upload provides authoritative acceptance. See [startup evidence](../research/zerospin-declaration-startup-cost.md#regular-worker-cloudflare-acceptance-confirmed).
-3. Preserve completed local evidence: focused Storybook plays and native accepted-edge/rejected-center dragging passed before the SDK upgrade. With 39.0.0, backend 20 tests, App/Admin builds, API dry-run build, and App/API/Scraper typechecks pass. Admin typecheck retains its existing missing `SystemDiagrams.navigation` error; the required prop is identical in 38.2.2 and 39.0.0. No unrelated Admin routing repair is included.
-4. After matching App adoption and final browser verification, record final cutover evidence, open the feature PR, and archive this plan. The SDK-managed registry rule now requires any future canonical change or registration omission to be personally handwritten by the user.
+1. Inspect current production App/domain routing and `qrk-zerospin` deployment versions read-only. Compare the actual artifacts and session bindings with the current development line; do not revert pins to SDK 39 merely to match historical notes.
+2. If a matching App/backend rollout is still required, prepare the concrete change for authorization. This review does not authorize deployment, storage deletion or registry edits. Preserve the earlier reset evidence and do not repeat deletion or recreate backups.
+3. Complete final fresh-session browser verification on an authorized matching deployment, including fitting Stack insertion and refusal when contents cannot fit. Existing source, mock-session checks and startup acceptance do not prove production session behavior. Keep Plan 048's native-touch check separate.
+4. Record the final routing, deployment and browser evidence, set Remaining work to None and archive this plan. The feature code is already on main; no duplicate implementation PR is needed. Any future canonical change or registration omission must be personally handwritten by the user.

@@ -13,6 +13,7 @@ import { makeEffectSchema, type IInferDecodedRow, type IShape } from "@zerospin/
 import { Schema } from "effect";
 import { mapValues } from "es-toolkit";
 import type { makeModuleVersion } from "@qrk.sh/zerospin/src/modules/make/makeModuleVersion";
+import type { IModuleBrickDef } from "../lib/types";
 
 function makeInitialState(state: unknown): Record<string, unknown> {
   if (state !== null && typeof state === "object" && !Array.isArray(state)) {
@@ -34,17 +35,13 @@ export function makeModuleView<
     description: string;
     defaultSpec: Spec;
     stateShape: IShape;
-    defaultState: unknown;
     hasPlaceholder: boolean;
     variants: ReturnType<typeof makeModuleVersion>["variants"];
-    def: {
-      moduleId: string;
-      state: unknown;
-    };
   },
 >(
   module: MODULE,
   view: {
+    defaultState: IInferDecodedRow<MODULE["stateShape"]>;
     LineIcon: ComponentType<SVGProps<SVGSVGElement>>;
     form?: (props: {
       state: IInferDecodedRow<MODULE["stateShape"]> | null;
@@ -74,6 +71,8 @@ export function makeModuleView<
   const decodeState = Schema.decodeUnknownSync(
     Schema.toType(makeEffectSchema<MODULE["stateShape"]>(module.stateShape)),
   );
+  const defaultState = decodeState(view.defaultState, { onExcessProperty: "ignore" });
+  const def: IModuleBrickDef<MODULE["id"]> = { moduleId: module.id, state: defaultState };
   const decodeFormState = Schema.decodeUnknownSync(
     Schema.toType(makeEffectSchema<MODULE["stateShape"]>(module.stateShape)),
   );
@@ -162,7 +161,8 @@ export function makeModuleView<
     ...moduleFields,
     LineIcon: view.LineIcon,
     stateShape: module.stateShape,
-    defaultState: module.defaultState,
+    defaultState,
+    def,
     variants,
     ...(view.form === undefined ? {} : { Form }),
     component: Brick,

@@ -263,8 +263,21 @@ no arbitrary-string index signature. App validates route module IDs against the
 registered module/Brick identity; Storybook binds an explicit registered module ID.
 Internal previews and state updates retain the registered ID union.
 `defineModule` declares identity; `makeModuleVersion` owns variant sizing, `stateShape`,
-canonical worker-safe `defaultSpec`, and `defaultState`. App registries and API generation build their own catalogs from `componentMetadata` through `makeCatalogFromComponentMetadata`; the Zerospin backend does not construct catalogs. `makeModuleView` infers authored callback props from that state
-shape and decodes incoming state before rendering, discarding undeclared fields.
+canonical worker-safe `defaultSpec`, and `componentMetadata`. App registries and
+API generation build their own catalogs through `makeCatalogFromComponentMetadata`;
+the Zerospin backend does not construct catalogs.
+
+Each module keeps its production example in a separate `<module>PreviewState.ts`
+file beside the native version. App views explicitly supply that value to
+`makeModuleView`, which prepares `defaultState` with its existing state decoder,
+discards undeclared fields, and derives `def` from the same decoded object.
+Native definitions, production backend commands, and API catalog construction
+never import these examples. Stories and backend tests can import the plain
+example files without importing React views. GitHub Activity's dated samples run
+only in consumers of its example file.
+
+`makeModuleView` infers authored callback props from the state shape and decodes
+incoming state before rendering, discarding undeclared fields.
 Its authored wrappers are created once per variant and reused by module rendering
 and previews. Each variant can attach a json-render `generator`
 (`registry` + `defaultSpec`), exposed as the resolved variant's `registry` and `spec`.

@@ -1,4 +1,6 @@
+import { articlePreviewState } from "@qrk.sh/zerospin/src/modules/article/articlePreviewState";
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import type { IInferDecodedRow } from "@zerospin/shapes";
 import { useState } from "react";
 import { articleV1 } from "@qrk.sh/zerospin/src/modules/article/articleV1";
 import { ArticleForm } from "./ArticleForm";
@@ -17,7 +19,8 @@ export default meta;
 export const Form: StoryObj<typeof meta> = {
   render: function Render(props) {
     const { failSave } = props;
-    const [state, setState] = useState(articleV1.defaultState);
+    const [state, setState] =
+      useState<IInferDecodedRow<typeof articleV1.stateShape>>(articlePreviewState);
     const [status, setStatus] = useState("No changes saved.");
 
     return (

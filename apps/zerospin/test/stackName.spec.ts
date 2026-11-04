@@ -4,7 +4,7 @@ import { makeQueryDbVersion, NanoIdFactory } from "@zerospin/sdk";
 import { makeSystemHarness } from "@zerospin/sdk/testing";
 import { Effect } from "effect";
 
-import { swatchAndIconV1 } from "../src/modules/swatchAndIcon/swatchAndIconV1";
+import { swatchAndIconPreviewState } from "../src/modules/swatchAndIcon/swatchAndIconPreviewState";
 import { system } from "../src/system";
 
 it.effect("renames only the owning Wall's Stack and rejects blank or mismatched targets", () =>
@@ -80,7 +80,7 @@ it.effect("renames only the owning Wall's Stack and rejects blank or mismatched 
         id: "brk_stack",
         pageId: "pag_stack",
         moduleId: "swatch-and-icon",
-        state: swatchAndIconV1.defaultState,
+        state: swatchAndIconPreviewState,
         target: { kind: "wall", wallId: "wal_pag_stack_lg", beforeSectionId: null },
       },
     });

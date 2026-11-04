@@ -10,7 +10,7 @@ import * as TestClock from "effect/testing/TestClock";
 import { movePlacementToRowV1 } from "../src/aggregates/user/contracts/wall/MovePlacementToRowContractV1";
 import { movePlacementToRowV2 } from "../src/aggregates/user/contracts/wall/MovePlacementToRowContractV2";
 import { movePlacementToRowV3 } from "../src/aggregates/user/contracts/wall/MovePlacementToRowContractV3";
-import { swatchAndIconV1 } from "../src/modules/swatchAndIcon/swatchAndIconV1";
+import { swatchAndIconPreviewState } from "../src/modules/swatchAndIcon/swatchAndIconPreviewState";
 import { makePlacementId } from "../src/modules/lib/makePlacementId";
 import { system } from "../src/system";
 import { wallLayoutSchemaV2 } from "../src/aggregates/user/layout/wallLayoutSchemaV2";
@@ -93,7 +93,7 @@ it.effect("moves Placements with explicit structural intentions and atomic refus
         id: "brk_moves_a",
         pageId: "pag_moves",
         moduleId: "swatch-and-icon",
-        state: swatchAndIconV1.defaultState,
+        state: swatchAndIconPreviewState,
         target: { kind: "wall", wallId: "wal_pag_moves_lg", beforeSectionId: null },
       },
     });
@@ -118,7 +118,7 @@ it.effect("moves Placements with explicit structural intentions and atomic refus
           id: `brk_moves_${letter}`,
           pageId: "pag_moves",
           moduleId: "swatch-and-icon",
-          state: swatchAndIconV1.defaultState,
+          state: swatchAndIconPreviewState,
           target: {
             kind: "row",
             wallId: initialWall.id,
@@ -497,7 +497,7 @@ it.effect(
           id: "brk_sharing_a",
           pageId: "pag_row_sharing",
           moduleId: "swatch-and-icon",
-          state: swatchAndIconV1.defaultState,
+          state: swatchAndIconPreviewState,
           target: { kind: "wall", wallId: "wal_pag_row_sharing_lg", beforeSectionId: null },
         },
       });
@@ -510,7 +510,7 @@ it.effect(
       const stack = initial.layout.sections[0].stacks[0];
       const fixedRow = stack.rows[0];
       for (const entry of [
-        { id: "brk_sharing_b", moduleId: "swatch-and-icon", state: swatchAndIconV1.defaultState },
+        { id: "brk_sharing_b", moduleId: "swatch-and-icon", state: swatchAndIconPreviewState },
         { id: "brk_sharing_article", moduleId: "article", state: null },
       ]) {
         yield* harness.push({
@@ -840,7 +840,7 @@ it.effect("persists atomic Row sizing with current membership, ownership, and pu
         id: "brk_sizing_a",
         pageId: "pag_sizing",
         moduleId: "swatch-and-icon",
-        state: swatchAndIconV1.defaultState,
+        state: swatchAndIconPreviewState,
         target: { kind: "wall", wallId: "wal_pag_sizing_lg", beforeSectionId: null },
       },
     });
@@ -864,7 +864,7 @@ it.effect("persists atomic Row sizing with current membership, ownership, and pu
           id: `brk_sizing_${letter}`,
           pageId: "pag_sizing",
           moduleId: "swatch-and-icon",
-          state: swatchAndIconV1.defaultState,
+          state: swatchAndIconPreviewState,
           target:
             letter === "b"
               ? { kind: "row", wallId: initial.id, rowId, beforePlacementId: null }

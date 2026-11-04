@@ -1,9 +1,7 @@
 import type { Spec } from "@json-render/core";
-import type { IInferDecodedRow, IShape } from "@zerospin/shapes";
+import type { IShape } from "@zerospin/shapes";
 import { mapValues } from "es-toolkit";
 
-import type { IJsonValue } from "../types";
-import { decodeDefaultData } from "./decodeDefaultData";
 import type { defineComponentMetadata } from "./defineComponentMetadata";
 import { defineModule } from "./defineModule";
 
@@ -39,18 +37,9 @@ export function makeModuleVersion<
     hasPlaceholder: boolean;
     componentMetadata: Record<string, ReturnType<typeof defineComponentMetadata>>;
     stateShape: STATE_SHAPE;
-    defaultState: IInferDecodedRow<STATE_SHAPE> & Readonly<Record<string, IJsonValue>>;
   },
 ) {
-  const {
-    version,
-    variants,
-    defaultSpec,
-    componentMetadata,
-    stateShape,
-    defaultState: suppliedDefaultState,
-    hasPlaceholder,
-  } = props;
+  const { version, variants, defaultSpec, componentMetadata, stateShape, hasPlaceholder } = props;
   const { id, abbreviation, label, description, maxPerPage } = defineModule(identity);
   if (!Number.isSafeInteger(version) || version < 1) {
     throw new Error("makeModuleVersion: version must be a positive safe integer");
@@ -67,13 +56,6 @@ export function makeModuleVersion<
       );
     }
   });
-  const defaultState = decodeDefaultData(stateShape, suppliedDefaultState);
-
-  const def = {
-    moduleId: id,
-    state: defaultState as unknown,
-  };
-
   return {
     id,
     abbreviation,
@@ -86,7 +68,5 @@ export function makeModuleVersion<
     hasPlaceholder,
     componentMetadata,
     stateShape,
-    defaultState,
-    def,
   };
 }

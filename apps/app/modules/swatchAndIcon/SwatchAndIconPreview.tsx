@@ -1,10 +1,11 @@
+import { swatchAndIconPreviewState } from "@qrk.sh/zerospin/src/modules/swatchAndIcon/swatchAndIconPreviewState";
 import { useEffect } from "react";
 import type { IInferDecodedRow } from "@zerospin/shapes";
 import { swatchAndIconV1 } from "@qrk.sh/zerospin/src/modules/swatchAndIcon/swatchAndIconV1";
 import { SwatchAndIcon } from "./SwatchAndIcon";
 
 const frames = [
-  swatchAndIconV1.defaultState,
+  swatchAndIconPreviewState,
   {
     payload: { hash: "", color: "#D4A373" },
     data: {

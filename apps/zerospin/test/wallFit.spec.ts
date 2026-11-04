@@ -6,7 +6,7 @@ import { Effect, Exit, Schema } from "effect";
 import { userAggregateV9 } from "../src/aggregates/user/UserV9";
 import { wallLayoutSchemaV2 } from "../src/aggregates/user/layout/wallLayoutSchemaV2";
 import { allocateStackWidths, measureWallFit } from "../src/aggregates/user/layout/wallSizing";
-import { swatchAndIconV1 } from "../src/modules/swatchAndIcon/swatchAndIconV1";
+import { swatchAndIconPreviewState } from "../src/modules/swatchAndIcon/swatchAndIconPreviewState";
 import { makePlacementId } from "../src/modules/lib/makePlacementId";
 import { system } from "../src/system";
 
@@ -141,7 +141,7 @@ it.effect(
           id: "brk_fit_swatch",
           pageId: "pag_fit",
           moduleId: "swatch-and-icon",
-          state: swatchAndIconV1.defaultState,
+          state: swatchAndIconPreviewState,
           target: { kind: "wall", wallId: "wal_pag_fit_lg", beforeSectionId: null },
         },
       });
@@ -273,7 +273,7 @@ it.effect(
             id: "brk_fit_overflow",
             pageId: "pag_fit",
             moduleId: "swatch-and-icon",
-            state: swatchAndIconV1.defaultState,
+            state: swatchAndIconPreviewState,
             target: {
               kind: "row",
               wallId: small.id,

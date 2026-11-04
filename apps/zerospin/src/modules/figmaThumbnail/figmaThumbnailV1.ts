@@ -36,14 +36,6 @@ const dataShape = {
   thumbnail_height: primitives.integer({ nullable: true }),
 };
 
-const defaultData = {
-  title: "Figma Thumbnail",
-  url: "",
-  thumbnail_url: null,
-  thumbnail_width: 789,
-  thumbnail_height: 450,
-};
-
 export const figmaThumbnailV1 = makeModuleVersion(figmaThumbnail, {
   version: 1,
   variants: {
@@ -68,9 +60,5 @@ export const figmaThumbnailV1 = makeModuleVersion(figmaThumbnail, {
   stateShape: {
     payload: primitives.json({ schema: makeEffectSchema(payloadShape) }),
     data: primitives.json({ nullable: true, schema: makeEffectSchema(dataShape) }),
-  },
-  defaultState: {
-    payload: { url: "" },
-    data: defaultData,
   },
 });

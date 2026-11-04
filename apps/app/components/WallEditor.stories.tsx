@@ -1,3 +1,4 @@
+import { swatchAndIconPreviewState } from "@qrk.sh/zerospin/src/modules/swatchAndIcon/swatchAndIconPreviewState";
 import {
   SessionProvider,
   SessionReady,
@@ -101,7 +102,7 @@ function makeResources(
                 : structuredClone(modulesHash.article.def.state)
               : fixture === "default"
                 ? {
-                    ...swatchAndIconV1.defaultState,
+                    ...swatchAndIconPreviewState,
                     payload: {
                       hash: "",
                       color: ["#4A7C59", "#D4A373", "#577590", "#9D8ABF"][position],

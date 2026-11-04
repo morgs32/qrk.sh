@@ -1,7 +1,8 @@
 # 052 — Keep module preview state out of backend startup
 
-**Status:** Planned; implementation has not started.  
-**Baseline:** [PR #58](https://github.com/morgs32/qrk.sh/pull/58), which separates catalog construction and establishes `componentMetadata` / `propsShape` naming. Implement on that change or its merged successor, excluding unrelated Stack-fit work.
+**Status:** Complete on SDK 42.0.3, following the catalog-only current-line port of Plan 051.
+
+**Baseline:** [PR #65](https://github.com/morgs32/qrk.sh/pull/65) carries [Plan 051](./051-plan-backend-catalog-construction.md), restoring the catalog separation originally implemented in [PR #58](https://github.com/morgs32/qrk.sh/pull/58). Unrelated feature-branch Wall changes are excluded.
 
 ## Problem
 
@@ -21,7 +22,7 @@
 7. Preserve excess-field stripping, particularly for GitHub Profile's larger example object. Preserve GitHub's 365 chronological UTC days and sample counts/levels, and Swatch and Icon's initial frame and animation order.
 8. Preserve creation behavior: placeholder-backed modules submit null where they do today; Swatch and Icon submits the captured current preview state. Preserve cloning, nullable content, saved Brick state, Placement specs, and preview animation behavior.
 9. Native descriptor `defaultValue` settings are contract/schema facts and stay in the native definitions. They are separate from the example `defaultState` being moved.
-10. Backend Add/Update Brick validation remains authoritative and unchanged. Moving preparation of trusted UI examples does not remove any command input validation or introduce a new model-data writer. Reference [ADR 001](../adrs/001-wall-owned-layout-tree.md) for existing Brick content and Placement spec ownership.
+10. Backend Add/Update Brick validation remains authoritative and unchanged. Moving preparation of trusted UI examples does not remove any command input validation or introduce a new model-data writer. Reference [ADR 001](../../adrs/001-wall-owned-layout-tree.md) for existing Brick content and Placement spec ownership.
 
 ## Concrete import changes
 
@@ -102,7 +103,7 @@
 1. Use explicit imports and concrete per-module values. Add no fixture registry, registration hook, factory, lazy getter, runtime environment switch, cache, barrel, or re-export layer.
 2. Keep examples beside module source so App and backend tests can share plain data without a test-to-React dependency. App views own preparing display defaults, and native module definitions remain usable without samples.
 3. Retain the App-facing `defaultState` / `def` names in this change. The approved split changes their owner and constructor input, avoiding unrelated changes across rendering and insertion code.
-4. Reuse existing generics and inferred returns. Type the new view input from `MODULE["stateShape"]`; sample exports can use `satisfies IInferDecodedRow<typeof module.stateShape>`. Introduce no new named interfaces/types or casts. Let `def` infer naturally within the existing public view contract rather than carrying over the old `as unknown` expression.
+4. Reuse existing generics and inferred returns. Type the new view input from `MODULE["stateShape"]`; sample exports can use `satisfies IInferDecodedRow<typeof module.stateShape>`. Introduce no new named interfaces/types or casts. Use the existing `IModuleBrickDef<MODULE["id"]>` public contract for `def`; inference alone widens its module identity. Do not carry over the old `as unknown` expression.
 5. `decodeDefaultData` currently has only the native factory as a caller. Once the view reuses its decoder and that call is removed, delete the unused helper. Do not replace it with another wrapper.
 6. Build-time static samples would change GitHub date freshness. Moving required backend work to a first request would only shift its cost. Neither is needed when the backend does not use the examples at all.
 
@@ -164,6 +165,7 @@ qrk.sh/
 │   │   ├── ~ swatchAndIconV1.ts
 │   │   └── + swatchAndIconPreviewState.ts
 │   └── make/
+│       ├── ~ makeBackendLibrary.ts
 │       ├── ~ makeModuleVersion.ts
 │       └── - decodeDefaultData.ts
 ├── apps/app/
@@ -187,14 +189,23 @@ qrk.sh/
 │   ├── ~ brickBorderWidth.spec.ts
 │   ├── ~ placementMoves.spec.ts
 │   ├── ~ stackName.spec.ts
-│   └── ~ system.spec.ts
+│   ├── ~ system.spec.ts
+│   └── ~ wallFit.spec.ts
 └── wiki/
     ├── plans/+ 052-plan-module-preview-state.md
     └── research/~ backend-module-preview-catalog-startup.md
 ```
 
-## Scope and remaining work
+## Outcome and verification
 
-1. Scope is the preview-state import/construction split and its direct consumers. Keep catalog timing from PR #58, component metadata, native state validation, stored content/specs, System registrations/canonical selections, SDK versions, and unrelated feature work unchanged.
-2. No implementation, glossary/ADR change, storage operation, provider call, deployment, commit, or PR update was performed for this planning step.
-3. Remaining work: implement steps 1–9 and complete the listed verification after implementation is requested.
+1. Moved all ten examples unchanged into explicit plain-data files. Native versions no longer decode or expose `defaultState` / `def`; deleted the unused decoder. App's view constructor prepares both fields with its existing decoder. No new named types, casts, fallback paths, or registrations were introduced.
+2. Updated all ten views, Swatch animation, Article/Wall stories and the five existing backend test consumers, including `wallFit.spec.ts`. `makeBackendLibrary` uses the required `mapValues` traversal without changing its guard.
+3. Compared all ten decoded examples against the baseline under a controlled UTC date: exact equality, including GitHub's 365 rows and stripping undeclared GitHub Profile fields. Existing command validation and null/captured-state behavior remain intact.
+4. App/API TypeScript and Nx builds pass. Existing backend tests pass: 20 tests in five files. Complete backend/API production graphs contain no preview-state source; backend also excludes the catalog constructor and sample generator.
+5. Existing Storybook browser verification covers GitHub's eight 365-day calendars, Swatch's Asterisk first frame and later animation, captured Diamond remaining on the dropped Brick as the source advances to Sun, and Article insertion showing its blank placeholder while the source retains sample content. No providers or persisted sessions were used.
+6. Matched local production bundles shrink by 5,537 bytes. Three startup runs per bundle give medians 174.8 ms before and 171.2 ms after. This modest observed gain is local evidence, not a production timing promise. See [research evidence](../../research/backend-module-preview-catalog-startup.md#implemented-preview-state-separation--sdk-4203) for artifacts and limits.
+7. Updated live module ownership documentation. Existing glossary terminology remains accurate; this reversible construction cleanup warrants no ADR. SDK pins, schemas, command behavior, System selections, storage and provider integrations are unchanged. Instagram account verification remains deferred outside this plan.
+
+## Remaining work
+
+None.

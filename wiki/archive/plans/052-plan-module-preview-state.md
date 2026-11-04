@@ -2,7 +2,7 @@
 
 **Status:** Complete on SDK 42.0.3, following the catalog-only current-line port of Plan 051.
 
-**Baseline:** [PR #65](https://github.com/morgs32/qrk.sh/pull/65) carries [Plan 051](./051-plan-backend-catalog-construction.md) restores the catalog separation originally implemented in [PR #58](https://github.com/morgs32/qrk.sh/pull/58). Unrelated feature-branch Wall changes are excluded.
+**Baseline:** [PR #65](https://github.com/morgs32/qrk.sh/pull/65) carries [Plan 051](./051-plan-backend-catalog-construction.md), restoring the catalog separation originally implemented in [PR #58](https://github.com/morgs32/qrk.sh/pull/58). Unrelated feature-branch Wall changes are excluded.
 
 ## Problem
 

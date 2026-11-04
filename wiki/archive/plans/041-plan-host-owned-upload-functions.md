@@ -9,7 +9,7 @@
 3. Deleted the upload Effect service and generic runtime context. Removed both host upload layers and runner adapters, Storybook's upload-layer memoization, and the form's Effect service lookup. Response decoding remains at each host's existing boundary through synchronous Effect Schema decoding.
 4. Site Settings acquires its upload token directly through Clerk's Promise API. Its ordinary uploader, toasts, session reads/commands and unrelated QR-code SWR read remain intact. The existing Effect credential helper remains for Zerospin authentication.
 5. Preserved the authenticated and anonymous protocols, file validation, draft-versus-Save distinction, abort signals, late-result suppression and completed-asset lifetime. No dependency upgrades, installed-package edits, Zerospin changes, initializer changes, backend changes, storage resets or asset deletion were included.
-6. This supersedes the upload service/runner arrangement in [Plan 027](027-plan-host-owned-image-uploads.md) and the corresponding subsection of [Plan 021](../../plans/021-plan-brick-forms.md). Their host ownership and persistence boundaries remain valid. [Plan 040](040-plan-concrete-session-initializers.md) remains complete and outside this work.
+6. This supersedes the upload service/runner arrangement in [Plan 027](027-plan-host-owned-image-uploads.md) and the corresponding subsection of [Plan 021](./021-plan-brick-forms.md). Their host ownership and persistence boundaries remain valid. [Plan 040](040-plan-concrete-session-initializers.md) remains complete and outside this work.
 
 ## Implemented configuration boundary
 

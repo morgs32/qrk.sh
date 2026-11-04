@@ -14,7 +14,7 @@ and host dispatch plumbing from the current path. Do not replace them with a
 server adapter, external continuation, workflow factory, or new generic framework.
 
 This restores the provider-form interaction described in
-[Plan 021](../../plans/021-plan-brick-forms.md). That plan's historical evidence and unrelated
+[Plan 021](./021-plan-brick-forms.md). That plan's historical evidence and unrelated
 Swatch/upload work stay intact. It supersedes the server-owned-workflow
 recommendation in the earlier [research note](../../research/github-repo-provider-command-ownership.md)
 for this task: a durable provider workflow is not a requirement here.
@@ -176,7 +176,7 @@ were performed, as explicitly requested. The outcomes above are not runtime clai
 
 ## Source anchors
 
-- [Existing fetch-then-save decision](../../plans/021-plan-brick-forms.md)
+- [Existing fetch-then-save decision](./021-plan-brick-forms.md)
 - [GitHub Repo form](../../../apps/library/modules/githubRepo/GitHubRepoForm.tsx)
 - [GitHub Repo state](../../../apps/library/modules/githubRepo/githubRepoV2.ts)
 - [Module form contract](../../../apps/library/lib/types.ts)

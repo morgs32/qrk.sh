@@ -1,5 +1,7 @@
 # Brick forms for Studio and Library
 
+**Status:** Complete. Final generated-color browser verification passed on 2026-11-04. The Studio/Library names below describe the historical implementation; the current consumer is App. Instagram account verification remains deferred in its separate handoff.
+
 ## Summary
 
 Expose a working form for all 10 registered bricks in both apps.
@@ -173,7 +175,7 @@ Implementation approved in chat. The upload amendment below reflects the subsequ
 
 ## Accepted upload amendment
 
-1. [Plan 041](../archive/plans/041-plan-host-owned-upload-functions.md) supersedes the upload service/layer/runner arrangement. App's EditorLayout and Storybook's ModulePlayground each supply `uploadImage(file, { signal }): Promise<string>` through `SWRConfig`; no separate Image upload context remains.
+1. [Plan 041](./041-plan-host-owned-upload-functions.md) supersedes the upload service/layer/runner arrangement. App's EditorLayout and Storybook's ModulePlayground each supply `uploadImage(file, { signal }): Promise<string>` through `SWRConfig`; no separate Image upload context remains.
 2. App owns authenticated `/upload`, fresh Clerk `getToken()` acquisition, current-site multipart fields and response decoding. Storybook owns anonymous `/image/upload`. Missing App tokens fail without falling back to anonymous upload; offline failures retain visible feedback. The Effect credential helper remains for Zerospin authentication, outside upload execution.
 3. ImageForm explicitly supplies the host function to `useSWRMutation`, with revalidation and cache population disabled. SWR owns request pending/error state; Image retains file validation, local validation/save errors, drafts, Save, AbortController guards and unmount cleanup. Cancel separately aborts transport and resets mutation state. Without an uploader, manual URL entry remains available.
 
@@ -199,7 +201,7 @@ Plan 041 was implemented without new verification at the user's request. The che
 9. The user supplied a Google Places key, which was configured only in ignored `apps/api/.env.local`. API restarted ready on port 8787; Library and web were restored as separate dev targets after the earlier shared dev job stopped. Real Map verification now passes in both hosts. No credential values were recorded in this plan.
 10. The user supplied `https://www.instagram.com/nathanfielder/`. Both normal forms attempted that exact profile against the restarted API and received its existing “Instagram profile is not publicly available” error. Reloads retained the previous null state in both hosts; no partial snapshot was admitted. That generic error does not establish the account's privacy.
 11. The user authorized bounded Instagram diagnosis. One normal Library Save with temporary server diagnostics recorded HTTP `200`, final pathname `/accounts/login/`, and `navigationOk: true`. The remote browser reached Instagram's login page; `scrapeInstagram` rejects that pathname before metadata parsing and emits the generic `profile-unavailable` message. No private/unpublished metadata branch was reached. Temporary diagnostics were removed afterward; the scraper's behavior remains unchanged.
-12. The user approved permanent Apify metadata integration after the isolated Nathan trial completed lookup and local R2 downloads in 5.397 seconds. The normal `getInstagramProfile` path now uses the server-side `APIFY_API_TOKEN`, configured with authorization in the existing ignored `apps/api/.env.local`, one maintained Profile Scraper request with the About add-on disabled, and a 20-second actor/HTTP response-body deadline. API was restarted afterward. The decoder validates identity, explicit privacy, follower count, avatar, and up to four ordered thumbnails before the unchanged sequential R2 importer and completed-response retention. Historical BrowserHost bindings and registrations remain intact but are bypassed. Nx API binding generation, typechecking, lint, and bundling pass; targeted Workerd checks pass 66 tests in two files. Library's permanent-path Save/reload passes after one manual retry; authenticated Studio Save/reload and all five R2 images also pass after the concurrent Library React adapter restored browser-compatible output. Read-only authoritative backend state and the successfully finalized Studio update command confirm complete persistence. Instagram's required local integration verification is complete. See [integration and historical trial](../research/instagram-profile-scraping.md).
+12. The user approved permanent Apify metadata integration after the isolated Nathan trial completed lookup and local R2 downloads in 5.397 seconds. The normal `getInstagramProfile` path now uses the server-side `APIFY_API_TOKEN`, configured with authorization in the existing ignored `apps/api/.env.local`, one maintained Profile Scraper request with the About add-on disabled, and a 20-second actor/HTTP response-body deadline. API was restarted afterward. The decoder validates identity, explicit privacy, follower count, avatar, and up to four ordered thumbnails before the unchanged sequential R2 importer and completed-response retention. Historical BrowserHost bindings and registrations remain intact but are bypassed. Nx API binding generation, typechecking, lint, and bundling pass; targeted Workerd checks pass 66 tests in two files. Library's permanent-path Save/reload passes after one manual retry; authenticated Studio Save/reload and all five R2 images also pass after the concurrent Library React adapter restored browser-compatible output. Read-only authoritative backend state and the successfully finalized Studio update command confirm complete persistence. Instagram's required local integration verification is complete. See [integration and historical trial](../../research/instagram-profile-scraping.md).
 
 ## Manual verification evidence
 
@@ -240,8 +242,15 @@ activeSubmission.current?.abort();
 onCancel();
 ```
 
+## Final generated-color verification — 2026-11-04
+
+1. Re-reviewed the remaining requirement against merged main `b5fb8c36ea4469744db4b4bd37beb2b3849d2edd`. The implementation is current: `SwatchAndIconJsonRenderRegistry` validates generated component props, reads `/payload/color`, and supplies that saved color to `SwatchAndIconColor`. Plan 052 changed preview-data ownership and did not establish this behavior.
+2. Used the existing `https://storybook.qrk.localhost/iframe.html?id=modules-swatch-and-icon--playground&viewMode=story` and its existing running service. Saved `#00AA55` in Configure example, then requested a valid generated Spec with a conflicting literal `#FF0000` on `SwatchAndIconColor`. Normal Generate completed successfully through the existing API. The earlier no-credits failure is historical and did not recur.
+3. Expanded the normal generated Spec view: `elements.swatch-1.type` is `SwatchAndIconColor` and `elements.swatch-1.props.color` is the literal `#FF0000`. Expanded Brick Definition: `state.payload.color` remains `#00AA55`.
+4. Both Component and JsonRender previews at sm, md, lg and xl render computed `rgb(0, 170, 85)` (`#00AA55`), eight green previews total. No DOM or application-state injection, provider substitution or new verification scaffolding was used. The generated Spec remained unchanged; the module registry enforced the saved color at render time.
+5. Screenshot: [generated red Spec and green previews](/private/tmp/qrk-plan021-generated-color-proof.png). This is a live provider/browser rendering check with local playground state; it does not claim a new persisted-session save/reload or production deployment. Earlier form persistence evidence remains historical evidence above. No source, dependencies, schema, storage, glossary or ADR change was needed. No new tests or fixtures were created.
+6. Instagram account verification remains deferred separately in [its handoff](../../handoffs/2026-10-13-handoff-instagram-username-verification.md). This check made no Instagram request.
+
 ## Remaining work
 
-1. Swatch generated literal-color enforcement through live UI: the last Admin Generate attempt returned `generate-failed` because the provider had no credits. Restore generation access, then generate a Spec with a literal color and confirm the saved shared color wins at all breakpoints. Registry enforcement is implemented and source-reviewed; the live check remains pending.
-
-Archive only after required verification. Keep this plan active while these prerequisites/checks remain unresolved.
+None.

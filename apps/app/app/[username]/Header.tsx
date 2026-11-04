@@ -1,8 +1,14 @@
-import { UserButton } from "@clerk/react";
+import { UserButton, useClerk } from "@clerk/react";
+import { useClearSessionAuthentication } from "@zerospin/react/useClearSessionAuthentication";
+import { LogOut } from "lucide-react";
+import { toast } from "sonner";
+import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
 import "@fontsource/silkscreen/400.css";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export function Header() {
+  const clearAuthentication = useClearSessionAuthentication(userSessionDefinition);
+  const { signOut } = useClerk();
   return (
     <header
       className="fixed top-0 left-0 right-0 z-50 h-16 @container border-b border-border bg-background"
@@ -20,8 +26,25 @@ export function Header() {
         <div className="size-10">
           <UserButton
             fallback={<Skeleton className="size-10 rounded-full" aria-label="Loading account" />}
-            appearance={{ elements: { userButtonAvatarBox: "!size-10" } }}
-          />
+            appearance={{
+              elements: {
+                userButtonAvatarBox: "!size-10",
+                userButtonPopoverActionButton__signOut: "!hidden",
+              },
+            }}
+          >
+            <UserButton.MenuItems>
+              <UserButton.Action
+                label="Sign out"
+                labelIcon={<LogOut />}
+                onClick={() => {
+                  void clearAuthentication()
+                    .then(() => signOut())
+                    .catch(() => toast.error("Could not sign out. Please try again."));
+                }}
+              />
+            </UserButton.MenuItems>
+          </UserButton>
         </div>
       </div>
     </header>

@@ -6,6 +6,7 @@ import { SpeedInsights } from "@vercel/speed-insights/react";
 import { MotionConfig } from "framer-motion";
 import { Toaster } from "@/components/ui/sonner";
 import { startupTiming } from "@/lib/startupTiming";
+import { AppUpdatePrompt } from "./AppUpdatePrompt";
 
 export default function App(props: { children: ReactNode }) {
   const { children } = props;
@@ -34,6 +35,7 @@ export default function App(props: { children: ReactNode }) {
       <MotionConfig reducedMotion="user">{children}</MotionConfig>
       <SpeedInsights />
       <Toaster />
+      <AppUpdatePrompt />
     </ClerkProvider>
   );
 }

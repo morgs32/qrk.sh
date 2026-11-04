@@ -16,7 +16,7 @@
     "paths": {
       "@/*": ["./*"]
     },
-    "types": ["node", "react/canary", "vite/client"]
+    "types": ["node", "react/canary", "vite/client", "vite-plugin-pwa/vanillajs"]
   },
   "include": ["**/*.ts", "**/*.tsx", "../zerospin/cloudflare-test.d.ts"],
   "exclude": ["node_modules", "build", "storybook-static", "dist"]

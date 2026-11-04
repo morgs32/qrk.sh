@@ -1,13 +1,45 @@
 import tailwindcss from "@tailwindcss/vite";
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import react from "@vitejs/plugin-react";
+import { randomUUID } from "node:crypto";
+import { readFile, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { defineConfig, loadEnv } from "vite-plus";
+import { VitePWA, type VitePluginPWAAPI } from "vite-plugin-pwa";
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, ".", "");
   const apiOrigin = (env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8787").replace(/\/$/, "");
   const workerOrigin = (env.APP_WORKER_ORIGIN ?? "http://127.0.0.1:8787").replace(/\/$/, "");
+
+  const offlineCachePrefix = `qrk-app-${randomUUID()}`;
+  const pwa = VitePWA({
+    manifest: false,
+    injectRegister: false,
+    registerType: "prompt",
+    outDir: "dist/client",
+    workbox: {
+      cacheId: offlineCachePrefix,
+      importScripts: ["offline-cache.js"],
+      navigateFallback: "/index.html",
+      navigateFallbackDenylist: [/^\/__dev(?:\/|$)/, /^\/rpc(?:\/|$)/],
+      globPatterns: ["**/*.{js,css,html,wasm,woff,woff2,png,svg,ico}"],
+      maximumFileSizeToCacheInBytes: 10 * 1024 * 1024,
+      clientsClaim: true,
+      cleanupOutdatedCaches: false,
+      runtimeCaching: [
+        {
+          urlPattern: /^https:\/\/[^/]+\/npm\/@clerk\/.*\.js(?:\?.*)?$/,
+          handler: "StaleWhileRevalidate",
+          options: {
+            cacheName: "qrk-clerk-static",
+            cacheableResponse: { statuses: [0, 200] },
+            expiration: { maxEntries: 64 },
+          },
+        },
+      ],
+    },
+  });
 
   return {
     plugins: [
@@ -62,6 +94,31 @@ export default defineConfig(({ mode }) => {
         },
       }),
       react(),
+      ...pwa,
+      {
+        name: "qrk-offline-output",
+        apply: "build",
+        enforce: "post",
+        buildApp: {
+          order: "post",
+          async handler() {
+            // Start writes the SPA shell after its environment builds finish.
+            const api: VitePluginPWAAPI | undefined = pwa.find(
+              (plugin) => plugin.name === "vite-plugin-pwa",
+            )?.api;
+            if (api === undefined) throw new Error("Missing offline build integration");
+            const cacheScript = await readFile(
+              new URL("./public/offline-cache.js", import.meta.url),
+              "utf8",
+            );
+            await writeFile(
+              new URL("./dist/client/offline-cache.js", import.meta.url),
+              cacheScript.replaceAll("__QRK_CACHE_PREFIX__", offlineCachePrefix),
+            );
+            await api.generateSW();
+          },
+        },
+      },
     ],
     resolve: {
       alias: { "@": fileURLToPath(new URL(".", import.meta.url)) },

@@ -1,4 +1,6 @@
 import { defineRegistry } from "@json-render/react";
+import { makeCatalogFromComponentMetadata } from "@qrk.sh/zerospin/src/modules/make/makeCatalogFromComponentMetadata";
+
 import type { ReactNode } from "react";
 
 import { BrickShell } from "../../components/brick/BrickShell";
@@ -12,19 +14,22 @@ import { locationView } from "../GitHubProfile/components/Location";
 import { publicReposView } from "../GitHubProfile/components/PublicRepos";
 import { githubProfileV1 } from "@qrk.sh/zerospin/src/modules/githubProfile/githubProfileV1";
 
-export const { registry } = defineRegistry(githubProfileV1.catalog, {
-  components: {
-    ...layoutRegistryComponents,
-    BrickShell: (props: { children?: ReactNode }) => {
-      const { children } = props;
-      return <BrickShell className="bg-white">{children}</BrickShell>;
+export const { registry } = defineRegistry(
+  makeCatalogFromComponentMetadata(githubProfileV1.componentMetadata),
+  {
+    components: {
+      ...layoutRegistryComponents,
+      BrickShell: (props: { children?: ReactNode }) => {
+        const { children } = props;
+        return <BrickShell className="bg-white">{children}</BrickShell>;
+      },
+      AvatarAndUsername: avatarAndUsernameView.RegistryComponent,
+      Bio: bioView.RegistryComponent,
+      Blog: blogView.RegistryComponent,
+      Followers: followersView.RegistryComponent,
+      Following: followingView.RegistryComponent,
+      Location: locationView.RegistryComponent,
+      PublicRepos: publicReposView.RegistryComponent,
     },
-    AvatarAndUsername: avatarAndUsernameView.RegistryComponent,
-    Bio: bioView.RegistryComponent,
-    Blog: blogView.RegistryComponent,
-    Followers: followersView.RegistryComponent,
-    Following: followingView.RegistryComponent,
-    Location: locationView.RegistryComponent,
-    PublicRepos: publicReposView.RegistryComponent,
   },
-});
+);

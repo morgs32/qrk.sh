@@ -3,7 +3,6 @@ export function makeBackendLibrary<
   const ENTRIES extends {
     readonly [moduleId: string]: {
       readonly id: string;
-      readonly catalog?: unknown;
     };
   },
 >(entries: ENTRIES): ENTRIES {

@@ -1,7 +1,7 @@
 import type { IResult } from "@zerospin/error";
 import type { ComponentType, ReactNode, SVGProps } from "react";
 
-import type { Catalog, Spec } from "@json-render/core";
+import type { Spec } from "@json-render/core";
 import type { ComponentRegistry } from "@json-render/react";
 import type { IShape } from "@zerospin/shapes";
 import type { makeModuleVersion } from "@qrk.sh/zerospin/src/modules/make/makeModuleVersion";
@@ -18,7 +18,6 @@ export type IModule<MODULE extends string> = {
   LineIcon: ComponentType<SVGProps<SVGSVGElement>>;
   /** Maximum bricks of this module per page, including hidden and unconfigured bricks. */
   maxPerPage?: number;
-  catalog?: Catalog;
   hasPlaceholder: boolean;
   Form?: (props: {
     state: unknown;

@@ -262,8 +262,8 @@ manual scrolling keeps the chosen position.
 no arbitrary-string index signature. App validates route module IDs against the
 registered module/Brick identity; Storybook binds an explicit registered module ID.
 Internal previews and state updates retain the registered ID union.
-`defineModule` declares identity; `makeModuleVersion` owns variant sizing, the catalog, `stateShape`,
-canonical worker-safe `defaultSpec`, and `defaultState`. `makeModuleView` infers authored callback props from that state
+`defineModule` declares identity; `makeModuleVersion` owns variant sizing, `stateShape`,
+canonical worker-safe `defaultSpec`, and `defaultState`. App registries and API generation build their own catalogs from `componentMetadata` through `makeCatalogFromComponentMetadata`; the Zerospin backend does not construct catalogs. `makeModuleView` infers authored callback props from that state
 shape and decodes incoming state before rendering, discarding undeclared fields.
 Its authored wrappers are created once per variant and reused by module rendering
 and previews. Each variant can attach a json-render `generator`

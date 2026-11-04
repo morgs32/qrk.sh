@@ -105,3 +105,48 @@ When comparing manual runs, label the run explicitly:
 Do not clear existing browser data or caches to collect these timings. A reused
 SharedWorker Node will report reuse after native diagnostics are activated; it cannot recreate an earlier cold trace.
 Production builds leave startup diagnostics disabled.
+
+## Offline loading and updates
+
+Production builds prepare the App shell, route chunks, SharedWorker, SQLite WASM,
+fonts and static assets with a service worker. Successfully visited Clerk SDK
+scripts are cached separately; authentication API responses and domain RPC
+responses are not resource-cached. No installation manifest is generated. Start
+writes the SPA shell after its environment builds, so `qrk-offline-output` runs
+Workbox generation after that shell exists. Development builds do not register
+the service worker.
+
+After a successful online visit, a previously verified user can reopen the exact
+saved editor URL and edit its locally saved Page offline. Zerospin 42.0.3 restores
+only an eligible exact remembered identity and retains pending commands locally.
+Reconnection obtains credentials and authoritative authentication before sending
+those commands. A resource cache does not authorize backend access. New devices,
+missing local Pages and locally invalidated identities cannot acquire data offline.
+Clerk startup can delay the initial offline render; an offline reload is not instant.
+
+A downloaded build produces an existing notification with Reload and Later. Later
+leaves the current Page usable; Reload activates the waiting build. Registration,
+normal browser checks and visible-tab focus/online checks discover updates without
+a polling timer or push service. An idle tab is not guaranteed immediate notice.
+
+Local verification uses the existing `app.qrk.localhost` origin, the documented Web
+`__dev` sign-in handoff and the production preview. Do not substitute another
+origin to obtain an empty cache. The resource cache is separate from Zerospin
+IndexedDB/SQLite state; do not delete domain storage to clear an application build.
+
+Sign out uses `useClearSessionAuthentication(userSessionDefinition)` before
+Clerk's sign-out action. Zerospin stops synchronization and invalidates remembered
+offline eligibility before Clerk redirects to Web. Saved models remain on the
+device; a fresh online verification is required to reopen them.
+
+Each production build has a separate Workbox resource cache. `offline-cache.js`
+serves immutable old `/assets/` chunks to tabs still running an earlier build.
+When only one controlled App tab remains, it reports its entry-module URL; if
+that module belongs to the active build and no build is installing/waiting, the
+worker removes old App precaches. Multiple tabs conservatively retain old builds
+until that single-current-tab condition holds. Clerk's static cache and domain
+storage are outside this cleanup. This avoids forcing a tab that chose Later to
+reload when another tab accepts an update. GenerateSW's `cacheId` and imported
+script integration are documented in [Workbox's build options](https://developer.chrome.com/docs/workbox/modules/workbox-build).
+
+Implementation and measured limits: [completed Plan 053](../../wiki/archive/plans/053-plan-offline-loading-and-update-prompts.md).

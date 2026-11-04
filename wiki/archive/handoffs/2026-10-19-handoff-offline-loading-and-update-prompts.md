@@ -2,7 +2,7 @@
 
 **Date:** 2026-10-19  
 **Focus:** Continue QRK's offline app loading and user-controlled update prompt work.  
-**Status:** Research complete; local baseline verification performed on 2026-11-03. Application caching and update-prompt implementation have not started. No implementation plan was created.
+**Status:** Complete — implementation and local verification are recorded in [Plan 053](../plans/053-plan-offline-loading-and-update-prompts.md). The baseline below is historical.
 
 ## Goal
 
@@ -13,9 +13,9 @@ The user explicitly clarified that installability is unnecessary. Do not resume 
 ## Done
 
 1. Used `$research` with a background agent to investigate TanStack Start and Vite PWA against primary sources and QRK's current frontend.
-2. Saved and revised [the research note](../research/tanstack-pwa.md) around the user's clarified scope. It contains the proposed plugin settings, update lifecycle, source citations, QRK integration constraints, and unverified behavior; use that document instead of repeating the investigation.
+2. Saved and revised [the research note](../../research/tanstack-pwa.md) around the user's clarified scope. It contains the proposed plugin settings, update lifecycle, source citations, QRK integration constraints, and unverified behavior; use that document instead of repeating the investigation.
 3. Confirmed the distinction between cached application loading and offline authentication/data/session readiness. Full offline startup remains unverified; the bounded baseline observations below do not establish it.
-4. The original research changed documentation only. Later local verification and its explicitly authorized storage reset are recorded below; no caching implementation or deployment occurred.
+4. The original research changed documentation only. Later local verification and its explicitly authorized storage reset are recorded below; no caching implementation or deployment occurred during that baseline stage. The completed implementation is recorded below.
 
 ## Baseline verification — 2026-11-03
 
@@ -53,13 +53,17 @@ The user explicitly clarified that installability is unnecessary. Do not resume 
    during follow-up; the final browser bundle revision was not captured. Recheck
    these observations on the finalized upgrade rather than claiming SDK 42 proof.
 
+## Completed implementation
+
+[Plan 053](../plans/053-plan-offline-loading-and-update-prompts.md) records the final
+42.0.3 framework/API adoption, requested-URL offline loading, offline editing and
+reopening, real backend authentication refusal without queued-command delivery,
+recovery, local sign-out invalidation, and deliberate two-tab Reload/Later flow.
+App's README owns the implemented resource-cache and sign-out behavior.
+
 ## Remaining
 
-1. Read the linked research and current App instructions before continuing. Recheck the integration files because other work is active in this checkout.
-2. Resolve the material open decisions below without reopening the settled requirement for offline loading and an update prompt.
-3. When implementing, keep changes within App's resource caching, browser registration, navigation fallback, and update UI. Preserve the existing Zerospin session/data ownership and Vite+ wiring.
-4. Verify the actual outcome manually: successful online precache/control; offline cold reload and agreed deep links; required worker/WASM loading; and an old-version to update-prompt to accepted-reload flow. Verify that deferring an update leaves the current page usable. Report any Clerk/Zerospin startup limitation separately from cache success. Follow the repository's current testing policy; do not scaffold a test suite or backend integration checks.
-5. Update affected documentation to describe the implemented behavior and remaining limits. Archive this handoff only after verified completion or reconciliation into successor work, following `$handoff`.
+None.
 
 ## Suggested skills
 
@@ -73,23 +77,16 @@ Before substantial edits, rerun `pnpm exec intent list` and load a matching inst
 
 ## Pointers
 
-1. [Research and primary-source citations](../research/tanstack-pwa.md)
-2. [Root instructions](../../AGENTS.md)
-3. [App instructions](../../apps/app/AGENTS.md)
-4. [App README](../../apps/app/README.md)
-5. [Vite configuration](../../apps/app/vite.config.ts)
-6. [App dependencies](../../apps/app/package.json)
-7. [Root redirect](../../apps/app/routes/index.tsx)
-8. [Root route](../../apps/app/routes/__root.tsx)
-9. [Authentication provider](../../apps/app/app/App.tsx)
-10. [Session ownership and worker import](../../apps/app/app/[username]/layout.tsx)
-11. [Worker entry](../../apps/app/zerospin/node.worker.ts)
-
-## Open decisions
-
-1. Which offline entry URLs must work, and what should happen at `/`, which currently redirects to Web's account-routing flow? Do not silently change authentication/routing ownership.
-2. How soon must a long-open tab discover an update? The user requested a prompt, but no polling interval, focus check, or push mechanism was selected. A new deployment alone does not immediately notify every tab.
-3. Where should the prompt appear in the existing UI? Reload/Later is the proposed interaction, not an implemented component or selected placement.
-4. What should users see if the cached app loads but existing authentication/session initialization cannot complete offline? Do not claim offline editing or synchronization readiness based on a cached shell.
+1. [Research and primary-source citations](../../research/tanstack-pwa.md)
+2. [Root instructions](../../../AGENTS.md)
+3. [App instructions](../../../apps/app/AGENTS.md)
+4. [App README](../../../apps/app/README.md)
+5. [Vite configuration](../../../apps/app/vite.config.ts)
+6. [App dependencies](../../../apps/app/package.json)
+7. [Root redirect](../../../apps/app/routes/index.tsx)
+8. [Root route](../../../apps/app/routes/__root.tsx)
+9. [Authentication provider](../../../apps/app/app/App.tsx)
+10. [Session ownership and worker import](../../../apps/app/app/[username]/layout.tsx)
+11. [Worker entry](../../../apps/app/zerospin/node.worker.ts)
 
 At handoff creation, unrelated local modifications existed in `apps/app/README.md`, `apps/app/app/[username]/site/[siteId]/page/[pageId]/MainColumns.tsx`, `apps/library/README.md`, and `apps/library/bricks.css`. Preserve them and recheck `git status` before editing. The one local Zerospin reset above was expressly authorized. Follow the current local-development authorization in root `AGENTS.md`; preserve other stores and projects.

@@ -2,7 +2,7 @@
 
 **Date:** 2026-10-13  
 **Focus:** Enable account-level Instagram username ownership verification through a DM challenge.  
-**Status:** Research and source inspection complete; feature implementation and Meta configuration have not started. Backend design remains unsettled.
+**Status:** Deferred at the maintainer's request. Research and source inspection are complete; feature implementation and Meta configuration have not started. Backend design remains unsettled.
 
 ## Goal
 

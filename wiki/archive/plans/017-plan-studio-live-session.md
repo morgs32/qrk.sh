@@ -1,6 +1,12 @@
 # Studio live Library session
 
-Status: implemented. Phase 1 of the Studio overhaul supersedes the remaining grid state-edit/hide verification; the historical results below are not evidence for the new empty-frame UI.
+**Status:** Complete; archived 2026-11-05. This records the historical Studio/Library session cutover. Later editor changes superseded the grid state-edit/hide checks; the historical results below do not establish current App behavior.
+
+## Archival reconciliation
+
+1. No work remains for the original session cutover. Later form behavior is recorded in [Plan 021](./021-plan-brick-forms.md), and current Wall layout verification in [Plan 050](./050-plan-stack-insertion-and-fit.md).
+2. Current session composition lives in [userSessionDefinition](../../../apps/app/zerospin/userSessionDefinition.ts); current editor behavior and ownership live in the [App module documentation](../../../apps/app/modules/README.md) and [layout conventions](../../brick-layout-conventions.md). The single-Wall examples, Library package names, historical commands and old test counts below retain their original context.
+3. This archival changes documentation only. It performs no session migration, storage reset, code change or new runtime verification.
 
 ## Agreed behavior
 
@@ -77,4 +83,4 @@ const retainedLock = db.query.connectionLocks
 
 ## Remaining work
 
-None for this session cutover. Phase-1 implementation and verification are tracked in its active chat.
+None. The later editor/form work is recorded in the completed plans linked above.

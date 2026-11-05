@@ -73,7 +73,7 @@ export default function PageLayout(props: { children: ReactNode }) {
     const previousMax = Math.max(0, scroll.scrollHeight - scroll.clientHeight);
     const wasAtBottom =
       hasReservedDrawerSpace.current && previousMax > 0 && Math.abs(previousMax - previousTop) <= 1;
-    space.style.paddingBottom = drawerOpen ? "50dvh" : "0px";
+    space.style.paddingBottom = drawerOpen ? "25dvh" : "0px";
     const nextMax = Math.max(0, scroll.scrollHeight - scroll.clientHeight);
     scroll.scrollTop = wasAtBottom ? nextMax : Math.min(Math.max(previousTop, 0), nextMax);
     hasReservedDrawerSpace.current = true;
@@ -173,7 +173,7 @@ export default function PageLayout(props: { children: ReactNode }) {
           className="pointer-events-none fixed inset-x-0 z-80 flex justify-center px-2"
           style={{
             bottom: drawerOpen
-              ? "calc(50dvh + var(--wall-preview-toolbar-gap))"
+              ? "calc(25dvh + var(--wall-preview-toolbar-gap))"
               : "var(--wall-preview-toolbar-gap)",
             transition: reducedMotion ? "none" : "bottom 300ms cubic-bezier(0, 0, 0.2, 1)",
           }}

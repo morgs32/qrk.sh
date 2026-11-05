@@ -5,7 +5,10 @@ App serves the editor at <https://app.qrk.localhost/>.
 Workspace drawers use TanStack Hotkeys for Escape dismissal, including while a
 form field is focused. Escape uses the Close button's route transition and keeps
 the current breakpoint. Open menus, popovers, and dialogs consume Escape
-first; the next press closes the workspace drawer.
+first; the next press closes the workspace drawer. Every workspace drawer has a
+Close button in its shared navbar. The standalone Set breakpoints view has no
+drawer, so its floating breakpoint toolbar provides Close instead; closing
+returns to page controls and keeps the selected breakpoint.
 
 | Area | Worker                    | Pure manifest           |
 | ---- | ------------------------- | ----------------------- |

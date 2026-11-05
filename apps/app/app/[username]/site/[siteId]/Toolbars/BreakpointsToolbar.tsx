@@ -1,6 +1,6 @@
 "use client";
 
-import { useNavigate, useParams, useSearch } from "@tanstack/react-router";
+import { useMatches, useNavigate, useParams, useSearch } from "@tanstack/react-router";
 
 import { BREAKPOINTS } from "../../../../../modules/lib/breakpoints";
 import { WallPreviewToolbar } from "../../../../../modules/lib/WallPreviewToolbar";
@@ -11,8 +11,8 @@ import { X } from "lucide-react";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
 import { useEditorViewportStore } from "@/stores/useEditorViewportStore";
 
-import { ToolbarSeparator } from "./ToolbarSeparator";
 import { ToolbarButton } from "./ToolbarButton";
+import { ToolbarSeparator } from "./ToolbarSeparator";
 
 const ParamsSchema = Schema.Struct({
   username: Schema.String,
@@ -28,6 +28,10 @@ const toolbarPresenceTransition = {
 /** Breakpoint preview controls for breakpoint selection and the Bricks drawer. */
 export function BreakpointsToolbar() {
   const reducedMotion = useReducedMotion();
+  const isStandalone = useMatches({
+    select: (matches) =>
+      matches.at(-1)?.routeId === "/$username/site/$siteId/page/$pageId/breakpoints",
+  });
   const params = useValidatedParams(ParamsSchema);
   const { stackId } = useParams({ strict: false });
   const navigate = useNavigate();
@@ -86,24 +90,26 @@ export function BreakpointsToolbar() {
             {row.id}
           </ToolbarButton>
         ))}
-
-        <ToolbarSeparator />
-
-        <ToolbarButton
-          tooltip="Close"
-          aria-label="Close"
-          onClick={() =>
-            navigate({
-              to: "/$username/site/$siteId/page/$pageId",
-              params,
-              search: { breakpoint: search.breakpoint },
-              resetScroll: false,
-            })
-          }
-          className="h-7 px-2 text-destructive hover:text-destructive"
-        >
-          <X className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
-        </ToolbarButton>
+        {isStandalone ? (
+          <>
+            <ToolbarSeparator />
+            <ToolbarButton
+              tooltip="Close"
+              aria-label="Close"
+              onClick={() =>
+                navigate({
+                  to: "/$username/site/$siteId/page/$pageId",
+                  params,
+                  search: { breakpoint: search.breakpoint },
+                  resetScroll: false,
+                })
+              }
+              className="h-7 px-2 hover:text-red-500"
+            >
+              <X className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
+            </ToolbarButton>
+          </>
+        ) : null}
       </WallPreviewToolbar>
     </motion.div>
   );

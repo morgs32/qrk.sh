@@ -118,7 +118,7 @@ export function DrawerHeader() {
   );
 
   return (
-    <header className="flex h-full min-w-0 shrink-0 items-center gap-4 overflow-x-auto border-b border-zinc-200 whitespace-nowrap pl-4 pr-2">
+    <header className="flex h-full min-w-0 shrink-0 items-center gap-4 overflow-x-auto border-b border-zinc-200 text-sm whitespace-nowrap pl-4 pr-2">
       {isSiteSettings || isPageSettings || isStackDetails ? (
         <div className="flex min-w-0 items-center gap-2">
           {isSiteSettings ? (
@@ -128,7 +128,7 @@ export function DrawerHeader() {
           ) : (
             <Layers className="size-5 shrink-0" aria-hidden />
           )}
-          <h1 className="truncate text-base tracking-tight">
+          <h1 className="truncate text-sm tracking-tight">
             {isSiteSettings ? "Site Settings" : isPageSettings ? "Page Settings" : "Stack Details"}
           </h1>
         </div>

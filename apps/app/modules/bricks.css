@@ -5,13 +5,21 @@
 }
 
 .wall-preview-viewport {
+  --wall-preview-drawer-height: 0px;
   --wall-preview-top-gap: 32px;
   --wall-preview-toolbar-height: 38px;
   --wall-preview-toolbar-gap: 24px;
   --wall-preview-bottom-gap: calc(
     var(--wall-preview-toolbar-gap) + var(--wall-preview-toolbar-height) / 2
   );
-  --wall-frame-height: calc(100dvh - var(--wall-preview-top-gap) - var(--wall-preview-bottom-gap));
+  --wall-frame-height: calc(
+    100dvh - var(--wall-preview-drawer-height) - var(--wall-preview-top-gap) -
+      var(--wall-preview-bottom-gap)
+  );
+}
+
+.wall-preview-viewport[data-drawer-open="true"] {
+  --wall-preview-drawer-height: 25dvh;
 }
 
 .wall-preview-frame {

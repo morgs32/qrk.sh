@@ -30,10 +30,11 @@ BrickCardStyleContext and WallPreviewViewport are removed. App uses saved
 Shared previews receive ordinary boolean props, while ModulePlayground retains
 its local visual Cards control.
 
-PageLayout directly owns the preview scroll region, 25dvh trailing space while
-the drawer is open or 56px while closed, scroll anchoring/clamping during drawer
-changes and resizing, and floating toolbar positioning with reduced-motion
-handling. The production URL owns `?breakpoint=md`, and
+PageLayout directly owns the preview scroll region, reserving 25dvh of viewport
+height only while the drawer is open. The preview frame uses that remaining
+height; closing the drawer restores the full viewport. Tall pages remain
+scrollable, with scroll anchoring/clamping during drawer changes and resizing,
+and floating toolbar positioning with reduced-motion handling. The production URL owns `?breakpoint=md`, and
 App's Zustand store holds only measured available width. `useBreakpointGuard`
 measures the mounted viewport and replaces a missing/non-fitting URL choice
 with the largest fitting breakpoint, clearing insertion; below 360px it shows

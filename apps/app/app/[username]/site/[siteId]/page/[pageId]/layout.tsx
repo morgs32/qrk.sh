@@ -34,8 +34,6 @@ export default function PageLayout(props: { children: ReactNode }) {
   });
   const reducedMotion = useReducedMotion();
   const editorScroll = useRef<HTMLDivElement>(null);
-  const drawerSpace = useRef<HTMLDivElement>(null);
-  const hasReservedDrawerSpace = useRef(false);
   const { getToken } = useAuth();
   const session = useSession(userSessionDefinition);
   const { breakpoint, previewRef } = useBreakpointGuard();
@@ -65,32 +63,20 @@ export default function PageLayout(props: { children: ReactNode }) {
   const hasEditor = site !== undefined && page !== undefined;
   useLayoutEffect(() => {
     const scroll = editorScroll.current;
-    const space = drawerSpace.current;
-    if (!hasEditor || scroll === null || space === null) return;
-
-    // Reserve space below the page so its bottom remains reachable above the drawer.
-    const previousTop = scroll.scrollTop;
-    const previousMax = Math.max(0, scroll.scrollHeight - scroll.clientHeight);
-    const wasAtBottom =
-      hasReservedDrawerSpace.current && previousMax > 0 && Math.abs(previousMax - previousTop) <= 1;
-    space.style.paddingBottom = drawerOpen ? "25dvh" : "0px";
-    const nextMax = Math.max(0, scroll.scrollHeight - scroll.clientHeight);
-    scroll.scrollTop = wasAtBottom ? nextMax : Math.min(Math.max(previousTop, 0), nextMax);
-    hasReservedDrawerSpace.current = true;
+    if (!hasEditor || scroll === null) return;
 
     let position = {
       top: scroll.scrollTop,
-      max: nextMax,
+      max: Math.max(0, scroll.scrollHeight - scroll.clientHeight),
       viewportHeight: scroll.clientHeight,
-      reservedHeight: space.getBoundingClientRect().height,
+      contentHeight: scroll.scrollHeight,
     };
     function rememberScroll() {
       // Resizing can clamp scrollTop before the observer reads the previous anchor.
       if (
         scroll === null ||
-        space === null ||
         scroll.clientHeight !== position.viewportHeight ||
-        space.getBoundingClientRect().height !== position.reservedHeight
+        scroll.scrollHeight !== position.contentHeight
       )
         return;
       position.top = scroll.scrollTop;
@@ -98,28 +84,24 @@ export default function PageLayout(props: { children: ReactNode }) {
     }
     const observer = new ResizeObserver(() => {
       const viewportHeight = scroll.clientHeight;
-      const reservedHeight = space.getBoundingClientRect().height;
-      if (
-        viewportHeight === position.viewportHeight &&
-        reservedHeight === position.reservedHeight
-      ) {
+      const contentHeight = scroll.scrollHeight;
+      if (viewportHeight === position.viewportHeight && contentHeight === position.contentHeight) {
         rememberScroll();
         return;
       }
       const max = Math.max(0, scroll.scrollHeight - viewportHeight);
       const atBottom = position.max > 0 && Math.abs(position.max - position.top) <= 1;
       scroll.scrollTop = atBottom ? max : Math.min(Math.max(position.top, 0), max);
-      position = { top: scroll.scrollTop, max, viewportHeight, reservedHeight };
+      position = { top: scroll.scrollTop, max, viewportHeight, contentHeight };
     });
     scroll.addEventListener("scroll", rememberScroll, { passive: true });
     observer.observe(scroll);
-    observer.observe(space);
-    if (space.previousElementSibling !== null) observer.observe(space.previousElementSibling);
+    if (scroll.firstElementChild !== null) observer.observe(scroll.firstElementChild);
     return () => {
       scroll.removeEventListener("scroll", rememberScroll);
       observer.disconnect();
     };
-  }, [drawerOpen, hasEditor]);
+  }, [hasEditor]);
   if (site === undefined || page === undefined) return <NotFound />;
 
   const apiUrl = process.env.NEXT_PUBLIC_API_URL;
@@ -158,16 +140,19 @@ export default function PageLayout(props: { children: ReactNode }) {
 
   return (
     <SWRConfig value={{ uploadImage }}>
-      <div className="wall-preview-viewport relative flex h-full min-h-0 min-w-0 flex-col overflow-hidden">
+      <div
+        className="wall-preview-viewport relative flex h-full min-h-0 min-w-0 flex-col overflow-hidden"
+        data-drawer-open={drawerOpen}
+      >
         <title>
           {pageTitle === "" ? `[Editing] ${siteName}` : `[Editing] ${siteName} - ${pageTitle}`}
         </title>
         <div
           ref={scrollRef}
-          className="relative h-full min-h-0 min-w-0 overflow-x-hidden overflow-y-auto pt-[var(--wall-preview-top-gap)] pb-[var(--wall-preview-bottom-gap)]"
+          className="relative min-h-0 min-w-0 shrink-0 overflow-x-hidden overflow-y-auto pt-[var(--wall-preview-top-gap)] pb-[var(--wall-preview-bottom-gap)]"
+          style={{ height: "calc(100% - var(--wall-preview-drawer-height))" }}
         >
           <ValidBreakpoint />
-          <div ref={drawerSpace} aria-hidden />
         </div>
         <div
           className="pointer-events-none fixed inset-x-0 z-80 flex justify-center px-2"

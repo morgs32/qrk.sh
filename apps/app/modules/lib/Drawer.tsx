@@ -32,7 +32,7 @@ const sideClassName = {
   right:
     "fixed top-0 right-0 bottom-0 z-60 flex h-dvh max-md:w-full min-h-0 flex-col border-l border-border bg-background shadow-[-4px_0_20px_-6px_rgb(0_0_0/0.07),-2px_0_10px_-4px_rgb(0_0_0/0.04)] md:w-1/2 dark:shadow-[-4px_0_20px_-6px_rgb(0_0_0/0.2),-2px_0_10px_-4px_rgb(0_0_0/0.1)]",
   bottom:
-    "fixed right-0 bottom-0 left-0 z-40 flex min-h-0 w-full flex-col border-t border-border bg-background shadow-[0_-4px_20px_-6px_rgb(0_0_0/0.07),0_-2px_10px_-4px_rgb(0_0_0/0.04)] top-16 md:top-auto md:h-[calc((100vh-4rem)/2)] dark:shadow-[0_-4px_20px_-6px_rgb(0_0_0/0.2),0_-2px_10px_-4px_rgb(0_0_0/0.1)]",
+    "fixed right-0 bottom-0 left-0 z-40 flex min-h-0 w-full flex-col border-t border-border bg-background shadow-[0_-4px_20px_-6px_rgb(0_0_0/0.07),0_-2px_10px_-4px_rgb(0_0_0/0.04)] top-auto h-[25dvh] dark:shadow-[0_-4px_20px_-6px_rgb(0_0_0/0.2),0_-2px_10px_-4px_rgb(0_0_0/0.1)]",
 };
 
 export function Drawer(props: {
@@ -135,7 +135,7 @@ export function Drawer(props: {
         open === undefined
           ? undefined
           : {
-              ...(side === "bottom" ? { top: "auto", height: "50dvh" } : {}),
+              ...(side === "bottom" ? { top: "auto", height: "25dvh" } : {}),
               transform: open
                 ? "translate(0, 0)"
                 : side === "bottom"

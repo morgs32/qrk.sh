@@ -74,7 +74,7 @@ Legend: `+` create; `~` modify. Reconcile the glossary after implementation; edi
 
 ## Delivery and documentation
 
-1. Preserve concurrent work and storage during implementation. Keep [Plan 048](../../plans/048-plan-wall-pointer-resizing.md)'s manual native-touch verification status accurate; this plan does not complete it by inference.
+1. Preserve concurrent work and storage during implementation. Keep [Plan 048](./048-plan-wall-pointer-resizing.md)'s manual native-touch verification status accurate; this plan does not complete it by inference.
 2. After implementation and verification, reconcile the existing sizing glossary and update Brick layout conventions with the actual readout behavior. Do not change the glossary or create an ADR during planning. Create an ADR only for an implemented decision that is hard to reverse, surprising without context, and the result of a real trade-off; ordinary readout presentation is not expected to meet those criteria.
 3. Record verification evidence and any remaining gaps, open a ready-for-review PR, and archive this plan only when its implementation and required verification are complete. Preserve the filename and repair links on archival.
 

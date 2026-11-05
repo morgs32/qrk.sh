@@ -1,6 +1,6 @@
 # 048 — Pointer resizing with local Wall previews
 
-**Status:** Approved; implementation in progress.
+**Status:** Complete. The final browser-generated touch verification passed in Chrome on 2026-11-05; historical mouse and synthetic-play evidence remains scoped below.
 
 ## Summary
 
@@ -77,7 +77,16 @@ Existing V8 commands, models, and session declarations remain unchanged. Preserv
 5. Native short-Row input exposed a divider hit area overlapping a Move-button corner. The corrected 24px hit area sits to the right of the seam; the visible stroke stays on the seam. Native drags from the formerly covered button edge now move the Brick without staging sizing commands, with both 0px and 12px gaps. A subsequent outside-grip resize still stages the correct complete Row payload in its current order.
 6. Reconciled layout conventions and the existing sizing glossary. This reversible local UI behavior does not require an ADR.
 
+## Final browser-generated touch verification — 2026-11-05
+
+1. Continued from merged main `ac9f3d7543f4909c33de7c10e7d8da6ce87d0345` in an isolated worktree. The remaining input check was current; no implementation change was needed. Used the existing configured URL `https://storybook.qrk.localhost/iframe.html?id=app-studio-wall-editor--pointer-resize-native&viewMode=story` and restarted its existing Storybook service. App/backend storage and production were untouched.
+2. The in-app browser still rejects `Input.dispatchTouchEvent`. Opening the existing Chrome profile made its browser connector available. Chrome accepts `Input.dispatchTouchEvent` through its direct CDP connection. Device emulation was inspected using DevTools; DevTools was then closed before the successful direct-input checks. These were browser-engine touch gestures on the unstubbed fixture, not synthetic DOM `dispatchEvent` / Storybook `fireEvent` calls, capture stubs or injected application state.
+3. Selected md (720px). The three initial Brick surfaces measured `[232, 232, 232]`, height 90px. A touch began at `(627, 325)` on the width grip, moved through `(650, 360)` to `(669, 400)`, and released outside the grip. During movement the actual grip reported `hasPointerCapture(5)` and the draft widths were `[274, 190, 232]`. After touch release, the existing Read resize journal control reported exactly one `setRowWidthWeights` command with those ordered weights; the third Brick stayed 232px and the active draft cleared.
+4. A touch began at `(737, 368)` on the height grip and moved to `(820, 411)`, outside the grip. During movement the real grip reported `hasPointerCapture(6)` and all three surfaces measured 133px. Release added exactly one `setRowMinHeight` command with `minHeight: 133`.
+5. Two browser-generated touch taps at `(737, 411)` added one `setRowMinHeight` command with `minHeight: null`, restoring all three surfaces to 90px. A further touch height drag followed by browser `touchCancel` cleared the preview, restored 90px and added no command: the journal remained at three commands total.
+6. Evidence: [observed journal/query/geometry JSON](/private/tmp/qrk-plan048-native-touch-evidence.json) and [resulting fixture screenshot](/private/tmp/qrk-plan048-native-touch-proof.png). The recorded journal and the real pointer-capture observation establish the browser touch path. They do not claim physical-device validation, hardware/browser coverage, actor authentication or distributed delivery.
+7. Restored the temporary DevTools dimensions, device-toolbar visibility and bottom docking, disabled device emulation and closed DevTools. No source, schema, registry, dependency, storage, glossary or ADR change was needed. No tests, fixtures or runners were created; the existing fixtures and earlier check results are preserved. Instagram account verification remains deferred.
+
 ## Remaining work
 
-1. **Native touch verification is blocked by browser capability.** The available in-app browser explicitly rejects `Input.dispatchTouchEvent`. Synthetic touch dragging, fractional final release, double-tap reset, and automatic no-op checks pass, but genuine touch capture/release outside the grip remains unverified. Use a touch-capable browser connection or manually check `PointerResizeNative` with touch input.
-2. After that required native check passes, record its evidence, set remaining work to None, and archive this plan. Keep it active until verification is complete.
+None.

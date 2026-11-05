@@ -459,7 +459,7 @@ The Wall ends with a white, right-aligned “powered by qrk.sh” footer with
 an inset top divider, a zinc-300 bottom border closing the preview frame, and `qrk.sh` in Silkscreen. Its text line boxes are vertically
 centered in a 64px footer, matching the site navbar; the divider does not consume layout space. It sits at
 the bottom of short Walls and follows content on long Walls.
-The Wall background is light orange (`#E6AA80`, a 50% white tint of `#CC5500`), except for the existing empty-Wall
+The Wall background is white, except for the existing empty-Wall
 drag highlight. `Site.brickGap` sets the space between Bricks in whole pixels
 from 0 to 12, defaulting to 0. SiteSettings saves it through `updateSiteSettings`,
 whose guard rejects values outside that range. Each Placement and insertion

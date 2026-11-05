@@ -28,6 +28,9 @@ A static `legacy` value would govern both replayed historical edits and future e
 
 Contract upgrades already provide historical payload adaptation. They do not currently establish an adapter-only policy through invocation preparation. Exposing original-version context was an initial suggestion, not an established necessary or sufficient fix. No SDK change, Page policy, model migration, storage reset, dependency update, or feature implementation is authorized by this research.
 
-The subsequent design decision supersedes the compatibility requirement for this feature: the user authorized wiping **local development and deployed QRK Zerospin data** at its cutover. [Plan 050](../plans/050-plan-stack-insertion-and-fit.md) therefore uses strict fit validation with fresh storage, without a Page legacy flag or SDK change. This records authorization and intended work; no reset has been executed by the research.
+The subsequent design decision supersedes the compatibility requirement for this feature: the user authorized wiping **local development and deployed QRK Zerospin data** at its cutover. [Plan 050](../archive/plans/050-plan-stack-insertion-and-fit.md) therefore uses strict fit validation with fresh storage, without a Page legacy flag or SDK change. This records authorization and intended work; no reset has been executed by the research.
 
 Evidence consists of source inspection and the bounded codec probe above. Existing framework tests were read, not run; this is not browser, Durable Object delivery, admission integration, or production verification. Installed core files checked during the investigation matched the inspected sibling implementations. Sibling Intent discovery was unavailable; QRK's installed Intent discovery and evolution guidance were used without downloading a replacement.
+
+
+Plan 050 completed on 2026-11-04 after the maintainer accepted authenticated local `__dev` verification in place of the remaining production rollout check. Current-line insertion, refusal, redistribution and reload evidence is recorded in the archived plan; no new production deployment or reset occurred.

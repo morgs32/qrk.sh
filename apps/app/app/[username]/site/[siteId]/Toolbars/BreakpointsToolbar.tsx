@@ -6,12 +6,10 @@ import { BREAKPOINTS } from "../../../../../modules/lib/breakpoints";
 import { WallPreviewToolbar } from "../../../../../modules/lib/WallPreviewToolbar";
 import { Schema } from "effect";
 import { motion, useReducedMotion } from "framer-motion";
-import { X } from "lucide-react";
 
 import { useValidatedParams } from "@/hooks/useValidatedParams";
 import { useEditorViewportStore } from "@/stores/useEditorViewportStore";
 
-import { ToolbarSeparator } from "./ToolbarSeparator";
 import { ToolbarButton } from "./ToolbarButton";
 
 const ParamsSchema = Schema.Struct({
@@ -86,24 +84,6 @@ export function BreakpointsToolbar() {
             {row.id}
           </ToolbarButton>
         ))}
-
-        <ToolbarSeparator />
-
-        <ToolbarButton
-          tooltip="Close"
-          aria-label="Close"
-          onClick={() =>
-            navigate({
-              to: "/$username/site/$siteId/page/$pageId",
-              params,
-              search: { breakpoint: search.breakpoint },
-              resetScroll: false,
-            })
-          }
-          className="h-7 px-2 text-destructive hover:text-destructive"
-        >
-          <X className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
-        </ToolbarButton>
       </WallPreviewToolbar>
     </motion.div>
   );

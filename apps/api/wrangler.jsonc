@@ -18,6 +18,7 @@
     // Portless exposes local public objects through the API Worker's /assets route.
     "R2_PUBLIC_BASE_URL": "https://api.qrk.localhost/assets",
     "CLERK_AUTHORIZED_PARTY": "https://app.qrk.localhost",
+    "ZEROSPIN_API_URL": "https://zerospin.qrk.localhost/",
   },
   "browser": { "binding": "BROWSER", "remote": true },
   "durable_objects": {

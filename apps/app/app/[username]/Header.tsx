@@ -2,11 +2,15 @@ import { UserButton, useClerk } from "@clerk/react";
 import { useClearSessionAuthentication } from "@zerospin/react/useClearSessionAuthentication";
 import { LogOut } from "lucide-react";
 import { toast } from "sonner";
+import { instagramVerificationSessionDefinition } from "@/zerospin/instagramVerificationSessionDefinition";
 import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
 import "@fontsource/silkscreen/400.css";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export function Header() {
+  const clearInstagramVerificationAuthentication = useClearSessionAuthentication(
+    instagramVerificationSessionDefinition,
+  );
   const clearAuthentication = useClearSessionAuthentication(userSessionDefinition);
   const { signOut } = useClerk();
   return (
@@ -38,7 +42,8 @@ export function Header() {
                 label="Sign out"
                 labelIcon={<LogOut />}
                 onClick={() => {
-                  void clearAuthentication()
+                  void clearInstagramVerificationAuthentication()
+                    .then(() => clearAuthentication())
                     .then(() => signOut())
                     .catch(() => toast.error("Could not sign out. Please try again."));
                 }}

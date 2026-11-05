@@ -78,9 +78,11 @@ Test authored backend behavior with `makeSystemHarness` from
 Use the actual System and registered releases, create model rows through commands,
 and call `harness.flush()` to execute queued external and command operations.
 Substitute provider services with Effect Layers; never call live providers in tests.
-The current harness accepts System-origin commands only; it does not test actor
-authentication or actor-origin commands. Keep representative success and rejection
-paths concise. These tests verify
+The installed harness accepts complete Actor, Agent, and System commands through
+`push`. Actor commands carry captured claims and their Node/session/push tuple;
+they exercise authored Actor guards and selected reads, not credential authentication
+or distributed admission. Keep representative success and rejection paths concise.
+These tests verify
 authored behavior, not Durable Object delivery, browser synchronization, or production.
 Run the backend `test` script (through Nx when configured).
 

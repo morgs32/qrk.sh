@@ -1,5 +1,6 @@
 import { handleR2Asset } from "@qrk.sh/r2-assets";
 import { newWorkersRpcResponse } from "capnweb";
+import { Effect } from "effect";
 
 import { BackendRepo } from "./BackendRepo";
 import {
@@ -10,6 +11,7 @@ import {
   UploadHttpError,
 } from "./http";
 import { handleUpload } from "./handleUpload";
+import { handleInstagramVerificationWebhook } from "./instagramVerification/handleInstagramVerificationWebhook";
 import { FigmaBackend } from "./modules/figmaThumbnail/FigmaBackend";
 import { BrowserHost } from "./modules/instagram/BrowserHost";
 import { LibraryApi } from "./modules/LibraryApi";
@@ -23,6 +25,10 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
 
   if (request.method === "OPTIONS") {
     return emptyCorsResponse(request, 204);
+  }
+
+  if (url.pathname === "/webhooks/instagram") {
+    return Effect.runPromise(handleInstagramVerificationWebhook({ request, env }));
   }
 
   if (url.pathname === "/rpc") {

@@ -2,7 +2,7 @@
 
 **Date:** 2026-10-13  
 **Focus:** Enable account-level Instagram username ownership verification through a DM challenge.  
-**Status:** Deferred at the maintainer's request. Research and source inspection are complete; feature implementation and Meta configuration have not started. Backend design remains unsettled.
+**Status:** Resumed on 2026-11-05. The approved shared-Service design and current remaining work are recorded in [Plan 054](../plans/054-plan-instagram-verification.md). Implementation and required live verification are in progress; this handoff remains historical context until reconciled at completion.
 
 ## Goal
 

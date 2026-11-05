@@ -10,9 +10,29 @@ Close button in its shared navbar. The standalone Set breakpoints view has no
 drawer, so its floating breakpoint toolbar provides Close instead; closing
 returns to page controls and keeps the selected breakpoint.
 
-| Area | Worker                    | Pure manifest           |
-| ---- | ------------------------- | ----------------------- |
-| User | `zerospin/node.worker.ts` | `userSessionDefinition` |
+| Area                   | Worker                                     | Pure manifest                            |
+| ---------------------- | ------------------------------------------ | ---------------------------------------- |
+| User                   | `zerospin/node.worker.ts`                  | `userSessionDefinition`                  |
+| Instagram verification | `zerospin/instagramVerification.worker.ts` | `instagramVerificationSessionDefinition` |
+
+## Instagram verification
+
+The dashboard lists the signed-in user's verified Instagram accounts separately
+from Instagram Bricks. A user may verify multiple accounts, while an Instagram
+identity can belong to only one QRK user. A DM challenge proves control at that
+time; refreshing a username requires another successful verification.
+
+Configure `NEXT_PUBLIC_INSTAGRAM_RECEIVING_ACCOUNT_ID` and
+`NEXT_PUBLIC_INSTAGRAM_RECEIVING_USERNAME` in both App and the backend. These
+public values identify QRK's single receiving account; provider tokens and the
+Meta app secret stay server-side. Until configured, the dashboard shows a setup
+message without acquiring the verification Service session.
+
+Each attempt creates a random 128-bit code, valid for ten minutes. Send the exact
+code to QRK's receiving account from the Instagram account to verify. New attempts
+replace unfinished ones. The dashboard observes authoritative proofs through its
+own authenticated Service session, retains existing proofs when another attempt
+fails, and supports Disconnect to release an account.
 
 ## Wall dragging
 
@@ -137,10 +157,13 @@ Local verification uses the existing `app.qrk.localhost` origin, the documented 
 origin to obtain an empty cache. The resource cache is separate from Zerospin
 IndexedDB/SQLite state; do not delete domain storage to clear an application build.
 
-Sign out uses `useClearSessionAuthentication(userSessionDefinition)` before
-Clerk's sign-out action. Zerospin stops synchronization and invalidates remembered
-offline eligibility before Clerk redirects to Web. Saved models remain on the
-device; a fresh online verification is required to reopen them.
+Sign out uses `useClearSessionAuthentication` to clear the Instagram verification
+scope and then the User scope before Clerk's sign-out action. The hook also
+handles disabled, loading, or failed verification sessions. Zerospin stops
+synchronization and invalidates remembered offline eligibility before Clerk
+redirects to Web. A clearing failure leaves Clerk signed in and shows the existing
+retry message. Saved models remain on the device; fresh online verification is
+required to reopen them.
 
 Each production build has a separate Workbox resource cache. `offline-cache.js`
 serves immutable old `/assets/` chunks to tabs still running an earlier build.

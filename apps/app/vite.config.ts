@@ -140,6 +140,14 @@ export default defineConfig(({ mode }) => {
       "process.env.NEXT_PUBLIC_ZEROSPIN_PUBLISHABLE_KEY": JSON.stringify(
         env.NEXT_PUBLIC_ZEROSPIN_PUBLISHABLE_KEY ?? "",
       ),
+      "process.env.NEXT_PUBLIC_INSTAGRAM_RECEIVING_ACCOUNT_ID":
+        env.NEXT_PUBLIC_INSTAGRAM_RECEIVING_ACCOUNT_ID === undefined
+          ? "undefined"
+          : JSON.stringify(env.NEXT_PUBLIC_INSTAGRAM_RECEIVING_ACCOUNT_ID),
+      "process.env.NEXT_PUBLIC_INSTAGRAM_RECEIVING_USERNAME":
+        env.NEXT_PUBLIC_INSTAGRAM_RECEIVING_USERNAME === undefined
+          ? "undefined"
+          : JSON.stringify(env.NEXT_PUBLIC_INSTAGRAM_RECEIVING_USERNAME),
       "process.env.PUBLIC_MAPBOX_TOKEN": JSON.stringify(env.PUBLIC_MAPBOX_TOKEN ?? ""),
     },
     worker: { format: "es" },

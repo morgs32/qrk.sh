@@ -8,11 +8,15 @@ import { makeId, stageAggregateSessionCommand } from "@zerospin/sdk/browser";
 import { useLayoutEffect, useState } from "react";
 import { Schema } from "effect";
 import { toast } from "sonner";
-import { useLiveQuery, useSession } from "@zerospin/react";
+import { SessionReady, useLiveQuery, useSession } from "@zerospin/react";
 import { Check, X } from "lucide-react";
 
 import { siteV1 as Site } from "@qrk.sh/zerospin/src/aggregates/user/models/site/SiteV1";
 import { pageV1 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV1";
+import {
+  receivingAccountId,
+  receivingUsername,
+} from "@qrk.sh/zerospin/src/services/instagramVerification/instagramVerificationPolicy";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -34,6 +38,8 @@ import {
 import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
 import { startupTiming } from "@/lib/startupTiming";
+import { instagramVerificationSessionDefinition } from "@/zerospin/instagramVerificationSessionDefinition";
+import { InstagramVerificationCard } from "./InstagramVerificationCard";
 
 const ParamsSchema = Schema.Struct({
   username: Schema.String,
@@ -266,6 +272,46 @@ export default function UsernameDashboardPage() {
               </Dialog>
             </div>
           </div>
+          {!receivingAccountId || !receivingUsername ? (
+            <section
+              className="space-y-2 rounded-lg border p-4"
+              aria-labelledby="instagram-verification-title"
+            >
+              <h2 id="instagram-verification-title" className="font-medium">
+                Instagram accounts
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                Instagram verification is not configured yet.
+              </p>
+            </section>
+          ) : (
+            <SessionReady
+              definition={instagramVerificationSessionDefinition}
+              fallback={
+                <section className="rounded-lg border p-4 text-sm" role="status">
+                  Loading Instagram accounts…
+                </section>
+              }
+              renderError={(error, retry) => (
+                <section
+                  className="space-y-3 rounded-lg border p-4"
+                  aria-labelledby="instagram-verification-title"
+                >
+                  <h2 id="instagram-verification-title" className="font-medium">
+                    Instagram accounts
+                  </h2>
+                  <p className="text-sm text-destructive" role="alert">
+                    {error.message}
+                  </p>
+                  <Button type="button" variant="outline" onClick={retry}>
+                    Retry
+                  </Button>
+                </section>
+              )}
+            >
+              <InstagramVerificationCard />
+            </SessionReady>
+          )}
           {user.sites.length > 0 ? (
             <ul className="flex flex-col gap-3">
               {user.sites.map((site) => {

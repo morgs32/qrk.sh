@@ -259,29 +259,6 @@ App Storybook includes the module playgrounds alongside editor stories. See
 retains the existing R2 buckets; previously saved absolute URLs using port 4101
 need their origin updated separately.
 
-## Local subdomain routing proof
-
-With `pnpm dev` running, Web's development-only proof displays the subdomain
-and path without a site query. Open [alpha](https://alpha.qrk.localhost/)
-or [beta](https://beta.qrk.localhost/about/team?from=proof). The page's
-Home/About links exercise Next navigation while the browser retains the
-selected hostname. `PORTLESS_WILDCARD=1` on the root `dev` script sends these
-tenant labels through Web's process-owned `qrk` registration.
-
-Only one DNS label before `.qrk.localhost` is recognized. The explicit App,
-API, and Zerospin registrations own their service hostnames. Next
-internals, static files, and `/api`, `/trpc`, and `/rpc` endpoints retain their
-existing routing. Proof labels do not yet identify sites or users.
-
-The earlier trial's static `qrk` alias is replaced by process-owned monorepo
-registration. If migrating an existing trial setup, remove that static alias
-once with `pnpm exec portless alias --remove qrk` before starting `pnpm dev`.
-Normal startup needs no manual alias. Keep the shared proxy and other aliases.
-The [routing research](wiki/research/nextjs-subdomain-routing.md) and
-[Plan 024](wiki/archive/plans/024-plan-nextjs-subdomain-routing.md) retain historical
-trial evidence; everyday development uses standard HTTPS port 443, with apps
-distinguished by hostname.
-
 ## Deployment
 
 Web remains a Next.js deployment at `qrk.sh`; App's static TanStack Start SPA

@@ -27,21 +27,6 @@ export default function proxy(request: NextRequest, event: NextFetchEvent) {
       return new NextResponse("Not found", { status: 404 });
     return NextResponse.next();
   }
-  if (
-    process.env.NODE_ENV === "development" &&
-    (request.method === "GET" || request.method === "HEAD") &&
-    !/^\/(api|trpc|rpc)(\/|$)/.test(pathname)
-  ) {
-    const hostname = request.headers.get("host")?.toLowerCase().replace(/:\d+$/, "");
-    const subdomain = hostname?.match(
-      /^([a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)\.qrk\.localhost$/,
-    )?.[1];
-    if (subdomain) {
-      const destination = request.nextUrl.clone();
-      destination.pathname = `/subdomain-proof/${subdomain}${pathname}`;
-      return NextResponse.rewrite(destination);
-    }
-  }
   return clerkProxy(request, event);
 }
 

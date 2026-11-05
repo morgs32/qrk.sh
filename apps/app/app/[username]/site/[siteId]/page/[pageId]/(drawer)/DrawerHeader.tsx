@@ -201,7 +201,7 @@ export function DrawerHeader() {
           type="button"
           variant="ghost"
           size="icon"
-          className="size-10 cursor-pointer"
+          className="size-10 cursor-pointer hover:bg-transparent hover:text-red-500 dark:hover:bg-transparent"
           aria-label="Close drawer"
           onClick={closeDrawer}
         >

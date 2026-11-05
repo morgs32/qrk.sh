@@ -30,7 +30,7 @@ BrickCardStyleContext and WallPreviewViewport are removed. App uses saved
 Shared previews receive ordinary boolean props, while ModulePlayground retains
 its local visual Cards control.
 
-PageLayout directly owns the preview scroll region, 50dvh trailing space while
+PageLayout directly owns the preview scroll region, 25dvh trailing space while
 the drawer is open or 56px while closed, scroll anchoring/clamping during drawer
 changes and resizing, and floating toolbar positioning with reduced-motion
 handling. The production URL owns `?breakpoint=md`, and

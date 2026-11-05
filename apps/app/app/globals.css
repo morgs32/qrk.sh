@@ -251,7 +251,7 @@ html body[data-scroll-locked] {
   }
   to {
     /* Match the shell, including its border, rather than the inner content height. */
-    transform: translateY(50dvh);
+    transform: translateY(25dvh);
   }
 }
 @media (prefers-reduced-motion: reduce) {

@@ -23,7 +23,7 @@
 
 ## Remaining work
 
-1. Finish signup for the requested `qrk.sh` receiving account, convert it to a professional Business account, create/configure the Meta app, and set the private environment values. Credential and signup terms steps remain with the maintainer.
+1. Signup for `@qrk.sh` is complete and confirmed in Instagram. Approve the prepared Business/Product-service conversion with category display off, and identify/authorize the Facebook account for Meta developer sign-in. Then complete professional conversion, create/configure the Meta app, and set the private environment values. New credential/terms steps remain with the maintainer.
 2. Verify authentication isolation, reload persistence, preparation/pending feedback, disconnect, and account transfer through the existing local origins and `__dev` flow. Complete the live DM round trip from an ordinary personal Instagram account with no Meta role.
 3. Use the authorized route-restricted tunnel only for Meta callbacks and stop it after verification. Preserve existing storage and unrelated WIP. Open the QRK ready-for-review PR and archive the plan only after required acceptance is complete.
 

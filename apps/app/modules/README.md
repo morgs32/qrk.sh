@@ -237,8 +237,9 @@ the matching view; preview examples select `variants.default` directly. There
 is no variant picker or switching command while every module has one choice.
 
 Catalog previews render authored module content at that resolved preview width.
-The App catalog keeps its module selection/insertion controls separate from live
-preview content. Ordinary links, forms, Image file selection, and module-owned
+The App catalog uses plain module labels and draggable previews for Brick creation.
+Module inspection and Component/JsonRender comparisons belong to Storybook playgrounds;
+the App has no inspection links or URL-driven Add here action. Ordinary links, forms, Image file selection, and module-owned
 interactions remain available. Placed Bricks and existing-Row insertion shadows
 use relative growth weights to fill the Row; module minimums may override ideal
 ratios. New-Row shadows fill the available width. Visible Brick surfaces stretch
@@ -259,8 +260,8 @@ The calendar initially scrolls to the rightmost, most recent activity; subsequen
 manual scrolling keeps the chosen position.
 
 `modulesHash` exposes each library module by its registered kebab-case id, with
-no arbitrary-string index signature. App validates route module IDs against the
-registered module/Brick identity; Storybook binds an explicit registered module ID.
+no arbitrary-string index signature. App uses the registered Brick identity;
+Storybook binds an explicit registered module ID.
 Internal previews and state updates retain the registered ID union.
 `defineModule` declares identity; `makeModuleVersion` owns variant sizing, `stateShape`,
 canonical worker-safe `defaultSpec`, and `componentMetadata`. App registries and

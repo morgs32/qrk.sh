@@ -1,7 +1,6 @@
 "use client";
 
 import "@fontsource/silkscreen/400.css";
-import { Dialog } from "@base-ui/react/dialog";
 import { Menu } from "@base-ui/react/menu";
 import { ArrowLeft, ArrowRight, ChevronDown } from "lucide-react";
 import type { IInferModelRow } from "@zerospin/core/models/types";
@@ -69,17 +68,13 @@ export function WallEditor(props: {
   selectedStackId?: string | null;
   onEditBrick?: (brickId: string) => void;
   onEditStack?: (stackId: string) => void;
-  onBrickDeleted?: (brickId: string) => void;
 }) {
-  const { wallId, selectedBrickId, selectedStackId, onEditBrick, onEditStack, onBrickDeleted } =
-    props;
+  const { wallId, selectedBrickId, selectedStackId, onEditBrick, onEditStack } = props;
   const wallRef = useRef<HTMLDivElement>(null);
   const moveIndicatorRef = useRef<HTMLDivElement>(null);
   const shadowTargetRef = useRef<typeof wallInsertionTargetSchema.Type | null>(null);
   const shadowRowHeights = useRef(new Map<HTMLElement, number>());
-  const returnFocusId = useRef<string | null>(null);
   const scope = useId();
-  const [deletingBrickId, setDeletingBrickId] = useState<string | null>(null);
   const [moveFeedback, setMoveFeedback] = useState<
     | { kind: "row"; rowId: string; beforePlacementId: string | null }
     | { kind: "stack"; stackId: string; rowId: string | null; edge: "top" | "bottom" }
@@ -932,7 +927,11 @@ export function WallEditor(props: {
                                 }
                                 aria-label={`Stack ${stack.name} actions`}
                               >
-                                <ChevronDown className="size-3.5" strokeWidth={1.5} aria-hidden="true" />
+                                <ChevronDown
+                                  className="size-3.5"
+                                  strokeWidth={1.5}
+                                  aria-hidden="true"
+                                />
                               </Menu.Trigger>
                               <Menu.Portal>
                                 <Menu.Positioner
@@ -1076,14 +1075,9 @@ export function WallEditor(props: {
                                           dropTarget.beforePlacementId === placement.id &&
                                           shadow}
                                         <WallPlacement
-                                          scope={scope}
                                           brickGap={brickGap}
                                           selected={brick.id === selectedBrickId}
                                           onEditBrick={onEditBrick}
-                                          onRequestDelete={(brickId, triggerId) => {
-                                            returnFocusId.current = triggerId;
-                                            setDeletingBrickId(brickId);
-                                          }}
                                           placement={{
                                             id: placement.id,
                                             brickId: brick.id,
@@ -1220,50 +1214,6 @@ export function WallEditor(props: {
           </PreviewSection>
         </div>
       </div>
-      <Dialog.Root
-        open={deletingBrickId !== null}
-        onOpenChange={(open) => {
-          if (!open) setDeletingBrickId(null);
-        }}
-      >
-        <Dialog.Portal>
-          <Dialog.Backdrop className="fixed inset-0 z-[100] bg-black/30" />
-          <Dialog.Popup
-            finalFocus={() =>
-              wallRef.current?.ownerDocument.getElementById(returnFocusId.current ?? "") ??
-              wallRef.current?.querySelector<HTMLElement>("button") ??
-              wallRef.current
-            }
-            className="fixed left-1/2 top-1/2 z-[101] grid w-[min(28rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 gap-4 border bg-background p-6 text-foreground shadow-xl outline-none"
-          >
-            <Dialog.Title className="text-lg font-medium">Delete Brick?</Dialog.Title>
-            <Dialog.Description className="text-sm text-muted-foreground">
-              This deletes the shared Brick and its Placements at all four breakpoints, then removes
-              empty Rows, Stacks, and Sections.
-            </Dialog.Description>
-            <div className="flex justify-end gap-2">
-              <Dialog.Close render={<Button variant="outline" />}>Cancel</Dialog.Close>
-              <Button
-                variant="destructive"
-                onClick={() => {
-                  if (deletingBrickId === null) return;
-                  const brickId = Schema.decodeUnknownSync(makeIdSchema(brickV2))(deletingBrickId);
-                  const result = stageAggregateSessionCommand({
-                    session,
-                    contractName: "deleteBrick",
-                    payload: { brickId },
-                  });
-                  if (result._tag !== "Success") return;
-                  setDeletingBrickId(null);
-                  onBrickDeleted?.(brickId);
-                }}
-              >
-                Delete Brick
-              </Button>
-            </div>
-          </Dialog.Popup>
-        </Dialog.Portal>
-      </Dialog.Root>
     </>
   );
 }

@@ -636,14 +636,12 @@ function WallEditorStory(props: {
                       verticalAtLg={verticalAtLg}
                       breakpoint={breakpoint.id}
                       cardStyle={cardStyle}
-                      renderModuleLink={(brickModule) => <span>{brickModule.label}</span>}
                     />
                   ) : (
                     <ModulePreview
                       brickModule={modulesHash[fixture]}
                       breakpoint={breakpoint.id}
                       cardStyle={cardStyle}
-                      moduleLink={<span>{modulesHash[fixture].label}</span>}
                       moduleAction={() => (
                         <Button
                           type="button"
@@ -1845,7 +1843,7 @@ export const PlacementBrick: StoryObj<typeof meta> = {
     docs: {
       description: {
         story:
-          "The play function checks focus, selection while focus is elsewhere, and the action menu's portal and Escape return. Pointer hover remains available for direct inspection; selection and an open menu alone do not reveal action tabs.",
+          "The play function checks focus, selection while focus is elsewhere, and the direct edit button. Pointer hover remains available for direct inspection; selection alone does not reveal action tabs.",
       },
     },
   },
@@ -1883,23 +1881,14 @@ export const PlacementBrick: StoryObj<typeof meta> = {
     expect(selectedPaint.boxShadow).toContain("rgba(31, 155, 252, 0.15)");
     if (!placementElement.matches(":hover"))
       await waitFor(() => expect(getComputedStyle(actions).opacity).toBe("0"));
-    const action = within(placementElement).getByRole("button", { name: /Brick .* actions/ });
+    const action = within(placementElement).getByRole("button", { name: /Edit Brick / });
     action.focus();
     await waitFor(() => expect(getComputedStyle(actions).opacity).toBe("1"));
     expect(getComputedStyle(actions).backgroundColor).toBe("rgb(31, 155, 252)");
     expect(surface.getBoundingClientRect().height).toBeCloseTo(before.height, 1);
     await userEvent.click(action);
-    const editItem = await within(document.body).findByRole("menuitem", { name: "Edit" });
-    editItem.focus();
-    expect(placementElement.classList.contains("is-menu-open")).toBe(true);
-    expect(placementElement.matches(":focus-within")).toBe(false);
-    expect(getComputedStyle(surface, "::after").opacity).toBe("1");
-    if (!placementElement.matches(":hover"))
-      await waitFor(() => expect(getComputedStyle(actions).opacity).toBe("0"));
-    await userEvent.keyboard("{Escape}");
-    await waitFor(() => expect(placementElement.classList.contains("is-menu-open")).toBe(false));
+    expect(within(placementElement).queryByRole("menu")).toBeNull();
     expect(document.activeElement).toBe(action);
-    await waitFor(() => expect(getComputedStyle(actions).opacity).toBe("1"));
     expect(surface.getBoundingClientRect().width).toBeCloseTo(before.width, 1);
     expect(surface.getBoundingClientRect().height).toBeCloseTo(before.height, 1);
     expect(placementElement.getBoundingClientRect().height).toBeCloseTo(hitbox.height, 1);
@@ -2206,14 +2195,13 @@ export const EqualHeightRows: StoryObj<typeof meta> = {
     docs: {
       description: {
         story:
-          "At each breakpoint, a taller Figma shadow grows a Swatch Row and stretches its visible surface. Leaving restores the original height. A real drop keeps both Bricks equal; a shorter Swatch shadow fills that Row. Deleting the Figma Brick through its menu restores the Swatch's natural height. Figma uses static example content and its module-owned placeholder, without a provider request.",
+          "At each breakpoint, a taller Figma shadow grows a Swatch Row and stretches its visible surface. Leaving restores the original height. A real drop keeps both Bricks equal; a shorter Swatch shadow fills that Row. Figma uses static example content and its module-owned placeholder, without a provider request.",
       },
     },
   },
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement);
     const document = canvasElement.ownerDocument;
-    const body = within(document.body);
     await document.fonts.ready;
     await waitFor(
       () =>
@@ -2373,21 +2361,6 @@ export const EqualHeightRows: StoryObj<typeof meta> = {
         fireEvent.dragEnd(shortSource, { dataTransfer: shortDataTransfer });
         await waitFor(() => expect(row.querySelector(".wall-shadow-placeholder")).toBeNull());
         expect(row.querySelectorAll("[data-wall-placement-id]")).toHaveLength(2);
-
-        const added = Array.from(
-          row.querySelectorAll<HTMLElement>("[data-wall-placement-id]"),
-        ).find((element) => element !== placed);
-        if (!added) throw new Error("Missing command-created Figma Placement");
-        await userEvent.click(within(added).getByRole("button", { name: /Brick .* actions/ }));
-        await userEvent.click(await body.findByRole("menuitem", { name: "Delete Brick" }));
-        await userEvent.click(await body.findByRole("button", { name: /^Delete Brick$/ }));
-        await waitFor(() => {
-          expect(row.querySelectorAll("[data-wall-placement-id]")).toHaveLength(1);
-          expect(surface.getBoundingClientRect().height).toBeCloseTo(naturalHeight, 1);
-        });
-        expect(canvasElement.querySelectorAll("[data-wall-placement-id]")).toHaveLength(
-          initialPlacementCount,
-        );
       } finally {
         fireEvent.dragEnd(document.body);
       }
@@ -2407,7 +2380,7 @@ export const RowReorder: StoryObj<typeof meta> = {
     docs: {
       description: {
         story:
-          "Drag the grip beside a Brick's action menu to reorder it within its Row. The play function verifies forward/backward movement, append, unchanged drops, cancellation, outside drops, stable geometry, retained selection, and unchanged breakpoint Walls against the real local session.",
+          "Drag the grip beside a Brick's edit button to reorder it within its Row. The play function verifies forward/backward movement, append, unchanged drops, cancellation, outside drops, stable geometry, retained selection, and unchanged breakpoint Walls against the real local session.",
       },
     },
   },
@@ -3182,6 +3155,13 @@ export const CrossRowStickyActions: StoryObj<typeof meta> = {
       !previewActions
     )
       throw new Error("Missing sticky action fixture");
+    const stackBorder = getComputedStyle(stackActions, "::before");
+    expect(stackBorder.top).toBe("-1px");
+    expect(stackBorder.left).toBe("-1px");
+    expect(stackBorder.borderTopWidth).toBe("1px");
+    expect(stackBorder.borderLeftWidth).toBe("1px");
+    expect(stackBorder.borderTopColor).toBe(getComputedStyle(stackActions).backgroundColor);
+    expect(stackBorder.pointerEvents).toBe("none");
     const originalBox = article.getBoundingClientRect();
     const originalScroll = scroll.scrollTop;
     const tailHeight = tail.style.minHeight;
@@ -3210,11 +3190,9 @@ export const CrossRowStickyActions: StoryObj<typeof meta> = {
       expect(within(document.body).getByRole("menuitem", { name: "Insert left" })).toBeVisible();
       expect(within(document.body).getByRole("menuitem", { name: "Insert right" })).toBeVisible();
       await userEvent.keyboard("{Escape}");
-      await userEvent.click(
-        within(article).getByRole("button", { name: "Brick brk_story-4 actions" }),
-      );
-      expect(within(document.body).getByRole("menuitem", { name: "Delete Brick" })).toBeVisible();
-      await userEvent.keyboard("{Escape}");
+      expect(
+        within(article).queryByRole("button", { name: "Brick brk_story-4 actions" }),
+      ).toBeNull();
       scroll.scrollTop +=
         content.getBoundingClientRect().bottom - scroll.getBoundingClientRect().top - offset - 14;
       await waitFor(() => {

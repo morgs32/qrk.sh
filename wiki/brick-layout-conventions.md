@@ -145,7 +145,7 @@ templates subject to module Page limits:
   accepts its first Brick. Populated Walls expose no new Section/Stack targets
   outside the existing layout.
 
-Saved Wall Bricks move only from the grip beside their action menu. Their
+Saved Wall Bricks move only from the grip beside their edit button. Their
 content retains text selection, links, controls, and ordinary click selection.
 The canvas accepts existing and new Row destinations across the current Wall's
 existing Stacks and Sections. On compatible populated Rows, the top/bottom 8px
@@ -229,8 +229,9 @@ insertion destination. Capacity checks and the existing drop command path apply
 to that destination.
 Stacks retain a 50px minimum height. Stack names overlay the layout, inset 1px inside the border. Empty persisted Rows/Stacks retain their layout
 containers until a move command cleans their Wall or deletion empties their
-ancestor path. Production PagePreview renders saved layout with Edit and Delete
-controls and hosts WallEditor for drawer drop targeting and insertion feedback. The Wall Editor
+ancestor path. Production PagePreview renders saved layout with direct Edit controls
+and hosts WallEditor for drawer drop targeting and insertion feedback. Brick Details
+owns Delete in its header. The Wall Editor
 story uses this preview while omitting the Brick Details panel.
 The Wall Editor's Default and EmptyWall stories exercise production insertion
 feedback. Preview Brick, Placement Brick, and Shadow Brick label their actual
@@ -240,10 +241,10 @@ Backend move commands remain available independently of the canvas.
 
 Clicking ordinary placed-Brick content opens its edit form through the existing
 route-owned selection. Clicking an already selected Brick keeps it selected.
-Links, buttons, form controls, editable content, media controls, and action-menu
+Links, buttons, form controls, editable content, media controls, and action
 controls keep their own interactions without selecting. MapCanvas owns its click
 boundary so map gestures and controls remain usable. Modified or prevented clicks
-and clicks following a text-selection drag do not select. The existing Edit menu
+and clicks following a text-selection drag do not select. The direct Edit button
 remains the keyboard-accessible selection action; selection adds no tab stop or
 button role around interactive Brick content.
 
@@ -284,11 +285,15 @@ drawer, but it does not force BrickAction visible. BrickAction appears only on
 actual Brick hover or focus within; it has no selected/menu override or permanent
 coarse-pointer fallback. StackAction retains its own left placement, Stack scope,
 and existing coarse-pointer behavior. Both action surfaces use blue backgrounds
-and white text/icons.
+and white text/icons. StackAction paints a 1px same-blue top/left border outside its
+1px inset, filling the corner without shifting the controls or their sticky alignment
+with BrickAction.
 
-The Brick menu uses Fragment's compact dropdown styling with inverted surfaces:
-square white popup, 15px monospace text, tightly padded 20px rows, pale-gray
-highlights, and a hard offset shadow. Delete retains its destructive color.
+The Brick action tab contains a direct pencil Edit button and the drag grip, without a dropdown.
+Brick Details shows Delete immediately left of Close. Delete opens the existing
+confirmation describing removal across all four breakpoints and cleanup of empty
+containers. Cancel preserves the Brick and returns focus to Delete. A locally
+successful delete closes the drawer; a staging refusal keeps the confirmation open.
 
 On hover-capable fine pointers, the whole Placement temporarily rises above
 neighboring Bricks at z-index 1, across Rows, Stacks, and Sections. Hover ending
@@ -296,11 +301,7 @@ restores normal stacking. Stack controls, browser chrome, menus, and floating
 toolbars remain above it; focus, selection, and open-menu state do not raise it.
 Placement isolation, internal decoration ordering, and viewport clipping remain.
 
-The Placement's noninteractive outer stroke, outset 0.5px, remains reserved for
-an open portal menu because the portal can take DOM focus outside the Brick.
-Focus uses the shared content decoration. Edit/Delete menus remain keyboard
-accessible; Delete confirmation supports cancellation and restores focus to its
-trigger or a surviving control. Each outer Row uses `flow-root` to contain its
+Focus uses the shared content decoration. Each outer Row uses `flow-root` to contain its
 flex element's -0.5px margin; 0.5px padding and a 49px minimum retain the Row's
 48px outer minimum, content positions and widths, scroll range, Placement
 padding/minimum widths, and drop geometry.

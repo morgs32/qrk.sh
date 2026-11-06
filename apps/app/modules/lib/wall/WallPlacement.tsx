@@ -1,6 +1,5 @@
-import { Menu } from "@base-ui/react/menu";
 import { Pencil, GripVertical } from "lucide-react";
-import { useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { cn } from "cn";
 import { Button } from "../../components/ui/button";
 import { BrickAction } from "../../components/BrickAction";
@@ -13,15 +12,11 @@ export function WallPlacement(props: {
     minWidth: number;
     content: ReactNode;
   };
-  scope: string;
   brickGap: number;
   selected: boolean;
   onEditBrick?: (brickId: string) => void;
-  onRequestDelete: (brickId: string, triggerId: string) => void;
 }) {
-  const { placement, scope, brickGap, selected, onEditBrick, onRequestDelete } = props;
-  const [menuOpen, setMenuOpen] = useState(false);
-  const triggerId = `${scope}-placement-menu-${placement.id}`;
+  const { placement, brickGap, selected, onEditBrick } = props;
   // Adjacent half-gap insets preserve touching drop targets at every gap size.
   return (
     <div
@@ -31,11 +26,7 @@ export function WallPlacement(props: {
         minWidth: placement.minWidth + brickGap,
         padding: brickGap / 2,
       }}
-      className={cn(
-        "wall-placement group/brick relative after:pointer-events-none after:absolute after:-inset-[0.5px] after:z-[18] after:border after:border-transparent after:content-['']",
-        selected && "is-selected",
-        menuOpen && "is-menu-open",
-      )}
+      className={cn("wall-placement group/brick relative", selected && "is-selected")}
     >
       <div
         className="wall-placement-content relative z-20 min-w-0 w-full"
@@ -48,7 +39,6 @@ export function WallPlacement(props: {
             event.metaKey ||
             event.shiftKey ||
             !(event.target instanceof Element) ||
-            // Portaled menu events bubble through React, outside this DOM subtree.
             !event.currentTarget.contains(event.target) ||
             event.target.closest(
               'a, button, input, textarea, select, label, summary, [contenteditable]:not([contenteditable="false"]), [role="button"], [role="link"], [role^="menuitem"], audio, video, canvas',
@@ -67,35 +57,17 @@ export function WallPlacement(props: {
         }}
       >
         <BrickAction>
-          <Menu.Root open={menuOpen} onOpenChange={setMenuOpen}>
-            <Menu.Trigger
-              id={triggerId}
-              render={<Button variant="ghost" className="size-7 rounded-none p-0" />}
-              aria-label={`Brick ${placement.brickId} actions`}
+          {onEditBrick === undefined ? null : (
+            <Button
+              type="button"
+              variant="ghost"
+              className="size-7 rounded-none p-0"
+              aria-label={`Edit Brick ${placement.brickId}`}
+              onClick={() => onEditBrick(placement.brickId)}
             >
               <Pencil className="size-3.5" strokeWidth={1.5} aria-hidden="true" />
-            </Menu.Trigger>
-            <Menu.Portal>
-              <Menu.Positioner side="bottom" align="end" sideOffset={0} className="z-[90]">
-                <Menu.Popup className="w-max min-w-[90px] max-w-[var(--available-width)] max-h-[var(--available-height)] overflow-y-auto rounded-none border border-[#dedede] bg-white p-0 font-mono text-[15px] leading-[18px] font-normal text-[#111] shadow-[2px_3px_0_#0005] outline-none">
-                  {onEditBrick && (
-                    <Menu.Item
-                      className="min-h-5 cursor-pointer select-none px-0.5 py-px outline-none data-[highlighted]:bg-[color-mix(in_srgb,#fff,#111_6%)]"
-                      onClick={() => onEditBrick(placement.brickId)}
-                    >
-                      Edit
-                    </Menu.Item>
-                  )}
-                  <Menu.Item
-                    className="min-h-5 cursor-pointer select-none px-0.5 py-px text-destructive outline-none data-[highlighted]:bg-[color-mix(in_srgb,#fff,#111_6%)]"
-                    onClick={() => onRequestDelete(placement.brickId, triggerId)}
-                  >
-                    Delete Brick
-                  </Menu.Item>
-                </Menu.Popup>
-              </Menu.Positioner>
-            </Menu.Portal>
-          </Menu.Root>
+            </Button>
+          )}
           <Button
             type="button"
             data-wall-drag-handle

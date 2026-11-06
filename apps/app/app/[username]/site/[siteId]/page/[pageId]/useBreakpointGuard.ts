@@ -64,7 +64,6 @@ export function useBreakpointGuard() {
       search: (previous) => ({
         ...previous,
         breakpoint: largestFitting.id,
-        insertion: undefined,
       }),
     });
   }, [availableWidth, requestedBreakpoint, breakpoint, navigate, params, stackId]);

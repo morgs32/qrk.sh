@@ -1,11 +1,10 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
-import { expect, fireEvent, fn, userEvent, waitFor, within } from "storybook/test";
+import { expect, fireEvent, fn, userEvent, within } from "storybook/test";
 
 import { WallPlacement } from "./WallPlacement";
 
 const editBrick = fn();
-const deleteBrick = fn();
 const followLink = fn();
 const pressButton = fn();
 const placement = {
@@ -44,33 +43,28 @@ const meta = {
   component: WallPlacement,
   args: {
     placement,
-    scope: "click-selection",
     brickGap: 0,
     selected: false,
     onEditBrick: editBrick,
-    onRequestDelete: deleteBrick,
   },
   beforeEach: () => {
     editBrick.mockClear();
-    deleteBrick.mockClear();
     followLink.mockClear();
     pressButton.mockClear();
   },
   render: function Render(props) {
-    const { placement, scope, brickGap, selected, onEditBrick, onRequestDelete } = props;
+    const { placement, brickGap, selected, onEditBrick } = props;
     const [isSelected, setSelected] = useState(selected);
     return (
       <div className="qrk-bricks wall-story flex w-96 p-4">
         <WallPlacement
           placement={placement}
-          scope={scope}
           brickGap={brickGap}
           selected={isSelected}
           onEditBrick={(brickId) => {
             onEditBrick?.(brickId);
             setSelected(true);
           }}
-          onRequestDelete={onRequestDelete}
         />
       </div>
     );
@@ -83,7 +77,6 @@ export const ClickSelection: StoryObj<typeof meta> = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     const document = canvasElement.ownerDocument;
-    const body = within(document.body);
     const text = canvas.getByText("Select this brick");
 
     await userEvent.click(canvas.getByRole("link", { name: "Fixture link" }));
@@ -111,16 +104,9 @@ export const ClickSelection: StoryObj<typeof meta> = {
       selection.removeAllRanges();
     }
 
-    const trigger = canvas.getByRole("button", { name: "Brick story-brick actions" });
-    await userEvent.click(trigger);
-    await userEvent.click(await body.findByRole("menuitem", { name: "Delete Brick" }));
-    expect(deleteBrick).toHaveBeenCalledOnce();
-    expect(editBrick).not.toHaveBeenCalled();
-
-    // The existing menu remains the keyboard path into the edit form.
-    trigger.focus();
-    await userEvent.keyboard("{ArrowDown}");
-    await waitFor(() => expect(body.getByRole("menuitem", { name: "Edit" })).toHaveFocus());
+    const edit = canvas.getByRole("button", { name: "Edit Brick story-brick" });
+    expect(canvas.queryByRole("button", { name: "Brick story-brick actions" })).toBeNull();
+    edit.focus();
     await userEvent.keyboard("{Enter}");
     expect(editBrick).toHaveBeenCalledOnce();
     expect(editBrick).toHaveBeenCalledWith("story-brick");

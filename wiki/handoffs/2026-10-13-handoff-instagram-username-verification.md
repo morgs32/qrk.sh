@@ -1,76 +1,38 @@
-# Handoff: Instagram username verification in Studio
+# Handoff: Instagram account verification
 
-**Date:** 2026-10-13  
-**Focus:** Enable account-level Instagram username ownership verification through a DM challenge.  
-**Status:** Resumed on 2026-11-05. The approved shared-Service design and current remaining work are recorded in [Plan 054](../plans/054-plan-instagram-verification.md). Implementation and required live verification are in progress; this handoff remains historical context until reconciled at completion.
+**Created:** 2026-10-13
 
-## Goal
+**Reconciled:** 2026-11-05
 
-Add an **Instagram verification card to Studio's existing dashboard**, below the account/Create site row and above the sites list. The user explicitly selected this placement.
+**Status:** Continued in active [Plan 054](../plans/054-plan-instagram-verification.md). Implementation is in progress; local-browser and live personal-account acceptance remain outstanding.
 
-Verify control of an Instagram username. QRK login, public Instagram scraping, and brick configuration remain outside this feature. Verification records control at the time of the challenge; it does not establish permanent ownership of a username.
+## Settled implementation
 
-## Done
+1. The App dashboard owns the account-level card below the account/Create site row and above the sites list. Instagram Bricks, scraping, QRK login, and production deployment remain outside scope.
+2. A shared `instagramVerification` Service owns challenges and proofs. Its Clerk-authenticated Actor exposes only that subject's rows and start/disconnect commands. A QRK user may verify multiple Instagram accounts; each `(receivingAccountId, senderScopedId)` identity belongs to at most one QRK user until disconnected.
+3. Start reserves a cryptographically random code as `issuing` and records an internal System activation command. Only backend activation makes it `pending` and visible to the user. The ten-minute expiry is derived during start; replacement supersedes unfinished attempts.
+4. The API verifies Meta's raw-body signature, filters original messages for QRK's fixed professional receiver, and submits the System-only receive command. That command consumes an unexpired pending code and records a server-side profile lookup. Its continuation rechecks the accepted sender/message binding before creating or refreshing a proof.
+5. Username is a snapshot of control at verification time. Identity uniqueness uses Meta's scoped sender ID with the receiving account ID. Provider failures preserve existing proofs; disconnect releases the link and invalidates matching resolving work.
+6. App has a separate managed verification Service session and SharedWorker. Sign-out clears both Service and User identities before Clerk sign-out, including when a session is loading or failed, using the adopted Zerospin 42.0.4 fix.
 
-1. Researched Meta's current APIs. Instagram OAuth supports professional accounts only, even for username access. [Instagram API with Instagram Login](https://developers.facebook.com/docs/instagram-platform/instagram-api-with-instagram-login/)
-2. Identified a proposed alternative: users DM a verification code to QRK's professional Instagram account. Meta supplies the sender ID, and its profile API returns the username after messaging consent. The documentation supports personal-account correspondents by implication; validate that live before promising support. This combined verification flow is a QRK proposal, not a built-in Meta verification feature. [Messaging API](https://developers.facebook.com/docs/instagram-platform/instagram-api-with-instagram-login/messaging-api/), [User Profile API](https://developers.facebook.com/docs/instagram-platform/instagram-api-with-instagram-login/messaging-api/user-profile/)
-3. Inspected Studio and backend ownership. No verification routes, challenge storage, provider identity fields, or trusted completion path currently exist. The existing API response-retention store contains scraped payloads, not ownership proofs. Studio's route username is separate from the Instagram username being verified.
-4. No implementation or Meta configuration was performed. Existing Library forms and Studio session/editor changes are unrelated WIP to preserve.
+## Verification evidence and limits
 
-## Remaining
+1. The actual-System backend harness covers the authored success and rejection behavior through Actor/System commands and recorded provider work. The installed harness supports Actor `push`; it does not prove credential authentication, Durable Object delivery, or browser synchronization. The older System-only harness guidance has been corrected.
+2. All 24 backend tests, seven focused mocked webhook tests, App/API typechecks, and affected builds pass. Activation coverage includes early DMs, superseded activation, and expiry before activation. No Library tests or live-provider automated tests are used.
+3. Meta's documented messaging/profile flow supports the proposed design, but ordinary personal-account delivery still requires the live no-role acceptance test. Simulated payloads and developer/tester access cannot satisfy it. Consult [Meta's maintained Instagram collection](https://github.com/fbsamples/messenger-platform-samples/blob/main/postman/instagram-platform-api.postman_collection.json) and the actual app configuration when determining access requirements.
 
-1. Confirm QRK's receiving professional Instagram account, Meta app, messaging permissions, and production access requirements. The documented scopes are `instagram_business_basic` and `instagram_business_manage_messages`; receiving messages also requires the appropriate webhook subscription. Do not assume owning the receiving account eliminates production review requirements. [User Profile API](https://developers.facebook.com/docs/instagram-platform/instagram-api-with-instagram-login/messaging-api/user-profile/), [Platform overview](https://developers.facebook.com/docs/instagram-platform/overview/)
-2. Settle authoritative storage for challenges and verified identities, plus the server-only completion boundary. Existing response-retention storage is not verification state. The API currently has no configured delivery path into the Zerospin user aggregate; do not invent a browser command that lets users declare themselves verified.
-3. Implement the dashboard flow after the remaining design decisions are settled: start verification, show copyable code and receiving account, show pending/expired/error feedback, then display **Verified @username**.
-4. Bind the challenge to the authenticated Clerk subject. Validate Meta webhook signatures, resolve the sender's username server-side, and consume the challenge once. Keep provider credentials server-side.
-5. Verify authentication isolation, expiry, replay rejection, duplicate delivery, provider failure, and persistence after reload. Include a live check that a personal account can send the challenge and have its username resolved. Run scoped Studio/backend checks; **never write or run Library tests**.
-6. Update affected documentation and preserve existing forms/session WIP. Archive this handoff only after verified completion or reconciliation into successor work, following the handoff lifecycle.
+## Remaining work
 
-Annotated flow:
-
-```text
-Studio creates a challenge -> code belongs to the authenticated QRK user
-User DMs the code          -> evidence comes from their Instagram account
-Server resolves username   -> use Meta's sender ID, not browser input
-Server records proof       -> consume the code and persist verification
-Studio shows verified      -> reflect authoritative server state
-```
-
-Illustrative proof data; final storage schema is unsettled:
-
-```ts
-({
-  clerkUserId: "<challenge owner>",       // Authenticated when issued
-  instagramScopedId: "<Meta sender ID>",  // Scoped to QRK's receiving account
-  instagramUsername: "<Meta username>",   // Retrieved server-side
-  verifiedAt: "<server timestamp>",       // Control proven at this moment
-})
-```
-
-## Suggested skills
-
-1. `$research` - validate Meta production requirements and personal-account messaging.
-2. `$grill-me` - resolve remaining ownership and lifecycle decisions. Root guidance still names `$spec`, but that skill was not found in the inspected skill roots; `grill-me` is the current planning workflow referenced by `handoff`.
-3. `$use-morgs32-wiki-patterns` - follow repository boundaries and conventions.
-4. `$implement` - execute the settled plan and complete verification.
-5. `$nx-workspace` / `$nx-run-tasks` - discover and run scoped checks.
+1. Finish signup for the requested `qrk.sh` receiving account, convert it to a professional Business account, create/configure the Meta app, and set the private environment values. Credential and signup terms steps remain with the maintainer.
+2. Verify authentication isolation, reload persistence, preparation/pending feedback, disconnect, and account transfer through the existing local origins and `__dev` flow. Complete the live DM round trip from an ordinary personal Instagram account with no Meta role.
+3. Use the authorized route-restricted tunnel only for Meta callbacks and stop it after verification. Preserve existing storage and unrelated WIP. Open the QRK ready-for-review PR and archive the plan only after required acceptance is complete.
 
 ## Pointers
 
-1. [AGENTS.md](../../AGENTS.md)
-2. [Studio dashboard](../../apps/app/app/[username]/(dashboard)/page.tsx)
-3. [Studio README](../../apps/app/README.md)
-4. [API routing](../../apps/api/Worker.ts)
-5. [Current authenticated HTTP boundary](../../apps/api/http.ts)
-6. [Existing response-retention store](../../apps/api/BackendRepo.ts)
-7. [Current user model](../../apps/zerospin/src/aggregates/user/models/user/UserV1.ts)
-8. [Current Instagram brick form](../../apps/library/modules/instagram/InstagramForm.tsx)
-9. [Meta messaging API](https://developers.facebook.com/docs/instagram-platform/instagram-api-with-instagram-login/messaging-api/)
-10. [Meta sender profile API](https://developers.facebook.com/docs/instagram-platform/instagram-api-with-instagram-login/messaging-api/user-profile/)
-
-## Open decisions
-
-1. Authoritative backend owner and trusted completion mechanism.
-2. Challenge lifetime and replacement behavior.
-3. Whether one Instagram account can verify multiple QRK users.
-4. Reverification behavior when usernames change.
+1. [Active plan and current evidence](../plans/054-plan-instagram-verification.md)
+2. [App dashboard](../../apps/app/app/[username]/(dashboard)/page.tsx)
+3. [App setup and session ownership](../../apps/app/README.md)
+4. [API webhook setup](../../apps/api/README.md)
+5. [Service setup](../../apps/zerospin/README.md)
+6. [Service release](../../apps/zerospin/src/services/instagramVerification/instagramVerificationV1.ts)
+7. [Upstream sign-out fix PR](https://github.com/morgs32/zerospin/pull/127)

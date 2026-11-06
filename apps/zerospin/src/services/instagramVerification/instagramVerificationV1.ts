@@ -1,6 +1,7 @@
 import { makeServiceRelease } from "@zerospin/sdk";
 
 import { instagramVerificationActorV1 } from "./actors/instagramVerificationActorV1";
+import { activateInstagramVerificationChallengeV1 } from "./contracts/activateInstagramVerificationChallengeV1";
 import { receiveInstagramVerificationMessageV1 } from "./contracts/receiveInstagramVerificationMessageV1";
 import { resolveInstagramVerificationSenderV1 } from "./contracts/resolveInstagramVerificationSenderV1";
 import { instagramVerification } from "./instagramVerification";
@@ -14,6 +15,9 @@ export const instagramVerificationV1 = makeServiceRelease(instagramVerification,
     verifiedInstagramAccount: verifiedInstagramAccountV1,
   },
   actors: { web: instagramVerificationActorV1 },
-  system: { receiveInstagramVerificationMessage: receiveInstagramVerificationMessageV1 },
+  system: {
+    activateInstagramVerificationChallenge: activateInstagramVerificationChallengeV1,
+    receiveInstagramVerificationMessage: receiveInstagramVerificationMessageV1,
+  },
   external: { resolveInstagramVerificationSender: resolveInstagramVerificationSenderV1 },
 });

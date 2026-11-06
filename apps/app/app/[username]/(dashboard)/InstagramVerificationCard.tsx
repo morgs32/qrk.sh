@@ -33,11 +33,14 @@ export function InstagramVerificationCard() {
   });
   const challenge =
     challenges.find(
-      (entry) => entry.state.status === "pending" || entry.state.status === "resolving",
+      (entry) =>
+        entry.state.status === "issuing" ||
+        entry.state.status === "pending" ||
+        entry.state.status === "resolving",
     ) ?? challenges[0];
 
   useEffect(() => {
-    if (challenge?.state.status !== "pending") return;
+    if (challenge?.state.status !== "issuing" && challenge?.state.status !== "pending") return;
     const expiresAt = challenge.expiresAt.getTime();
     setNow(Date.now());
     const timeout = window.setTimeout(
@@ -47,7 +50,9 @@ export function InstagramVerificationCard() {
     return () => window.clearTimeout(timeout);
   }, [challenge?.id, challenge?.expiresAt, challenge?.state.status]);
 
-  const expired = challenge?.state.status === "pending" && challenge.expiresAt.getTime() <= now;
+  const expired =
+    (challenge?.state.status === "issuing" || challenge?.state.status === "pending") &&
+    challenge.expiresAt.getTime() <= now;
 
   return (
     <section
@@ -79,7 +84,9 @@ export function InstagramVerificationCard() {
             });
           }}
         >
-          {challenge?.state.status === "pending" || challenge?.state.status === "resolving"
+          {challenge?.state.status === "issuing" ||
+          challenge?.state.status === "pending" ||
+          challenge?.state.status === "resolving"
             ? "New code"
             : accounts.length > 0
               ? "Verify another account"
@@ -165,7 +172,10 @@ export function InstagramVerificationCard() {
         </div>
       ) : null}
       <div role="status" aria-live="polite" className="text-sm">
-        {expired ? <p>This code expired. Create a new code to try again.</p> : null}
+        {expired ? <p>This attempt expired. Create a new code to try again.</p> : null}
+        {challenge?.state.status === "issuing" && !expired ? (
+          <p>Preparing your verification code…</p>
+        ) : null}
         {challenge?.state.status === "resolving" ? (
           <p>Message received. Confirming your Instagram account…</p>
         ) : null}

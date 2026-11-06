@@ -59,8 +59,12 @@ Missing receiver configuration refuses new challenges explicitly. Missing provid
 configuration becomes failed verification feedback, without deleting existing
 proofs. Keep credentials outside source control and browser imports.
 
-Codes remain valid for ten minutes until the DM is accepted. The accepted lookup
-may finish later. A new challenge supersedes unfinished work, and disconnect
+Start reserves an `issuing` challenge and records an internal System activation
+command. Only that command makes it `pending`; the dashboard displays no code
+until then, and the receive command ignores unactivated challenges. Superseded
+or expired activation attempts do nothing. Codes remain valid for ten minutes
+from start until the DM is accepted. The accepted lookup may finish later.
+A new challenge supersedes unfinished work, and disconnect
 invalidates matching resolving work before deleting the proof. Old codes are
 retained to prevent reuse. This feature changes no Instagram Brick state or
 scraping behavior.

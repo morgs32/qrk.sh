@@ -16,6 +16,105 @@ import { instagramVerificationV1 } from "../src/services/instagramVerification/i
 import { challengeLifetimeMs } from "../src/services/instagramVerification/instagramVerificationPolicy";
 import { system } from "../src/system";
 
+it.effect("accepts codes only after activation and ignores superseded or expired activation", () =>
+  Effect.gen(function* () {
+    let lookups = 0;
+    const harness = yield* makeSystemHarness({
+      system,
+      layer: () =>
+        Layer.succeed(InstagramProfileProvider, {
+          getProfile: () => {
+            lookups += 1;
+            return Effect.succeed({ username: "unused_username" });
+          },
+        }),
+    });
+    const db = makeQueryDbVersion({ models: instagramVerificationV1.models });
+    const owner = { release: instagramVerificationV1 };
+    const actor = {
+      serviceName: "instagramVerification",
+      serviceVersion: 1,
+      actorName: "web",
+      actorVersion: 1,
+      nodeId: "node_instagram_activation",
+      sessionName: "instagramVerificationSession",
+      externalOutcome: null,
+      claims: { clerkUserId: "owner_activation" },
+    };
+    yield* TestClock.setTime(0);
+    yield* harness.push({
+      ...actor,
+      kind: "actor",
+      id: "cmd_ig_issuing_start",
+      commandName: "startInstagramVerification",
+      contractVersion: 1,
+      pushIndex: 1,
+      payload: { id: "ivc_issuing", code: "a".repeat(32) },
+    });
+    yield* harness.push({
+      kind: "system",
+      id: "cmd_ig_issuing_receive",
+      serviceName: "instagramVerification",
+      serviceVersion: 1,
+      commandName: "receiveInstagramVerificationMessage",
+      contractVersion: 1,
+      externalOutcome: null,
+      payload: {
+        receivingAccountId: "receiver_test",
+        senderScopedId: "sender_activation",
+        messageId: "message_before_activation",
+        code: "a".repeat(32),
+        verifiedAccountId: "iva_beforeactivation",
+      },
+    });
+    expect(
+      yield* harness.query(
+        owner,
+        db.query.instagramVerificationChallenge.findFirst({ where: { id: { eq: "ivc_issuing" } } }),
+      ),
+    ).toMatchObject({ state: { status: "issuing" } });
+    yield* harness.push({
+      ...actor,
+      kind: "actor",
+      id: "cmd_ig_activation_replacement",
+      commandName: "startInstagramVerification",
+      contractVersion: 1,
+      pushIndex: 2,
+      payload: { id: "ivc_activated", code: "b".repeat(32) },
+    });
+    yield* harness.flush();
+    expect(lookups).toBe(0);
+    expect(yield* harness.query(owner, db.query.verifiedInstagramAccount.findMany({}))).toEqual([]);
+    const challenges = yield* harness.query(
+      owner,
+      db.query.instagramVerificationChallenge.findMany({}),
+    );
+    expect(challenges.find((challenge) => challenge.id === "ivc_issuing")?.state.status).toBe(
+      "superseded",
+    );
+    expect(challenges.find((challenge) => challenge.id === "ivc_activated")?.state.status).toBe(
+      "pending",
+    );
+    yield* harness.push({
+      ...actor,
+      kind: "actor",
+      id: "cmd_ig_activation_delayed",
+      commandName: "startInstagramVerification",
+      contractVersion: 1,
+      pushIndex: 3,
+      payload: { id: "ivc_delayed", code: "c".repeat(32) },
+    });
+    yield* TestClock.setTime(challengeLifetimeMs);
+    yield* harness.flush();
+    expect(
+      yield* harness.query(
+        owner,
+        db.query.instagramVerificationChallenge.findFirst({ where: { id: { eq: "ivc_delayed" } } }),
+      ),
+    ).toMatchObject({ expiresAt: new Date(challengeLifetimeMs), state: { status: "issuing" } });
+  }).pipe(Effect.provide(NanoIdFactory)),
+);
+
 it.effect(
   "keeps Instagram ownership unique, supports multiple accounts, refreshes names, and releases a disconnected identity",
   () =>
@@ -62,6 +161,7 @@ it.effect(
           pushIndex: index + 1,
           payload: { id: `ivc_attempt${index}`, code },
         });
+        yield* harness.flush();
         const message = {
           serviceName: "instagramVerification",
           serviceVersion: 1,
@@ -130,6 +230,7 @@ it.effect(
         pushIndex: 7,
         payload: { id: "ivc_transfer", code: "f".repeat(32) },
       });
+      yield* harness.flush();
       yield* harness.push({
         kind: "system",
         id: "cmd_ig_transfer_receive",
@@ -200,6 +301,7 @@ it.effect(
         pushIndex: 1,
         payload: { id: "ivc_expired", code: "1".repeat(32) },
       });
+      yield* harness.flush();
       yield* TestClock.setTime(challengeLifetimeMs);
       yield* harness.push({
         kind: "system",
@@ -227,6 +329,7 @@ it.effect(
           pushIndex: index,
           payload: { id: `ivc_replacement${index}`, code: String(index).repeat(32) },
         });
+        yield* harness.flush();
         yield* harness.push({
           kind: "system",
           id: `cmd_ig_replacement_receive_${index}`,
@@ -312,6 +415,9 @@ it.effect(
           pushIndex: index,
           payload: { id: `ivc_race${index}`, code: String(index).repeat(32) },
         });
+      }
+      yield* harness.flush();
+      for (const index of [1, 2]) {
         yield* harness.push({
           kind: "system",
           id: `cmd_ig_race_receive${index}`,
@@ -358,6 +464,7 @@ it.effect(
         pushIndex: 3,
         payload: { id: "ivc_inflight", code: "3".repeat(32) },
       });
+      yield* harness.flush();
       yield* harness.push({
         kind: "system",
         id: "cmd_ig_inflight_receive",

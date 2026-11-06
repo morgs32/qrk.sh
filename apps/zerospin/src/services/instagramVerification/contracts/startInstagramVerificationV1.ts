@@ -1,6 +1,7 @@
 import {
   defineServiceContract,
   findMany,
+  makeCommandOperation,
   makeServiceContractRelease,
   modelId,
   primitives,
@@ -9,6 +10,7 @@ import { ActorError, ContractError } from "@zerospin/error";
 import { Clock, Effect } from "effect";
 
 import { instagramVerificationClaimsSchema } from "../instagramVerificationClaimsSchema";
+import { instagramVerification } from "../instagramVerification";
 import {
   challengeLifetimeMs,
   receivingAccountId,
@@ -16,6 +18,7 @@ import {
 } from "../instagramVerificationPolicy";
 import { instagramVerificationChallenge } from "../models/instagramVerificationChallenge/instagramVerificationChallenge";
 import { instagramVerificationChallengeV1 } from "../models/instagramVerificationChallenge/instagramVerificationChallengeV1";
+import { activateInstagramVerificationChallengeV1 } from "./activateInstagramVerificationChallengeV1";
 
 export const startInstagramVerificationV1 = makeServiceContractRelease(
   defineServiceContract("startInstagramVerification"),
@@ -34,6 +37,10 @@ export const startInstagramVerificationV1 = makeServiceContractRelease(
     operations: {
       createChallenge: instagramVerificationChallengeV1.operations.create,
       updateChallenge: instagramVerificationChallengeV1.operations.update,
+      activateChallenge: makeCommandOperation({
+        destination: { service: instagramVerification, version: 1 },
+        contract: activateInstagramVerificationChallengeV1,
+      }),
     },
     program: Effect.fn("startInstagramVerification.program")(function* (props) {
       const { claims, payload, db, operations, failures } = props;
@@ -56,7 +63,11 @@ export const startInstagramVerificationV1 = makeServiceContractRelease(
         where: { clerkUserId: { eq: claims.clerkUserId } },
       });
       for (const challenge of challenges) {
-        if (challenge.state.status === "pending" || challenge.state.status === "resolving") {
+        if (
+          challenge.state.status === "issuing" ||
+          challenge.state.status === "pending" ||
+          challenge.state.status === "resolving"
+        ) {
           yield* operations.updateChallenge({
             resourceId: challenge.id,
             attributes: { state: { status: "superseded" } },
@@ -71,7 +82,14 @@ export const startInstagramVerificationV1 = makeServiceContractRelease(
           receivingAccountId,
           code: payload.code,
           expiresAt: new Date(now + challengeLifetimeMs),
-          state: { status: "pending" },
+          state: { status: "issuing" },
+        },
+      });
+      yield* operations.activateChallenge({
+        payload: {
+          challengeId: payload.id,
+          clerkUserId: claims.clerkUserId,
+          receivingAccountId,
         },
       });
     }),

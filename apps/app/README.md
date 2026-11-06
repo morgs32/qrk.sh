@@ -28,8 +28,9 @@ public values identify QRK's single receiving account; provider tokens and the
 Meta app secret stay server-side. Until configured, the dashboard shows a setup
 message without acquiring the verification Service session.
 
-Each attempt creates a random 128-bit code, valid for ten minutes. Send the exact
-code to QRK's receiving account from the Instagram account to verify. New attempts
+Each attempt reserves a random 128-bit code, valid for ten minutes. The card shows
+preparation feedback until the backend activates it, then displays the code to send
+to QRK's receiving account from the Instagram account to verify. New attempts
 replace unfinished ones. The dashboard observes authoritative proofs through its
 own authenticated Service session, retains existing proofs when another attempt
 fails, and supports Disconnect to release an account.

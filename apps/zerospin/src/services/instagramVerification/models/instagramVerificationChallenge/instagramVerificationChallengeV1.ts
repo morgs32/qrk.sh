@@ -12,6 +12,7 @@ export const instagramVerificationChallengeV1 = makeModelVersion(instagramVerifi
     expiresAt: primitives.date(),
     state: primitives.json({
       schema: Schema.Union([
+        Schema.Struct({ status: Schema.Literal("issuing") }),
         Schema.Struct({ status: Schema.Literal("pending") }),
         Schema.Struct({
           status: Schema.Literal("resolving"),

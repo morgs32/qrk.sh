@@ -34,6 +34,7 @@ const InstagramMessageSchema = Schema.Struct({
       mid: Schema.optionalKey(Schema.NonEmptyString),
       text: Schema.optionalKey(Schema.String),
       is_echo: Schema.optionalKey(Schema.Boolean),
+      is_self: Schema.optionalKey(Schema.Boolean),
       is_deleted: Schema.optionalKey(Schema.Boolean),
       is_edited: Schema.optionalKey(Schema.Boolean),
       is_unsupported: Schema.optionalKey(Schema.Boolean),
@@ -208,6 +209,7 @@ export const handleInstagramVerificationWebhook = Effect.fn("handleInstagramVeri
           message_edit !== undefined ||
           message_delete !== undefined ||
           message.is_echo === true ||
+          message.is_self === true ||
           message.is_deleted === true ||
           message.is_edited === true ||
           message.is_unsupported === true ||

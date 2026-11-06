@@ -34,6 +34,7 @@ account through the shared verification Service's System-only command. It return
 success after that command completes; profile resolution continues through the
 Service's recorded external work. Failed command delivery returns HTTP 503 so
 Meta can retry the same message.
+Echo, self-test (`is_self`), edited, deleted, and unsupported events are ignored.
 
 Configure these values in the existing ignored local environment file:
 

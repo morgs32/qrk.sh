@@ -31,7 +31,7 @@ export const instagramProfileProviderLayer = Layer.succeed(InstagramProfileProvi
     const response = yield* Effect.tryPromise({
       try: () =>
         fetch(
-          `https://graph.instagram.com/${INSTAGRAM_GRAPH_API_VERSION}/${encodeURIComponent(senderScopedId)}?fields=username`,
+          `https://graph.facebook.com/${INSTAGRAM_GRAPH_API_VERSION}/${encodeURIComponent(senderScopedId)}?fields=username`,
           {
             headers: { Authorization: `Bearer ${INSTAGRAM_ACCESS_TOKEN}` },
             signal: AbortSignal.timeout(20_000),

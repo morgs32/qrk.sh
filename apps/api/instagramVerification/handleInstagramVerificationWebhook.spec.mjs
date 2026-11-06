@@ -137,6 +137,7 @@ test("POST ignores other receivers, echo, self, edited, deleted and unsupported 
     { ...originalMessage, recipient: { id: "receiver_other" } },
     { ...originalMessage, sender: { id: "receiver_one" } },
     { ...originalMessage, message: { ...originalMessage.message, is_echo: true } },
+    { ...originalMessage, message: { ...originalMessage.message, is_self: true } },
     { ...originalMessage, message: { ...originalMessage.message, is_edited: true } },
     { ...originalMessage, message: { ...originalMessage.message, is_deleted: true } },
     { ...originalMessage, message: { ...originalMessage.message, is_unsupported: true } },

@@ -52,9 +52,23 @@ values; API needs the same receiver ID. Restart the backend and rebuild/restart
 App after changing this fixed configuration. Keep the receiver fixed while these
 proofs are in use; receiver rotation is outside this version's identity guarantee.
 
-The backend also needs private `INSTAGRAM_ACCESS_TOKEN` and an explicit
-`INSTAGRAM_GRAPH_API_VERSION` supported by the Meta app. The provider Layer is
-registered in `zerospin.config.ts`; tests substitute it without contacting Meta.
+The created Meta app uses Unified Login: associate it with QRK's business portfolio
+and restrict its configuration to `instagram_basic` and
+`instagram_manage_messages`. The dashboard's token generator can provision QRK's
+own professional receiver after its Instagram Tester invitation is accepted.
+Use the resulting Business Integration System User access token (SUAT) as private
+`INSTAGRAM_ACCESS_TOKEN`, with an explicit `INSTAGRAM_GRAPH_API_VERSION` supported
+by the app. The provider calls `graph.facebook.com`; this token is different from
+the older Instagram Login user token. Record its configuration, business
+association, and chosen expiry with the private operator setup. See
+[Meta's current setup guide](https://developers.facebook.com/documentation/instagram-platform/instagram-api-with-unified-login/get-started).
+
+Obtain the receiver's actual ID from `/me/assigned_instagram_accounts` using the
+token. SUAT `/me` identifies a system user; the Meta app ID is also a separate
+identifier. Neither belongs in the public receiving-account ID setting.
+
+The provider Layer is registered in `zerospin.config.ts`; tests substitute it
+without contacting Meta.
 Missing receiver configuration refuses new challenges explicitly. Missing provider
 configuration becomes failed verification feedback, without deleting existing
 proofs. Keep credentials outside source control and browser imports.

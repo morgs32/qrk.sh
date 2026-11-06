@@ -2,7 +2,7 @@
 
 **Created:** 2026-10-13
 
-**Reconciled:** 2026-11-05
+**Reconciled:** 2026-11-06
 
 **Status:** Continued in active [Plan 054](../plans/054-plan-instagram-verification.md). Implementation is in progress; local-browser and live personal-account acceptance remain outstanding.
 
@@ -23,9 +23,10 @@
 
 ## Remaining work
 
-1. Signup for `@qrk.sh` is complete and confirmed in Instagram. Approve the prepared Business/Product-service conversion with category display off, and identify/authorize the Facebook account for Meta developer sign-in. Then complete professional conversion, create/configure the Meta app, and set the private environment values. New credential/terms steps remain with the maintainer.
-2. Verify authentication isolation, reload persistence, preparation/pending feedback, disconnect, and account transfer through the existing local origins and `__dev` flow. Complete the live DM round trip from an ordinary personal Instagram account with no Meta role.
-3. Use the authorized route-restricted tunnel only for Meta callbacks and stop it after verification. Preserve existing storage and unrelated WIP. Open the QRK ready-for-review PR and archive the plan only after required acceptance is complete.
+1. `@qrk.sh` is a public Business account, Product/service with category display off and no public contact details. Meta app `QRK verification` (`1165998892424227`) is created after the maintainer's terms approval and password re-authentication. Its current Unified Login setup requires a business portfolio; prepare QRK's own rather than selecting an unrelated project's portfolio. Chrome control stopped before opening that form and awaits resumption.
+2. Verify current Unified Login token/host, profile lookup, permissions, and webhook compatibility in authenticated Meta documentation before completing private environment configuration. The existing maintained sample covers the older Instagram Login flow and cannot prove compatibility with the new setup. The actual receiving Instagram ID remains unset and is distinct from the Meta app ID.
+3. Verify authentication isolation, reload persistence, preparation/pending feedback, disconnect, and account transfer through the existing local origins and `__dev` flow. Complete the live DM round trip from an ordinary personal Instagram account with no Meta role.
+4. Use the authorized route-restricted tunnel only for Meta callbacks and stop it after verification. Preserve existing storage and unrelated WIP. Open the QRK ready-for-review PR and archive the plan only after required acceptance is complete.
 
 ## Pointers
 

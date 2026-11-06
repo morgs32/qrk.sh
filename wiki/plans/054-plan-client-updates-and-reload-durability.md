@@ -1,6 +1,6 @@
 # 054 — Client updates and reload durability
 
-**Status:** Planned; implementation and runtime verification have not started.
+**Status:** In progress; QRK warning/update and dev-retirement changes are implemented. Upstream verification, release/adoption, and browser acceptance remain pending.
 
 **Date:** 2026-11-06
 
@@ -137,6 +137,15 @@ QRK's warning/update work (steps 1–2), dev recovery (step 3), and upstream wor
 2. **QRK:** the new `apps/app/lib/useWarnBeforeUnload.ts`; the fifteen UI owners listed above; `apps/app/app/AppUpdatePrompt.tsx`; `apps/app/vite.config.ts` and only a directly required retirement-script resource; `apps/app/README.md`; exact Zerospin dependency manifests and `pnpm-lock.yaml` when adopting the upstream release. Preserve `public/offline-cache.js` policy unless verification establishes a concrete required correction.
 3. **Documentation:** this plan, plus affected live ownership/error guidance during implementation. No new architecture spec, ADR, glossary, general PWA package, or framework-specific shutdown abstraction is needed for the settled split.
 
+## Implementation evidence — 2026-11-06
+
+1. QRK implements the boolean native unload hook in all fifteen owners. Existing drafts/busy state supply its predicates; only the publication dialog adds an opening-selection snapshot. Reload approval is consumed before navigation and revoked by Later or failed activation. The dev `/sw.js` response reuses `offline-cache.js` with cleanup disabled, then activates, claims and unregisters without navigation or deletion.
+2. App TypeScript and the cache-bypassed Nx production build pass. Scoped formatter checks and `git diff --check` pass for the authored changes. The full Vite config retains pre-existing formatting outside the new middleware block.
+3. Six in-memory scenario groups against the actual prompt/hook source pass with mocked browser/PWA/Sonner boundaries: pending Later, one-shot approved/already-active reload, failed activation, unapproved/disposed callbacks, toast retention, and dirty-listener cleanup. Inline retirement checks pass for lifecycle order, old asset lookup, network navigation, and disabled cache cleanup. These are callback checks, not native-dialog or real PWA/browser acceptance evidence. No test/fixture/runner files were created.
+
 ## Remaining work
 
-All implementation, package release/adoption, and runtime verification above remain pending. Source investigation and planning do not establish the deletion test or a new teardown guarantee.
+1. QRK's fifteen draft/upload guards, one-shot Reload/Later approval, and dev retirement response are implemented. App TypeScript and the cache-bypassed production build pass; browser acceptance remains pending.
+2. Complete and verify Zerospin's owner-busy error and the deterministic journal-only interruption scenario in the isolated upstream worktree. Publish/adopt the checked local release, then verify exact pins and the frozen lockfile.
+3. Run the plugin-deletion, native confirmation/upload, two-build update, owner-contention/retry, and dev-recovery browser checks above. The configured HTTPS proxy on port 443 is stopped; its startup requires the user's sudo password. Startup was requested while independent work continues.
+4. Record measured runtime evidence, finish affected documentation, publish ready-for-review PRs, and archive only after required verification is complete. No browser result or new teardown guarantee is implied by the passing build.

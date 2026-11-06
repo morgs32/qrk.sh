@@ -864,7 +864,7 @@ export function WallEditor(props: {
           </div>
         )}
         <PreviewSection
-          className={`flex-1 ${dropTarget?.kind === "wall" ? "bg-blue-50 outline-2 outline-blue-500 -outline-offset-2" : "bg-[#E6AA80]"}`}
+          className={`flex-1 ${dropTarget?.kind === "wall" ? "bg-blue-50 outline-2 outline-blue-500 -outline-offset-2" : "bg-white"}`}
         >
           {sections.length > 0 && (
             <div className="relative min-w-0 shrink-0" style={{ margin: -brickGap / 2 }}>

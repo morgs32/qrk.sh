@@ -213,7 +213,7 @@ Stable insertion anchors are validated before cleanup. Concrete Placement moves
 that preserve order, including self-before, before-current-successor, and appending
 an already-last Placement, record no update and perform no cleanup.
 
-The Wall background is light orange (`#E6AA80`, a 50% white tint of `#CC5500`), except
+The Wall background is white, except
 for its existing empty-Wall drag highlight. Each Placement and insertion shadow
 uses half the configured `Site.brickGap` (default 0px) as padding; the Wall's outer half-gap
 allowance preserves content dimensions and alignment at the perimeter.

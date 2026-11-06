@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
+import { useWarnBeforeUnload } from "@/lib/useWarnBeforeUnload";
 
 const ParamsSchema = Schema.Struct({
   username: Schema.String,
@@ -43,6 +44,7 @@ export function PageSettings(props: {
   }, []);
   const [saveError, setSaveError] = useState<string | null>(null);
   const isDirty = fields.title !== page.title || fields.description !== page.description;
+  useWarnBeforeUnload(isDirty);
 
   return (
     <form

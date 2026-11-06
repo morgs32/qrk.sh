@@ -19,17 +19,25 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
+import { useWarnBeforeUnload } from "@/lib/useWarnBeforeUnload";
 
 export function PublishSiteDialog(props: { siteId: `sit_${string}` }) {
   const { siteId } = props;
   const session = useSession(userSessionDefinition);
   const [open, setOpen] = useState(false);
   const [selectedPageIds, setSelectedPageIds] = useState<Array<`pag_${string}`>>([]);
+  const [openingSelectedPageIds, setOpeningSelectedPageIds] = useState<Array<`pag_${string}`>>([]);
   const { data: pages } = useLiveQuery({
     session,
     key: siteId,
     query: (db, id) => db.query.page.findMany({ where: { siteId: { eq: id } } }),
   });
+
+  useWarnBeforeUnload(
+    open &&
+      (selectedPageIds.length !== openingSelectedPageIds.length ||
+        selectedPageIds.some((id) => !openingSelectedPageIds.includes(id))),
+  );
 
   const rootPages = pages.filter((page) => page.slug === null);
   const rootPage = rootPages.length === 1 ? rootPages[0] : undefined;
@@ -84,11 +92,11 @@ export function PublishSiteDialog(props: { siteId: `sit_${string}` }) {
       open={open}
       onOpenChange={(nextOpen) => {
         if (nextOpen) {
-          setSelectedPageIds(
-            pages
-              .filter((page) => page.isPublished || page.id === rootPage?.id)
-              .map((page) => page.id),
-          );
+          const initialPageIds = pages
+            .filter((page) => page.isPublished || page.id === rootPage?.id)
+            .map((page) => page.id);
+          setSelectedPageIds(initialPageIds);
+          setOpeningSelectedPageIds(initialPageIds);
         }
         setOpen(nextOpen);
       }}

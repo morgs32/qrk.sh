@@ -12,6 +12,7 @@ import { useLayoutEffect, useId, useRef, useState } from "react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { githubRepoV1 } from "@qrk.sh/zerospin/src/modules/githubRepo/githubRepoV1";
+import { useWarnBeforeUnload } from "@/lib/useWarnBeforeUnload";
 
 export function GitHubRepoForm(props: {
   state: IInferDecodedRow<typeof githubRepoV1.stateShape> | null;
@@ -27,6 +28,7 @@ export function GitHubRepoForm(props: {
   const repository = repositoryDraft ?? state?.payload.url ?? "";
   const [saveError, setSaveError] = useState<string>();
   const [isSaving, setIsSaving] = useState(false);
+  useWarnBeforeUnload(repository !== (state?.payload.url ?? "") || isSaving);
   const activeSubmission = useRef<AbortController | null>(null);
   useLayoutEffect(() => {
     return () => {

@@ -34,6 +34,7 @@ import {
 import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
 import { startupTiming } from "@/lib/startupTiming";
+import { useWarnBeforeUnload } from "@/lib/useWarnBeforeUnload";
 
 const ParamsSchema = Schema.Struct({
   username: Schema.String,
@@ -46,6 +47,9 @@ export default function UsernameDashboardPage() {
   const [siteName, setSiteName] = useState("");
   const [siteDescription, setSiteDescription] = useState("");
   const [siteSlug, setSiteSlug] = useState("");
+  useWarnBeforeUnload(
+    createSiteOpen && (siteName !== "" || siteDescription !== "" || siteSlug !== ""),
+  );
   const { data: user } = useLiveQuery({
     session,
     query: (db) => {

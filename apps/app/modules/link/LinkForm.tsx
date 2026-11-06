@@ -12,6 +12,7 @@ import { useLayoutEffect, useId, useRef, useState } from "react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { linkV1 } from "@qrk.sh/zerospin/src/modules/link/linkV1";
+import { useWarnBeforeUnload } from "@/lib/useWarnBeforeUnload";
 
 export function LinkForm(props: {
   state: IInferDecodedRow<typeof linkV1.stateShape> | null;
@@ -28,6 +29,7 @@ export function LinkForm(props: {
   const url = urlDraft ?? state?.payload.url ?? "";
   const [saveError, setSaveError] = useState<string>();
   const [isSaving, setIsSaving] = useState(false);
+  useWarnBeforeUnload(url !== (state?.payload.url ?? "") || isSaving);
   const activeSubmission = useRef<AbortController | null>(null);
   useLayoutEffect(() => {
     return () => {

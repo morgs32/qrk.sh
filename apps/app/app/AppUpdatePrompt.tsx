@@ -48,9 +48,11 @@ export function AppUpdatePrompt() {
         description: "Reload when you are ready to use the downloaded version.",
         action: {
           label: "Reload",
-          onClick: () => {
+          onClick: (event) => {
+            event.preventDefault();
             reloadApproved = true;
             if (registration?.waiting === null) {
+              reloadApproved = false;
               window.location.reload();
             } else {
               void applyUpdate?.(true).catch(() => {
@@ -61,7 +63,12 @@ export function AppUpdatePrompt() {
             }
           },
         },
-        cancel: { label: "Later", onClick: () => undefined },
+        cancel: {
+          label: "Later",
+          onClick: () => {
+            reloadApproved = false;
+          },
+        },
       });
     };
     const checkForUpdate = () => {
@@ -82,8 +89,10 @@ export function AppUpdatePrompt() {
           onNeedRefresh: showUpdate,
           onNeedReload: () => {
             if (disposed) return;
-            if (reloadApproved) window.location.reload();
-            else showUpdate();
+            if (reloadApproved) {
+              reloadApproved = false;
+              window.location.reload();
+            } else showUpdate();
           },
           onRegisteredSW: (_url, value) => {
             registration = value;

@@ -11,6 +11,7 @@ import useSWRMutation from "swr/mutation";
 import { Input } from "../components/ui/input";
 import { Button } from "../components/ui/button";
 import { imageV1 } from "@qrk.sh/zerospin/src/modules/image/imageV1";
+import { useWarnBeforeUnload } from "@/lib/useWarnBeforeUnload";
 
 export function ImageForm(props: {
   state: { imageUrl: string; title: string } | null;
@@ -32,7 +33,9 @@ export function ImageForm(props: {
   const [formDraft, setDraft] = useState<{ imageUrl: string; title: string } | null>(null);
   const draft = formDraft ?? initialState;
   const isBusy = isMutating;
-  const isDirty = state === null || JSON.stringify(draft) !== JSON.stringify(initialState);
+  const hasUnsavedChanges = JSON.stringify(draft) !== JSON.stringify(initialState);
+  const isDirty = state === null || hasUnsavedChanges;
+  useWarnBeforeUnload(hasUnsavedChanges || isBusy);
   const inputId = useId();
   const fileInput = useRef<HTMLInputElement>(null);
   const activeUpload = useRef<AbortController | null>(null);

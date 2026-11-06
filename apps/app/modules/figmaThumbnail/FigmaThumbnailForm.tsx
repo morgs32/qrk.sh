@@ -12,6 +12,7 @@ import { useLayoutEffect, useId, useRef, useState } from "react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { figmaThumbnailV1 } from "@qrk.sh/zerospin/src/modules/figmaThumbnail/figmaThumbnailV1";
+import { useWarnBeforeUnload } from "@/lib/useWarnBeforeUnload";
 
 export function FigmaThumbnailForm(props: {
   state: IInferDecodedRow<typeof figmaThumbnailV1.stateShape> | null;
@@ -27,6 +28,7 @@ export function FigmaThumbnailForm(props: {
   const documentUrl = documentUrlDraft ?? state?.payload.url ?? "";
   const [saveError, setSaveError] = useState<string>();
   const [isSaving, setIsSaving] = useState(false);
+  useWarnBeforeUnload(documentUrl !== (state?.payload.url ?? "") || isSaving);
   const activeSubmission = useRef<AbortController | null>(null);
   useLayoutEffect(() => {
     return () => {

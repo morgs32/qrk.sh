@@ -1,5 +1,3 @@
-import type { ReactNode } from "react";
-
 import { BREAKPOINTS } from "./breakpoints";
 import { modulesHash } from "./modulesHash";
 import { ModulePreview } from "./ModulePreview";
@@ -8,19 +6,8 @@ export function ModuleFilmstrip(props: {
   breakpoint: (typeof BREAKPOINTS)[number]["id"];
   cardStyle: boolean;
   verticalAtLg?: boolean;
-  renderModuleLink: (brickModule: (typeof modulesHash)[keyof typeof modulesHash]) => ReactNode;
-  renderModuleAction?: (
-    brickModule: (typeof modulesHash)[keyof typeof modulesHash],
-    state: unknown,
-  ) => ReactNode;
 }) {
-  const {
-    breakpoint,
-    cardStyle,
-    verticalAtLg = false,
-    renderModuleLink,
-    renderModuleAction,
-  } = props;
+  const { breakpoint, cardStyle, verticalAtLg = false } = props;
 
   return (
     <div
@@ -34,12 +21,6 @@ export function ModuleFilmstrip(props: {
           breakpoint={breakpoint}
           cardStyle={cardStyle}
           verticalAtLg={verticalAtLg}
-          moduleLink={renderModuleLink(brickModule)}
-          moduleAction={
-            renderModuleAction === undefined
-              ? undefined
-              : (state) => renderModuleAction(brickModule, state)
-          }
         />
       ))}
     </div>

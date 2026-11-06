@@ -8,7 +8,6 @@ import { isEqual } from "es-toolkit";
 import { ArrowLeft, FileText, Globe, Layers, X } from "lucide-react";
 import { useLiveQuery, useSession } from "@zerospin/react";
 import { makeIdSchema, makeId, stageAggregateSessionCommand } from "@zerospin/sdk/browser";
-import { makeEffectSchema } from "@zerospin/shapes";
 import { modulesHash } from "../../../../../../../modules/lib/modulesHash";
 import { brickV2 } from "@qrk.sh/zerospin/src/aggregates/user/models/brick/BrickV2";
 import { pageV1 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV1";
@@ -24,7 +23,6 @@ const ParamsSchema = Schema.Struct({
   username: Schema.String,
   siteId: makeIdSchema(Site),
   pageId: makeIdSchema(Page),
-  moduleId: Schema.optional(Schema.String),
   brickId: Schema.optional(Schema.String),
 });
 
@@ -92,11 +90,7 @@ export function DrawerHeader() {
     savedContent !== null &&
     publishedSnapshot !== undefined &&
     !isEqual(savedContent, publishedSnapshot.content);
-  const decodedModule = Schema.decodeUnknownResult(
-    makeEffectSchema({ moduleId: brickV2.attributes.moduleId }),
-  )({ moduleId: params.brickId === undefined ? params.moduleId : brick?.moduleId });
-  const moduleId = Result.isSuccess(decodedModule) ? decodedModule.success.moduleId : undefined;
-  const moduleLabel = moduleId === undefined ? undefined : modulesHash[moduleId].label;
+  const moduleLabel = brick === undefined ? undefined : modulesHash[brick.moduleId].label;
 
   const closeDrawer = () => {
     void navigate({
@@ -167,14 +161,6 @@ export function DrawerHeader() {
               >
                 Bricks
               </Link>
-              {moduleLabel === undefined ? null : (
-                <>
-                  <span aria-hidden className="text-muted-foreground">
-                    /
-                  </span>
-                  <span className="truncate">{moduleLabel}</span>
-                </>
-              )}
             </>
           )}
         </nav>

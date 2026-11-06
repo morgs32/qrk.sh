@@ -69,7 +69,6 @@ export function PagePreview(props: { breakpoint: (typeof BREAKPOINTS)[number] })
             search: (previous) => ({
               ...previous,
               breakpoint: breakpoint.id,
-              insertion: undefined,
             }),
             resetScroll: false,
           });
@@ -81,7 +80,6 @@ export function PagePreview(props: { breakpoint: (typeof BREAKPOINTS)[number] })
             search: (previous) => ({
               ...previous,
               breakpoint: breakpoint.id,
-              insertion: undefined,
             }),
             resetScroll: false,
           });

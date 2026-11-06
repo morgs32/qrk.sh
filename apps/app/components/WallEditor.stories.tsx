@@ -636,14 +636,12 @@ function WallEditorStory(props: {
                       verticalAtLg={verticalAtLg}
                       breakpoint={breakpoint.id}
                       cardStyle={cardStyle}
-                      renderModuleLink={(brickModule) => <span>{brickModule.label}</span>}
                     />
                   ) : (
                     <ModulePreview
                       brickModule={modulesHash[fixture]}
                       breakpoint={breakpoint.id}
                       cardStyle={cardStyle}
-                      moduleLink={<span>{modulesHash[fixture].label}</span>}
                       moduleAction={() => (
                         <Button
                           type="button"

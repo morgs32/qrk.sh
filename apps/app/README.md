@@ -14,9 +14,17 @@ returns to page controls and keeps the selected breakpoint.
 | ---- | ------------------------- | ----------------------- |
 | User | `zerospin/node.worker.ts` | `userSessionDefinition` |
 
+## Brick catalog
+
+The Bricks drawer provides draggable previews with plain module labels. Dragging
+creates Bricks through the Wall's existing command path; Brick Details edits saved
+Bricks. Module metadata and Component/JsonRender comparisons live in Storybook's
+module playgrounds. The App has no per-module inspection pages or URL-driven
+Add here/insertion flow.
+
 ## Wall dragging
 
-Saved Bricks move from the grip beside the action menu into existing or new Rows
+Saved Bricks move from the grip beside the edit button into existing or new Rows
 across the current Wall's existing Stacks and Sections. On compatible populated
 Rows, the top/bottom 8px create a Row above/below; the remaining area joins or
 reorders horizontally. Incompatible Rows use top/bottom halves for separate Rows.

@@ -52,6 +52,12 @@ values; API needs the same receiver ID. Restart the backend and rebuild/restart
 App after changing this fixed configuration. Keep the receiver fixed while these
 proofs are in use; receiver rotation is outside this version's identity guarantee.
 
+QRK owns the receiver, business portfolio, and Meta app; a personal Facebook
+profile serves only as an administrator. Professional-account conversion
+automatically creates a matching portfolio, so identify QRK's existing portfolio
+through its Instagram Business Suite sign-in before provisioning another one.
+See [Meta's portfolio guide](https://www.facebook.com/business/help/1716703571964355).
+
 The created Meta app uses Unified Login: associate it with QRK's business portfolio
 and restrict its configuration to `instagram_basic` and
 `instagram_manage_messages`. The dashboard's token generator can provision QRK's

@@ -2,6 +2,9 @@
 
 App serves the editor at <https://app.qrk.localhost/>.
 
+The site navbar uses 16px side padding in the sm preview and 24px from the md
+preview upward, based on the preview container's 720px threshold.
+
 Workspace drawers use TanStack Hotkeys for Escape dismissal, including while a
 form field is focused. Escape uses the Close button's route transition and keeps
 the current breakpoint. Open menus, popovers, and dialogs consume Escape

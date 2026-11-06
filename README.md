@@ -3,7 +3,7 @@
 ## Zerospin packages
 
 Zerospin owns its source, builds, and releases in the sibling `../zerospin`
-checkout. QRK installs exact `42.0.3` packages from the local Verdaccio registry;
+checkout. QRK installs exact `43.0.2` packages from the local Verdaccio registry;
 there is no vendored Zerospin source or consumer-side Zerospin build.
 Actor and agent selection identity uses the authored definition rather than
 generated SQL. Existing direct Drizzle dependencies use the same exact local
@@ -18,6 +18,16 @@ they resolve the same Core and Drizzle package instances.
 The workspace pins Effect and `@effect/platform-node-shared` to `4.0.2` for the
 Zerospin CLI.
 Effect is installed from the registry; no Effect source is vendored.
+
+Zerospin `43.0.0` starts a migration-aware connected Node storage baseline.
+AggregateNode and ServiceNode databases use the complete authenticated
+`sessionKey`, independently of the executable hash. First adoption requires
+finishing every old producer's contiguous final prefix (`outcomeIndex ===
+pushIndex`), accounting for persisted tab journals, and closing older documents
+and SharedWorkers before starting the new runtime. Admission alone is insufficient.
+Old runtime-hash databases and discovery records remain intact; they are not
+adopted, copied, or reset. Later supported Node SQL upgrades drain retained work
+before committing forward schema changes and their migration record atomically.
 
 Repository tests and standalone automated checks are deferred until a test
 structure is agreed. See [Testing and checks](./AGENTS.md#testing-and-checks).
@@ -85,7 +95,7 @@ See [Modules](apps/app/modules/README.md) and [App](apps/app/README.md).
    On the first registry bootstrap, install, build, verify, and publish the
    release in Zerospin before installing QRK. Follow Zerospin's package release
    instructions. Existing registry storage survives restarts. A fresh checkout
-   requires the running registry with the locked `42.0.3` packages; hosted
+   requires the running registry with the locked `43.0.2` packages; hosted
    distribution and deployment-machine bootstrap are not configured here.
 
 2. Start the five application development servers through Portless:

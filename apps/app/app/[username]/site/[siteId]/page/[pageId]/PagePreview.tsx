@@ -69,7 +69,6 @@ export function PagePreview(props: { breakpoint: (typeof BREAKPOINTS)[number] })
             search: (previous) => ({
               ...previous,
               breakpoint: breakpoint.id,
-              insertion: undefined,
             }),
             resetScroll: false,
           });
@@ -81,20 +80,6 @@ export function PagePreview(props: { breakpoint: (typeof BREAKPOINTS)[number] })
             search: (previous) => ({
               ...previous,
               breakpoint: breakpoint.id,
-              insertion: undefined,
-            }),
-            resetScroll: false,
-          });
-        }}
-        onBrickDeleted={(brickId) => {
-          if (selectedBrickId !== brickId) return;
-          void navigate({
-            to: "/$username/site/$siteId/page/$pageId",
-            params,
-            search: (previous) => ({
-              ...previous,
-              breakpoint: breakpoint.id,
-              insertion: undefined,
             }),
             resetScroll: false,
           });

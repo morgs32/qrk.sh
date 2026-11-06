@@ -13,17 +13,9 @@ export function ModulePreview(props: {
   breakpoint: (typeof BREAKPOINTS)[number]["id"];
   cardStyle: boolean;
   verticalAtLg?: boolean;
-  moduleLink: ReactNode;
   moduleAction?: (state: unknown) => ReactNode;
 }) {
-  const {
-    brickModule,
-    breakpoint,
-    cardStyle,
-    verticalAtLg = false,
-    moduleLink,
-    moduleAction,
-  } = props;
+  const { brickModule, breakpoint, cardStyle, verticalAtLg = false, moduleAction } = props;
   const previewRef = useRef<HTMLDivElement>(null);
   const [previewState, setPreviewState] = useState<unknown>(() => brickModule.def.state);
   const committedState = useRef(previewState);
@@ -106,7 +98,7 @@ export function ModulePreview(props: {
       <h2
         className={`sticky top-0 z-10 m-0 shrink-0 px-8 py-4 font-normal ${verticalAtLg ? "lg:static" : ""}`}
       >
-        {moduleLink}
+        {brickModule.label}
       </h2>
       <div className={`px-8 pb-16 pt-2 ${verticalAtLg ? "lg:pb-8" : ""}`}>
         {maxPerPage !== undefined ? (

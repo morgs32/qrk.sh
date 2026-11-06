@@ -21,18 +21,20 @@
      status: Schema.Literal("resolving"),
      messageId: Schema.NonEmptyString,
      senderScopedId: Schema.NonEmptyString,
-   })
+   });
    ```
 
 3. Define `verifiedInstagramAccountV1` with required `clerkUserId`, `receivingAccountId`, `senderScopedId`, `username`, `verifiedAt`, and `messageId`. All identifiers/usernames are text; `verifiedAt` is a date. Index `clerkUserId` without uniqueness.
 
    ```ts
    // 2. Instagram identity, rather than its changeable username, owns the link.
-   indexes: [{
-     name: "receiving_account_sender",
-     columns: ["receivingAccountId", "senderScopedId"],
-     unique: true,
-   }]
+   indexes: [
+     {
+       name: "receiving_account_sender",
+       columns: ["receivingAccountId", "senderScopedId"],
+       unique: true,
+     },
+   ];
    ```
 
 4. Zerospin supplies `id`, `modelName`, `version`, `createdAt`, and `updatedAt`; omit them from authored attributes. Keep external Clerk/Meta identifiers as text, use `modelId` for QRK model IDs, and declare primitive descriptors inline.
@@ -107,10 +109,14 @@ qrk.sh/
 14. Current Meta examples document provider self-test events with `message.is_self`; the webhook now decodes and ignores that flag before dispatch. Its existing filtering test covers a flagged event with distinct sender/receiver IDs and a valid code. After the provider and filter changes, all 24 backend tests, seven HTTP tests, API TypeScript verification, API dry-run build, scoped Oxfmt, and diff checks passed. The docs do not explicitly demonstrate a Unified original-message envelope; the live test must establish it. The App has no changes since its passing build/typecheck.
 15. The maintainer requested a fresh ownership review using `$yolo`, then confirmed that the personal Facebook profile may be used only as an administrator. QRK must own its business assets; receiver authorization and runtime credentials belong to that business setup. Personal-account restriction repair is no longer the assumed next step. The implementation contains no Facebook human-admin identity: QRK ownership uses Clerk and Instagram identities, while provider credentials remain server-side. Current [Meta migration guidance](https://developers.facebook.com/documentation/instagram-platform/instagram-api-with-instagram-login/migration-guide) explicitly says newly created apps cannot set up the older Instagram Login API. Inspect QRK's own professional-account business access and portfolio ownership before further provisioning. No account, credential, storage, or code changes were made during the ownership reassessment.
 16. Authenticated [Meta Help](https://www.facebook.com/business/help/1716703571964355) confirms professional-account conversion automatically creates a matching business portfolio. [Business Suite guidance](https://www.facebook.com/business/help/428687951269163) supports Instagram credentials without a Facebook Page and recommends a private browser when a Facebook session interferes. A Chrome Incognito Business Suite session is prepared through its Instagram sign-in; `qrk.sh` is filled and the maintainer's password entry is pending. The actual QRK portfolio ID, full-control access, and Apps settings remain unverified. [App ownership guidance](https://www.facebook.com/business/help/2199735813629697) requires portfolio full control and an app-owner approval when connecting an existing app ID.
+17. The maintainer completed Instagram sign-in to Business Suite. Its observed portfolio is `QRK.SH`, business ID `2223814708480656`; People lists `QRKSH (you)` / `@qrk.sh` with Full access / Everything. Apps is empty. The Connect an app ID dialog is prepared with `1165998892424227`; submitting the ownership request awaits action-time confirmation and has not occurred.
+18. Integrated current `origin/main` (`9a0a4a957`, including the verified Zerospin 43.0.0 local cutover) into the feature branch without rewriting its published history. The integration preserves every existing registration and canonical selection, plus `instagramVerification@1`. The original checkout now consumes 43.0.1 and owns separate reload verification; do not start this feature's older 42 runtime against the shared state. Interim exact 43.0.1 adoption, frozen installation, App/API typechecks, App production build, API dry-run build, all 24 backend tests, and seven webhook HTTP tests passed. Inspection found 43.0.1 lacks the already-approved clear-authentication hook fix, so this is not the final adoption. Restore that fix on the current upstream line and adopt its new published release before local runtime verification.
+19. After the maintainer approved submitting the app ownership request, two attempts returned Meta's unexpected technical issue. Apps remained empty, and Requests → Sent showed no sent requests. No ownership change is confirmed. A full-access invitation for the approved human administrator was prepared but not sent; the computer locked before its final review. Resume that review after unlock, observe the concrete access grant, and obtain the required action-time confirmation before sending.
+20. The approved clear-authentication fix is restored on the current upstream line in commit `caa832eba0`, ready for review in [Zerospin PR 130](https://github.com/morgs32/zerospin/pull/130). All 19 buildable packages built and all 20 fixed-group packages actually published as `43.0.2`; independent registry checks confirmed each version and integrity. QRK now consumes coherent exact `43.0.2` pins through the package manager, with a passing frozen installation. The installed hook uses the managed session binding and retained clear capability outside readiness. Installed Intent guidance was reloaded and the strict registry rule refreshed/checked. Final adoption checks passed all six backend suites / 24 tests, seven webhook HTTP tests, App/API typechecks, the App production build, and API dry-run build. No application source adaptation, development-service restart, storage reset, local-browser acceptance, or live-provider verification occurred during integration.
 
 ## Remaining work
 
-1. Complete `qrk.sh` sign-in to Business Suite, confirm its existing portfolio and full-control access, then connect the existing QRK app under business ownership. Use the maintainer's Facebook profile only as the approved administrator. Portfolio identity and available management rights must be observed before any ownership change; the earlier new-portfolio rejection does not establish those facts.
+1. Resume the prepared full-access administrator invitation after the computer is unlocked, review its actual permissions, and obtain action-time confirmation before sending. Use that approved administrator to connect app `1165998892424227` to the observed `QRK.SH` portfolio `2223814708480656`, complete any required app-owner approval, and verify ownership in Meta. The two approved connection attempts failed with Meta's technical issue; Apps and Sent requests remain empty. Portfolio identity and the Instagram owner's full access are observed, but no human invitation or app ownership change is confirmed.
 2. Complete receiver/token provisioning with only the required messaging permissions and configure the actual receiver ID, token, Meta app secret, explicit API version, and webhook verify token. Verify sender-profile lookup and the real Unified webhook envelope with that authorization; adapt only if live evidence requires it. No tunnel has been started.
-3. Complete configured-origin browser verification and the required live no-role personal-account round trip, including reload persistence, cross-user rejection, disconnect, and transfer. Shut down the temporary tunnel afterward.
+3. Coordinate use of the configured services with the ongoing reload-verification work before starting this feature on the adopted `43.0.2` runtime. Complete configured-origin browser verification and the required live no-role personal-account round trip, including reload persistence, cross-user rejection, disconnect, and transfer. The merge/adoption checks above establish compilation and authored behavior, not a running or accepted SystemSpec. Shut down the temporary tunnel afterward.
 4. Record actual setup/runtime evidence, open the QRK ready-for-review PR (the upstream PR is already open), and archive only when every required verification gate is complete. Keep documentation, glossary, and the reconciled handoff current with those results.

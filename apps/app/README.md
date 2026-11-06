@@ -2,6 +2,9 @@
 
 App serves the editor at <https://app.qrk.localhost/>.
 
+The site navbar uses 16px side padding in the sm preview and 24px from the md
+preview upward, based on the preview container's 720px threshold.
+
 Workspace drawers use TanStack Hotkeys for Escape dismissal, including while a
 form field is focused. Escape uses the Close button's route transition and keeps
 the current breakpoint. Open menus, popovers, and dialogs consume Escape
@@ -35,9 +38,17 @@ replace unfinished ones. The dashboard observes authoritative proofs through its
 own authenticated Service session, retains existing proofs when another attempt
 fails, and supports Disconnect to release an account.
 
+## Brick catalog
+
+The Bricks drawer provides draggable previews with plain module labels. Dragging
+creates Bricks through the Wall's existing command path; Brick Details edits saved
+Bricks. Module metadata and Component/JsonRender comparisons live in Storybook's
+module playgrounds. The App has no per-module inspection pages or URL-driven
+Add here/insertion flow.
+
 ## Wall dragging
 
-Saved Bricks move from the grip beside the action menu into existing or new Rows
+Saved Bricks move from the grip beside the edit button into existing or new Rows
 across the current Wall's existing Stacks and Sections. On compatible populated
 Rows, the top/bottom 8px create a Row above/below; the remaining area joins or
 reorders horizontally. Incompatible Rows use top/bottom halves for separate Rows.

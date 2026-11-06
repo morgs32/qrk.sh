@@ -22,7 +22,6 @@ import { Route as UsernameSiteSiteIdPagePageIdDrawerPageSettingsRouteImport } fr
 import { Route as UsernameSiteSiteIdPagePageIdDrawerSiteSettingsRouteImport } from './routes/$username.site.$siteId.page.$pageId._drawer.site-settings'
 import { Route as UsernameSiteSiteIdPagePageIdDrawerBrickBrickIdRouteImport } from './routes/$username.site.$siteId.page.$pageId._drawer.brick.$brickId'
 import { Route as UsernameSiteSiteIdPagePageIdDrawerModulesIndexRouteImport } from './routes/$username.site.$siteId.page.$pageId._drawer.modules.index'
-import { Route as UsernameSiteSiteIdPagePageIdDrawerModulesModuleIdRouteImport } from './routes/$username.site.$siteId.page.$pageId._drawer.modules.$moduleId'
 import { Route as UsernameSiteSiteIdPagePageIdDrawerStackStackIdRouteImport } from './routes/$username.site.$siteId.page.$pageId._drawer.stack.$stackId'
 
 const IndexRoute = IndexRouteImport.update({
@@ -97,12 +96,6 @@ const UsernameSiteSiteIdPagePageIdDrawerModulesIndexRoute =
     path: '/modules/',
     getParentRoute: () => UsernameSiteSiteIdPagePageIdDrawerRoute,
   } as any)
-const UsernameSiteSiteIdPagePageIdDrawerModulesModuleIdRoute =
-  UsernameSiteSiteIdPagePageIdDrawerModulesModuleIdRouteImport.update({
-    id: '/modules/$moduleId',
-    path: '/modules/$moduleId',
-    getParentRoute: () => UsernameSiteSiteIdPagePageIdDrawerRoute,
-  } as any)
 const UsernameSiteSiteIdPagePageIdDrawerStackStackIdRoute =
   UsernameSiteSiteIdPagePageIdDrawerStackStackIdRouteImport.update({
     id: '/stack/$stackId',
@@ -122,7 +115,6 @@ export interface FileRoutesByFullPath {
   '/$username/site/$siteId/page/$pageId/page-settings': typeof UsernameSiteSiteIdPagePageIdDrawerPageSettingsRoute
   '/$username/site/$siteId/page/$pageId/site-settings': typeof UsernameSiteSiteIdPagePageIdDrawerSiteSettingsRoute
   '/$username/site/$siteId/page/$pageId/brick/$brickId': typeof UsernameSiteSiteIdPagePageIdDrawerBrickBrickIdRoute
-  '/$username/site/$siteId/page/$pageId/modules/$moduleId': typeof UsernameSiteSiteIdPagePageIdDrawerModulesModuleIdRoute
   '/$username/site/$siteId/page/$pageId/stack/$stackId': typeof UsernameSiteSiteIdPagePageIdDrawerStackStackIdRoute
   '/$username/site/$siteId/page/$pageId/modules/': typeof UsernameSiteSiteIdPagePageIdDrawerModulesIndexRoute
 }
@@ -135,7 +127,6 @@ export interface FileRoutesByTo {
   '/$username/site/$siteId/page/$pageId/page-settings': typeof UsernameSiteSiteIdPagePageIdDrawerPageSettingsRoute
   '/$username/site/$siteId/page/$pageId/site-settings': typeof UsernameSiteSiteIdPagePageIdDrawerSiteSettingsRoute
   '/$username/site/$siteId/page/$pageId/brick/$brickId': typeof UsernameSiteSiteIdPagePageIdDrawerBrickBrickIdRoute
-  '/$username/site/$siteId/page/$pageId/modules/$moduleId': typeof UsernameSiteSiteIdPagePageIdDrawerModulesModuleIdRoute
   '/$username/site/$siteId/page/$pageId/stack/$stackId': typeof UsernameSiteSiteIdPagePageIdDrawerStackStackIdRoute
   '/$username/site/$siteId/page/$pageId/modules': typeof UsernameSiteSiteIdPagePageIdDrawerModulesIndexRoute
 }
@@ -153,7 +144,6 @@ export interface FileRoutesById {
   '/$username/site/$siteId/page/$pageId/_drawer/page-settings': typeof UsernameSiteSiteIdPagePageIdDrawerPageSettingsRoute
   '/$username/site/$siteId/page/$pageId/_drawer/site-settings': typeof UsernameSiteSiteIdPagePageIdDrawerSiteSettingsRoute
   '/$username/site/$siteId/page/$pageId/_drawer/brick/$brickId': typeof UsernameSiteSiteIdPagePageIdDrawerBrickBrickIdRoute
-  '/$username/site/$siteId/page/$pageId/_drawer/modules/$moduleId': typeof UsernameSiteSiteIdPagePageIdDrawerModulesModuleIdRoute
   '/$username/site/$siteId/page/$pageId/_drawer/stack/$stackId': typeof UsernameSiteSiteIdPagePageIdDrawerStackStackIdRoute
   '/$username/site/$siteId/page/$pageId/_drawer/modules/': typeof UsernameSiteSiteIdPagePageIdDrawerModulesIndexRoute
 }
@@ -171,7 +161,6 @@ export interface FileRouteTypes {
     | '/$username/site/$siteId/page/$pageId/page-settings'
     | '/$username/site/$siteId/page/$pageId/site-settings'
     | '/$username/site/$siteId/page/$pageId/brick/$brickId'
-    | '/$username/site/$siteId/page/$pageId/modules/$moduleId'
     | '/$username/site/$siteId/page/$pageId/stack/$stackId'
     | '/$username/site/$siteId/page/$pageId/modules/'
   fileRoutesByTo: FileRoutesByTo
@@ -184,7 +173,6 @@ export interface FileRouteTypes {
     | '/$username/site/$siteId/page/$pageId/page-settings'
     | '/$username/site/$siteId/page/$pageId/site-settings'
     | '/$username/site/$siteId/page/$pageId/brick/$brickId'
-    | '/$username/site/$siteId/page/$pageId/modules/$moduleId'
     | '/$username/site/$siteId/page/$pageId/stack/$stackId'
     | '/$username/site/$siteId/page/$pageId/modules'
   id:
@@ -201,7 +189,6 @@ export interface FileRouteTypes {
     | '/$username/site/$siteId/page/$pageId/_drawer/page-settings'
     | '/$username/site/$siteId/page/$pageId/_drawer/site-settings'
     | '/$username/site/$siteId/page/$pageId/_drawer/brick/$brickId'
-    | '/$username/site/$siteId/page/$pageId/_drawer/modules/$moduleId'
     | '/$username/site/$siteId/page/$pageId/_drawer/stack/$stackId'
     | '/$username/site/$siteId/page/$pageId/_drawer/modules/'
   fileRoutesById: FileRoutesById
@@ -304,13 +291,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof UsernameSiteSiteIdPagePageIdDrawerModulesIndexRouteImport
       parentRoute: typeof UsernameSiteSiteIdPagePageIdDrawerRoute
     }
-    '/$username/site/$siteId/page/$pageId/_drawer/modules/$moduleId': {
-      id: '/$username/site/$siteId/page/$pageId/_drawer/modules/$moduleId'
-      path: '/modules/$moduleId'
-      fullPath: '/$username/site/$siteId/page/$pageId/modules/$moduleId'
-      preLoaderRoute: typeof UsernameSiteSiteIdPagePageIdDrawerModulesModuleIdRouteImport
-      parentRoute: typeof UsernameSiteSiteIdPagePageIdDrawerRoute
-    }
     '/$username/site/$siteId/page/$pageId/_drawer/stack/$stackId': {
       id: '/$username/site/$siteId/page/$pageId/_drawer/stack/$stackId'
       path: '/stack/$stackId'
@@ -325,7 +305,6 @@ interface UsernameSiteSiteIdPagePageIdDrawerRouteChildren {
   UsernameSiteSiteIdPagePageIdDrawerPageSettingsRoute: typeof UsernameSiteSiteIdPagePageIdDrawerPageSettingsRoute
   UsernameSiteSiteIdPagePageIdDrawerSiteSettingsRoute: typeof UsernameSiteSiteIdPagePageIdDrawerSiteSettingsRoute
   UsernameSiteSiteIdPagePageIdDrawerBrickBrickIdRoute: typeof UsernameSiteSiteIdPagePageIdDrawerBrickBrickIdRoute
-  UsernameSiteSiteIdPagePageIdDrawerModulesModuleIdRoute: typeof UsernameSiteSiteIdPagePageIdDrawerModulesModuleIdRoute
   UsernameSiteSiteIdPagePageIdDrawerStackStackIdRoute: typeof UsernameSiteSiteIdPagePageIdDrawerStackStackIdRoute
   UsernameSiteSiteIdPagePageIdDrawerModulesIndexRoute: typeof UsernameSiteSiteIdPagePageIdDrawerModulesIndexRoute
 }
@@ -338,8 +317,6 @@ const UsernameSiteSiteIdPagePageIdDrawerRouteChildren: UsernameSiteSiteIdPagePag
       UsernameSiteSiteIdPagePageIdDrawerSiteSettingsRoute,
     UsernameSiteSiteIdPagePageIdDrawerBrickBrickIdRoute:
       UsernameSiteSiteIdPagePageIdDrawerBrickBrickIdRoute,
-    UsernameSiteSiteIdPagePageIdDrawerModulesModuleIdRoute:
-      UsernameSiteSiteIdPagePageIdDrawerModulesModuleIdRoute,
     UsernameSiteSiteIdPagePageIdDrawerStackStackIdRoute:
       UsernameSiteSiteIdPagePageIdDrawerStackStackIdRoute,
     UsernameSiteSiteIdPagePageIdDrawerModulesIndexRoute:

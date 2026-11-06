@@ -1,5 +1,6 @@
 "use client";
 
+import { Dialog } from "@base-ui/react/dialog";
 import { Link, useMatches, useNavigate, useSearch } from "@tanstack/react-router";
 import { useHotkey } from "@tanstack/react-hotkeys";
 import { Result, Schema } from "effect";
@@ -7,7 +8,6 @@ import { isEqual } from "es-toolkit";
 import { ArrowLeft, FileText, Globe, Layers, X } from "lucide-react";
 import { useLiveQuery, useSession } from "@zerospin/react";
 import { makeIdSchema, makeId, stageAggregateSessionCommand } from "@zerospin/sdk/browser";
-import { makeEffectSchema } from "@zerospin/shapes";
 import { modulesHash } from "../../../../../../../modules/lib/modulesHash";
 import { brickV2 } from "@qrk.sh/zerospin/src/aggregates/user/models/brick/BrickV2";
 import { pageV1 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV1";
@@ -23,7 +23,6 @@ const ParamsSchema = Schema.Struct({
   username: Schema.String,
   siteId: makeIdSchema(Site),
   pageId: makeIdSchema(Page),
-  moduleId: Schema.optional(Schema.String),
   brickId: Schema.optional(Schema.String),
 });
 
@@ -91,11 +90,7 @@ export function DrawerHeader() {
     savedContent !== null &&
     publishedSnapshot !== undefined &&
     !isEqual(savedContent, publishedSnapshot.content);
-  const decodedModule = Schema.decodeUnknownResult(
-    makeEffectSchema({ moduleId: brickV2.attributes.moduleId }),
-  )({ moduleId: params.brickId === undefined ? params.moduleId : brick?.moduleId });
-  const moduleId = Result.isSuccess(decodedModule) ? decodedModule.success.moduleId : undefined;
-  const moduleLabel = moduleId === undefined ? undefined : modulesHash[moduleId].label;
+  const moduleLabel = brick === undefined ? undefined : modulesHash[brick.moduleId].label;
 
   const closeDrawer = () => {
     void navigate({
@@ -166,14 +161,6 @@ export function DrawerHeader() {
               >
                 Bricks
               </Link>
-              {moduleLabel === undefined ? null : (
-                <>
-                  <span aria-hidden className="text-muted-foreground">
-                    /
-                  </span>
-                  <span className="truncate">{moduleLabel}</span>
-                </>
-              )}
             </>
           )}
         </nav>
@@ -196,6 +183,44 @@ export function DrawerHeader() {
           >
             {canPublishPage ? "Publish Page" : "Publish Updates"}
           </Button>
+        ) : null}
+        {params.brickId !== undefined && brick !== undefined ? (
+          <Dialog.Root key={brick.id}>
+            <Dialog.Trigger
+              render={
+                <Button type="button" variant="ghost" size="sm" className="text-destructive" />
+              }
+            >
+              Delete
+            </Dialog.Trigger>
+            <Dialog.Portal>
+              <Dialog.Backdrop className="fixed inset-0 z-[100] bg-black/30" />
+              <Dialog.Popup className="fixed left-1/2 top-1/2 z-[101] grid w-[min(28rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 gap-4 border bg-background p-6 text-foreground shadow-xl outline-none">
+                <Dialog.Title className="text-lg font-medium">Delete Brick?</Dialog.Title>
+                <Dialog.Description className="text-sm text-muted-foreground">
+                  This deletes the shared Brick and its Placements at all four breakpoints, then
+                  removes empty Rows, Stacks, and Sections.
+                </Dialog.Description>
+                <div className="flex justify-end gap-2">
+                  <Dialog.Close render={<Button variant="outline" />}>Cancel</Dialog.Close>
+                  <Button
+                    variant="destructive"
+                    onClick={() => {
+                      const result = stageAggregateSessionCommand({
+                        session,
+                        contractName: "deleteBrick",
+                        payload: { brickId: brick.id },
+                      });
+                      if (result._tag !== "Success") return;
+                      closeDrawer();
+                    }}
+                  >
+                    Delete Brick
+                  </Button>
+                </div>
+              </Dialog.Popup>
+            </Dialog.Portal>
+          </Dialog.Root>
         ) : null}
         <Button
           type="button"

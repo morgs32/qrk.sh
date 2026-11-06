@@ -17,7 +17,7 @@ export function SiteHeader(props: { siteId: IInferModelRow<typeof siteV1>["id"] 
   });
   return (
     <PreviewSection className={cn("z-50 shrink-0", site.stickyNavbar && "sticky top-12")}>
-      <header className="qrk-responsive-insets flex h-16 items-center justify-between border-b border-border bg-background [padding-inline:var(--qrk-inset-inline)]">
+      <header className="flex h-16 items-center justify-between border-b border-border bg-background px-4 @min-[720px]:px-6">
         <span className="text-sm font-medium">{site.name}</span>
       </header>
     </PreviewSection>

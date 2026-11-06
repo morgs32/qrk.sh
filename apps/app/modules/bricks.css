@@ -181,14 +181,8 @@
   opacity: 1;
 }
 
-.wall-placement:is(:focus-within, .is-selected, .is-menu-open) {
+.wall-placement:is(:focus-within, .is-selected) {
   z-index: 1;
-}
-
-/* A portaled menu retains its separate outer indicator after focus leaves. */
-.wall-placement.is-menu-open::after {
-  border-color: rgb(var(--brick-accent-rgb));
-  z-index: 19;
 }
 
 /* Insertion feedback copies appearance, without editor decoration or controls. */
@@ -215,6 +209,16 @@
 .stack-action {
   background-color: rgb(var(--brick-accent-rgb));
   color: white;
+}
+
+/* Fill the Stack's inset without shifting controls away from Brick actions. */
+.stack-action::before {
+  content: "";
+  position: absolute;
+  inset: -1px 0 0 -1px;
+  border-top: 1px solid rgb(var(--brick-accent-rgb));
+  border-left: 1px solid rgb(var(--brick-accent-rgb));
+  pointer-events: none;
 }
 
 .brick-action [data-slot="button"] {

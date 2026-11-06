@@ -76,7 +76,6 @@ export function BreakpointsToolbar() {
                 search: (previous) => ({
                   ...previous,
                   breakpoint: row.id,
-                  insertion: undefined,
                 }),
                 resetScroll: false,
               });

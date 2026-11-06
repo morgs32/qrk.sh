@@ -9,7 +9,8 @@ self.addEventListener("fetch", (event) => {
     (async () => {
       const names = (await caches.keys()).filter((name) => name.startsWith("qrk-app-"));
       for (const name of names) {
-        const cached = await (await caches.open(name)).match(event.request);
+        // Immutable build assets do not vary with module-request Origin headers.
+        const cached = await (await caches.open(name)).match(event.request, { ignoreVary: true });
         if (cached) return cached;
       }
       return fetch(event.request);

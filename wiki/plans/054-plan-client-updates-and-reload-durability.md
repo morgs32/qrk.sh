@@ -1,6 +1,6 @@
 # 054 — Client updates and reload durability
 
-**Status:** In progress; QRK warning/update and dev-retirement changes are implemented. Upstream verification, release/adoption, and browser acceptance remain pending.
+**Status:** In progress; QRK and upstream source changes are implemented and checked. Native browser acceptance and local release/adoption remain pending.
 
 **Date:** 2026-11-06
 
@@ -142,10 +142,11 @@ QRK's warning/update work (steps 1–2), dev recovery (step 3), and upstream wor
 1. QRK implements the boolean native unload hook in all fifteen owners. Existing drafts/busy state supply its predicates; only the publication dialog adds an opening-selection snapshot. Reload approval is consumed before navigation and revoked by Later or failed activation. The dev `/sw.js` response reuses `offline-cache.js` with cleanup disabled, then activates, claims and unregisters without navigation or deletion.
 2. App TypeScript and the cache-bypassed Nx production build pass. Scoped formatter checks and `git diff --check` pass for the authored changes. The full Vite config retains pre-existing formatting outside the new middleware block.
 3. Six in-memory scenario groups against the actual prompt/hook source pass with mocked browser/PWA/Sonner boundaries: pending Later, one-shot approved/already-active reload, failed activation, unapproved/disposed callbacks, toast retention, and dirty-listener cleanup. Inline retirement checks pass for lifecycle order, old asset lookup, network navigation, and disabled cache cleanup. These are callback checks, not native-dialog or real PWA/browser acceptance evidence. No test/fixture/runner files were created.
+4. [Zerospin PR 129](https://github.com/morgs32/zerospin/pull/129) implements the exact namespace owner-busy failure, schema/RPC preservation, and explicit non-reset classification. Three existing test files pass with 29 tests and whole-test TypeScript compilation; Browser type/lint checks pass with zero warnings, as do formatting/diff checks. Existing browser fixtures include owner-busy/retry assertions and journal-only reload helpers. Their exact test-owned gate keeps the same worker URL across reloads and never releases the old held request; CacheStorage controls only the interruption, not command durability. Native execution is pending.
+5. [QRK PR 80](https://github.com/morgs32/qrk.sh/pull/80) contains separate commits for draft/reload approval and dev retirement. Both PRs are open for review. QRK remains on 43.0.0; no new local publication or adoption has occurred.
 
 ## Remaining work
 
-1. QRK's fifteen draft/upload guards, one-shot Reload/Later approval, and dev retirement response are implemented. App TypeScript and the cache-bypassed production build pass; browser acceptance remains pending.
-2. Complete and verify Zerospin's owner-busy error and the deterministic journal-only interruption scenario in the isolated upstream worktree. Publish/adopt the checked local release, then verify exact pins and the frozen lockfile.
-3. Run the plugin-deletion, native confirmation/upload, two-build update, owner-contention/retry, and dev-recovery browser checks above. The configured HTTPS proxy on port 443 is stopped; its startup requires the user's sudo password. Startup was requested while independent work continues.
-4. Record measured runtime evidence, finish affected documentation, publish ready-for-review PRs, and archive only after required verification is complete. No browser result or new teardown guarantee is implied by the passing build.
+1. Start the configured HTTPS proxy on port 443, which requires the user's sudo password. Startup was requested while independent work continued. Then run the upstream native namespace/cancellation/retry and journal-only abrupt-reload checks. Preserve the same worker URL for both journal phases; that fixture check uses the same compiled runtime hash.
+2. After required upstream verification passes, publish/adopt the checked local release and verify exact pins/frozen installation. Run QRK's real cross-runtime-hash Node-retained reload, native confirmation/upload, two-build update, and dev-recovery acceptance checks. The retained 43.0.0 client build is preserved outside the repository for that cross-runtime comparison.
+3. Record measured runtime evidence, finish affected documentation and PR descriptions, and archive only after required verification is complete. No native browser result or new teardown guarantee is implied by passing builds, types, lint, or boundary mocks.

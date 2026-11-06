@@ -172,6 +172,8 @@ device; a fresh online verification is required to reopen them.
 
 Each production build has a separate Workbox resource cache. `offline-cache.js`
 serves immutable old `/assets/` chunks to tabs still running an earlier build.
+It matches the exact asset URL while ignoring `Vary` headers, because native
+module requests can send a different `Origin` header from precache requests.
 When only one controlled App tab remains, it reports its entry-module URL; if
 that module belongs to the active build and no build is installing/waiting, the
 worker removes old App precaches. Multiple tabs conservatively retain old builds
@@ -180,4 +182,5 @@ storage are outside this cleanup. This avoids forcing a tab that chose Later to
 reload when another tab accepts an update. GenerateSW's `cacheId` and imported
 script integration are documented in [Workbox's build options](https://developer.chrome.com/docs/workbox/modules/workbox-build).
 
-Implementation and measured limits: [completed Plan 053](../../wiki/archive/plans/053-plan-offline-loading-and-update-prompts.md).
+Implementation and measured limits: [Plan 054](../../wiki/archive/plans/054-plan-client-updates-and-reload-durability.md)
+and [completed Plan 053](../../wiki/archive/plans/053-plan-offline-loading-and-update-prompts.md).

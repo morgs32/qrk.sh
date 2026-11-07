@@ -7,6 +7,7 @@ import type { LibraryApi } from "@qrk.sh/api/modules/LibraryApi.public";
 import type { IGooglePlaceSuggestion } from "@qrk.sh/api/modules/types";
 
 import { Input } from "../components/ui/input";
+import { useWarnBeforeUnload } from "@/lib/useWarnBeforeUnload";
 import { cn } from "cn";
 
 export function GooglePlaceLookup(props: { value: string; onChange: (value: string) => void }) {
@@ -19,6 +20,7 @@ export function GooglePlaceLookup(props: { value: string; onChange: (value: stri
   const [isOpen, setIsOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
   const [lookupError, setLookupError] = useState<string>();
+  useWarnBeforeUnload(!isSelected && query.length > 0);
   const containerRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(null);
   const activeSuggestions = useRef<AbortController | null>(null);

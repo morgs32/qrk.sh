@@ -157,6 +157,17 @@ QRK's warning/update work (steps 1–2), dev recovery (step 3), and upstream wor
 16. [QRK PR 80](https://github.com/morgs32/qrk.sh/pull/80) includes draft/reload approval, development retirement, exact 43.0.1 adoption, and the mixed-build cache correction. Both PRs remain open for review. Native acceptance is complete. Verification limits remain explicit: the journal-only check used one compiled runtime, and the mocked update-function rejection did not simulate an actual activation failure.
 17. The configured App development service was restored and left running detached. Chrome E's old production registration retired to zero registrations; a deliberate reload reached the dev editor with no HTTP service-worker controller, no registrations, and Vite's `/@vite/client` resource present. Authentication, models, and the original saved Page description were ready. The clean Chrome editor was left open, shared services were preserved, and the unrelated untracked research file's content hash remained unchanged.
 
+## PR 80 review follow-up
+
+The Map Place lookup now warns for nonempty, unselected search text, including
+one-character and whitespace-only input. The lookup owns this predicate through
+the existing unload hook; its parent continues to protect selected-place changes
+and saving. No state or callback props were added. Native verification confirmed
+that Stay preserves a one-character search while Save is disabled, whitespace
+installs the warning, and Clear or Cancel removes it. The temporary verification
+Brick was deleted and both commands finalized. App typechecking, the production
+build, scoped formatting, and diff checks pass.
+
 ## Remaining work
 
 None.

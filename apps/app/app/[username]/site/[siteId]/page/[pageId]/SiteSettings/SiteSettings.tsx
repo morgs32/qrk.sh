@@ -28,6 +28,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useUsername } from "@/hooks/useUsername";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
+import { useWarnBeforeUnload } from "@/lib/useWarnBeforeUnload";
 
 const ParamsSchema = Schema.Struct({
   username: Schema.String,
@@ -126,6 +127,7 @@ export function SiteSettings(props: {
   const faviconLightInputRef = useRef<HTMLInputElement>(null);
   const faviconDarkInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
+  useWarnBeforeUnload(isDirty || isUploading);
   const publishedUrl = useMemo(() => {
     const pathname = `/${encodeURIComponent(username)}/${encodeURIComponent(siteId)}`;
     return `https://www.qrk.sh${pathname}`;

@@ -11,6 +11,7 @@ import { useId, useLayoutEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
+import { useWarnBeforeUnload } from "@/lib/useWarnBeforeUnload";
 import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
 
 const ParamsSchema = Schema.Struct({
@@ -47,6 +48,8 @@ export function StackDetails() {
     setDraft(null);
     setSaveError(null);
   }, [params.stackId, search.breakpoint]);
+
+  useWarnBeforeUnload(stack !== undefined && draft !== null && draft !== stack.name);
 
   if (wall === undefined || stack === undefined)
     return (

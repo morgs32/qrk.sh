@@ -9,6 +9,7 @@ import { useState } from "react";
 import { Button } from "../components/ui/button";
 import { ArticleEditorControl } from "./ArticleEditorControl";
 import { articleV1 } from "@qrk.sh/zerospin/src/modules/article/articleV1";
+import { useWarnBeforeUnload } from "@/lib/useWarnBeforeUnload";
 
 export function ArticleForm(props: {
   state: IInferDecodedRow<typeof articleV1.stateShape> | null;
@@ -24,6 +25,7 @@ export function ArticleForm(props: {
   const [saveError, setSaveError] = useState<string>();
   const editedState = draft ?? savedState;
   const canSave = JSON.stringify(editedState) !== JSON.stringify(savedState);
+  useWarnBeforeUnload(canSave);
 
   return (
     <form

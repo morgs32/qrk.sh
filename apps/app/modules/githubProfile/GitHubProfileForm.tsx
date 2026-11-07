@@ -12,6 +12,7 @@ import { useLayoutEffect, useId, useRef, useState } from "react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { githubProfileV1 } from "@qrk.sh/zerospin/src/modules/githubProfile/githubProfileV1";
+import { useWarnBeforeUnload } from "@/lib/useWarnBeforeUnload";
 
 export function GitHubProfileForm(props: {
   state: IInferDecodedRow<typeof githubProfileV1.stateShape> | null;
@@ -27,6 +28,7 @@ export function GitHubProfileForm(props: {
   const profile = profileDraft ?? state?.payload.url ?? "";
   const [saveError, setSaveError] = useState<string>();
   const [isSaving, setIsSaving] = useState(false);
+  useWarnBeforeUnload(profile !== (state?.payload.url ?? "") || isSaving);
   const activeSubmission = useRef<AbortController | null>(null);
   useLayoutEffect(() => {
     return () => {

@@ -128,10 +128,14 @@ scripts are cached separately; authentication API responses and domain RPC
 responses are not resource-cached. No installation manifest is generated. Start
 writes the SPA shell after its environment builds, so `qrk-offline-output` runs
 Workbox generation after that shell exists. Development builds do not register
-the service worker.
+the service worker. The development server serves a retirement worker at `/sw.js`
+so an existing production registration can stop serving its cached shell. It
+claims existing clients and unregisters without reloading them or clearing data.
+Its retained asset fallback still serves exact old `/assets/` URLs; subsequent
+document navigation uses the network. Production preview serves the real worker.
 
 After a successful online visit, a previously verified user can reopen the exact
-saved editor URL and edit its locally saved Page offline. Zerospin 42.0.3 restores
+saved editor URL and edit its locally saved Page offline. Zerospin restores
 only an eligible exact remembered identity and retains pending commands locally.
 Reconnection obtains credentials and authoritative authentication before sending
 those commands. A resource cache does not authorize backend access. New devices,
@@ -139,9 +143,22 @@ missing local Pages and locally invalidated identities cannot acquire data offli
 Clerk startup can delay the initial offline render; an offline reload is not instant.
 
 A downloaded build produces an existing notification with Reload and Later. Later
-leaves the current Page usable; Reload activates the waiting build. Registration,
+leaves the current Page usable and cancels any pending reload approval. Reload
+activates the waiting build; unsaved forms and active uploads use the browser's
+native leave/stay confirmation. Staying keeps the current document and update
+notification usable. Saving or canceling the draft removes its warning. The
+warning does not wait for pending commands to execute remotely. Registration,
 normal browser checks and visible-tab focus/online checks discover updates without
 a polling timer or push service. An idle tab is not guaranteed immediate notice.
+
+Zerospin owns command recovery and supported Node storage upgrades across an
+ordinary reload independently of Vite PWA. Commands already retained by the Node
+or successfully persisted in the tab journal survive supported runtime updates
+with the same authored binding. Journal writes remain best effort; this does not
+promise recovery of memory-only work after a failed storage write. A compatible
+layout reopens normally. A supported SQL upgrade drains its retained old-format
+commands and commits forward schema changes before session readiness. QRK adds
+no command flush or shutdown protocol to the update button.
 
 Local verification uses the existing `app.qrk.localhost` origin, the documented Web
 `__dev` sign-in handoff and the production preview. Do not substitute another
@@ -155,6 +172,8 @@ device; a fresh online verification is required to reopen them.
 
 Each production build has a separate Workbox resource cache. `offline-cache.js`
 serves immutable old `/assets/` chunks to tabs still running an earlier build.
+It matches the exact asset URL while ignoring `Vary` headers, because native
+module requests can send a different `Origin` header from precache requests.
 When only one controlled App tab remains, it reports its entry-module URL; if
 that module belongs to the active build and no build is installing/waiting, the
 worker removes old App precaches. Multiple tabs conservatively retain old builds
@@ -163,4 +182,5 @@ storage are outside this cleanup. This avoids forcing a tab that chose Later to
 reload when another tab accepts an update. GenerateSW's `cacheId` and imported
 script integration are documented in [Workbox's build options](https://developer.chrome.com/docs/workbox/modules/workbox-build).
 
-Implementation and measured limits: [completed Plan 053](../../wiki/archive/plans/053-plan-offline-loading-and-update-prompts.md).
+Implementation and measured limits: [Plan 054](../../wiki/archive/plans/054-plan-client-updates-and-reload-durability.md)
+and [completed Plan 053](../../wiki/archive/plans/053-plan-offline-loading-and-update-prompts.md).

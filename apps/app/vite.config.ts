@@ -52,6 +52,30 @@ export default defineConfig(({ mode }) => {
               request.url ?? "/",
               "http://development.invalid",
             );
+            if (
+              url.pathname === "/sw.js" &&
+              mode !== "production" &&
+              process.env.NODE_ENV !== "production"
+            ) {
+              response.setHeader("Cache-Control", "no-store");
+              if (request.method !== "GET" && request.method !== "HEAD") {
+                response.statusCode = 405;
+                response.setHeader("Allow", "GET, HEAD");
+                response.end("Method not allowed");
+                return;
+              }
+              void Promise.all([
+                readFile(new URL("./public/offline-cache.js", import.meta.url), "utf8"),
+                readFile(new URL("./dev/retire-service-worker.js", import.meta.url), "utf8"),
+              ]).then(([cacheScript, retirementScript]) => {
+                // The unexpanded build prefix disables cleanup while retaining old assets.
+                response.setHeader("Content-Type", "application/javascript; charset=utf-8");
+                response.end(
+                  request.method === "HEAD" ? undefined : `${cacheScript}\n${retirementScript}`,
+                );
+              }, next);
+              return;
+            }
             if (!/^\/__dev\/log-me-in\/[^/]+$/.test(url.pathname))
               return next();
             if (mode === "production" || process.env.NODE_ENV === "production") {

@@ -12,6 +12,7 @@ import { useLayoutEffect, useRef, useState } from "react";
 import { Button } from "../components/ui/button";
 import { GooglePlaceLookup } from "./GooglePlaceLookup";
 import { mapPlaceV1 } from "@qrk.sh/zerospin/src/modules/mapPlace/mapPlaceV1";
+import { useWarnBeforeUnload } from "@/lib/useWarnBeforeUnload";
 
 export function MapPlaceForm(props: {
   state: IInferDecodedRow<typeof mapPlaceV1.stateShape> | null;
@@ -26,6 +27,7 @@ export function MapPlaceForm(props: {
   const [lookupRevision, setLookupRevision] = useState(0);
   const [saveError, setSaveError] = useState<string>();
   const [isSaving, setIsSaving] = useState(false);
+  useWarnBeforeUnload(googlePlaceId !== (state?.payload.googlePlaceId ?? "") || isSaving);
   const activeSubmission = useRef<AbortController | null>(null);
   useLayoutEffect(() => {
     return () => {

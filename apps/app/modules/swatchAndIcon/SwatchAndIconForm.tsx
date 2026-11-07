@@ -10,6 +10,7 @@ import { Button } from "../components/ui/button";
 import { MaterialSymbolsIconLookup } from "./MaterialSymbolsIconLookup";
 import { SwatchAndIconColorForm } from "./SwatchAndIconColorForm";
 import { swatchAndIconV1 } from "@qrk.sh/zerospin/src/modules/swatchAndIcon/swatchAndIconV1";
+import { useWarnBeforeUnload } from "@/lib/useWarnBeforeUnload";
 
 export function SwatchAndIconForm(props: {
   state: IInferDecodedRow<typeof swatchAndIconV1.stateShape> | null;
@@ -28,6 +29,12 @@ export function SwatchAndIconForm(props: {
   const color = draft?.color ?? savedState.payload.color;
   const selectedIcon = draft?.icon ?? { hash: savedState.payload.hash, ...savedState.data };
   const [saveError, setSaveError] = useState<string>();
+  useWarnBeforeUnload(
+    color !== savedState.payload.color ||
+      selectedIcon.hash !== savedState.payload.hash ||
+      selectedIcon.name !== savedState.data.name ||
+      selectedIcon.svg !== savedState.data.svg,
+  );
 
   return (
     <form

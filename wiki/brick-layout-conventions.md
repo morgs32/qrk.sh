@@ -145,7 +145,7 @@ templates subject to module Page limits:
   accepts its first Brick. Populated Walls expose no new Section/Stack targets
   outside the existing layout.
 
-Saved Wall Bricks move only from the grip beside their edit button. Their
+Saved Wall Bricks move only from their dedicated grip. Their
 content retains text selection, links, controls, and ordinary click selection.
 The canvas accepts existing and new Row destinations across the current Wall's
 existing Stacks and Sections. On compatible populated Rows, the top/bottom 8px
@@ -244,9 +244,9 @@ route-owned selection. Clicking an already selected Brick keeps it selected.
 Links, buttons, form controls, editable content, media controls, and action
 controls keep their own interactions without selecting. MapCanvas owns its click
 boundary so map gestures and controls remain usable. Modified or prevented clicks
-and clicks following a text-selection drag do not select. The direct Edit button
-remains the keyboard-accessible selection action; selection adds no tab stop or
-button role around interactive Brick content.
+and clicks following a text-selection drag do not select. When the Brick surface
+itself has keyboard focus, Enter or Space opens the edit form. Interactive content
+inside the Brick keeps its own keyboard behavior.
 
 Clicking the keyboard-accessible name button in StackAction opens Stack Details
 and replaces Brick selection. The route owns the selected Stack, so reload and
@@ -289,10 +289,10 @@ and white text/icons. StackAction paints a 1px same-blue top/left border outside
 1px inset, filling the corner without shifting the controls or their sticky alignment
 with BrickAction.
 
-The Brick action tab contains a direct pencil Edit button and the drag grip, without a dropdown.
-Brick Details shows Delete immediately left of Close. Delete opens the existing
+The Brick action tab contains the drag grip.
+Brick Details shows **Delete brick** immediately left of Close. It opens the
 confirmation describing removal across all four breakpoints and cleanup of empty
-containers. Cancel preserves the Brick and returns focus to Delete. A locally
+containers. Cancel preserves the Brick and returns focus to **Delete brick**. A locally
 successful delete closes the drawer; a staging refusal keeps the confirmation open.
 
 On hover-capable fine pointers, the whole Placement temporarily rises above
@@ -376,9 +376,10 @@ minimums. The complete Row's resulting surface widths become its submitted
 weights, preserving the other Bricks' visible widths even when minimums have
 overridden the saved proportions. Gap padding stays outside those measurements.
 
-The bottom grip changes the Row's shared surface height. Module minimums and
-natural content constrain the result; release saves the final rendered height
-as `minHeight`. Double-click or double-tap restores automatic height (`null`).
+The bottom grip straddles the Row's bottom edge and changes its shared surface
+height. Module minimums and natural content constrain the result. Release saves
+the final rendered height as `minHeight`. Double-click or double-tap restores
+automatic height (`null`).
 An unchanged visible result preserves the original saved setting and stages no
 command. Grips overlay the layout without consuming space, reveal on desktop
 Row hover, and stay visible without hover. Native Brick/catalog dragging hides

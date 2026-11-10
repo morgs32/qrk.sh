@@ -1,4 +1,4 @@
-import { Pencil, GripVertical } from "lucide-react";
+import { GripVertical } from "lucide-react";
 import type { ReactNode } from "react";
 import { cn } from "cn";
 import { Button } from "../../components/ui/button";
@@ -30,6 +30,21 @@ export function WallPlacement(props: {
     >
       <div
         className="wall-placement-content relative z-20 min-w-0 w-full"
+        role={onEditBrick === undefined ? undefined : "group"}
+        tabIndex={onEditBrick === undefined ? undefined : 0}
+        aria-label={onEditBrick === undefined ? undefined : `Edit Brick ${placement.brickId}`}
+        aria-keyshortcuts={onEditBrick === undefined ? undefined : "Enter Space"}
+        onKeyDown={(event) => {
+          if (
+            onEditBrick === undefined ||
+            event.defaultPrevented ||
+            event.target !== event.currentTarget ||
+            (event.key !== "Enter" && event.key !== " ")
+          )
+            return;
+          event.preventDefault();
+          if (!event.repeat) onEditBrick(placement.brickId);
+        }}
         onClick={(event) => {
           if (
             event.defaultPrevented ||
@@ -57,17 +72,6 @@ export function WallPlacement(props: {
         }}
       >
         <BrickAction>
-          {onEditBrick === undefined ? null : (
-            <Button
-              type="button"
-              variant="ghost"
-              className="size-7 rounded-none p-0"
-              aria-label={`Edit Brick ${placement.brickId}`}
-              onClick={() => onEditBrick(placement.brickId)}
-            >
-              <Pencil className="size-3.5" strokeWidth={1.5} aria-hidden="true" />
-            </Button>
-          )}
           <Button
             type="button"
             data-wall-drag-handle

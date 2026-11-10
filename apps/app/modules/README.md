@@ -421,7 +421,7 @@ Module Page limits apply before accepting drawer templates. Compatible Rows use
 top/bottom quarters for new Rows and their middle half for left/right Placement
 insertion. Incompatible Rows use top/bottom halves for new Rows.
 
-Saved Wall Bricks drag only from their action-menu grip. They may join existing
+Saved Wall Bricks drag only from their dedicated grip. They may join existing
 Rows or create Rows across existing Stacks and Sections in the same Wall. For
 compatible populated Rows, the top/bottom 8px create Rows and the remaining area
 joins or reorders horizontally; incompatible Rows offer new Rows through their

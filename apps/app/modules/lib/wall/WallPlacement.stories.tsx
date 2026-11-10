@@ -104,7 +104,8 @@ export const ClickSelection: StoryObj<typeof meta> = {
       selection.removeAllRanges();
     }
 
-    const edit = canvas.getByRole("button", { name: "Edit Brick story-brick" });
+    const edit = canvas.getByRole("group", { name: "Edit Brick story-brick" });
+    expect(canvas.queryByRole("button", { name: "Edit Brick story-brick" })).toBeNull();
     expect(canvas.queryByRole("button", { name: "Brick story-brick actions" })).toBeNull();
     edit.focus();
     await userEvent.keyboard("{Enter}");

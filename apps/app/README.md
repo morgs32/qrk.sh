@@ -27,7 +27,7 @@ Add here/insertion flow.
 
 ## Wall dragging
 
-Saved Bricks move from the grip beside the edit button into existing or new Rows
+Saved Bricks move from their dedicated grip into existing or new Rows
 across the current Wall's existing Stacks and Sections. On compatible populated
 Rows, the top/bottom 8px create a Row above/below; the remaining area joins or
 reorders horizontally. Incompatible Rows use top/bottom halves for separate Rows.

@@ -145,7 +145,7 @@ templates subject to module Page limits:
   accepts its first Brick. Populated Walls expose no new Section/Stack targets
   outside the existing layout.
 
-Saved Wall Bricks move only from the grip beside their edit button. Their
+Saved Wall Bricks move only from their dedicated grip. Their
 content retains text selection, links, controls, and ordinary click selection.
 The canvas accepts existing and new Row destinations across the current Wall's
 existing Stacks and Sections. On compatible populated Rows, the top/bottom 8px
@@ -244,9 +244,9 @@ route-owned selection. Clicking an already selected Brick keeps it selected.
 Links, buttons, form controls, editable content, media controls, and action
 controls keep their own interactions without selecting. MapCanvas owns its click
 boundary so map gestures and controls remain usable. Modified or prevented clicks
-and clicks following a text-selection drag do not select. The direct Edit button
-remains the keyboard-accessible selection action; selection adds no tab stop or
-button role around interactive Brick content.
+and clicks following a text-selection drag do not select. When the Brick surface
+itself has keyboard focus, Enter or Space opens the edit form. Interactive content
+inside the Brick keeps its own keyboard behavior.
 
 Clicking the keyboard-accessible name button in StackAction opens Stack Details
 and replaces Brick selection. The route owns the selected Stack, so reload and
@@ -289,7 +289,7 @@ and white text/icons. StackAction paints a 1px same-blue top/left border outside
 1px inset, filling the corner without shifting the controls or their sticky alignment
 with BrickAction.
 
-The Brick action tab contains a direct pencil Edit button and the drag grip, without a dropdown.
+The Brick action tab contains the drag grip.
 Brick Details shows Delete immediately left of Close. Delete opens the existing
 confirmation describing removal across all four breakpoints and cleanup of empty
 containers. Cancel preserves the Brick and returns focus to Delete. A locally

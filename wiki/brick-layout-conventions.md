@@ -376,9 +376,10 @@ minimums. The complete Row's resulting surface widths become its submitted
 weights, preserving the other Bricks' visible widths even when minimums have
 overridden the saved proportions. Gap padding stays outside those measurements.
 
-The bottom grip changes the Row's shared surface height. Module minimums and
-natural content constrain the result; release saves the final rendered height
-as `minHeight`. Double-click or double-tap restores automatic height (`null`).
+The bottom grip straddles the Row's bottom edge and changes its shared surface
+height. Module minimums and natural content constrain the result. Release saves
+the final rendered height as `minHeight`. Double-click or double-tap restores
+automatic height (`null`).
 An unchanged visible result preserves the original saved setting and stages no
 command. Grips overlay the layout without consuming space, reveal on desktop
 Row hover, and stay visible without hover. Native Brick/catalog dragging hides

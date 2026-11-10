@@ -4,7 +4,7 @@ import type { IResult } from "@zerospin/error";
 
 import { makeEffectSchema, type IInferDecodedRow } from "@zerospin/shapes";
 import { Schema } from "effect";
-import { useState } from "react";
+import { useId, useState, type ReactNode } from "react";
 
 import { Button } from "../components/ui/button";
 import { MaterialSymbolsIconLookup } from "./MaterialSymbolsIconLookup";
@@ -18,8 +18,10 @@ export function SwatchAndIconForm(props: {
     state: IInferDecodedRow<typeof swatchAndIconV1.stateShape>,
   ) => IResult<unknown, { message: string }>;
   onCancel: () => void;
+  renderActions: (actions: ReactNode) => ReactNode;
 }) {
-  const { state, onSave, onCancel } = props;
+  const { state, onSave, onCancel, renderActions } = props;
+  const formId = useId();
   if (state === null) throw new Error("Swatch and Icon requires configured state");
   const savedState = state;
   const [draft, setDraft] = useState<{
@@ -38,6 +40,7 @@ export function SwatchAndIconForm(props: {
 
   return (
     <form
+      id={formId}
       autoComplete="off"
       className="flex w-full flex-col gap-4"
       noValidate
@@ -90,20 +93,24 @@ export function SwatchAndIconForm(props: {
           {saveError}
         </p>
       ) : null}
-      <div className="flex justify-end gap-2">
-        <Button
-          onClick={() => {
-            setDraft(null);
-            setSaveError(undefined);
-            onCancel();
-          }}
-          type="button"
-          variant="outline"
-        >
-          Cancel
-        </Button>
-        <Button type="submit">Save</Button>
-      </div>
+      {renderActions(
+        <div className="flex justify-end gap-2">
+          <Button
+            onClick={() => {
+              setDraft(null);
+              setSaveError(undefined);
+              onCancel();
+            }}
+            type="button"
+            variant="outline"
+          >
+            Cancel
+          </Button>
+          <Button type="submit" form={formId}>
+            Save
+          </Button>
+        </div>,
+      )}
     </form>
   );
 }

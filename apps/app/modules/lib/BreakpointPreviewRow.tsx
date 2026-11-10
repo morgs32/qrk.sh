@@ -46,7 +46,12 @@ export function BreakpointPreviewRow(props: {
               style={{ width: previewWidth, minWidth: view.minWidth }}
             >
               <BrickWrapper className={cardStyle ? "brick-surface-card" : undefined}>
-                <JsonRender variantId="default" state={moduleState} spec={specs[entry.id]} />
+                <JsonRender
+                  mode="view"
+                  variantId="default"
+                  state={moduleState}
+                  spec={specs[entry.id]}
+                />
               </BrickWrapper>
             </div>
           </div>

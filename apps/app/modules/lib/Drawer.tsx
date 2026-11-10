@@ -82,7 +82,15 @@ export function Drawer(props: {
         : previous instanceof HTMLAnchorElement
           ? [...document.querySelectorAll("a")].find((link) => link.href === previous.href)
           : undefined;
-      if (target instanceof HTMLElement) target.focus({ preventScroll: true });
+      if (target instanceof HTMLElement) {
+        // Restoring focus must not trigger an editor that opens this drawer on focus.
+        target.setAttribute("data-drawer-restoring-focus", "");
+        try {
+          target.focus({ preventScroll: true });
+        } finally {
+          target.removeAttribute("data-drawer-restoring-focus");
+        }
+      }
     }
     hadFocus.current = false;
 

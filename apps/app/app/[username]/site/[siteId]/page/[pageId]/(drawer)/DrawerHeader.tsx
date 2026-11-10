@@ -191,7 +191,7 @@ export function DrawerHeader() {
                 <Button type="button" variant="ghost" size="sm" className="text-destructive" />
               }
             >
-              Delete
+              Delete brick
             </Dialog.Trigger>
             <Dialog.Portal>
               <Dialog.Backdrop className="fixed inset-0 z-[100] bg-black/30" />

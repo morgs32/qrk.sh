@@ -290,9 +290,9 @@ and white text/icons. StackAction paints a 1px same-blue top/left border outside
 with BrickAction.
 
 The Brick action tab contains the drag grip.
-Brick Details shows Delete immediately left of Close. Delete opens the existing
+Brick Details shows **Delete brick** immediately left of Close. It opens the
 confirmation describing removal across all four breakpoints and cleanup of empty
-containers. Cancel preserves the Brick and returns focus to Delete. A locally
+containers. Cancel preserves the Brick and returns focus to **Delete brick**. A locally
 successful delete closes the drawer; a staging refusal keeps the confirmation open.
 
 On hover-capable fine pointers, the whole Placement temporarily rises above

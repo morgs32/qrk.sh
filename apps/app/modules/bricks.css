@@ -2,7 +2,7 @@
 
 :root {
   --brick-accent-rgb: 31 155 252;
-  --wall-action-tag-height: 1.75rem;
+  --wall-action-tag-height: 1.5rem;
   --wall-action-tag-inset: 0.5rem;
   --wall-action-tag-gap: 0.25rem;
   --wall-action-tag-icon-size: 0.875rem;
@@ -173,9 +173,10 @@
   pointer-events: none;
 }
 
-/* Bricks and Stacks share the outline paint and retain their own layers. */
+/* Bricks, Stacks, and empty Rows share the outline paint. */
 .brick-hover-surface::after,
-[data-wall-stack-id]::after {
+[data-wall-stack-id]::after,
+[data-wall-row-empty]::after {
   --interaction-outline-width: 1px;
   --interaction-outline-outset: calc(var(--interaction-outline-width) / 2);
   content: "";
@@ -199,8 +200,9 @@
   border-radius: calc(var(--brick-card-radius) + var(--interaction-outline-outset));
 }
 
-[data-wall-stack-id]::after {
-  /* Paint above idle Placements and below Placements with visible actions. */
+[data-wall-stack-id]::after,
+[data-wall-row-empty]::after {
+  /* Keep container outlines below visible editing controls. */
   z-index: 1;
 }
 
@@ -212,6 +214,7 @@
 
   [data-drawer-module-id]:hover > .brick-hover-surface::after,
   .wall-placement:hover > .wall-placement-content > .brick-hover-surface::after,
+  .wall-editor:not([data-wall-resize-disabled]) [data-wall-row-empty]:hover::after,
   [data-wall-stack-id]:is([data-wall-stack-empty]:hover, :has(> * > .stack-action:hover))::after {
     opacity: 1;
   }
@@ -264,7 +267,7 @@
 
 .wall-action-tag {
   gap: var(--wall-action-tag-gap);
-  padding-inline-start: var(--wall-action-tag-inset);
+  padding-inline: var(--wall-action-tag-inset) var(--wall-action-tag-gap);
   font-size: 0.75rem;
   line-height: 1rem;
 }

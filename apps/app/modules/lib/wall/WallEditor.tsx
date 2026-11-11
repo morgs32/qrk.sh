@@ -1105,6 +1105,7 @@ export function WallEditor(props: {
                               <div
                                 key={row.id}
                                 data-wall-row-id={row.id}
+                                data-wall-row-empty={row.placements.length === 0 ? "" : undefined}
                                 className="wall-row relative flow-root min-w-0"
                               >
                                 {dropTarget?.kind === "stack" &&

@@ -381,6 +381,9 @@ alignment. Row and Stack tags share their sizing tokens and menu styles.
 Alignment and preferred width save independently through `setRowAlignment`
 and `setRowPreferredWidth`.
 
+Hovering over an empty Row or its tag outlines the full Row in the same blue as
+a Stack. During a Brick drag, the drop indicator shows the target.
+
 The bottom grip straddles the Row's bottom edge and changes its shared surface
 height. Module minimums and natural content constrain the result. Release saves
 the final rendered height as `minHeight`. Double-click or double-tap restores

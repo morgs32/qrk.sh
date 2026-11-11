@@ -13,9 +13,17 @@ export function ModulePreview(props: {
   breakpoint: (typeof BREAKPOINTS)[number]["id"];
   cardStyle: boolean;
   verticalAtLg?: boolean;
+  sidebarCardWidth?: number;
   moduleAction?: (state: unknown) => ReactNode;
 }) {
-  const { brickModule, breakpoint, cardStyle, verticalAtLg = false, moduleAction } = props;
+  const {
+    brickModule,
+    breakpoint,
+    cardStyle,
+    verticalAtLg = false,
+    sidebarCardWidth,
+    moduleAction,
+  } = props;
   const previewRef = useRef<HTMLDivElement>(null);
   const [previewState, setPreviewState] = useState<unknown>(() => brickModule.def.state);
   const committedState = useRef(previewState);
@@ -90,6 +98,7 @@ export function ModulePreview(props: {
   const Preview = view.preview;
   const entry = BREAKPOINTS.find((row) => row.id === breakpoint);
   if (entry === undefined) throw new Error(`Unknown breakpoint: ${breakpoint}`);
+  const previewWidth = Math.max(view.minWidth, Math.min(view.defaultWidth, entry.previewWidth));
 
   return (
     <div
@@ -104,6 +113,7 @@ export function ModulePreview(props: {
         ) : null}
       </header>
       <div
+        data-brick-catalog-content=""
         className={`px-[var(--brick-catalog-inset)] pb-16 pt-[var(--brick-catalog-inset)] ${verticalAtLg ? "lg:pb-8" : ""}`}
       >
         <div
@@ -121,10 +131,14 @@ export function ModulePreview(props: {
                 child.draggable = false;
               });
           }}
-          className={`group/brick relative z-0 shrink-0 cursor-grab ${verticalAtLg ? "lg:max-w-full" : ""} ${dragging ? "opacity-40" : ""}`}
+          className={`group/brick relative z-0 shrink-0 cursor-grab ${verticalAtLg && sidebarCardWidth === undefined ? "lg:max-w-full" : ""} ${dragging ? "opacity-40" : ""}`}
           style={{
-            width: Math.min(view.defaultWidth, entry.previewWidth),
+            width: previewWidth,
             minWidth: view.minWidth,
+            zoom:
+              sidebarCardWidth === undefined
+                ? undefined
+                : Math.min(1, sidebarCardWidth / previewWidth),
           }}
         >
           <BrickAction>

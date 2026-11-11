@@ -6,7 +6,7 @@ import { pageV1 } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV1"
 import { siteV1 } from "@qrk.sh/zerospin/src/aggregates/user/models/site/SiteV1";
 import { useLiveQuery, useSession } from "@zerospin/react";
 import { Schema } from "effect";
-import { useContext, useLayoutEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { BREAKPOINTS, PREVIEW_BORDER_WIDTH } from "../../../../../../modules/lib/breakpoints";
@@ -25,7 +25,7 @@ export function PagePreview(props: { breakpoint: (typeof BREAKPOINTS)[number] })
   const navigate = useNavigate();
   const { brickId: selectedBrickId } = useParams({ strict: false });
   const [brickDrawer, setBrickDrawer] = useState<HTMLElement | null>(null);
-  useLayoutEffect(() => {
+  useEffect(() => {
     setBrickDrawer(
       selectedBrickId === undefined
         ? null

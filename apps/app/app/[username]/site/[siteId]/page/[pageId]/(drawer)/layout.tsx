@@ -1,9 +1,16 @@
 "use client";
 
-import { useContext, type ReactNode } from "react";
+import { useContext, type RefCallback } from "react";
 import { useMatches, useNavigate, useSearch } from "@tanstack/react-router";
 import { File, Globe, Pencil, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useHotkey } from "@tanstack/react-hotkeys";
 import { Schema } from "effect";
@@ -16,6 +23,7 @@ import { pageSnapshotV4 as PageSnapshot } from "@qrk.sh/zerospin/src/aggregates/
 import { makePageSnapshotV4 } from "@qrk.sh/zerospin/src/aggregates/user/snapshots/makePageSnapshotV4";
 import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
+import { WorkspaceSidebar } from "../WorkspaceSidebar";
 import { BrickAutosaveContext } from "../BrickAutosaveContext";
 import { PublishSiteDialog } from "./PublishSiteDialog";
 
@@ -23,17 +31,16 @@ const ParamsSchema = Schema.Struct({
   username: Schema.String,
   siteId: makeIdSchema(Site),
   pageId: makeIdSchema(Page),
-  brickId: Schema.optional(Schema.String),
 });
 
-export default function DrawerLayout(props: {
-  children: ReactNode;
+export default function WorkspacePanelControls(props: {
+  sidebar: boolean;
+  bodyRef: RefCallback<HTMLDivElement>;
   isSitePublished: boolean;
   onClose: () => void;
 }) {
-  const { children, isSitePublished, onClose } = props;
+  const { sidebar, bodyRef, isSitePublished, onClose } = props;
   const params = useValidatedParams(ParamsSchema);
-  const { brickId } = params;
   const autosave = useContext(BrickAutosaveContext);
   if (autosave === null) throw new Error("Brick autosave requires the Page layout");
   const { breakpoint } = useSearch({ from: "/$username/site/$siteId/page/$pageId" });
@@ -88,90 +95,119 @@ export default function DrawerLayout(props: {
   );
 
   const isBrickDetails = routeId === "/$username/site/$siteId/page/$pageId/_drawer/brick/$brickId";
-  const tab =
-    isBrickDetails
-      ? "edit-brick"
-      : routeId === "/$username/site/$siteId/page/$pageId/_drawer/page-settings"
-        ? "page-settings"
-        : routeId === "/$username/site/$siteId/page/$pageId/_drawer/site-settings"
-          ? "site-settings"
-          : "modules";
+  const tab = isBrickDetails
+    ? "edit-brick"
+    : routeId === "/$username/site/$siteId/page/$pageId/_drawer/page-settings"
+      ? "page-settings"
+      : routeId === "/$username/site/$siteId/page/$pageId/_drawer/site-settings"
+        ? "site-settings"
+        : "modules";
+  const sections = [
+    { value: "modules", label: "Bricks", Icon: Plus },
+    { value: "page-settings", label: "Page settings", Icon: File },
+    { value: "site-settings", label: "Site settings", Icon: Globe },
+  ];
+  if (isBrickDetails) sections.push({ value: "edit-brick", label: "Edit brick", Icon: Pencil });
+
+  const selectSection = (value: string) => {
+    if (value === "modules" || value === "page-settings" || value === "site-settings") {
+      void navigate({
+        to: `/$username/site/$siteId/page/$pageId/${value}`,
+        params,
+        search: { breakpoint },
+        resetScroll: false,
+      });
+    }
+  };
+  const actions = (
+    <div className="ml-auto flex shrink-0 items-center gap-2">
+      {!isSitePublished ? <PublishSiteDialog siteId={params.siteId} /> : null}
+      {canPublishPage || canPublishUpdates ? (
+        <Button
+          type="button"
+          size="sm"
+          className="font-bold"
+          onClick={() => {
+            if (!autosave.flushPageEditors()) return;
+            const snapshotId = session.runSync(makeId(PageSnapshot));
+            stageAggregateSessionCommand({
+              session,
+              contractName: "publishPage",
+              payload: { pageId: params.pageId, snapshotId, preferredRowSizing: true },
+            });
+          }}
+        >
+          Publish
+        </Button>
+      ) : null}
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        className="cursor-pointer hover:bg-transparent hover:text-red-500 dark:hover:bg-transparent"
+        aria-label={sidebar ? "Close sidebar" : "Close drawer"}
+        onClick={onClose}
+      >
+        <X className="size-5" aria-hidden />
+      </Button>
+    </div>
+  );
+  if (sidebar) {
+    return (
+      <WorkspaceSidebar
+        bodyRef={bodyRef}
+        controls={
+          <>
+            <Select value={tab} onValueChange={selectSection}>
+              <SelectTrigger
+                aria-label="Page controls"
+                size="sm"
+                className="min-w-0 gap-1.5 border-0 px-1.5 text-xs font-semibold shadow-none hover:bg-sidebar-accent"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent position="popper" align="start">
+                {sections.map(({ value, label, Icon }) => (
+                  <SelectItem key={value} value={value} className="text-xs">
+                    <Icon aria-hidden className="size-3.5" />
+                    {label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {actions}
+          </>
+        }
+      />
+    );
+  }
+
   return (
     <Tabs
       value={tab}
       activationMode="manual"
-      onValueChange={(value) => {
-        if (value === "modules" || value === "page-settings" || value === "site-settings") {
-          void navigate({
-            to: `/$username/site/$siteId/page/$pageId/${value}`,
-            params,
-            search: { breakpoint },
-            resetScroll: false,
-          });
-        }
-      }}
+      onValueChange={selectSection}
       className="h-full min-h-0 gap-0 overflow-hidden bg-background"
       style={{ viewTransitionName: "app-drawer" }}
     >
       <header className="flex shrink-0 items-center gap-2 border-b border-border px-2">
         <div className="flex min-w-0 items-center gap-2 overflow-x-auto">
           <TabsList variant="line" aria-label="Page controls" className="h-11">
-            <TabsTrigger value="modules">
-              <Plus aria-hidden />
-              Bricks
-            </TabsTrigger>
-            <TabsTrigger value="page-settings">
-              <File aria-hidden />
-              Page settings
-            </TabsTrigger>
-            <TabsTrigger value="site-settings">
-              <Globe aria-hidden />
-              Site settings
-            </TabsTrigger>
-            {isBrickDetails ? (
-              <TabsTrigger value="edit-brick">
-                <Pencil aria-hidden />
-                Edit brick
+            {sections.map(({ value, label, Icon }) => (
+              <TabsTrigger key={value} value={value}>
+                <Icon aria-hidden />
+                {label}
               </TabsTrigger>
-            ) : null}
+            ))}
           </TabsList>
         </div>
-        <div className="ml-auto flex shrink-0 items-center gap-2">
-          {!isSitePublished ? <PublishSiteDialog siteId={params.siteId} /> : null}
-          {canPublishPage || canPublishUpdates ? (
-            <Button
-              type="button"
-              size="sm"
-              className="font-bold"
-              onClick={() => {
-                if (!autosave.flushPageEditors()) return;
-                const snapshotId = session.runSync(makeId(PageSnapshot));
-                stageAggregateSessionCommand({
-                  session,
-                  contractName: "publishPage",
-                  payload: { pageId: params.pageId, snapshotId, preferredRowSizing: true },
-                });
-              }}
-            >
-              Publish
-            </Button>
-          ) : null}
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="cursor-pointer hover:bg-transparent hover:text-red-500 dark:hover:bg-transparent"
-            aria-label="Close drawer"
-            onClick={onClose}
-          >
-            <X className="size-5" aria-hidden />
-          </Button>
-        </div>
+        {actions}
       </header>
-      <TabsContent value={tab} className="mt-0 flex min-h-0 flex-col overflow-y-auto">
-        {brickId === undefined ? null : <div id={`brick-editor-drawer-${brickId}`} />}
-        {children}
-      </TabsContent>
+      <TabsContent
+        ref={bodyRef}
+        value={tab}
+        className="mt-0 flex min-h-0 flex-col overflow-y-auto"
+      />
     </Tabs>
   );
 }

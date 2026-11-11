@@ -30,6 +30,10 @@
   --wall-preview-drawer-height: 25dvh;
 }
 
+.wall-preview-viewport[data-sidebar-open="true"] .wall-preview-canvas {
+  padding-inline: 32px;
+}
+
 .wall-preview-frame {
   --wall-frame-radius: 12px;
 }

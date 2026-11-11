@@ -62,6 +62,27 @@ export function Drawer(props: {
 
   useLayoutEffect(() => {
     const element = surface.current;
+    if (element === null) return;
+
+    // The routed panel may be portaled into the drawer from a sibling React subtree.
+    const focusIn = () => {
+      hadFocus.current = true;
+    };
+    const focusOut = (event: FocusEvent) => {
+      if (event.relatedTarget instanceof Node && !element.contains(event.relatedTarget)) {
+        hadFocus.current = false;
+      }
+    };
+    element.addEventListener("focusin", focusIn);
+    element.addEventListener("focusout", focusOut);
+    return () => {
+      element.removeEventListener("focusin", focusIn);
+      element.removeEventListener("focusout", focusOut);
+    };
+  }, [side]);
+
+  useLayoutEffect(() => {
+    const element = surface.current;
     if (open === undefined || element === null) return;
     if (open) {
       const active = document.activeElement;
@@ -119,17 +140,6 @@ export function Drawer(props: {
       aria-label={ariaLabel}
       aria-hidden={open === false}
       inert={open === false}
-      onFocusCapture={() => {
-        hadFocus.current = true;
-      }}
-      onBlurCapture={(event) => {
-        if (
-          event.relatedTarget instanceof Node &&
-          !event.currentTarget.contains(event.relatedTarget)
-        ) {
-          hadFocus.current = false;
-        }
-      }}
       onTransitionEnd={(event) => {
         if (
           event.target === event.currentTarget &&

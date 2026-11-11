@@ -27,3 +27,18 @@ No new drawer component, state store, or module-level dependency is needed: the 
 The live shell now marks its existing `drawerOpen` state on the preview viewport. CSS reserves 25dvh only while open and subtracts it from both the scrolling viewport and the frame minimum. Closing restores full height. The trailing spacer is removed, and the existing resize observer preserves/clamps scroll position using the actual viewport and content heights. The drawer retains its overlay animation and focus lifecycle. [PageLayout](../../apps/app/app/[username]/site/[siteId]/page/[pageId]/layout.tsx), [preview sizing](../../apps/app/modules/bricks.css).
 
 Browser verification on the supplied md page at 965×1034 measured the preview viewport ending at the drawer top (775.5px), with the frame/footer at 732.5px after the normal 43px bottom gutter. Closed, the viewport returned to 1034px and the frame/footer to 991px. At 965×600, overflowing content scrolled to its end above the drawer; closing clamped the now-unnecessary scroll offset to zero. At 965×430, bottom anchoring survived closing (131px of 131px) and reopening (238px of 238px). The original viewport and Link editor were restored. Scoped formatting and `git diff --check` passed.
+
+## Responsive workspace sidebar
+
+The App uses a 256px in-flow sidebar at Tailwind `lg` and wider when a
+workspace panel route is open. The Page route reads `MediaQueryList.matches`
+through `useSyncExternalStore` and subscribes to `change`. The media query
+controls the shell. The existing preview measurement and URL continue to
+control the authored Wall breakpoint. [React browser API subscriptions](https://react.dev/reference/react/useSyncExternalStore#subscribing-to-a-browser-api) · [Tailwind viewport breakpoints](https://tailwindcss.com/docs/responsive-design)
+
+The same route-owned portal target moves between the sidebar and drawer.
+Keeping the target and outlet mounted retains drafts across a shell-only
+resize. While the sidebar is open, the preview preserves an oversized Wall
+at full size with 32px inline gutters. Entering the drawer restores the fit
+rule after measuring the new pane. The drawer still reserves 25dvh when
+open. [React portal identity](https://react.dev/reference/react-dom/createPortal#parameters) · [Page layout](../../apps/app/app/[username]/site/[siteId]/page/[pageId]/layout.tsx)

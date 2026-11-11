@@ -553,6 +553,14 @@ The Wall Editor story uses the same section widths and a full-width scroll
 owner. Its frame has a minimum width of the selected content width plus both
 side borders, so oversized selections scroll horizontally rather than silently
 shrinking. Its breakpoint controls keep the nominal content-width labels.
+
+The App's route-backed workspace uses a 256px right sidebar from Tailwind
+`lg` upward and the bottom drawer below. The sidebar scrollport shows the
+selected Wall at its authored size with 32px side gutters, scrolling
+horizontally as needed. Catalog drag sources fit the column using CSS zoom,
+while drops use the existing Wall sizing. The drawer keeps the measured fit
+rule, including editor flush before an active Wall is replaced.
+
 Both floating toolbars keep a 38px height and concentric corners: the buttons'
 8px radius plus their 5px inset (4px padding and 1px border) gives the shell a
 13px radius. The URL-selected breakpoint is bold, fully opaque, and disabled;

@@ -1,17 +1,14 @@
 "use client";
 
-import { useSearch } from "@tanstack/react-router";
-import { useEditorViewportStore } from "@/stores/useEditorViewportStore";
 import { BREAKPOINTS, PREVIEW_BORDER_WIDTH } from "../../../../../../modules/lib/breakpoints";
 
 import { PagePreview } from "./PagePreview";
 
-export function ValidBreakpoint() {
-  const search = useSearch({ from: "/$username/site/$siteId/page/$pageId" });
-  const breakpoint = BREAKPOINTS.find((entry) => entry.id === search.breakpoint);
-  const availableWidth = useEditorViewportStore((state) => state.availableWidth);
-  const insufficientWidth = availableWidth !== null && availableWidth < BREAKPOINTS[0].previewWidth;
-
+export function ValidBreakpoint(props: {
+  breakpoint: (typeof BREAKPOINTS)[number] | undefined;
+  insufficientWidth: boolean;
+}) {
+  const { breakpoint, insufficientWidth } = props;
   return (
     <>
       {insufficientWidth ? (
@@ -20,11 +17,9 @@ export function ValidBreakpoint() {
           {BREAKPOINTS[0].previewWidth}px of page content with its borders.
         </p>
       ) : null}
-      {breakpoint !== undefined &&
-      availableWidth !== null &&
-      breakpoint.previewWidth <= availableWidth ? (
+      {breakpoint === undefined ? null : (
         <PagePreview key={breakpoint.id} breakpoint={breakpoint} />
-      ) : null}
+      )}
     </>
   );
 }

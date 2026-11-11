@@ -195,7 +195,7 @@ export function SiteSettings(props: {
         if (result._tag === "Failure") setSaveError(result.failure.message);
       }}
     >
-      <div className="grid grid-cols-2 items-start gap-x-6 gap-y-8 px-4 py-6 md:gap-x-8">
+      <div className="grid grid-cols-2 items-start gap-x-6 gap-y-8 px-4 py-6 md:gap-x-8 @max-sm/workspace:[[data-workspace-sidebar]_&]:grid-cols-1">
         <div className="col-start-1 flex items-center justify-between gap-4">
           <FieldLabel htmlFor="site-card-style" description="Show each brick as a card">
             Cards
@@ -207,7 +207,7 @@ export function SiteSettings(props: {
           />
         </div>
 
-        <div className="col-start-1 flex items-center justify-between gap-4">
+        <div className="col-start-1 flex items-center justify-between gap-4 @max-sm/workspace:[[data-workspace-sidebar]_&]:flex-col @max-sm/workspace:[[data-workspace-sidebar]_&]:items-stretch">
           <FieldLabel
             htmlFor="site-brick-gap"
             description="Space between bricks, from 0 to 12 pixels"
@@ -463,11 +463,11 @@ export function SiteSettings(props: {
         </div>
 
         {saveError === null ? null : (
-          <p role="alert" className="col-span-2 text-sm text-destructive">
+          <p role="alert" className="col-span-full text-sm text-destructive">
             {saveError}
           </p>
         )}
-        <div className="col-span-2 flex items-center gap-2">
+        <div className="col-span-full flex items-center gap-2">
           <Button type="submit" disabled={!isDirty || isUploading}>
             Save
           </Button>
@@ -487,7 +487,7 @@ export function SiteSettings(props: {
           </Button>
         </div>
 
-        <div className="col-span-2 flex flex-col items-start gap-4">
+        <div className="col-span-full flex flex-col items-start gap-4">
           <div className="min-w-0">
             <FieldLabel description="Unpublish your website from all domains.">
               Danger Zone

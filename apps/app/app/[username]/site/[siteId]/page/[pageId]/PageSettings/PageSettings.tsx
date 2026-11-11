@@ -69,7 +69,7 @@ export function PageSettings(props: {
             />
           </div>
 
-          <div className="flex flex-col gap-6 md:flex-row md:items-stretch md:gap-6">
+          <div className="flex flex-col gap-6 md:flex-row md:items-stretch @max-sm/workspace:[[data-workspace-sidebar]_&]:flex-col">
             <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2">
               <Label htmlFor="page-description">Description</Label>
               <Textarea

@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
-import { BrickDetailsContext, BrickDetailsTrigger } from "@qrk.sh/bricks/react/BrickDetailsTrigger";
+import { BrickDetailsContext, BrickDetailsTrigger } from "@qrk.sh/bricks/components/BrickDetailsTrigger";
 import { expect, fireEvent, fn, userEvent, within } from "storybook/test";
 
 import { WallPlacement } from "../WallPlacement";

@@ -1,9 +1,9 @@
 "use client";
 
 import "@fontsource/silkscreen/400.css";
-import { Dialog } from "@base-ui/react/dialog";
+import { AlertDialog } from "@base-ui/react/alert-dialog";
 import { Menu } from "@base-ui/react/menu";
-import { ArrowLeft, ArrowRight, Check, ChevronDown } from "lucide-react";
+import { ArrowLeft, ArrowRight, ChevronDown } from "lucide-react";
 import type { IInferModelRow } from "@zerospin/core/models/types";
 import {
   makeId,
@@ -49,9 +49,9 @@ import {
 } from "@qrk.sh/zerospin/src/aggregates/user/layout/wallSizing";
 
 import { StackAction } from "../../modules/components/StackAction";
-import { BrickDetailsContext } from "@qrk.sh/bricks/react/BrickDetailsTrigger";
-import { BrickWrapper } from "@qrk.sh/bricks/react/BrickWrapper";
-import { BrickInsertionContext } from "@qrk.sh/bricks/react/useAfterBrickInserted";
+import { BrickDetailsContext } from "@qrk.sh/bricks/components/BrickDetailsTrigger";
+import { BrickWrapper } from "@qrk.sh/bricks/components/BrickWrapper";
+import { BrickInsertionContext } from "@qrk.sh/bricks/modules/react/useAfterBrickInserted";
 import { WallPlacement } from "./WallPlacement";
 import { WallDropIndicator } from "./WallDropIndicator";
 import { PreviewSection } from "../PagePreview/PreviewSection";
@@ -60,6 +60,19 @@ import { makeWallLayoutView } from "./makeWallLayoutView";
 import { useWallResize } from "./useWallResize";
 import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const CatalogBrickData = Schema.Struct({
   type: Schema.Literal("catalog-brick"),
@@ -87,6 +100,7 @@ export function WallEditor(props: {
     props;
   const wallRef = useRef<HTMLDivElement>(null);
   const deleteReturnFocus = useRef<HTMLElement | null>(null);
+  const deleteCancelRef = useRef<HTMLButtonElement>(null);
   const [brickToDelete, setBrickToDelete] = useState<IInferModelRow<typeof brickV2>["id"] | null>(
     null,
   );
@@ -954,7 +968,7 @@ export function WallEditor(props: {
                         >
                           <StackAction>
                             <Menu.Root>
-                              <Menu.Trigger
+                              <DropdownMenuTrigger
                                 className="wall-action-tag wall-action-tag-button max-w-full"
                                 aria-label={`Stack ${stack.name} actions`}
                               >
@@ -964,62 +978,55 @@ export function WallEditor(props: {
                                   strokeWidth={1.5}
                                   aria-hidden="true"
                                 />
-                              </Menu.Trigger>
-                              <Menu.Portal>
-                                <Menu.Positioner
-                                  side="bottom"
-                                  align="start"
-                                  sideOffset={0}
-                                  className="z-[90]"
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent
+                                side="bottom"
+                                align="start"
+                                sideOffset={0}
+                                positionerClassName="z-[90]"
+                                className="w-max min-w-[90px] max-w-(--available-width) rounded-none border-[#dedede] bg-white p-0 font-mono text-[15px] leading-[18px] font-normal text-[#111] shadow-[2px_3px_0_#0005]"
+                              >
+                                <DropdownMenuItem
+                                  disabled={!canInsert}
+                                  title={canInsert ? undefined : "Not enough space in this Section"}
+                                  className="min-h-5 cursor-pointer rounded-none px-0.5 py-px text-[15px] leading-[18px] data-highlighted:bg-[#f1f1f1] data-highlighted:text-current data-disabled:opacity-40 data-disabled:pointer-events-auto data-disabled:cursor-default"
+                                  onClick={() =>
+                                    stageAggregateSessionCommand({
+                                      session,
+                                      contractName: "insertStack",
+                                      payload: {
+                                        id: session.runSync(makeId({ abbreviation: "ins" })),
+                                        wallId: wall.id,
+                                        anchorStackId: stack.id,
+                                        side: "left",
+                                      },
+                                    })
+                                  }
                                 >
-                                  <Menu.Popup className="wall-action-menu">
-                                    <Menu.Item
-                                      disabled={!canInsert}
-                                      title={
-                                        canInsert ? undefined : "Not enough space in this Section"
-                                      }
-                                      className="wall-action-menu-item"
-                                      onClick={() =>
-                                        stageAggregateSessionCommand({
-                                          session,
-                                          contractName: "insertStack",
-                                          payload: {
-                                            id: session.runSync(makeId({ abbreviation: "ins" })),
-                                            wallId: wall.id,
-                                            anchorStackId: stack.id,
-                                            side: "left",
-                                          },
-                                        })
-                                      }
-                                    >
-                                      <ArrowLeft className="size-4" aria-hidden="true" />
-                                      Insert left
-                                    </Menu.Item>
-                                    <Menu.Item
-                                      disabled={!canInsert}
-                                      title={
-                                        canInsert ? undefined : "Not enough space in this Section"
-                                      }
-                                      className="wall-action-menu-item"
-                                      onClick={() =>
-                                        stageAggregateSessionCommand({
-                                          session,
-                                          contractName: "insertStack",
-                                          payload: {
-                                            id: session.runSync(makeId({ abbreviation: "ins" })),
-                                            wallId: wall.id,
-                                            anchorStackId: stack.id,
-                                            side: "right",
-                                          },
-                                        })
-                                      }
-                                    >
-                                      <ArrowRight className="size-4" aria-hidden="true" />
-                                      Insert right
-                                    </Menu.Item>
-                                  </Menu.Popup>
-                                </Menu.Positioner>
-                              </Menu.Portal>
+                                  <ArrowLeft className="size-4" aria-hidden="true" />
+                                  Insert left
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  disabled={!canInsert}
+                                  title={canInsert ? undefined : "Not enough space in this Section"}
+                                  className="min-h-5 cursor-pointer rounded-none px-0.5 py-px text-[15px] leading-[18px] data-highlighted:bg-[#f1f1f1] data-highlighted:text-current data-disabled:opacity-40 data-disabled:pointer-events-auto data-disabled:cursor-default"
+                                  onClick={() =>
+                                    stageAggregateSessionCommand({
+                                      session,
+                                      contractName: "insertStack",
+                                      payload: {
+                                        id: session.runSync(makeId({ abbreviation: "ins" })),
+                                        wallId: wall.id,
+                                        anchorStackId: stack.id,
+                                        side: "right",
+                                      },
+                                    })
+                                  }
+                                >
+                                  <ArrowRight className="size-4" aria-hidden="true" />
+                                  Insert right
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
                             </Menu.Root>
                           </StackAction>
                           {stack.rows.map((row) => {
@@ -1288,7 +1295,7 @@ export function WallEditor(props: {
                                 </div>
                                 {!nativeDragActive && rowReadout?.kind !== "height" && (
                                   <Menu.Root>
-                                    <Menu.Trigger
+                                    <DropdownMenuTrigger
                                       aria-label="Row alignment"
                                       className="wall-row-menu-trigger wall-action-tag wall-action-tag-button"
                                     >
@@ -1298,51 +1305,47 @@ export function WallEditor(props: {
                                         strokeWidth={1.5}
                                         aria-hidden="true"
                                       />
-                                    </Menu.Trigger>
-                                    <Menu.Portal>
-                                      <Menu.Positioner
-                                        side="bottom"
-                                        align="start"
-                                        sideOffset={0}
-                                        className="z-[90]"
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent
+                                      side="bottom"
+                                      align="start"
+                                      sideOffset={0}
+                                      positionerClassName="z-[90]"
+                                      className="w-max min-w-[90px] max-w-(--available-width) rounded-none border-[#dedede] bg-white p-0 font-mono text-[15px] leading-[18px] font-normal text-[#111] shadow-[2px_3px_0_#0005]"
+                                    >
+                                      <DropdownMenuRadioGroup
+                                        value={row.alignment}
+                                        aria-label="Alignment"
                                       >
-                                        <Menu.Popup className="wall-action-menu">
-                                          <Menu.RadioGroup
-                                            value={row.alignment}
-                                            aria-label="Alignment"
+                                        {(
+                                          [
+                                            "left",
+                                            "center",
+                                            "right",
+                                          ] satisfies (typeof row.alignment)[]
+                                        ).map((alignment) => (
+                                          <DropdownMenuRadioItem
+                                            key={alignment}
+                                            value={alignment}
+                                            closeOnClick
+                                            className="min-h-5 cursor-pointer rounded-none px-0.5 py-px text-[15px] leading-[18px] data-highlighted:bg-[#f1f1f1] data-highlighted:text-current data-disabled:opacity-40 pl-[1.625rem] [&>span:first-child]:left-0.5 capitalize"
+                                            onClick={() =>
+                                              stageAggregateSessionCommand({
+                                                session,
+                                                contractName: "setRowAlignment",
+                                                payload: {
+                                                  wallId: wall.id,
+                                                  rowId: row.id,
+                                                  alignment,
+                                                },
+                                              })
+                                            }
                                           >
-                                            {(
-                                              ["left", "center", "right"] satisfies (typeof row.alignment)[]
-                                            ).map((alignment) => (
-                                              <Menu.RadioItem
-                                                key={alignment}
-                                                value={alignment}
-                                                closeOnClick
-                                                className="wall-action-menu-item capitalize"
-                                                onClick={() =>
-                                                  stageAggregateSessionCommand({
-                                                    session,
-                                                    contractName: "setRowAlignment",
-                                                    payload: {
-                                                      wallId: wall.id,
-                                                      rowId: row.id,
-                                                      alignment,
-                                                    },
-                                                  })
-                                                }
-                                              >
-                                                <span className="size-4 shrink-0" aria-hidden="true">
-                                                  <Menu.RadioItemIndicator>
-                                                    <Check className="size-4" />
-                                                  </Menu.RadioItemIndicator>
-                                                </span>
-                                                {alignment}
-                                              </Menu.RadioItem>
-                                            ))}
-                                          </Menu.RadioGroup>
-                                        </Menu.Popup>
-                                      </Menu.Positioner>
-                                    </Menu.Portal>
+                                            {alignment}
+                                          </DropdownMenuRadioItem>
+                                        ))}
+                                      </DropdownMenuRadioGroup>
+                                    </DropdownMenuContent>
                                   </Menu.Root>
                                 )}
                                 <span
@@ -1400,7 +1403,7 @@ export function WallEditor(props: {
           </PreviewSection>
         </div>
       </div>
-      <Dialog.Root
+      <AlertDialog.Root
         open={brickToDelete !== null}
         onOpenChange={(open) => {
           if (!open) setBrickToDelete(null);
@@ -1411,42 +1414,41 @@ export function WallEditor(props: {
           }
         }}
       >
-        <Dialog.Portal>
-          <Dialog.Backdrop className="fixed inset-0 z-[100] bg-black/30" />
-          <Dialog.Popup
-            className="fixed left-1/2 top-1/2 z-[101] grid w-[min(28rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 gap-4 border bg-background p-6 text-foreground shadow-xl outline-none"
-            finalFocus={() =>
-              deleteReturnFocus.current?.isConnected ? deleteReturnFocus.current : false
-            }
-          >
-            <Dialog.Title className="text-lg font-medium">Delete Brick?</Dialog.Title>
-            <Dialog.Description className="text-sm text-muted-foreground">
-              This deletes the shared Brick and its Placements at all four breakpoints, then removes
-              empty Rows, Stacks, and Sections.
-            </Dialog.Description>
-            <div className="flex justify-end gap-2">
-              <Dialog.Close render={<Button variant="outline" />}>Cancel</Dialog.Close>
-              <Button
-                variant="destructive"
-                onClick={() => {
-                  if (brickToDelete === null) return;
-                  const result = stageAggregateSessionCommand({
-                    session,
-                    contractName: "deleteBrick",
-                    payload: { brickId: brickToDelete },
-                  });
-                  if (result._tag !== "Success") return;
-                  deleteReturnFocus.current = null;
-                  setBrickToDelete(null);
-                  onBrickDeleted(brickToDelete);
-                }}
-              >
-                Delete Brick
-              </Button>
-            </div>
-          </Dialog.Popup>
-        </Dialog.Portal>
-      </Dialog.Root>
+        <AlertDialogContent
+          backdropClassName="z-[100]"
+          className="z-[101] rounded-none"
+          initialFocus={() => deleteCancelRef.current}
+          finalFocus={() =>
+            deleteReturnFocus.current?.isConnected ? deleteReturnFocus.current : false
+          }
+        >
+          <AlertDialogTitle className="text-lg font-medium">Delete Brick?</AlertDialogTitle>
+          <AlertDialogDescription className="text-sm text-muted-foreground">
+            This deletes the shared Brick and its Placements at all four breakpoints, then removes
+            empty Rows, Stacks, and Sections.
+          </AlertDialogDescription>
+          <div className="flex justify-end gap-2">
+            <AlertDialogCancel ref={deleteCancelRef}>Cancel</AlertDialogCancel>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                if (brickToDelete === null) return;
+                const result = stageAggregateSessionCommand({
+                  session,
+                  contractName: "deleteBrick",
+                  payload: { brickId: brickToDelete },
+                });
+                if (result._tag !== "Success") return;
+                deleteReturnFocus.current = null;
+                setBrickToDelete(null);
+                onBrickDeleted(brickToDelete);
+              }}
+            >
+              Delete Brick
+            </Button>
+          </div>
+        </AlertDialogContent>
+      </AlertDialog.Root>
     </>
   );
 }

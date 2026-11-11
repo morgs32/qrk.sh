@@ -23,6 +23,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -34,7 +35,7 @@ import {
 import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
 import { startupTiming } from "@/lib/startupTiming";
-import { useWarnBeforeUnload } from "@qrk.sh/bricks/react/useWarnBeforeUnload";
+import { useWarnBeforeUnload } from "@qrk.sh/bricks/modules/react/useWarnBeforeUnload";
 
 const ParamsSchema = Schema.Struct({
   username: Schema.String,
@@ -181,10 +182,10 @@ export default function UsernameDashboardPage() {
                       setCreateSiteOpen(false);
                     }}
                   >
-                    <div className="flex flex-col gap-2">
-                      <label htmlFor="create-site-name" className="text-sm font-medium">
+                    <Field>
+                      <FieldLabel htmlFor="create-site-name" className="text-sm font-medium">
                         Name
-                      </label>
+                      </FieldLabel>
                       <Input
                         id="create-site-name"
                         name="name"
@@ -194,11 +195,11 @@ export default function UsernameDashboardPage() {
                         }}
                         autoFocus
                       />
-                    </div>
-                    <div className="flex flex-col gap-2">
-                      <label htmlFor="create-site-description" className="text-sm font-medium">
+                    </Field>
+                    <Field>
+                      <FieldLabel htmlFor="create-site-description" className="text-sm font-medium">
                         Description
-                      </label>
+                      </FieldLabel>
                       <Textarea
                         id="create-site-description"
                         name="description"
@@ -208,12 +209,12 @@ export default function UsernameDashboardPage() {
                         }}
                         required
                       />
-                    </div>
-                    <div className="flex flex-col gap-2">
+                    </Field>
+                    <Field data-invalid={showSlugError || undefined}>
                       <div className="flex items-center gap-2">
-                        <label htmlFor="create-site-slug" className="text-sm font-medium">
+                        <FieldLabel htmlFor="create-site-slug" className="text-sm font-medium">
                           Subdomain
-                        </label>
+                        </FieldLabel>
                         {slugError === null ? (
                           <Check className="size-4" aria-hidden="true" />
                         ) : showSlugError ? (
@@ -240,14 +241,18 @@ export default function UsernameDashboardPage() {
                           <InputGroupText id="create-site-slug-domain">.qrk.sh</InputGroupText>
                         </InputGroupAddon>
                       </InputGroup>
-                      <p id="create-site-slug-feedback" className="sr-only" role="status">
+                      <FieldDescription
+                        id="create-site-slug-feedback"
+                        className="sr-only"
+                        role="status"
+                      >
                         {slugError === null
                           ? "Slug available."
                           : siteName === "" && siteSlug === ""
                             ? "Use lowercase letters and numbers separated by single hyphens."
                             : slugError}
-                      </p>
-                    </div>
+                      </FieldDescription>
+                    </Field>
                     <DialogFooter>
                       <DialogClose
                         render={

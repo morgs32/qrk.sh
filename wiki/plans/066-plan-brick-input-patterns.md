@@ -46,6 +46,12 @@ and the [input audit](../research/shadcn-brick-input-pattern-audit.md) and
    commit rejects malformed input. Keep the typed draft and last accepted shadow.
    Clear the error on edit or reset. Use existing Field and FieldGroup layout
    for the changed controls so labels and feedback retain their placement.
+8. Use the existing Field and FieldLabel for NumberInput's label layout. Render
+   Base UI NumberField.Root through Field and NumberField.Group through InputGroup.
+   Keep stacked labels in the catalog and vertically centered inline labels in
+   the property editors. Keep prefix-only Position and Size controls full-width
+   and individually named. Base UI continues to handle numeric editing and
+   stepping. [Brick input audit](../research/shadcn-brick-input-pattern-audit.md#figma-link-and-row-width)
 
 ```tsx
 // The icon is first visually. The input remains first in DOM order.
@@ -54,6 +60,18 @@ and the [input audit](../research/shadcn-brick-input-pattern-audit.md) and
   <InputGroupAddon align="inline-start">{/* Decorative icon */}</InputGroupAddon>
   <InputGroupAddon align="inline-end">{/* Tabbable action, if present */}</InputGroupAddon>
 </InputGroup>
+```
+
+```tsx
+// Row width shares the field layout and input surface with Figma Link.
+<NumberField.Root id={id} render={<Field orientation="vertical" />}>
+  <FieldLabel htmlFor={id} className="min-h-0">Row width</FieldLabel>
+  {/* Base UI retains the numeric interaction on the shared surface. */}
+  <NumberField.Group render={<InputGroup />}>
+    <NumberField.Input render={<InputGroupInput />} />
+    {/* Leading icon and Base UI steppers go inside the group. */}
+  </NumberField.Group>
+</NumberField.Root>
 ```
 
 ## Verification
@@ -87,5 +105,14 @@ typechecks. The scripted Map Place, Material Symbols, Align and Shadow, and Link
 autosave stories passed in jsdom. The Storybook build includes the group
 focus-visible selector.
 
+After the NumberInput layout change, the Nx Bricks Storybook build and its import
+check passed. App and Bricks typechecks and `git diff --check` passed.
+
 1. The user will verify the rendered focus rings, addon focus, and picker and
-   crop interactions in Storybook. Archive after manual verification passes.
+   crop interactions in Storybook.
+2. In Form Inputs Catalog, click Row width's label and confirm it focuses the
+   input. Check that keyboard focus encloses the icon, input, and steppers.
+   Verify Arrow Up and Down, stepper clicks, and the minimum of zero. Compare
+   the stacked label with Figma Link, and check the paired Position and Size
+   controls and the inline Border, Radius, and Shadow controls.
+3. Archive after manual verification passes.

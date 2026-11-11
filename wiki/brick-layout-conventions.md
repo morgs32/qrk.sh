@@ -309,13 +309,24 @@ historical implementation is recorded in
 
 ## Shared modules and Storybook
 
-The private `@qrk.sh/bricks` workspace package in `apps/bricks` owns all Brick
-definitions, React views, forms, and stories. Hosts compile the exports they
-consume. Link's versioned definition and its React registry have separate
-exports. App's `linkView` binds the lookup callback to its RPC session.
-The form owns validation and saves through the generic Brick editor callback.
-API executes provider operations and shares their client declarations with
-Storybook through Bricks' type-only RPC entry.
+The private `@qrk.sh/bricks` package owns Brick definitions, React views,
+forms, and stories. Each Brick keeps its definition and view together under
+[`src/modules/`](../apps/bricks/src/modules/). Link's versioned definition and
+its React registry have separate exports. App's `linkView` binds the lookup
+callback to its RPC session. The form owns validation and saves through the
+generic Brick editor callback.
+
+[`src/components/`](../apps/bricks/src/components/) is the Brick component
+library within QRK's design system. It owns shared controls, layout, tokens,
+styles, and their stories. For example, [TextInput](../apps/bricks/src/components/TextInput.tsx)
+defines the shared labeled text control. [LinkForm](../apps/bricks/src/modules/link/react/LinkForm.tsx)
+uses it and owns the Link-specific URL workflow.
+
+The [API Worker](../apps/api/Worker.ts) mounts
+[`BricksApi`](../apps/bricks/worker/BricksApi.ts) at its root and owns uploads
+and asset serving. App and Storybook forward same-origin `/rpc` calls to that
+root and use Bricks' type-only RPC entry. Swatch and Icon loads its Material
+Symbols catalog on the first search and filters it in the browser.
 
 Each module's **Breakpoint Previews** story compares its JSX sketch with JSON
 Render at sm, md, lg, and xl using one example state and one spec. The right

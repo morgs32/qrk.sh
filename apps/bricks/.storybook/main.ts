@@ -32,7 +32,12 @@ const config: StorybookConfig = {
         allowedHosts: ["bricks.qrk.localhost"],
         proxy: {
           ...config.server?.proxy,
-          "/rpc": { target: workerOrigin, changeOrigin: true, ws: true },
+          "^/rpc(?:\\?|$)": {
+            target: workerOrigin,
+            changeOrigin: true,
+            ws: true,
+            rewrite: (path) => path.replace(/^\/rpc/, "/"),
+          },
           "/upload": { target: workerOrigin, changeOrigin: true },
           "/image/upload": { target: workerOrigin, changeOrigin: true },
           "/assets": { target: workerOrigin, changeOrigin: true },

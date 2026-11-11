@@ -1,5 +1,5 @@
 import { it } from "@effect/vitest";
-import { imageStateSchema } from "@qrk.sh/bricks/image/definition/v2";
+import { imageStateSchema } from "@qrk.sh/bricks/modules/image/definition/v2";
 import { makeQueryDbVersion, NanoIdFactory } from "@zerospin/sdk";
 import { makeSystemHarness } from "@zerospin/sdk/testing";
 import { Effect, Schema } from "effect";

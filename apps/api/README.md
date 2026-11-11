@@ -1,6 +1,7 @@
 # API
 
-The API Worker serves at <https://api.qrk.localhost/>.
+The API Worker mounts the Bricks RPC target at <https://api.qrk.localhost/>.
+It also serves `/upload`, `/image/upload`, and `/assets/*`.
 
 ## Development
 

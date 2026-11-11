@@ -1,3 +1,6 @@
+import { useId } from "react";
+import { Checkbox } from "./ui/checkbox";
+
 export type ISiteTreeNode = {
   label: string;
   kind?: "asset" | "liability" | "income";
@@ -103,6 +106,7 @@ function flattenRows(
 
 export function SiteTree(props: { nodes: readonly ISiteTreeNode[]; highlightIndex?: number }) {
   const { nodes, highlightIndex } = props;
+  const treeId = useId();
   const rows = flattenRows(nodes, []);
 
   return (
@@ -133,12 +137,13 @@ export function SiteTree(props: { nodes: readonly ISiteTreeNode[]; highlightInde
             {row.node.checkbox === undefined ? (
               <span className="truncate">{row.node.label}</span>
             ) : (
-              <label className="flex min-w-0 items-center gap-2">
-                <input
-                  type="checkbox"
+              <label htmlFor={`${treeId}-${index}`} className="flex min-w-0 items-center gap-2">
+                <Checkbox
+                  id={`${treeId}-${index}`}
+                  className="size-3.5"
                   checked={row.node.checkbox.checked}
                   disabled={row.node.checkbox.disabled}
-                  onChange={(event) => row.node.checkbox?.onCheckedChange?.(event.target.checked)}
+                  onCheckedChange={(checked) => row.node.checkbox?.onCheckedChange?.(checked)}
                 />
                 <span className="truncate">{row.node.label}</span>
               </label>

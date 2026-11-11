@@ -1,4 +1,4 @@
-import { swatchAndIconPreviewState } from "@qrk.sh/bricks/swatchAndIcon/definition/swatchAndIconPreviewState";
+import { swatchAndIconPreviewState } from "@qrk.sh/bricks/modules/swatchAndIcon/definition/swatchAndIconPreviewState";
 import {
   SessionProvider,
   SessionReady,
@@ -21,10 +21,10 @@ import { ModulePreview } from "../../app/[username]/site/[siteId]/page/[pageId]/
 import { SiteHeader } from "../../app/[username]/site/[siteId]/SiteHeader";
 import { BrowserChrome } from "../PagePreview/BrowserChrome";
 import { WallEditor } from "./WallEditor";
-import { Button } from "@qrk.sh/bricks/react/button";
+import { Button } from "@qrk.sh/bricks/components/button";
 import { BREAKPOINTS, PREVIEW_BORDER_WIDTH } from "../../lib/breakpoints";
 import { makePlacementId } from "@qrk.sh/zerospin/src/aggregates/user/layout/makePlacementId";
-import { swatchAndIconV1 } from "@qrk.sh/bricks/swatchAndIcon/definition";
+import { swatchAndIconV1 } from "@qrk.sh/bricks/modules/swatchAndIcon/definition";
 import { modulesHash } from "../../modules/modulesHash";
 import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
 

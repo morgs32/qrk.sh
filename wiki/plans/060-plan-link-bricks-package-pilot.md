@@ -7,8 +7,8 @@
 
 ```ts
 // Definition for generation and command code, React registry for display.
-import { linkV1 } from "@qrk.sh/bricks/link/definition";
-import { linkReactRegistry } from "@qrk.sh/bricks/link/react";
+import { linkV1 } from "@qrk.sh/bricks/modules/link/definition";
+import { linkReactRegistry } from "@qrk.sh/bricks/modules/link/react";
 ```
 
 ```tsx

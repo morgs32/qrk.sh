@@ -1,14 +1,14 @@
+import { BackendRepo } from "@qrk.sh/bricks/worker/BackendRepo";
+import { BricksApi } from "@qrk.sh/bricks/worker/BricksApi";
+import { FigmaBackend } from "@qrk.sh/bricks/worker/figmaThumbnail/FigmaBackend";
+import { BrowserHost } from "@qrk.sh/bricks/worker/instagram/BrowserHost";
+import { LinkBackend } from "@qrk.sh/bricks/worker/link/LinkBackend";
+import { GooglePlacesBackend } from "@qrk.sh/bricks/worker/mapPlace/GooglePlacesBackend";
 import { newWorkersRpcResponse } from "capnweb";
 
-import { BackendRepo } from "./BackendRepo";
 import { handleR2Asset } from "./assets";
 import { emptyCorsResponse, jsonResponse, requireClerkUserId, UploadHttpError } from "./http";
 import { handleUpload } from "./handleUpload";
-import { FigmaBackend } from "./modules/figmaThumbnail/FigmaBackend";
-import { BrowserHost } from "./modules/instagram/BrowserHost";
-import { LibraryApi } from "./modules/LibraryApi";
-import { LinkBackend } from "./modules/link/LinkBackend";
-import { GooglePlacesBackend } from "./modules/mapPlace/GooglePlacesBackend";
 
 export { BackendRepo, BrowserHost, FigmaBackend, GooglePlacesBackend, LinkBackend };
 
@@ -19,8 +19,8 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
     return emptyCorsResponse(request, 204);
   }
 
-  if (url.pathname === "/rpc") {
-    return newWorkersRpcResponse(request, new LibraryApi(env));
+  if (url.pathname === "/") {
+    return newWorkersRpcResponse(request, new BricksApi(env));
   }
 
   const assetResponse = await handleR2Asset({

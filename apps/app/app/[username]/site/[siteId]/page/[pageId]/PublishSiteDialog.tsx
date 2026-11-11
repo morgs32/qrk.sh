@@ -19,7 +19,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
-import { useWarnBeforeUnload } from "@qrk.sh/bricks/react/useWarnBeforeUnload";
+import { useWarnBeforeUnload } from "@qrk.sh/bricks/modules/react/useWarnBeforeUnload";
 import { BrickAutosaveContext } from "./BrickAutosaveContext";
 
 export function PublishSiteDialog(props: { siteId: `sit_${string}` }) {

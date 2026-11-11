@@ -1,0 +1,16 @@
+import { primitives } from "@zerospin/shapes";
+
+import { defineComponentMetadata } from "../../../../definition/defineComponentMetadata";
+
+export const figmaThumbnailBandComponentMetadata = defineComponentMetadata({
+  type: "FigmaThumbnailBand",
+  propsShape: {
+    title: primitives.text(),
+    thumbnail_url: primitives.text({ nullable: true }),
+    thumbnail_width: primitives.number({ nullable: true }),
+    thumbnail_height: primitives.number({ nullable: true }),
+    imagePosition: primitives.text(),
+  },
+  description:
+    'Thumbnail media band with grid fallback. Bind thumbnail_url/title/sizes from data and imagePosition from options ({ "$state": "/imagePosition" }).',
+});

@@ -1,5 +1,5 @@
 import { brickV2 as brick } from "../../models/brick/BrickV2";
-import { backendLibrary } from "@qrk.sh/bricks/definition/backendLibrary";
+import { backendLibrary } from "@qrk.sh/bricks/modules/backendLibrary";
 import { measureWallFit, wallBreakpointWidths } from "../../layout/wallSizing";
 import {
   upgradeAggregateContractRelease,

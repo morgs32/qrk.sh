@@ -1,13 +1,13 @@
-import { linkV1 } from "@qrk.sh/bricks/link/definition";
-import { linkPreviewState } from "@qrk.sh/bricks/link/definition/linkPreviewState";
-import { LinkLineIcon } from "@qrk.sh/bricks/link/LinkLineIcon";
-import { LinkPlaceholder } from "@qrk.sh/bricks/link/LinkPlaceholder";
-import { linkReactRegistry } from "@qrk.sh/bricks/link/react";
-import { makeModuleView } from "@qrk.sh/bricks/react/makeModuleView";
+import { linkV1 } from "@qrk.sh/bricks/modules/link/definition";
+import { linkPreviewState } from "@qrk.sh/bricks/modules/link/definition/linkPreviewState";
+import { LinkLineIcon } from "@qrk.sh/bricks/modules/link/LinkLineIcon";
+import { LinkPlaceholder } from "@qrk.sh/bricks/modules/link/LinkPlaceholder";
+import { linkReactRegistry } from "@qrk.sh/bricks/modules/link/react";
+import { makeModuleView } from "@qrk.sh/bricks/modules/react/makeModuleView";
 import type { PageSnapshotSchemaV4 } from "@qrk.sh/zerospin/src/aggregates/user/snapshots/pageSnapshotSchemaV4";
-import { articleV1 } from "@qrk.sh/bricks/article/definition";
-import { swatchAndIconV1 } from "@qrk.sh/bricks/swatchAndIcon/definition";
-import { swatchAndIconPreviewState } from "@qrk.sh/bricks/swatchAndIcon/definition/swatchAndIconPreviewState";
+import { articleV1 } from "@qrk.sh/bricks/modules/article/definition";
+import { swatchAndIconV1 } from "@qrk.sh/bricks/modules/swatchAndIcon/definition";
+import { swatchAndIconPreviewState } from "@qrk.sh/bricks/modules/swatchAndIcon/definition/swatchAndIconPreviewState";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { WallViewer } from "./WallViewer";
 

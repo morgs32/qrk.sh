@@ -2,6 +2,9 @@
   "private": true,
   "scripts": {
     "dev": "PORTLESS_PORT=443 PORTLESS_HTTPS=1 PORTLESS_WILDCARD=1 portless",
+    "bricks": "PORTLESS_PORT=443 PORTLESS_HTTPS=1 PORTLESS_WILDCARD=1 pnpm --dir apps/bricks dev",
+    "app:storybook": "pnpm nx run @qrk.sh/app:storybook",
+    "web:storybook": "pnpm nx run @qrk.sh/web:storybook",
     "list": "portless list",
     "studio": "pnpm --filter @qrk.sh/zerospin studio"
   },

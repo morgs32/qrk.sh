@@ -1,14 +1,16 @@
 "use client";
 
+import { Toolbar } from "@base-ui/react/toolbar";
 import { Link } from "@tanstack/react-router";
 
 import * as React from "react";
 
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "cn";
 
 const toolbarButtonClassName =
-  "inline-flex h-8 cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-md px-2 text-sm font-medium text-muted-foreground transition-colors outline-none hover:text-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0";
+  "h-8 cursor-pointer gap-1.5 rounded-md border-0 px-2 text-sm text-muted-foreground hover:text-foreground";
 
 type IToolbarButtonLegacyProps = {
   tooltip?: string;
@@ -62,13 +64,13 @@ function ToolbarLabeledButton(props: IToolbarButtonLabeledProps) {
   );
 
   return link !== undefined ? (
-    <Link {...link} resetScroll={false} aria-label={ariaLabel} className={mergedClassName}>
+    <Link {...link} resetScroll={false} aria-label={ariaLabel} className={cn(buttonVariants({ variant: "ghost" }), mergedClassName)}>
       {body}
     </Link>
   ) : (
-    <button type="button" aria-label={ariaLabel} className={mergedClassName} {...buttonProps}>
+    <Toolbar.Button render={<Button variant="ghost" />} type="button" aria-label={ariaLabel} className={mergedClassName} {...buttonProps}>
       {body}
-    </button>
+    </Toolbar.Button>
   );
 }
 
@@ -80,9 +82,9 @@ export function ToolbarButton(props: IToolbarButtonProps) {
 
   const { tooltip, children, className, type = "button", ...rest } = buttonProps;
   const button = (
-    <button type={type} className={cn(toolbarButtonClassName, className)} {...rest}>
+    <Toolbar.Button render={<Button variant="ghost" />} type={type} className={cn(toolbarButtonClassName, className)} {...rest}>
       {children}
-    </button>
+    </Toolbar.Button>
   );
 
   if (tooltip) {

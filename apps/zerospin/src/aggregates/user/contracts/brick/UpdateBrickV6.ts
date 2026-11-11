@@ -1,5 +1,5 @@
-import { backendLibrary } from "@qrk.sh/bricks/definition/backendLibrary";
-import { imageStateSchema } from "@qrk.sh/bricks/image/definition/v2";
+import { backendLibrary } from "@qrk.sh/bricks/modules/backendLibrary";
+import { imageStateSchema } from "@qrk.sh/bricks/modules/image/definition/v2";
 import { findFirst } from "@zerospin/core/contracts/findFirst";
 import { mapParseError } from "@zerospin/error";
 import { upgradeAggregateContractRelease } from "@zerospin/sdk/browser";

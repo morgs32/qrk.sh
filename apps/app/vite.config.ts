@@ -24,6 +24,8 @@ export default defineConfig(({ mode }) => {
       navigateFallback: "/index.html",
       navigateFallbackDenylist: [/^\/__dev(?:\/|$)/, /^\/rpc(?:\/|$)/],
       globPatterns: ["**/*.{js,css,html,wasm,woff,woff2,png,svg,ico}"],
+      // The icon picker downloads the Material Symbols catalog on its first search.
+      globIgnores: ["**/node_modules/**/*", "**/materialSymbols-*.js"],
       maximumFileSizeToCacheInBytes: 10 * 1024 * 1024,
       clientsClaim: true,
       cleanupOutdatedCaches: false,
@@ -173,10 +175,11 @@ export default defineConfig(({ mode }) => {
       strictPort: true,
       allowedHosts: ["app.qrk.localhost"],
       proxy: {
-        "^/rpc(?:/|$)": {
+        "^/rpc(?:\\?|$)": {
           target: workerOrigin,
           changeOrigin: true,
           ws: true,
+          rewrite: (path) => path.replace(/^\/rpc/, "/"),
         },
         "^/assets/(?:site-settings-social-preview\\.png|favicon\\.ico|favicon-light\\.png|qrk-sh\\.svg)$":
           {

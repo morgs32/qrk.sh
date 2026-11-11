@@ -226,39 +226,6 @@
   pointer-events: none;
 }
 
-.wall-action-menu {
-  width: max-content;
-  min-width: 90px;
-  max-width: var(--available-width);
-  max-height: var(--available-height);
-  overflow-y: auto;
-  border: 1px solid #dedede;
-  background-color: white;
-  color: #111;
-  font: 400 15px / 18px var(--font-mono, monospace);
-  box-shadow: 2px 3px 0 #0005;
-  outline: none;
-}
-
-.wall-action-menu-item {
-  display: flex;
-  min-height: 1.25rem;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 1px 0.125rem;
-  cursor: pointer;
-  outline: none;
-}
-
-.wall-action-menu-item[data-highlighted] {
-  background-color: color-mix(in srgb, white, #111 6%);
-}
-
-.wall-action-menu-item[data-disabled] {
-  cursor: default;
-  opacity: 0.4;
-}
-
 /* Fill the Stack's inset without shifting controls away from Brick actions. */
 .stack-action::before {
   content: "";

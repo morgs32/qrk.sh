@@ -1,5 +1,6 @@
 "use client";
 
+import { Toolbar } from "@base-ui/react/toolbar";
 import { useMatches, useNavigate, useSearch } from "@tanstack/react-router";
 
 import { BREAKPOINTS } from "../../../../../lib/breakpoints";
@@ -83,10 +84,9 @@ export function BreakpointsToolbar() {
             <Tooltip>
               <TooltipTrigger
                 render={
-                  <Button
+                  <Toolbar.Button
+                    render={<Button variant="ghost" size="icon-sm" />}
                     type="button"
-                    variant="ghost"
-                    size="icon-sm"
                     aria-label="Close"
                     onClick={() =>
                       navigate({
@@ -98,7 +98,7 @@ export function BreakpointsToolbar() {
                     }
                   >
                     <X className="size-3.5" aria-hidden />
-                  </Button>
+                  </Toolbar.Button>
                 }
               />
               <TooltipContent side="top" sideOffset={8}>

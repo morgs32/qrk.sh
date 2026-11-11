@@ -16,7 +16,7 @@ tablet, and mobile.
 ## Implementation
 
 1. Define `BrickDetailsContext` and `BrickDetailsTrigger` in
-   `apps/bricks/src/react/BrickDetailsTrigger.tsx`. Export that file directly
+   `apps/bricks/src/components/BrickDetailsTrigger.tsx`. Export that file directly
    through the Bricks package. The context holds a zero-argument action or
    `null`. In `WallEditor`, provide the action around the Brick's rendered
    content, bound to its ID through the existing `onEditBrick` callback.

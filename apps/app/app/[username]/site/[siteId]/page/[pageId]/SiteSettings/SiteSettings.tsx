@@ -6,6 +6,7 @@ import { stageAggregateSessionCommand } from "@zerospin/sdk/browser";
 /* oxlint-disable next/no-img-element -- App uses Vite, so Next image optimization is unavailable. */
 
 import { useAuth } from "@clerk/react";
+import { Slider as SliderPrimitive } from "@base-ui/react/slider";
 import { ClerkOfflineError } from "@clerk/react/errors";
 
 import { Schema } from "effect";
@@ -21,13 +22,14 @@ import { SearchPreviewCard } from "../SearchPreviewCard";
 import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { FieldLabel } from "@/components/ui/field-label";
+import { Field, FieldDescription, FieldError, FieldLabel } from "@/components/ui/field";
+import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useUsername } from "@/hooks/useUsername";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
-import { useWarnBeforeUnload } from "@qrk.sh/bricks/react/useWarnBeforeUnload";
+import { useWarnBeforeUnload } from "@qrk.sh/bricks/modules/react/useWarnBeforeUnload";
 
 const ParamsSchema = Schema.Struct({
   username: Schema.String,
@@ -196,58 +198,74 @@ export function SiteSettings(props: {
       }}
     >
       <div className="grid grid-cols-2 items-start gap-x-6 gap-y-8 px-4 py-6 md:gap-x-8 @max-sm/workspace:[[data-workspace-sidebar]_&]:grid-cols-1">
-        <div className="col-start-1 flex items-center justify-between gap-4">
-          <FieldLabel htmlFor="site-card-style" description="Show each brick as a card">
-            Cards
-          </FieldLabel>
+        <Field orientation="horizontal" className="col-start-1 justify-between gap-4">
+          <div className="space-y-1">
+            <FieldLabel htmlFor="site-card-style" className="text-base">
+              Cards
+            </FieldLabel>
+            <FieldDescription id="site-card-style-help">Show each brick as a card</FieldDescription>
+          </div>
           <Switch
             id="site-card-style"
+            aria-describedby="site-card-style-help"
             checked={fields.cardStyle}
             onCheckedChange={(cardStyle) => setFields({ ...fields, cardStyle })}
           />
-        </div>
+        </Field>
 
-        <div className="col-start-1 flex items-center justify-between gap-4 @max-sm/workspace:[[data-workspace-sidebar]_&]:flex-col @max-sm/workspace:[[data-workspace-sidebar]_&]:items-stretch">
-          <FieldLabel
-            htmlFor="site-brick-gap"
-            description="Space between bricks, from 0 to 12 pixels"
-          >
-            Brick gap
-          </FieldLabel>
-          <div className="flex items-center gap-3">
-            <input
-              id="site-brick-gap"
-              type="range"
-              min={0}
-              max={12}
-              step={1}
-              value={fields.brickGap}
-              onChange={(event) => setFields({ ...fields, brickGap: Number(event.target.value) })}
-            />
-            <output htmlFor="site-brick-gap" className="w-10 text-right text-sm tabular-nums">
-              {fields.brickGap}px
-            </output>
+        <Field
+          orientation="horizontal"
+          className="col-start-1 justify-between gap-4 @max-sm/workspace:[[data-workspace-sidebar]_&]:flex-col @max-sm/workspace:[[data-workspace-sidebar]_&]:items-stretch"
+        >
+          <div className="space-y-1">
+            <FieldLabel id="site-brick-gap-label" className="text-base">
+              Brick gap
+            </FieldLabel>
+            <FieldDescription id="site-brick-gap-help">
+              Space between bricks, from 0 to 12 pixels
+            </FieldDescription>
           </div>
-        </div>
-
-        <div className="col-start-1 flex items-center justify-between gap-4">
-          <FieldLabel
-            htmlFor="site-sticky-navbar"
-            description="Keep the navbar visible while scrolling"
+          <Slider
+            className="flex w-44 max-w-full shrink-0 items-center gap-3"
+            thumbLabelledBy="site-brick-gap-label"
+            thumbDescribedBy="site-brick-gap-help"
+            min={0}
+            max={12}
+            step={1}
+            value={fields.brickGap}
+            onValueChange={(brickGap) => setFields({ ...fields, brickGap })}
           >
-            Sticky navbar
-          </FieldLabel>
-          <input
+            <SliderPrimitive.Value className="w-10 shrink-0 text-right text-sm tabular-nums">
+              {(_formattedValues, [brickGap]) => `${brickGap}px`}
+            </SliderPrimitive.Value>
+          </Slider>
+        </Field>
+
+        <Field orientation="horizontal" className="col-start-1 justify-between gap-4">
+          <div className="space-y-1">
+            <FieldLabel htmlFor="site-sticky-navbar" className="text-base">
+              Sticky navbar
+            </FieldLabel>
+            <FieldDescription id="site-sticky-navbar-help">
+              Keep the navbar visible while scrolling
+            </FieldDescription>
+          </div>
+          <Switch
             id="site-sticky-navbar"
-            type="checkbox"
+            aria-describedby="site-sticky-navbar-help"
             checked={fields.stickyNavbar}
-            onChange={(event) => setFields({ ...fields, stickyNavbar: event.target.checked })}
+            onCheckedChange={(stickyNavbar) => setFields({ ...fields, stickyNavbar })}
           />
-        </div>
+        </Field>
 
         <div className="contents">
           <div className="col-start-1 flex min-w-0 flex-col gap-4">
-            <FieldLabel description="PNG or SVG; height up to 48px recommended">Logo</FieldLabel>
+            <div className="space-y-1">
+              <h3 className="font-medium">Logo</h3>
+              <FieldDescription id="site-logo-help">
+                PNG or SVG; height up to 48px recommended
+              </FieldDescription>
+            </div>
             <div className="flex flex-col items-start gap-4">
               <input
                 ref={logoInputRef}
@@ -267,6 +285,7 @@ export function SiteSettings(props: {
                 type="button"
                 variant="outline"
                 disabled={isUploading}
+                aria-describedby="site-logo-help"
                 onClick={() => logoInputRef.current?.click()}
               >
                 Upload
@@ -286,7 +305,10 @@ export function SiteSettings(props: {
           </div>
 
           <div className="flex min-w-0 flex-col gap-4">
-            <FieldLabel description="64 × 64 pixels">Favicon</FieldLabel>
+            <div className="space-y-1">
+              <h3 className="font-medium">Favicon</h3>
+              <FieldDescription id="site-favicon-help">64 × 64 pixels</FieldDescription>
+            </div>
             <div className="flex flex-wrap justify-start gap-4">
               <div className="flex flex-col items-start gap-2">
                 <span className="text-xs text-muted-foreground">Light</span>
@@ -310,6 +332,7 @@ export function SiteSettings(props: {
                   size="sm"
                   variant="outline"
                   disabled={isUploading}
+                  aria-describedby="site-favicon-help"
                   onClick={() => faviconLightInputRef.current?.click()}
                 >
                   Upload
@@ -352,6 +375,7 @@ export function SiteSettings(props: {
                   size="sm"
                   variant="outline"
                   disabled={isUploading}
+                  aria-describedby="site-favicon-help"
                   onClick={() => faviconDarkInputRef.current?.click()}
                 >
                   Upload
@@ -377,29 +401,36 @@ export function SiteSettings(props: {
         </div>
 
         <div className="contents">
-          <div className="flex min-w-0 flex-col gap-2">
-            <FieldLabel htmlFor="site-name-and-wordmark">Site name and wordmark</FieldLabel>
+          <Field>
+            <FieldLabel htmlFor="site-name-and-wordmark" className="text-base">
+              Site name and wordmark
+            </FieldLabel>
             <Input
               id="site-name-and-wordmark"
               value={fields.name}
               onChange={(event) => setFields({ ...fields, name: event.target.value })}
             />
-          </div>
+          </Field>
 
-          <div className="flex min-w-0 flex-col gap-2">
-            <FieldLabel htmlFor="site-description">Description</FieldLabel>
+          <Field>
+            <FieldLabel htmlFor="site-description" className="text-base">
+              Description
+            </FieldLabel>
             <Textarea
               id="site-description"
               value={fields.description}
               onChange={(event) => setFields({ ...fields, description: event.target.value })}
             />
-          </div>
+          </Field>
         </div>
 
         <div className="flex min-w-0 flex-col gap-4">
-          <FieldLabel description="1200 × 630 pixels">Social Preview</FieldLabel>
+          <div className="space-y-1">
+            <h3 className="font-medium">Social Preview</h3>
+            <FieldDescription id="site-social-preview-help">1200 × 630 pixels</FieldDescription>
+          </div>
           <div className="flex flex-col items-start gap-4">
-            <Button type="button" variant="outline">
+            <Button type="button" variant="outline" aria-describedby="site-social-preview-help">
               Upload
             </Button>
             <div className="relative w-full max-w-[375px] overflow-hidden rounded-md border bg-muted">
@@ -420,7 +451,7 @@ export function SiteSettings(props: {
 
         <div className="contents">
           <div className="flex min-w-0 flex-col gap-2">
-            <FieldLabel>QR Code</FieldLabel>
+            <h3 className="font-medium">QR Code</h3>
             <div className="relative h-40 w-40 shrink-0 overflow-hidden rounded-md border bg-background">
               {qrDataUrl ? (
                 <img
@@ -440,7 +471,7 @@ export function SiteSettings(props: {
           </div>
 
           <div className="flex min-w-0 flex-col gap-2">
-            <FieldLabel>Share URL</FieldLabel>
+            <h3 className="font-medium">Share URL</h3>
             <div className="flex min-w-0 items-center gap-2">
               <div className="min-w-0 flex-1 truncate rounded-md border bg-muted/30 px-3 py-2 font-mono text-xs text-foreground">
                 {publishedUrl}
@@ -453,7 +484,7 @@ export function SiteSettings(props: {
         </div>
 
         <div className="flex flex-col gap-2">
-          <FieldLabel>Preview</FieldLabel>
+          <h3 className="font-medium">Preview</h3>
           <SearchPreviewCard
             title={fields.name}
             url={publishedUrlDisplay}
@@ -462,11 +493,7 @@ export function SiteSettings(props: {
           />
         </div>
 
-        {saveError === null ? null : (
-          <p role="alert" className="col-span-full text-sm text-destructive">
-            {saveError}
-          </p>
-        )}
+        {saveError === null ? null : <FieldError className="col-span-full">{saveError}</FieldError>}
         <div className="col-span-full flex items-center gap-2">
           <Button type="submit" disabled={!isDirty || isUploading}>
             Save
@@ -488,12 +515,18 @@ export function SiteSettings(props: {
         </div>
 
         <div className="col-span-full flex flex-col items-start gap-4">
-          <div className="min-w-0">
-            <FieldLabel description="Unpublish your website from all domains.">
-              Danger Zone
-            </FieldLabel>
+          <div className="min-w-0 space-y-1">
+            <h3 className="font-medium">Danger Zone</h3>
+            <FieldDescription id="site-unpublish-help">
+              Unpublish your website from all domains.
+            </FieldDescription>
           </div>
-          <Button type="button" variant="destructive" disabled>
+          <Button
+            type="button"
+            variant="destructive"
+            aria-describedby="site-unpublish-help"
+            disabled
+          >
             Unpublish
           </Button>
         </div>

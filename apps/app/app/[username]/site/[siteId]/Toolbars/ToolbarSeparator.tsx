@@ -1,5 +1,7 @@
 "use client";
 
+import { Separator } from "@/components/ui/separator";
+
 export function ToolbarSeparator() {
-  return <div className="h-5 w-px shrink-0 bg-border" aria-hidden />;
+  return <Separator orientation="vertical" className="data-[orientation=vertical]:h-5" />;
 }

@@ -15,10 +15,11 @@ export default defineConfig(({ mode }) => {
       strictPort: true,
       allowedHosts: ["app.qrk.localhost"],
       proxy: {
-        "^/rpc(?:/|$)": {
+        "^/rpc(?:\\?|$)": {
           target: workerOrigin,
           changeOrigin: true,
           ws: true,
+          rewrite: (path) => path.replace(/^\/rpc/, "/"),
         },
         "^/assets/(?:site-settings-social-preview\\.png|favicon\\.ico|favicon-light\\.png|qrk-sh\\.svg)$":
           {

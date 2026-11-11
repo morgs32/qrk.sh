@@ -6,13 +6,15 @@ import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { collapseAllNested, defaultStyles, JsonView } from "react-json-view-lite";
 import { SWRConfig } from "swr";
 
-import { BrickWrapper } from "../src/react/BrickWrapper";
-import { Input } from "../src/react/Input";
-import { Button } from "../src/react/button";
-import { StudioSidebar } from "../src/react/StudioSidebar";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "../src/react/tabs";
-import type { IModule } from "../src/react/types";
-import type { LibraryApi } from "../src/rpc/LibraryApi";
+import { BrickWrapper } from "../src/components/BrickWrapper";
+import { Input } from "../src/components/Input";
+import { Alert, AlertDescription, AlertTitle } from "../src/components/alert";
+import { Checkbox } from "../src/components/checkbox";
+import { Button } from "../src/components/button";
+import { StudioSidebar } from "../src/components/StudioSidebar";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../src/components/tabs";
+import type { IModule } from "../src/modules/react/types";
+import type { BricksApi } from "@qrk.sh/bricks/rpc";
 
 const BREAKPOINTS = [
   { id: "sm", previewWidth: 360 },
@@ -40,6 +42,7 @@ export function BrickStory<STATE_SHAPE extends IShape>(props: {
   const [generateError, setGenerateError] = useState<{ code?: string; message: string }>();
   const activeGeneration = useRef<AbortController | null>(null);
   const promptId = useId();
+  const cardsId = useId();
   const preview = useRef<HTMLElement>(null);
   const spec = generatedSpec ?? variant.spec;
   useEffect(() => () => activeGeneration.current?.abort(), []);
@@ -78,14 +81,9 @@ export function BrickStory<STATE_SHAPE extends IShape>(props: {
     <SWRConfig value={(config) => ({ ...config, uploadImage })}>
       <div className="qrk-bricks flex h-dvh bg-zinc-50 text-neutral-950">
         <main ref={preview} className="min-w-0 flex-1 overflow-y-auto">
-          <header className="flex items-center justify-between gap-4 px-5 py-4">
-            <h1 className="text-base font-semibold">{view.label} breakpoint previews</h1>
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={cardStyle}
-                onChange={(event) => setCardStyle(event.target.checked)}
-              />
+          <header className="flex justify-end px-5 py-4">
+            <label htmlFor={cardsId} className="flex items-center gap-2 text-sm">
+              <Checkbox id={cardsId} checked={cardStyle} onCheckedChange={setCardStyle} />
               Cards
             </label>
           </header>
@@ -164,7 +162,7 @@ export function BrickStory<STATE_SHAPE extends IShape>(props: {
                   setIsGeneratingSpec(true);
                   setGenerateError(undefined);
                   try {
-                    using api = newSyncRpcSession<LibraryApi>("/rpc");
+                    using api = newSyncRpcSession<BricksApi>("/rpc");
                     const close = () => api[Symbol.dispose]();
                     request.signal.addEventListener("abort", close, { once: true });
                     try {
@@ -236,12 +234,12 @@ export function BrickStory<STATE_SHAPE extends IShape>(props: {
               </form>
               {isGeneratingSpec ? <p role="status">Generating spec…</p> : null}
               {generateError === undefined ? null : (
-                <div role="alert" className="mt-2 rounded-md border border-red-200 bg-red-50 p-3">
+                <Alert variant="destructive" className="mt-2">
                   {generateError.code === undefined ? null : (
-                    <p className="font-mono">{generateError.code}</p>
+                    <AlertTitle className="font-mono">{generateError.code}</AlertTitle>
                   )}
-                  <p>{generateError.message}</p>
-                </div>
+                  <AlertDescription>{generateError.message}</AlertDescription>
+                </Alert>
               )}
               {generatedSpec === undefined ? null : (
                 <div className="mt-4 overflow-auto bg-white">

@@ -46,6 +46,7 @@ export function SiteToolbar() {
       transition={reducedMotion ? { duration: 0 } : toolbarPresenceTransition}
     >
       <WallPreviewToolbar
+        navigation
         aria-label="Page controls"
         className="border-border/80 bg-background shadow-md"
       >

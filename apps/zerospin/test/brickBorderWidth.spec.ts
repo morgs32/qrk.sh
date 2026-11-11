@@ -8,7 +8,7 @@ import { Effect } from "effect";
 import { system } from "../src/system";
 import { setBrickBorderWidthV1 } from "../src/aggregates/user/contracts/brick/SetBrickBorderWidthV1";
 import { makePageSnapshotV2 } from "../src/aggregates/user/snapshots/makePageSnapshotV2";
-import { swatchAndIconPreviewState } from "@qrk.sh/bricks/swatchAndIcon/definition/swatchAndIconPreviewState";
+import { swatchAndIconPreviewState } from "@qrk.sh/bricks/modules/swatchAndIcon/definition/swatchAndIconPreviewState";
 
 it.effect("decodes whole-pixel widths and rejects fractions at the actor command boundary", () =>
   Effect.gen(function* () {

@@ -3,7 +3,7 @@ import { makeZerospinError } from "@zerospin/error";
 import { newHttpBatchRpcSession } from "capnweb";
 import { Effect, Schema } from "effect";
 
-import { backendLibrary as library } from "@qrk.sh/bricks/definition/backendLibrary";
+import { backendLibrary as library } from "@qrk.sh/bricks/modules/backendLibrary";
 import { makeModuleSpecDocumentSchema } from "@qrk.sh/bricks/definition/makeModuleSpecDocumentSchema";
 import { makePlacementId } from "../../layout/makePlacementId";
 import { brickV2 as brick } from "../../models/brick/BrickV2";
@@ -35,7 +35,7 @@ export const generateBrickSpecExternalV2 = makeAggregateExternalContractRelease(
         Effect.mapError(() =>
           makeZerospinError({
             code: "brick-spec-api-configuration-invalid",
-            message: "Set QRK_LIBRARY_API_URL to an absolute HTTP(S) LibraryApi RPC URL.",
+            message: "Set QRK_LIBRARY_API_URL to an absolute HTTP(S) BricksApi RPC URL.",
           }),
         ),
       );
@@ -54,7 +54,7 @@ export const generateBrickSpecExternalV2 = makeAggregateExternalContractRelease(
           catch: () =>
             makeZerospinError({
               code: "brick-spec-api-request-failed",
-              message: "Brick spec generation could not reach LibraryApi. Try again.",
+              message: "Brick spec generation could not reach BricksApi. Try again.",
             }),
         }),
         (api) =>
@@ -69,7 +69,7 @@ export const generateBrickSpecExternalV2 = makeAggregateExternalContractRelease(
             catch: () =>
               makeZerospinError({
                 code: "brick-spec-api-request-failed",
-                message: "Brick spec generation could not reach LibraryApi. Try again.",
+                message: "Brick spec generation could not reach BricksApi. Try again.",
               }),
           }),
         (api) =>
@@ -82,7 +82,7 @@ export const generateBrickSpecExternalV2 = makeAggregateExternalContractRelease(
         Effect.mapError(() =>
           makeZerospinError({
             code: "brick-spec-api-response-invalid",
-            message: "LibraryApi returned an invalid spec generation response. Try again.",
+            message: "BricksApi returned an invalid spec generation response. Try again.",
           }),
         ),
       );

@@ -2,7 +2,7 @@
 
 @import "@fontsource-variable/geist";
 @import "tailwindcss" source(none);
-@import "../src/react/brickStyles.css";
+@import "../src/components/brickStyles.css";
 
 @source "../src/**/*.{ts,tsx}";
 @source "./**/*.{ts,tsx}";
@@ -32,6 +32,7 @@
 }
 
 :root {
+  --radius: 0.625rem;
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.141 0.005 285.823);
   --sidebar-border: oklch(0.92 0.004 286.32);

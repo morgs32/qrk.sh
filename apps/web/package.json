@@ -13,7 +13,7 @@
     "build": "next build",
     "start": "next start --port ${PORT:-10011}",
     "format": "vp fmt --config ../../.oxfmtrc.json .",
-    "storybook": "storybook dev -p ${PORT:-10022} --host 127.0.0.1",
+    "storybook": "PORTLESS_PORT=443 PORTLESS_HTTPS=1 PORTLESS_WILDCARD=1 portless storybook.web.qrk --app-port ${PORT:-10022} storybook dev -p ${PORT:-10022} --host 127.0.0.1",
     "build-storybook": "storybook build"
   },
   "portless": {

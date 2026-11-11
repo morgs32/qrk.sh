@@ -17,7 +17,7 @@ const config: StorybookConfig = {
   stories: [
     "../components/**/*.stories.@(ts|tsx)",
     "../app/**/*.stories.@(ts|tsx)",
-    "../../bricks/src/*/react/**/*.stories.@(ts|tsx)",
+    "../../bricks/src/modules/*/react/**/*.stories.@(ts|tsx)",
   ],
   addons: [getAbsolutePath("@storybook/addon-a11y"), getAbsolutePath("@storybook/addon-docs")],
   framework: {
@@ -40,9 +40,15 @@ const config: StorybookConfig = {
       ...config,
       server: {
         ...config.server,
+        allowedHosts: ["storybook.qrk.localhost"],
         proxy: {
           ...config.server?.proxy,
-          "/rpc": { target: workerOrigin, changeOrigin: true, ws: true },
+          "^/rpc(?:\\?|$)": {
+            target: workerOrigin,
+            changeOrigin: true,
+            ws: true,
+            rewrite: (path) => path.replace(/^\/rpc/, "/"),
+          },
           "/upload": { target: workerOrigin, changeOrigin: true },
           "/image/upload": { target: workerOrigin, changeOrigin: true },
           "/assets": { target: workerOrigin, changeOrigin: true },

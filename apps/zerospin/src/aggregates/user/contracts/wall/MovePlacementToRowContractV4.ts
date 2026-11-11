@@ -6,7 +6,7 @@ import { wallV2 as wall } from "../../models/wall/WallV2";
 import { placementV2 as placement } from "../../models/placement/PlacementV2";
 import { movePlacementToRowV3 } from "./MovePlacementToRowContractV3";
 import { movePlacementToRowInLayout } from "../../layout/wallLayoutV3";
-import { backendLibrary } from "@qrk.sh/bricks/definition/backendLibrary";
+import { backendLibrary } from "@qrk.sh/bricks/modules/backendLibrary";
 import { canShareRow } from "../../layout/canShareRow";
 
 export const movePlacementToRowV4 = upgradeAggregateContractRelease(movePlacementToRowV3, {

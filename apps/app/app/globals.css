@@ -3,7 +3,7 @@
 @import "@fontsource-variable/geist";
 @import "tailwindcss" source(none);
 @import "tw-animate-css";
-@import "@qrk.sh/bricks/styles.css";
+@import "@qrk.sh/bricks/components/brickStyles.css";
 @import "../modules/bricks.css";
 
 @source "./**/*.{ts,tsx}";

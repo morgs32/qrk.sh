@@ -19,7 +19,7 @@ import { siteV1 as site } from "../../models/site/SiteV1";
 import { userV1 as user } from "../../models/user/UserV1";
 import { wallV1 as wall } from "../../models/wall/WallV1";
 import { placementV1 as placement } from "../../models/placement/PlacementV1";
-import { backendLibrary } from "@qrk.sh/bricks/definition/backendLibrary";
+import { backendLibrary } from "@qrk.sh/bricks/modules/backendLibrary";
 import { makePlacementId } from "../../layout/makePlacementId";
 import { canShareRow } from "../../layout/canShareRow";
 import { insertPlacementInLayout } from "../../layout/wallLayout";

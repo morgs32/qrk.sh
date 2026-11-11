@@ -6,7 +6,7 @@ import { Effect, Exit, Schema } from "effect";
 import { userAggregateV9 } from "../src/aggregates/user/UserV9";
 import { wallLayoutSchemaV2 } from "../src/aggregates/user/layout/wallLayoutSchemaV2";
 import { allocateStackWidths, measureWallFit } from "../src/aggregates/user/layout/wallSizing";
-import { swatchAndIconPreviewState } from "@qrk.sh/bricks/swatchAndIcon/definition/swatchAndIconPreviewState";
+import { swatchAndIconPreviewState } from "@qrk.sh/bricks/modules/swatchAndIcon/definition/swatchAndIconPreviewState";
 import { makePlacementId } from "../src/aggregates/user/layout/makePlacementId";
 import { system } from "../src/system";
 

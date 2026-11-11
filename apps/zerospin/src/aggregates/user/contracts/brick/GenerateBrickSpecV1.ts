@@ -2,7 +2,7 @@ import { brick as brickIdentity } from "../../models/brick/brick";
 
 import { modelId } from "@zerospin/sdk/browser";
 
-import { backendLibrary as library } from "@qrk.sh/bricks/definition/backendLibrary";
+import { backendLibrary as library } from "@qrk.sh/bricks/modules/backendLibrary";
 
 import { brickV1 as brick } from "../../models/brick/BrickV1";
 

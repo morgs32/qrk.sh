@@ -1,10 +1,12 @@
 # Modules
 
-[`@qrk.sh/bricks`](../../bricks/package.json) owns all Brick definitions, React
+[`@qrk.sh/bricks`](../../bricks/package.json) owns Brick definitions, React
 registries, forms, stories, and shared rendering code. App registers the views
 in `modulesHash` and supplies the Link lookup callback in
-[`linkView`](./link/linkView.tsx). API owns provider operations. Client declarations
-come from the type-only `@qrk.sh/bricks/rpc` export.
+[`linkView`](./link/linkView.tsx). The API Worker mounts
+[`BricksApi`](../../bricks/worker/BricksApi.ts) at its root and owns uploads and
+asset serving. The RPC target and its providers live in Bricks. Clients get its
+declaration from the type-only `@qrk.sh/bricks/rpc` export.
 
 ## Development and configuration
 
@@ -17,10 +19,10 @@ Bricks Storybook reads local settings from `apps/bricks/.env.local`:
 2. `API_WORKER_ORIGIN` overrides the server-side API proxy destination, defaulting
    to `http://127.0.0.1:8787`.
 
-Both Storybooks install `/rpc`, `/upload`, `/image/upload`, and `/assets` proxies
-and load the shared Brick styles. Provider secrets
-stay in `apps/api/.env.local`. API preserves `/assets/library/*` URLs and R2 data.
-No browser or backend storage is reset by the package move.
+App development, App static preview, and both Storybooks proxy same-origin
+`/rpc` to `/` on the API Worker. App production uses the same rewrite through
+Vercel. Both Storybooks also proxy `/upload`, `/image/upload`, and `/assets` and
+load the shared Brick styles. Provider secrets stay in `apps/api/.env.local`.
 
 ## Previous Library move verification
 
@@ -37,8 +39,8 @@ files are retained, and Nx discovers no Library project or dependency cycle.
 
 ## Brick forms
 
-Module forms and their lookup controls use the shared controls in
-[`@qrk.sh/bricks/react`](../../bricks/src/react). Use `TextInput` for labeled
+Module forms and their lookup controls use the
+[Brick component library](../../bricks/src/components). Use `TextInput` for labeled
 text, URL, search, and file fields and `ColorInput` for labeled hex fields
 with a color-picker popover.
 The Storybook [Form Inputs catalog](https://bricks.qrk.localhost/?path=/story/components-form-inputs--catalog)
@@ -48,18 +50,21 @@ Border and Shadow use `ColorInput` inside their shared `SwatchPopover`.
 Brick sidebar forms use [shadcn Base UI Field](https://ui.shadcn.com/docs/components/base/field)
 and `FieldGroup` from the Bricks package. Put the label beside the control and
 use `FieldContent` to stack descriptions, errors, and status below it. Text
-fields can stack their label above the control, as Figma’s Link field does.
+fields in Figma Thumbnail, Link, Instagram, GitHub Repo, GitHub Profile, and
+GitHub Activity stack their label above the control. Stacked fields leave 8px
+between the label and control. Help text sits 4px below the control.
 Integrated icons and actions use Input Group. The input comes first in DOM
 order. The group draws the input’s focus and invalid rings, and tabbable
 actions show their own focus. Number fields use the same surface around their
 Base UI input and steppers.
-The shared field tokens in `@qrk.sh/bricks/styles.css` also style the
+The shared field tokens in `@qrk.sh/bricks/components/brickStyles.css` also style the
 Style Inspector inputs.
 
 Map Place uses Base UI Combobox for popup navigation and option announcements,
-with Google Places supplying results. Material Symbols presents its paginated
-results as buttons and marks the current icon. Shadow shorthand reports a
-validation error below the input and keeps the last accepted shadow.
+with Google Places supplying results. Swatch and Icon loads its Material Symbols
+catalog on demand and searches and pages results locally. Results appear as
+buttons with the current icon marked. Shadow shorthand reports a validation
+error below the input and keeps the last accepted shadow.
 
 QRK-owned forms set `autoComplete="off"`. The shared Input and native article
 title/subtitle, hex color, and State JSON fields also set `autoComplete="off"`
@@ -174,13 +179,14 @@ system. See [Brick dimension stories](#brick-dimension-stories).
 ## Public exports and shared UI
 
 Hosts compile the Bricks source through explicit exports. Use
-`@qrk.sh/bricks/link/definition` for `linkV1` and `@qrk.sh/bricks/link/react` for
+`@qrk.sh/bricks/modules/link/definition` for `linkV1` and
+`@qrk.sh/bricks/modules/link/react` for
 `linkReactRegistry`. The import check enforces the export map, keeps React runtime
 out of the definition graph, and rejects imports from Bricks into hosts.
 Persisted models and contracts live under `apps/zerospin/src/aggregates/user/`.
 
 Consumers bundle Meowdown and React themselves and share no editor instances.
-Import Article's stylesheet alongside `bricks.css`, retaining its font imports.
+Import Article's stylesheet alongside the shared `brickStyles.css`, retaining its font imports.
 Article's stylesheet, Storybook, and App declare
 `@layer theme, base, components, meowdown, utilities` before imports so Preflight
 precedes Meowdown rules and utilities remain last.
@@ -714,7 +720,7 @@ Workspace overrides keep `prosemirror-model`, `prosemirror-transform`, and
 runtime identities; duplicate versions can fail decoration rendering and prevent
 the ProseKit editor from mounting on a clean install.
 The editor and read-only documents use the shared
-`qrk-responsive-insets` class from `bricks.css`: `--qrk-inset-inline` supplies
+`qrk-responsive-insets` class from `brickStyles.css`: `--qrk-inset-inline` supplies
 16px outer gutters and `--qrk-inset-block` supplies 16px vertical padding.
 When both the document viewport and nearest query container reach 720px, those
 values become 30px and 32px respectively.
@@ -783,7 +789,7 @@ and can be resized in Studio. Automatic YouTube/X paste conversion and provider
 resolution are disabled in both editor and viewer; ordinary URL pastes remain links.
 Explicit media syntax can display native placeholders. Storybook exercises the
 same Studio renderer with local examples. Consumers load
-`@qrk.sh/bricks/article/editor.css` alongside the Wall styles for editor and
+`@qrk.sh/bricks/modules/article/editor.css` alongside the Wall styles for editor and
 portaled-control styles.
 
 ## Wall publication snapshots

@@ -3,7 +3,7 @@ import { draggable } from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
 import { pointerOutsideOfPreview } from "@atlaskit/pragmatic-drag-and-drop/utils/pointer-outside-of-preview";
 import { setCustomNativeDragPreview } from "@atlaskit/pragmatic-drag-and-drop/utils/set-custom-native-drag-preview";
 
-import { BrickWrapper } from "@qrk.sh/bricks/react/BrickWrapper";
+import { BrickWrapper } from "@qrk.sh/bricks/components/BrickWrapper";
 import { BrickAction } from "../../../../../../../modules/components/BrickAction";
 import { BREAKPOINTS } from "../../../../../../../lib/breakpoints";
 import { modulesHash } from "../../../../../../../modules/modulesHash";

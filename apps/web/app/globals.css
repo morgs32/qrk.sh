@@ -1,5 +1,5 @@
 @import "tailwindcss";
-@import "@qrk.sh/bricks/styles.css";
+@import "@qrk.sh/bricks/components/brickStyles.css";
 
 @source "../../bricks/src/**/*.{ts,tsx}";
 

@@ -1,4 +1,4 @@
-import { swatchAndIconPreviewState } from "@qrk.sh/bricks/swatchAndIcon/definition/swatchAndIconPreviewState";
+import { swatchAndIconPreviewState } from "@qrk.sh/bricks/modules/swatchAndIcon/definition/swatchAndIconPreviewState";
 import { expect, it } from '@effect/vitest';
 import * as sdk from '@zerospin/sdk';
 import { applyOperationTx } from '@zerospin/core/contracts/applyOperationTx';
@@ -23,9 +23,9 @@ import { publishPageV2 } from '../src/aggregates/user/contracts/publishPage/Publ
 import { createSiteV1 } from '../src/aggregates/user/contracts/createSite/CreateSiteV1';
 import { updateSiteSettingsV1 } from '../src/aggregates/user/contracts/updateSiteSettings/UpdateSiteSettingsV1';
 import { makePlacementId } from '../src/aggregates/user/layout/makePlacementId';
-import { swatchAndIconV1 } from '@qrk.sh/bricks/swatchAndIcon/definition';
+import { swatchAndIconV1 } from '@qrk.sh/bricks/modules/swatchAndIcon/definition';
 
-vi.mock('cloudflare:workers', () => ({ env: { QRK_LIBRARY_API_URL: 'https://api.qrk.test/rpc' } }));
+vi.mock('cloudflare:workers', () => ({ env: { QRK_LIBRARY_API_URL: 'https://api.qrk.test/' } }));
 
 it.effect('creates a user through a command and keeps site creation unavailable to System commands', () =>
   Effect.gen(function* () {
@@ -180,7 +180,7 @@ it.effect('records canonical generation inputs and commits the validated externa
       prompt: 'Make it green', baseStateRevision: 0, baseSpecRevision: 0,
       state: swatchAndIconPreviewState, currentSpec: swatchAndIconV1.defaultSpec,
     });
-    class LibraryApiFixture extends RpcTarget {
+    class BricksApiFixture extends RpcTarget {
       generateSpec(moduleId: string, prompt: string, state: unknown, currentSpec: unknown) {
         expect([moduleId, prompt, state, currentSpec]).toEqual([
           external.payload.moduleId, external.payload.prompt,
@@ -192,9 +192,9 @@ it.effect('records canonical generation inputs and commits the validated externa
     const requests: Request[] = [];
     const fetch = vi.spyOn(globalThis, 'fetch').mockImplementation((input, init) => {
       const request = new Request(input, init);
-      expect(request.url).toBe('https://api.qrk.test/rpc');
+      expect(request.url).toBe('https://api.qrk.test/');
       requests.push(request);
-      return newHttpBatchRpcResponse(request, new LibraryApiFixture());
+      return newHttpBatchRpcResponse(request, new BricksApiFixture());
     });
     yield* Effect.addFinalizer(() => Effect.sync(() => fetch.mockRestore()));
     const requestGeneration: (
@@ -272,8 +272,8 @@ it.effect('turns recorded request failures, provider rejections and invalid spec
     const external = yield* start('req_one');
     const cases = [
       { outcome: { _tag: 'Failure', failure: { _tag: 'ExternalRequestFailure',
-        code: 'external-request-failed', message: 'LibraryApi was unavailable' }, recordedAt },
-        error: { code: 'external-request-failed', message: 'LibraryApi was unavailable', retryable: true } },
+        code: 'external-request-failed', message: 'BricksApi was unavailable' }, recordedAt },
+        error: { code: 'external-request-failed', message: 'BricksApi was unavailable', retryable: true } },
       { outcome: { _tag: 'Success', success: { _tag: 'Left',
         left: { code: 'generation-rejected', message: 'Unsupported request', retryable: false } }, recordedAt },
         error: { code: 'generation-rejected', message: 'Unsupported request', retryable: false } },

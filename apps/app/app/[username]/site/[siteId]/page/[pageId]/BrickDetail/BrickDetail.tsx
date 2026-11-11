@@ -15,8 +15,8 @@ import { Schema } from "effect";
 import { useLayoutEffect, useRef, useState } from "react";
 
 import { useValidatedParams } from "@/hooks/useValidatedParams";
-import { BrickWrapper } from "@qrk.sh/bricks/react/BrickWrapper";
-import { StudioSidebar } from "@qrk.sh/bricks/react/StudioSidebar";
+import { BrickWrapper } from "@qrk.sh/bricks/components/BrickWrapper";
+import { StudioSidebar } from "@qrk.sh/bricks/components/StudioSidebar";
 import NotFound from "@/app/not-found";
 
 const ParamsSchema = Schema.Struct({

@@ -4,7 +4,7 @@
   "buildCommand": "pnpm build",
   "outputDirectory": "dist/client",
   "routes": [
-    { "src": "^/rpc$", "dest": "https://api.qrk.sh/rpc" },
+    { "src": "^/rpc$", "dest": "https://api.qrk.sh/" },
     {
       "src": "^/assets/site-settings-social-preview\\.png$",
       "dest": "/site-settings-social-preview.png"

@@ -108,16 +108,17 @@ See [Modules](apps/app/modules/README.md) and [App](apps/app/README.md).
 
 The root `portless.json` uses Portless's native monorepo discovery with the
 `dev:app` script. It starts Web, App, Admin, API, Zerospin, and Bricks Storybook.
-Package-level `portless` metadata owns the app hostnames. App Storybook starts
-separately and uses its existing Portless alias. Portless selects an unused
-internal frontend port. API and Zerospin keep ports 8787 and 8788. Nx development
-targets have no startup dependencies.
+Package-level `portless` metadata owns the app hostnames. App and Web Storybook
+start separately and register their hostnames through Portless while they run.
+Portless selects an unused internal frontend port. API and Zerospin keep ports
+8787 and 8788. Nx development targets have no startup dependencies.
 
 | App      | Development URL                                           | Direct fallback port |
 | -------- | --------------------------------------------------------- | -------------------- |
 | Web      | [qrk.localhost](https://qrk.localhost/)                   | 10000                |
 | App      | [app.qrk.localhost](https://app.qrk.localhost/)           | 10001                |
-| App Storybook | [app-storybook.qrk.localhost](https://app-storybook.qrk.localhost/) | 10020 |
+| App Storybook | [storybook.app.qrk.localhost](https://storybook.app.qrk.localhost/) | 10020 |
+| Web Storybook | [storybook.web.qrk.localhost](https://storybook.web.qrk.localhost/) | 10022 |
 | Bricks Storybook | [bricks.qrk.localhost](https://bricks.qrk.localhost/) | 10024 |
 | Admin    | [admin.qrk.localhost](https://admin.qrk.localhost/)       | 10002                |
 | API      | [api.qrk.localhost](https://api.qrk.localhost/)           | 8787                 |
@@ -139,7 +140,7 @@ when `pnpm dev` stops; leave the shared proxy and other projects' routes running
 Use `pnpm dev` for the complete HTTPS setup. To start one app through Portless,
 run `pnpm --dir apps/<app> dev`; this starts only that app. Its `dev:app` script
 runs the underlying HTTP server directly when needed. Frontend scripts honor
-`PORT`. The standalone Web Storybook uses port 10022 by default, overridable with `PORT`.
+`PORT`.
 
 The user aggregate registers releases `3`, `4`, `5`, and `6`; App binds its session
 to owner release `6` and web Actor `6`. Saved Bricks use a dedicated grip to join
@@ -235,7 +236,7 @@ requests do not depend on trusting Portless's TLS certificate.
 To start just Bricks Storybook:
 
 ```bash
-PORTLESS_PORT=443 PORTLESS_HTTPS=1 PORTLESS_WILDCARD=1 pnpm --dir apps/bricks dev
+pnpm bricks
 ```
 
 Open [Bricks Storybook](https://bricks.qrk.localhost/). The Brick stories
@@ -246,8 +247,11 @@ Storybook with `pnpm nx run @qrk.sh/bricks:build-storybook`. See the
 [Modules README](apps/app/modules/README.md) for the Mapbox setting and
 server-only `API_WORKER_ORIGIN` override.
 
-`pnpm nx run @qrk.sh/app:storybook` starts App Storybook with both Brick and
-App editor stories at its existing alias.
+`pnpm app:storybook` starts App Storybook with both Brick and
+App editor stories at [storybook.app.qrk.localhost](https://storybook.app.qrk.localhost/).
+
+`pnpm web:storybook` starts Web Storybook at
+[storybook.web.qrk.localhost](https://storybook.web.qrk.localhost/).
 
 To run only App through Portless:
 

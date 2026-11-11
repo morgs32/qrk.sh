@@ -1,4 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { useState } from "react";
+import { expect, userEvent, within } from "storybook/test";
 
 import { SiteTree, type ISiteTreeNode } from "./SiteTree";
 
@@ -60,3 +62,36 @@ export default meta;
 type IStory = StoryObj<typeof meta>;
 
 export const Default: IStory = {};
+
+export const PublishSelection: IStory = {
+  render: function RenderPublishSelection() {
+    const [selected, setSelected] = useState(false);
+    return (
+      <SiteTree
+        nodes={[
+          {
+            label: "Home",
+            checkbox: { checked: true, disabled: true },
+            children: [
+              {
+                label: "About",
+                checkbox: { checked: selected, onCheckedChange: setSelected },
+              },
+            ],
+          },
+        ]}
+      />
+    );
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const root = canvas.getByRole("checkbox", { name: "Home" });
+    const about = canvas.getByRole("checkbox", { name: "About" });
+
+    await expect(root).toBeChecked();
+    await expect(root).toHaveAttribute("aria-disabled", "true");
+    await expect(about).not.toBeChecked();
+    await userEvent.click(canvas.getByText("About"));
+    await expect(about).toBeChecked();
+  },
+};

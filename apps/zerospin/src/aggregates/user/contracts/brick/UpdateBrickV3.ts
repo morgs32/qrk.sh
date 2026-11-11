@@ -1,6 +1,6 @@
 import { brick as brickIdentity } from "../../models/brick/brick";
 
-import { backendLibrary as library } from "@qrk.sh/bricks/definition/backendLibrary";
+import { backendLibrary as library } from "@qrk.sh/bricks/modules/backendLibrary";
 
 import { brickV2 as brick } from "../../models/brick/BrickV2";
 

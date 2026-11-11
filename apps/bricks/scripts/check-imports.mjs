@@ -7,6 +7,8 @@ const bricks = fileURLToPath(new URL("../", import.meta.url)).replace(/[\\/]$/, 
 const workspace = resolve(bricks, "../..");
 const exports = JSON.parse(readFileSync(join(bricks, "package.json"), "utf8")).exports;
 const packageName = "@qrk.sh/bricks";
+const bricksWorker = join(bricks, "worker");
+const apiEntrypoint = join(workspace, "apps/api/Worker.ts");
 const sourceExtensions = [".ts", ".tsx", ".mts", ".cts", ".js", ".jsx", ".mjs", ".cjs"];
 const excludes = [
   "**/node_modules/**",
@@ -127,6 +129,14 @@ for (const project of projects) {
         const entry = exports[key];
         if (!Object.hasOwn(exports, key)) {
           errors.push(`${location} uses undeclared Bricks export ${specifier}`);
+        } else if (typeof entry === "object" && Object.hasOwn(entry, "workerd")) {
+          if (file !== apiEntrypoint) {
+            errors.push(
+              `${location} imports Worker-only Bricks export ${specifier} outside API's Worker entrypoint`,
+            );
+          } else if (target !== resolve(bricks, entry.workerd)) {
+            errors.push(`${location} fails to resolve Bricks Worker export ${specifier}`);
+          }
         } else if (typeof entry === "object" && !typeOnly) {
           errors.push(`${location} imports type-only Bricks export ${specifier} at runtime`);
         } else if (
@@ -145,6 +155,12 @@ for (const project of projects) {
       }
       if (ownedByBricks) {
         if (
+          !inside(file, bricksWorker) &&
+          [target, path].some((candidate) => candidate && inside(candidate, bricksWorker))
+        ) {
+          errors.push(`${location} imports Bricks Worker code through ${specifier}`);
+        }
+        if (
           hostNames.some((name) => specifier === name || specifier.startsWith(name + "/")) ||
           [target, path].some(
             (candidate) => candidate && hosts.some((host) => inside(candidate, host)),
@@ -161,7 +177,7 @@ for (const project of projects) {
 }
 
 const checked = new Set();
-function checkDefinition(file) {
+function checkReactFree(file) {
   if (checked.has(file)) return;
   checked.add(file);
   for (const { specifier, target, typeOnly, line } of packageEdges.get(file) ?? []) {
@@ -169,16 +185,22 @@ function checkDefinition(file) {
     const isReact = /^(react(?:-dom)?|@json-render\/react)(\/|$)/.test(specifier);
     if (isReact && specifier !== "@json-render/react/schema") {
       errors.push(
-        `${relative(workspace, file)}:${line} imports React runtime from a definition through ${specifier}`,
+        `${relative(workspace, file)}:${line} imports React runtime in a definition or Worker graph through ${specifier}`,
       );
     }
-    if (target && packageEdges.has(target)) checkDefinition(target);
+    if (target && packageEdges.has(target)) checkReactFree(target);
   }
 }
 for (const file of packageEdges.keys()) {
-  const [source, owner, directory] = relative(bricks, file).split(sep);
-  if (source === "src" && (owner === "definition" || directory === "definition")) {
-    checkDefinition(file);
+  const [source, owner, module, directory] = relative(bricks, file).split(sep);
+  if (
+    source === "worker" ||
+    (source === "src" && owner === "definition") ||
+    (source === "src" &&
+      owner === "modules" &&
+      (module === "backendLibrary.ts" || directory === "definition"))
+  ) {
+    checkReactFree(file);
   }
 }
 

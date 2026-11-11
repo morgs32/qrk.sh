@@ -4,46 +4,64 @@
   "private": true,
   "type": "module",
   "exports": {
-    "./image/definition/v2": "./src/image/definition/imageV2.ts",
-    "./link/definition": "./src/link/definition/linkV1.ts",
-    "./link/react": "./src/link/react/LinkJsonRenderRegistry.tsx",
-    "./styles.css": "./src/react/brickStyles.css",
+    "./modules/image/definition/v2": "./src/modules/image/definition/imageV2.ts",
+    "./modules/link/definition": "./src/modules/link/definition/linkV1.ts",
+    "./modules/link/react": "./src/modules/link/react/LinkJsonRenderRegistry.tsx",
+    "./components/brickStyles.css": "./src/components/brickStyles.css",
     "./definition/makeCatalogFromComponentMetadata": "./src/definition/makeCatalogFromComponentMetadata.ts",
     "./definition/makeModuleSpecDocumentSchema": "./src/definition/makeModuleSpecDocumentSchema.ts",
     "./definition/placementSpecSchema": "./src/definition/placementSpecSchema.ts",
-    "./link/definition/linkPreviewState": "./src/link/definition/linkPreviewState.ts",
-    "./link/LinkForm": "./src/link/react/LinkForm.tsx",
-    "./link/LinkPlaceholder": "./src/link/react/LinkPlaceholder.tsx",
-    "./link/LinkLineIcon": "./src/link/react/LinkLineIcon.tsx",
-    "./react/BrickDetailsTrigger": "./src/react/BrickDetailsTrigger.tsx",
-    "./react/useAfterBrickInserted": "./src/react/useAfterBrickInserted.ts",
-    "./react/makeModuleView": "./src/react/makeModuleView.tsx",
-    "./react/types": "./src/react/types.ts",
-    "./react/BrickWrapper": "./src/react/BrickWrapper.tsx",
-    "./react/button": "./src/react/button.tsx",
-    "./react/Input": "./src/react/Input.tsx",
-    "./react/StudioSidebar": "./src/react/StudioSidebar.tsx",
-    "./react/useWarnBeforeUnload": "./src/react/useWarnBeforeUnload.ts",
+    "./modules/link/definition/linkPreviewState": "./src/modules/link/definition/linkPreviewState.ts",
+    "./modules/link/LinkForm": "./src/modules/link/react/LinkForm.tsx",
+    "./modules/link/LinkPlaceholder": "./src/modules/link/react/LinkPlaceholder.tsx",
+    "./modules/link/LinkLineIcon": "./src/modules/link/react/LinkLineIcon.tsx",
+    "./components/BrickDetailsTrigger": "./src/components/BrickDetailsTrigger.tsx",
+    "./modules/react/useAfterBrickInserted": "./src/modules/react/useAfterBrickInserted.ts",
+    "./modules/react/makeModuleView": "./src/modules/react/makeModuleView.tsx",
+    "./modules/react/types": "./src/modules/react/types.ts",
+    "./components/BrickWrapper": "./src/components/BrickWrapper.tsx",
+    "./components/button": "./src/components/button.tsx",
+    "./components/Input": "./src/components/Input.tsx",
+    "./components/StudioSidebar": "./src/components/StudioSidebar.tsx",
+    "./modules/react/useWarnBeforeUnload": "./src/modules/react/useWarnBeforeUnload.ts",
     "./rpc": {
-      "types": "./src/rpc/LibraryApi.d.ts"
+      "types": "./src/rpc/BricksApi.d.ts"
     },
     "./rpc/types": {
       "types": "./src/rpc/types.ts"
     },
-    "./article/definition": "./src/article/definition/articleV1.ts",
-    "./article/view": "./src/article/react/articleView.tsx",
-    "./figmaThumbnail/view": "./src/figmaThumbnail/react/figmaThumbnailView.tsx",
-    "./githubActivity/view": "./src/githubActivity/react/githubActivityView.tsx",
-    "./githubProfile/view": "./src/githubProfile/react/githubProfileView.tsx",
-    "./githubRepo/view": "./src/githubRepo/react/githubRepoView.tsx",
-    "./image/view": "./src/image/react/imageView.tsx",
-    "./instagram/view": "./src/instagram/react/instagramView.tsx",
-    "./mapPlace/view": "./src/mapPlace/react/mapPlaceView.tsx",
-    "./swatchAndIcon/definition": "./src/swatchAndIcon/definition/swatchAndIconV1.ts",
-    "./swatchAndIcon/view": "./src/swatchAndIcon/react/swatchAndIconView.tsx",
-    "./definition/backendLibrary": "./src/definition/backendLibrary.ts",
-    "./swatchAndIcon/definition/swatchAndIconPreviewState": "./src/swatchAndIcon/definition/swatchAndIconPreviewState.ts",
-    "./article/editor.css": "./src/article/react/article-editor.css"
+    "./modules/article/definition": "./src/modules/article/definition/articleV1.ts",
+    "./modules/article/view": "./src/modules/article/react/articleView.tsx",
+    "./modules/figmaThumbnail/view": "./src/modules/figmaThumbnail/react/figmaThumbnailView.tsx",
+    "./modules/githubActivity/view": "./src/modules/githubActivity/react/githubActivityView.tsx",
+    "./modules/githubProfile/view": "./src/modules/githubProfile/react/githubProfileView.tsx",
+    "./modules/githubRepo/view": "./src/modules/githubRepo/react/githubRepoView.tsx",
+    "./modules/image/view": "./src/modules/image/react/imageView.tsx",
+    "./modules/instagram/view": "./src/modules/instagram/react/instagramView.tsx",
+    "./modules/mapPlace/view": "./src/modules/mapPlace/react/mapPlaceView.tsx",
+    "./modules/swatchAndIcon/definition": "./src/modules/swatchAndIcon/definition/swatchAndIconV1.ts",
+    "./modules/swatchAndIcon/view": "./src/modules/swatchAndIcon/react/swatchAndIconView.tsx",
+    "./modules/backendLibrary": "./src/modules/backendLibrary.ts",
+    "./modules/swatchAndIcon/definition/swatchAndIconPreviewState": "./src/modules/swatchAndIcon/definition/swatchAndIconPreviewState.ts",
+    "./modules/article/editor.css": "./src/modules/article/react/article-editor.css",
+    "./worker/BricksApi": {
+      "workerd": "./worker/BricksApi.ts"
+    },
+    "./worker/BackendRepo": {
+      "workerd": "./worker/BackendRepo.ts"
+    },
+    "./worker/figmaThumbnail/FigmaBackend": {
+      "workerd": "./worker/figmaThumbnail/FigmaBackend.ts"
+    },
+    "./worker/instagram/BrowserHost": {
+      "workerd": "./worker/instagram/BrowserHost.ts"
+    },
+    "./worker/link/LinkBackend": {
+      "workerd": "./worker/link/LinkBackend.ts"
+    },
+    "./worker/mapPlace/GooglePlacesBackend": {
+      "workerd": "./worker/mapPlace/GooglePlacesBackend.ts"
+    }
   },
   "scripts": {
     "check-imports": "node scripts/check-imports.mjs",
@@ -54,19 +72,23 @@
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
+    "@cloudflare/puppeteer": "^1.1.0",
     "@fontsource-variable/geist-mono": "5.3.0",
     "@json-render/core": "^0.20.0",
     "@json-render/react": "^0.20.0",
     "@meowdown/core": "0.72.1",
     "@meowdown/react": "0.71.4",
+    "@remix-run/route-pattern": "^0.22.1",
     "@unpic/react": "1.0.2",
     "@zerospin/core": "43.1.3",
     "@zerospin/error": "43.1.3",
+    "@zerospin/logger": "43.1.3",
     "@zerospin/shapes": "43.1.3",
     "@zerospin/zod": "43.1.3",
     "capnweb": "^0.12.0",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.3.0",
+    "drizzle-orm": "npm:@zerospin/drizzle-orm@1.0.0-rc.5-qrk.3",
     "effect": "4.0.2",
     "es-toolkit": "^1.52.0",
     "lucide-react": "^1.7.0",
@@ -76,7 +98,8 @@
     "react-colorful": "^5.8.1",
     "react-dom": "19.2.7",
     "react-json-view-lite": "^2.5.0",
-    "swr": "^2.3.3"
+    "swr": "^2.3.3",
+    "system-worker": "43.1.3"
   },
   "devDependencies": {
     "@fontsource-variable/geist": "^5.2.8",

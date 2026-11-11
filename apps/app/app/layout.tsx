@@ -1,4 +1,4 @@
-import "@qrk.sh/bricks/article/editor.css";
+import "@qrk.sh/bricks/modules/article/editor.css";
 import { HeadContent, Scripts } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import "./globals.css";

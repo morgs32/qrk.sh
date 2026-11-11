@@ -2,7 +2,12 @@ import { Menu } from "@base-ui/react/menu";
 import { ChevronDown, GripVertical } from "lucide-react";
 import { useRef, type ReactNode } from "react";
 import { cn } from "cn";
-import { Button } from "@qrk.sh/bricks/react/button";
+import { Button } from "@qrk.sh/bricks/components/button";
+import {
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { BrickAction } from "../../modules/components/BrickAction";
 
 export function WallPlacement(props: {
@@ -35,7 +40,7 @@ export function WallPlacement(props: {
       <div className="wall-placement-content relative z-20 min-w-0 w-full">
         <BrickAction>
           <Menu.Root>
-            <Menu.Trigger
+            <DropdownMenuTrigger
               ref={menuTrigger}
               className="wall-action-tag wall-action-tag-button min-w-0"
               aria-label={`${brickLabel} actions`}
@@ -48,25 +53,27 @@ export function WallPlacement(props: {
                 strokeWidth={1.5}
                 aria-hidden="true"
               />
-            </Menu.Trigger>
-            <Menu.Portal>
-              <Menu.Positioner side="bottom" align="end" sideOffset={0} className="z-[90]">
-                <Menu.Popup className="wall-action-menu">
-                  <Menu.Item
-                    className="wall-action-menu-item text-destructive"
-                    onClick={() => onRequestDeleteBrick(menuTrigger.current)}
-                  >
-                    Delete brick
-                  </Menu.Item>
-                </Menu.Popup>
-              </Menu.Positioner>
-            </Menu.Portal>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              side="bottom"
+              align="end"
+              sideOffset={0}
+              positionerClassName="z-[90]"
+              className="w-max min-w-[90px] max-w-(--available-width) rounded-none border-[#dedede] bg-white p-0 font-mono text-[15px] leading-[18px] font-normal text-[#111] shadow-[2px_3px_0_#0005]"
+            >
+              <DropdownMenuItem
+                className="min-h-5 cursor-pointer rounded-none px-0.5 py-px text-[15px] leading-[18px] data-highlighted:bg-[#f1f1f1] data-highlighted:text-current data-disabled:opacity-40 text-destructive"
+                onClick={() => onRequestDeleteBrick(menuTrigger.current)}
+              >
+                Delete brick
+              </DropdownMenuItem>
+            </DropdownMenuContent>
           </Menu.Root>
           <Button
             type="button"
             data-wall-drag-handle
             variant="ghost"
-            className="size-(--wall-action-tag-height) cursor-grab rounded-none p-0 active:cursor-grabbing"
+            className="size-(--wall-action-tag-height) cursor-grab rounded-none p-0 active:cursor-grabbing active:not-aria-[haspopup]:translate-y-0"
             aria-label={`Move Brick ${placement.brickId}`}
           >
             <GripVertical className="size-4" aria-hidden="true" />

@@ -12,10 +12,10 @@ import { Button } from "@/components/ui/button";
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Textarea } from "@/components/ui/textarea";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
-import { useWarnBeforeUnload } from "@qrk.sh/bricks/react/useWarnBeforeUnload";
+import { useWarnBeforeUnload } from "@qrk.sh/bricks/modules/react/useWarnBeforeUnload";
 
 const ParamsSchema = Schema.Struct({
   username: Schema.String,
@@ -60,28 +60,28 @@ export function PageSettings(props: {
     >
       <div className="space-y-8 px-4 py-6">
         <div className="space-y-6">
-          <div className="space-y-2">
-            <Label htmlFor="page-title">Title</Label>
+          <Field>
+            <FieldLabel htmlFor="page-title">Title</FieldLabel>
             <Input
               id="page-title"
               value={fields.title}
               onChange={(event) => setFields({ ...fields, title: event.target.value })}
             />
-          </div>
+          </Field>
 
           <div className="flex flex-col gap-6 md:flex-row md:items-stretch @max-sm/workspace:[[data-workspace-sidebar]_&]:flex-col">
-            <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2">
-              <Label htmlFor="page-description">Description</Label>
+            <Field className="min-h-0 flex-1">
+              <FieldLabel htmlFor="page-description">Description</FieldLabel>
               <Textarea
                 id="page-description"
                 className="min-h-[126px] flex-1 resize-y field-sizing-fixed"
                 value={fields.description}
                 onChange={(event) => setFields({ ...fields, description: event.target.value })}
               />
-            </div>
+            </Field>
 
             <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2">
-              <Label>Preview</Label>
+              <h3 className="text-sm font-medium">Preview</h3>
               {/* Fixed-height SERP mock; description column can grow taller via flex-1 textarea */}
               <Card className="max-h-[126px] max-w-[400px] shrink-0 overflow-hidden py-4 shadow-none">
                 <CardContent className="min-w-0 space-y-2">
@@ -102,11 +102,7 @@ export function PageSettings(props: {
             </div>
           </div>
         </div>
-        {saveError === null ? null : (
-          <p role="alert" className="text-sm text-destructive">
-            {saveError}
-          </p>
-        )}
+        {saveError === null ? null : <FieldError>{saveError}</FieldError>}
         <div className="flex items-center gap-2">
           <Button type="submit" disabled={!isDirty}>
             Save

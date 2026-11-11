@@ -13,7 +13,7 @@ Plan 062 kept after a catalog drop.
 
 ## Implementation
 
-1. Add `useAfterBrickInserted.ts` under `apps/bricks/src/react` and expose it
+1. Add `useAfterBrickInserted.ts` under `apps/bricks/src/modules/react` and expose it
    through a direct package subpath. The file defines the placement-scoped
    context and the hook. The hook calls the context function from a layout
    effect, after the Brick's DOM and refs are available. It takes an action
@@ -109,10 +109,10 @@ Plan 062 kept after a catalog drop.
 
 ## Planned files
 
-- Add `apps/bricks/src/react/useAfterBrickInserted.ts` and its package export.
+- Add `apps/bricks/src/modules/react/useAfterBrickInserted.ts` and its package export.
 - Update `apps/app/components/WallEditor/WallEditor.tsx`,
-  `apps/bricks/src/article/react/ArticleEditor.tsx`, and
-  `apps/bricks/src/image/react/imageView.tsx`.
+  `apps/bricks/src/modules/article/react/ArticleEditor.tsx`, and
+  `apps/bricks/src/modules/image/react/imageView.tsx`.
 - Update `apps/app/modules/README.md`.
 
 ## Verification

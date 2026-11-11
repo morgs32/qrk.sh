@@ -117,7 +117,7 @@ export function DrawerHeader() {
   );
 
   return (
-    <header className="flex h-full min-w-0 shrink-0 items-center gap-4 overflow-x-auto border-b border-zinc-200 text-sm whitespace-nowrap pl-4 pr-2">
+    <header className="flex h-full min-w-0 shrink-0 items-center gap-4 overflow-x-auto text-sm whitespace-nowrap pl-4 pr-2 inset-shadow-[0_-1px_0] inset-shadow-zinc-200">
       {isSiteSettings || isPageSettings || isStackDetails ? (
         <div className="flex min-w-0 items-center gap-2">
           {isSiteSettings ? (
@@ -196,7 +196,7 @@ export function DrawerHeader() {
           <Dialog.Root key={brick.id}>
             <Dialog.Trigger
               render={
-                <Button type="button" variant="ghost" size="sm" className="text-destructive" />
+                <Button type="button" variant="ghost" className="text-destructive" />
               }
             >
               Delete brick
@@ -234,7 +234,7 @@ export function DrawerHeader() {
           type="button"
           variant="ghost"
           size="icon"
-          className="size-10 cursor-pointer hover:bg-transparent hover:text-red-500 dark:hover:bg-transparent"
+          className="cursor-pointer hover:bg-transparent hover:text-red-500 dark:hover:bg-transparent"
           aria-label="Close drawer"
           onClick={closeDrawer}
         >

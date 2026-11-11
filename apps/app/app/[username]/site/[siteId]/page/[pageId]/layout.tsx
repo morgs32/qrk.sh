@@ -2,7 +2,7 @@
 
 import { useCallback, useLayoutEffect, useRef, type ReactNode, type RefCallback } from "react";
 import { useReducedMotion } from "framer-motion";
-import { useBlocker, useMatches, type ShouldBlockFn } from "@tanstack/react-router";
+import { useBlocker, useMatches, useNavigate, type ShouldBlockFn } from "@tanstack/react-router";
 import { useAuth } from "@clerk/react";
 import { ClerkOfflineError } from "@clerk/react/errors";
 import { useLiveQuery, useSession } from "@zerospin/react";
@@ -13,6 +13,7 @@ import { siteV1 as Site } from "@qrk.sh/zerospin/src/aggregates/user/models/site
 import { pageV1 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV1";
 import { Drawer } from "../../../../../../modules/lib/Drawer";
 import { Toolbars } from "../../Toolbars/Toolbars";
+import DrawerLayout from "./(drawer)/layout";
 import { BrickAutosaveContext } from "./BrickAutosaveContext";
 import { ValidBreakpoint } from "./ValidBreakpoint";
 import { useBreakpointGuard } from "./useBreakpointGuard";
@@ -26,10 +27,28 @@ const ParamsSchema = Schema.Struct({
   pageId: makeIdSchema(Page),
 });
 
+const previewControlSelector = [
+  ".wall-placement-content",
+  ".wall-action-tag",
+  ".wall-resize-grip",
+  "a, button, input, textarea, select, label, summary, audio, video, canvas",
+  '[contenteditable]:not([contenteditable="false"])',
+  '[role="button"], [role="link"], [role^="menuitem"], [tabindex]:not([tabindex="-1"])',
+].join(", ");
+
+function isPreviewBackground(preview: HTMLDivElement, target: EventTarget) {
+  return (
+    target instanceof Element &&
+    preview.contains(target) &&
+    target.closest(previewControlSelector) === null
+  );
+}
+
 export default function PageLayout(props: { children: ReactNode }) {
   const { children } = props;
   const params = useValidatedParams(ParamsSchema);
   const { username, siteId, pageId } = params;
+  const navigate = useNavigate({ from: "/$username/site/$siteId/page/$pageId" });
   const brickFlushes = useRef(new Map<string, (onRecover?: () => void) => boolean>());
   const pendingFlushes = useRef(new Map<() => boolean, Set<() => void>>());
   const pendingNavigation = useRef<((block: boolean) => void) | null>(null);
@@ -113,8 +132,13 @@ export default function PageLayout(props: { children: ReactNode }) {
     select: (matches) =>
       matches.some((match) => match.routeId === "/$username/site/$siteId/page/$pageId/_drawer"),
   });
+  const isBrickDetails = useMatches({
+    select: (matches) =>
+      matches.at(-1)?.routeId === "/$username/site/$siteId/page/$pageId/_drawer/brick/$brickId",
+  });
   const reducedMotion = useReducedMotion();
   const editorScroll = useRef<HTMLDivElement>(null);
+  const previewPress = useRef<number | null>(null);
   const { getToken } = useAuth();
   const session = useSession(userSessionDefinition);
   const { breakpoint, previewRef, retainingPreview } = useBreakpointGuard(flushPageEditors);
@@ -218,6 +242,14 @@ export default function PageLayout(props: { children: ReactNode }) {
   };
   const siteName = site.name ?? "";
   const pageTitle = page.title ?? "";
+  const closeDrawer = () => {
+    void navigate({
+      to: "/$username/site/$siteId/page/$pageId",
+      params,
+      search: ({ breakpoint }) => ({ breakpoint }),
+      resetScroll: false,
+    });
+  };
 
   return (
     <SWRConfig value={{ uploadImage }}>
@@ -231,6 +263,54 @@ export default function PageLayout(props: { children: ReactNode }) {
           </title>
           <div
             ref={scrollRef}
+            onPointerDownCapture={(event) => {
+              if (!event.isPrimary || event.button !== 0) return;
+              // A click can target a shared ancestor when the press and release differ.
+              previewPress.current =
+                isBrickDetails && isPreviewBackground(event.currentTarget, event.target)
+                  ? event.pointerId
+                  : null;
+            }}
+            onPointerUpCapture={(event) => {
+              if (
+                previewPress.current === event.pointerId &&
+                !isPreviewBackground(event.currentTarget, event.target)
+              )
+                previewPress.current = null;
+            }}
+            onPointerCancelCapture={(event) => {
+              if (previewPress.current === event.pointerId) previewPress.current = null;
+            }}
+            onClick={(event) => {
+              const pointerId = previewPress.current;
+              previewPress.current = null;
+              if (
+                !isBrickDetails ||
+                pointerId === null ||
+                (event.nativeEvent instanceof PointerEvent &&
+                  event.nativeEvent.pointerId !== pointerId) ||
+                event.defaultPrevented ||
+                event.button !== 0 ||
+                event.detail === 0 ||
+                event.altKey ||
+                event.ctrlKey ||
+                event.metaKey ||
+                event.shiftKey ||
+                !isPreviewBackground(event.currentTarget, event.target)
+              )
+                return;
+
+              const selection = event.currentTarget.ownerDocument.getSelection();
+              if (
+                selection !== null &&
+                !selection.isCollapsed &&
+                selection.rangeCount > 0 &&
+                selection.getRangeAt(0).intersectsNode(event.currentTarget)
+              )
+                return;
+
+              closeDrawer();
+            }}
             className="wall-preview-scroll relative min-h-0 min-w-0 shrink-0 overflow-y-auto pt-[var(--wall-preview-top-gap)] pb-[var(--wall-preview-bottom-gap)]"
             style={{
               height: "calc(100% - var(--wall-preview-drawer-height))",
@@ -242,13 +322,11 @@ export default function PageLayout(props: { children: ReactNode }) {
           <div
             className="pointer-events-none fixed inset-x-0 z-80 flex justify-center px-2"
             style={{
-              bottom: drawerOpen
-                ? "calc(25dvh + var(--wall-preview-toolbar-gap))"
-                : "var(--wall-preview-toolbar-gap)",
+              bottom: "calc(var(--wall-preview-drawer-height) + var(--wall-preview-toolbar-gap))",
               transition: reducedMotion ? "none" : "bottom 300ms cubic-bezier(0, 0, 0.2, 1)",
             }}
           >
-            <Toolbars />
+            <Toolbars isSitePublished={site.isPublished} />
           </div>
           <Drawer
             side="bottom"
@@ -260,7 +338,14 @@ export default function PageLayout(props: { children: ReactNode }) {
             }
             aria-label="Workspace drawer"
           >
-            {breakpoint === undefined ? null : children}
+            {breakpoint !== undefined &&
+              (drawerOpen ? (
+                <DrawerLayout isSitePublished={site.isPublished} onClose={closeDrawer}>
+                  {children}
+                </DrawerLayout>
+              ) : (
+                children
+              ))}
           </Drawer>
         </div>
       </BrickAutosaveContext>

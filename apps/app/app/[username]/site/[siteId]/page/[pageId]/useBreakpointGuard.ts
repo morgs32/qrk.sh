@@ -1,14 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type RefCallback } from "react";
-import { useNavigate, useParams, useSearch } from "@tanstack/react-router";
+import { useNavigate, useSearch } from "@tanstack/react-router";
 import { BREAKPOINTS, PREVIEW_BORDER_WIDTH } from "../../../../../../modules/lib/breakpoints";
 import { useEditorViewportStore } from "@/stores/useEditorViewportStore";
 
 /** Measure this preview and keep its URL breakpoint within the available width. */
 export function useBreakpointGuard(flushPageEditors: (onRecover?: () => void) => boolean) {
-  const params = useParams({ from: "/$username/site/$siteId/page/$pageId" });
-  const { stackId } = useParams({ strict: false });
   const { breakpoint: requestedBreakpoint } = useSearch({
     from: "/$username/site/$siteId/page/$pageId",
   });
@@ -78,16 +76,6 @@ export function useBreakpointGuard(flushPageEditors: (onRecover?: () => void) =>
     );
     if (largestFitting === undefined) return;
     if (breakpoint !== undefined && breakpoint.previewWidth <= measuredWidth) return;
-    if (stackId !== undefined) {
-      void navigate({
-        to: "/$username/site/$siteId/page/$pageId",
-        params,
-        replace: true,
-        resetScroll: false,
-        search: { breakpoint: largestFitting.id },
-      });
-      return;
-    }
     void navigate({
       to: ".",
       replace: true,
@@ -97,7 +85,7 @@ export function useBreakpointGuard(flushPageEditors: (onRecover?: () => void) =>
         breakpoint: largestFitting.id,
       }),
     });
-  }, [availableWidth, requestedBreakpoint, breakpoint, navigate, params, stackId]);
+  }, [availableWidth, requestedBreakpoint, breakpoint, navigate]);
 
   return { breakpoint, previewRef, retainingPreview };
 }

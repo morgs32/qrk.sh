@@ -20,9 +20,6 @@ type IToolbarButtonLegacyProps = {
 type IToolbarButtonLabeledProps = {
   label: string;
   icon: React.ReactNode;
-  isActive?: boolean;
-  activeLabel?: string;
-  activeIcon?: React.ReactNode;
   link?:
     | { to: "/$username"; params: { username: string } }
     | {
@@ -34,9 +31,6 @@ type IToolbarButtonLabeledProps = {
         params: { username: string; siteId: string; pageId: string };
         search: { breakpoint?: string };
       };
-  activeDestructive?: boolean;
-  tooltip?: string;
-  showTooltip?: boolean;
   children?: never;
 } & Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "children">;
 
@@ -51,36 +45,23 @@ function ToolbarLabeledButton(props: IToolbarButtonLabeledProps) {
   const {
     label,
     icon,
-    isActive = false,
-    activeLabel,
-    activeIcon,
     link,
-    activeDestructive = false,
-    tooltip,
-    showTooltip = false,
     className,
-    ...rest
+    "aria-label": providedAriaLabel,
+    type: _type,
+    ...buttonProps
   } = props;
-  const displayLabel = isActive && activeLabel !== undefined ? activeLabel : label;
-  const displayIcon = isActive && activeIcon !== undefined ? activeIcon : icon;
-  const tip = tooltip ?? displayLabel;
-  const ariaLabel = rest["aria-label"] ?? displayLabel;
-
-  const mergedClassName = cn(
-    toolbarButtonClassName,
-    isActive && activeDestructive && "text-destructive hover:text-destructive",
-    className,
-  );
+  const ariaLabel = providedAriaLabel ?? label;
+  const mergedClassName = cn(toolbarButtonClassName, className);
 
   const body = (
     <>
-      {displayIcon}
-      {displayLabel}
+      {icon}
+      {label}
     </>
   );
 
-  const { "aria-label": _a, type: _type, ...buttonProps } = rest;
-  const control = link !== undefined ? (
+  return link !== undefined ? (
     <Link {...link} resetScroll={false} aria-label={ariaLabel} className={mergedClassName}>
       {body}
     </Link>
@@ -88,19 +69,6 @@ function ToolbarLabeledButton(props: IToolbarButtonLabeledProps) {
     <button type="button" aria-label={ariaLabel} className={mergedClassName} {...buttonProps}>
       {body}
     </button>
-  );
-
-  if (!showTooltip) {
-    return control;
-  }
-
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>{control}</TooltipTrigger>
-      <TooltipContent side="top" sideOffset={8}>
-        {tip}
-      </TooltipContent>
-    </Tooltip>
   );
 }
 

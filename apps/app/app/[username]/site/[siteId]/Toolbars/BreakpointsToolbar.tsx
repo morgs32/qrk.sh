@@ -1,6 +1,6 @@
 "use client";
 
-import { useMatches, useNavigate, useParams, useSearch } from "@tanstack/react-router";
+import { useMatches, useNavigate, useSearch } from "@tanstack/react-router";
 
 import { BREAKPOINTS } from "../../../../../modules/lib/breakpoints";
 import { WallPreviewToolbar } from "../../../../../modules/lib/WallPreviewToolbar";
@@ -33,7 +33,6 @@ export function BreakpointsToolbar() {
       matches.at(-1)?.routeId === "/$username/site/$siteId/page/$pageId/breakpoints",
   });
   const params = useValidatedParams(ParamsSchema);
-  const { stackId } = useParams({ strict: false });
   const navigate = useNavigate();
   const search = useSearch({ from: "/$username/site/$siteId/page/$pageId" });
   const availableWidth = useEditorViewportStore((state) => state.availableWidth);
@@ -63,23 +62,16 @@ export function BreakpointsToolbar() {
               availableWidth === null ||
               row.previewWidth > availableWidth
             }
-            onClick={() => {
-              if (stackId !== undefined && search.breakpoint !== row.id)
-                return navigate({
-                  to: "/$username/site/$siteId/page/$pageId",
-                  params,
-                  search: { breakpoint: row.id },
-                  resetScroll: false,
-                });
-              return navigate({
+            onClick={() =>
+              navigate({
                 to: ".",
                 search: (previous) => ({
                   ...previous,
                   breakpoint: row.id,
                 }),
                 resetScroll: false,
-              });
-            }}
+              })
+            }
             className={
               search.breakpoint === row.id
                 ? "h-7 px-2 text-[13px] font-bold text-foreground disabled:opacity-100"

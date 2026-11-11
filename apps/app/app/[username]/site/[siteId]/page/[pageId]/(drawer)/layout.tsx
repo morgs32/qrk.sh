@@ -26,8 +26,12 @@ const ParamsSchema = Schema.Struct({
   brickId: Schema.optional(Schema.String),
 });
 
-export default function DrawerLayout(props: { children: ReactNode }) {
-  const { children } = props;
+export default function DrawerLayout(props: {
+  children: ReactNode;
+  isSitePublished: boolean;
+  onClose: () => void;
+}) {
+  const { children, isSitePublished, onClose } = props;
   const params = useValidatedParams(ParamsSchema);
   const { brickId } = params;
   const autosave = useContext(BrickAutosaveContext);
@@ -36,11 +40,6 @@ export default function DrawerLayout(props: { children: ReactNode }) {
   const routeId = useMatches({ select: (matches) => matches.at(-1)?.routeId });
   const navigate = useNavigate();
   const session = useSession(userSessionDefinition);
-  const { data: site } = useLiveQuery({
-    session,
-    key: params.siteId,
-    query: (db, id) => db.query.site.findFirst({ where: { id: { eq: id } } }),
-  });
   const { data: page } = useLiveQuery({
     session,
     key: { pageId: params.pageId, siteId: params.siteId },
@@ -69,22 +68,13 @@ export default function DrawerLayout(props: { children: ReactNode }) {
           walls: page.walls,
           placements: page.walls.flatMap((wall) => wall.placements),
         });
-  const canPublishPage = site?.isPublished === true && page?.isPublished === false;
+  const canPublishPage = isSitePublished && page?.isPublished === false;
   const canPublishUpdates =
-    site?.isPublished === true &&
+    isSitePublished &&
     page?.isPublished === true &&
     savedContent !== null &&
     publishedSnapshot !== undefined &&
     !isEqual(savedContent, publishedSnapshot.content);
-
-  const closeDrawer = () => {
-    void navigate({
-      to: "/$username/site/$siteId/page/$pageId",
-      params,
-      search: { breakpoint: breakpoint },
-      resetScroll: false,
-    });
-  };
 
   useHotkey(
     "Escape",
@@ -92,7 +82,7 @@ export default function DrawerLayout(props: { children: ReactNode }) {
       // Child overlays consume Escape before the drawer's bubbling listener.
       if (event.defaultPrevented) return;
       event.preventDefault();
-      closeDrawer();
+      onClose();
     },
     { preventDefault: false, requireReset: true },
   );
@@ -126,31 +116,10 @@ export default function DrawerLayout(props: { children: ReactNode }) {
       <header className="flex shrink-0 items-center gap-2 border-b border-border px-2">
         <div className="flex min-w-0 items-center gap-2 overflow-x-auto">
           <TabsList variant="line" aria-label="Page controls" className="h-11">
-            <TabsTrigger
-              value="modules"
-              onClick={() => {
-                if (
-                  tab !== "modules" ||
-                  routeId === "/$username/site/$siteId/page/$pageId/_drawer/modules/"
-                )
-                  return;
-                void navigate({
-                  to: "/$username/site/$siteId/page/$pageId/modules",
-                  params,
-                  search: { breakpoint },
-                  resetScroll: false,
-                });
-              }}
-            >
+            <TabsTrigger value="modules">
               <Plus aria-hidden />
               Bricks
             </TabsTrigger>
-            {isBrickDetails ? (
-              <TabsTrigger value="edit-brick">
-                <Pencil aria-hidden />
-                Edit brick
-              </TabsTrigger>
-            ) : null}
             <TabsTrigger value="page-settings">
               <File aria-hidden />
               Page settings
@@ -159,10 +128,16 @@ export default function DrawerLayout(props: { children: ReactNode }) {
               <Globe aria-hidden />
               Site settings
             </TabsTrigger>
+            {isBrickDetails ? (
+              <TabsTrigger value="edit-brick">
+                <Pencil aria-hidden />
+                Edit brick
+              </TabsTrigger>
+            ) : null}
           </TabsList>
         </div>
         <div className="ml-auto flex shrink-0 items-center gap-2">
-          {site?.isPublished === false ? <PublishSiteDialog siteId={params.siteId} /> : null}
+          {!isSitePublished ? <PublishSiteDialog siteId={params.siteId} /> : null}
           {canPublishPage || canPublishUpdates ? (
             <Button
               type="button"
@@ -187,7 +162,7 @@ export default function DrawerLayout(props: { children: ReactNode }) {
             size="icon"
             className="cursor-pointer hover:bg-transparent hover:text-red-500 dark:hover:bg-transparent"
             aria-label="Close drawer"
-            onClick={closeDrawer}
+            onClick={onClose}
           >
             <X className="size-5" aria-hidden />
           </Button>

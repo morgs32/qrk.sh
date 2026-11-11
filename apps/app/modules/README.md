@@ -520,8 +520,6 @@ measurement. Below 362px of available total width, the UI explains the minimum
 space needed instead of mounting or shrinking a Wall. Width growth enables
 choices while keeping the current URL selection; breakpoint labels retain their
 nominal content widths. The separate development URL is removed.
-Automatic breakpoint normalization closes Stack Details because Stack IDs belong
-to a single Wall, matching toolbar breakpoint changes.
 PageLayout's single `.wall-preview-viewport` root contains the editor scroll
 region and drawer spacer, toolbar anchor, and Drawer as siblings. It owns scroll
 anchoring/clamping and floating toolbar placement. PagePreview owns a full-width
@@ -543,9 +541,9 @@ Stack and placed-Brick action bars stick below the browser bar and any sticky
 navbar while their owner remains visible. Full-height, pointer-transparent hosts
 bound each bar to its own Stack or Brick without consuming layout space. Hovering
 the Stack action bar or anywhere inside an empty Stack outlines the entire Stack
-with the same blue stroke and halos used by Bricks. The outline also appears while
-the Stack drawer is open. The Wall sets a 7rem sticky offset with a sticky navbar
-and 3rem otherwise. Existing
+with the same blue stroke and halos used by Bricks. The Stack name is plain text,
+and the chevron opens the insertion menu. The Wall sets a 7rem sticky offset with
+a sticky navbar and 3rem otherwise. Existing
 visibility rules and action layers remain; drawer-preview actions stay absolute,
 and move indicators remain above the controls at z-70. The Cross Row Sticky
 Actions stories exercise both navbar settings, owner-bottom boundaries, menu

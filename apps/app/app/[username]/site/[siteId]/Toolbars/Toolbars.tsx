@@ -8,16 +8,16 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { SiteToolbar } from "./SiteToolbar";
 import { BreakpointsToolbar } from "./BreakpointsToolbar";
 
-export function Toolbars() {
+export function Toolbars(props: { isSitePublished: boolean }) {
+  const { isSitePublished } = props;
   const route = useMatches({ select: (matches) => matches.at(-1)?.routeId });
   const toolbar =
     route === "/$username/site/$siteId/page/$pageId/breakpoints" ||
     route === "/$username/site/$siteId/page/$pageId/_drawer/modules/" ||
-    route === "/$username/site/$siteId/page/$pageId/_drawer/stack/$stackId" ||
     route === "/$username/site/$siteId/page/$pageId/_drawer/brick/$brickId" ? (
       <BreakpointsToolbar key="Breakpoints" />
     ) : route === "/$username/site/$siteId/page/$pageId/" ? (
-      <SiteToolbar key="Site" />
+      <SiteToolbar key="Site" isSitePublished={isSitePublished} />
     ) : null;
   return (
     <TooltipProvider delayDuration={0}>

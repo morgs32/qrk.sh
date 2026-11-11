@@ -74,9 +74,7 @@ const WallPlacementData = Schema.Struct({
 export function WallEditor(props: {
   wallId: IInferModelRow<typeof wallV3>["id"];
   selectedBrickId?: string | null;
-  selectedStackId?: string | null;
   onEditBrick?: (brickId: string) => void;
-  onEditStack?: (stackId: string) => void;
   renderBrickDrawer?: (brickId: string, content: ReactNode) => ReactNode;
   registerBrickFlush?: (brickId: string, flush: (onRecover?: () => void) => boolean) => () => void;
   flushBrick?: (brickId: string) => boolean;
@@ -84,9 +82,7 @@ export function WallEditor(props: {
   const {
     wallId,
     selectedBrickId,
-    selectedStackId,
     onEditBrick,
-    onEditStack,
     renderBrickDrawer,
     registerBrickFlush,
     flushBrick,
@@ -919,21 +915,10 @@ export function WallEditor(props: {
                           key={stack.id}
                           data-wall-stack-id={stack.id}
                           data-wall-stack-empty={isEmpty ? "" : undefined}
-                          className={`group/stack relative min-h-[50px] min-w-0 ${stack.id === selectedStackId ? "is-selected-stack" : ""} ${isEmpty && dropTarget?.kind === "stack" && dropTarget.stackId === stack.id ? "bg-blue-50 outline outline-blue-500 -outline-offset-2" : ""}`}
+                          className={`group/stack relative min-h-[50px] min-w-0 ${isEmpty && dropTarget?.kind === "stack" && dropTarget.stackId === stack.id ? "bg-blue-50 outline outline-blue-500 -outline-offset-2" : ""}`}
                         >
                           <StackAction>
-                            {onEditStack === undefined ? (
-                              <span className="min-w-0 truncate">{stack.name}</span>
-                            ) : (
-                              <button
-                                type="button"
-                                aria-label={`Edit stack ${stack.name}`}
-                                onClick={() => onEditStack(stack.id)}
-                                className="wall-action-tag-button min-w-0 shrink"
-                              >
-                                <span className="truncate">{stack.name}</span>
-                              </button>
-                            )}
+                            <span className="min-w-0 truncate">{stack.name}</span>
                             <Menu.Root>
                               <Menu.Trigger
                                 className="wall-action-tag-button shrink-0"

@@ -6,12 +6,10 @@ import { useMemo } from "react";
 import { ArrowLeft, File, Globe, Plus, RectangleHorizontal } from "lucide-react";
 import { WallPreviewToolbar } from "../../../../../modules/lib/WallPreviewToolbar";
 import { useSearch } from "@tanstack/react-router";
-import { useLiveQuery, useSession } from "@zerospin/react";
 import { makeIdSchema } from "@zerospin/sdk/browser";
 import { siteV1 as Site } from "@qrk.sh/zerospin/src/aggregates/user/models/site/SiteV1";
 
 import { useValidatedParams } from "@/hooks/useValidatedParams";
-import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
 import { PublishSiteDialog } from "../page/[pageId]/(drawer)/PublishSiteDialog";
 
 import { ToolbarSeparator } from "./ToolbarSeparator";
@@ -28,15 +26,10 @@ const toolbarPresenceTransition = {
   ease: [0, 0, 0.2, 1] as const,
 };
 
-export function SiteToolbar() {
+export function SiteToolbar(props: { isSitePublished: boolean }) {
+  const { isSitePublished } = props;
   const reducedMotion = useReducedMotion();
   const params = useValidatedParams(ParamsSchema);
-  const session = useSession(userSessionDefinition);
-  const { data: site } = useLiveQuery({
-    session,
-    key: params.siteId,
-    query: (db, id) => db.query.site.findFirst({ where: { id: { eq: id } } }),
-  });
   const { breakpoint } = useSearch({ from: "/$username/site/$siteId/page/$pageId" });
   const username = params.username;
   const siteId = params.siteId;
@@ -61,7 +54,6 @@ export function SiteToolbar() {
         <ToolbarButton
           label="Exit"
           icon={<ArrowLeft className="h-3.5 w-3.5" />}
-          tooltip="Exit"
           link={{ to: "/$username", params: { username } }}
           className="h-7 gap-1.5 px-2 text-[13px] font-normal text-muted-foreground hover:text-foreground"
         />
@@ -84,7 +76,6 @@ export function SiteToolbar() {
         <ToolbarButton
           label="Set breakpoints"
           icon={<RectangleHorizontal className="h-3.5 w-3.5" />}
-          tooltip="Set breakpoints"
           link={{
             to: "/$username/site/$siteId/page/$pageId/breakpoints",
             params: hrefParams,
@@ -98,7 +89,6 @@ export function SiteToolbar() {
         <ToolbarButton
           label="Page settings"
           icon={<File className="h-3.5 w-3.5" />}
-          tooltip="Page settings"
           link={{
             to: "/$username/site/$siteId/page/$pageId/page-settings",
             params: hrefParams,
@@ -112,7 +102,6 @@ export function SiteToolbar() {
         <ToolbarButton
           label="Site settings"
           icon={<Globe className="h-3.5 w-3.5" />}
-          tooltip="Site settings"
           link={{
             to: "/$username/site/$siteId/page/$pageId/site-settings",
             params: hrefParams,
@@ -120,7 +109,7 @@ export function SiteToolbar() {
           }}
           className="h-7 gap-1.5 px-2 text-[13px] font-normal text-muted-foreground hover:text-foreground"
         />
-        {site?.isPublished === false ? (
+        {!isSitePublished ? (
           <>
             <ToolbarSeparator />
             <PublishSiteDialog siteId={params.siteId} />

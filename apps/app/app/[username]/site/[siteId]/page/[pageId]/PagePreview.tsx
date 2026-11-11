@@ -23,7 +23,7 @@ export function PagePreview(props: { breakpoint: (typeof BREAKPOINTS)[number] })
   if (autosave === null) throw new Error("Brick autosave requires the Page layout");
   const { registerBrickFlush, flushBrick } = autosave;
   const navigate = useNavigate();
-  const { brickId: selectedBrickId, stackId: selectedStackId } = useParams({ strict: false });
+  const { brickId: selectedBrickId } = useParams({ strict: false });
   const [brickDrawer, setBrickDrawer] = useState<HTMLElement | null>(null);
   useLayoutEffect(() => {
     setBrickDrawer(
@@ -74,7 +74,6 @@ export function PagePreview(props: { breakpoint: (typeof BREAKPOINTS)[number] })
         key={wall.id}
         wallId={wall.id}
         selectedBrickId={selectedBrickId}
-        selectedStackId={selectedStackId}
         registerBrickFlush={registerBrickFlush}
         flushBrick={flushBrick}
         renderBrickDrawer={(brickId, content) =>
@@ -82,18 +81,6 @@ export function PagePreview(props: { breakpoint: (typeof BREAKPOINTS)[number] })
             ? createPortal(content, brickDrawer)
             : null
         }
-        onEditStack={(stackId) => {
-          if (selectedStackId === stackId) return;
-          void navigate({
-            to: "/$username/site/$siteId/page/$pageId/stack/$stackId",
-            params: { ...params, stackId },
-            search: (previous) => ({
-              ...previous,
-              breakpoint: breakpoint.id,
-            }),
-            resetScroll: false,
-          });
-        }}
         onEditBrick={(brickId) => {
           if (
             selectedBrickId === brickId ||

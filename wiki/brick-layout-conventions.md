@@ -252,24 +252,16 @@ and clicks following a text-selection drag do not select. When the Brick surface
 itself has keyboard focus, Enter or Space opens the edit form. Interactive content
 inside the Brick keeps its own keyboard behavior.
 
-Clicking the keyboard-accessible name button in StackAction opens Stack Details
-and replaces Brick selection. The route owns the selected Stack, so reload and
-Back/Forward restore it. A selected Stack has a 1px blue border overlay above its
-Brick content and below its name tab. The overlay ignores pointer events and keeps
-the name tab visible without changing layout or drop geometry. Missing or mismatched
-Stack routes show Stack not found.
+Clicking empty preview space, including gaps between Bricks and the gray
+gutters, closes Brick Details and clears selection through the usual Close
+behavior. A press that starts on a Brick or preview control and ends on empty
+space keeps the drawer open.
 
-Stack Details edits only the name in the current breakpoint's Wall. Save trims
-whitespace, rejects blank names, and remains in the drawer; unchanged names cannot
-be saved. Cancel restores the saved name without closing. Selecting the same
-Stack preserves the draft; leaving the drawer or switching breakpoints discards
-it. Breakpoint changes leave the Stack route instead of selecting an unrelated
-Stack in the next Wall.
+StackAction displays the saved Stack name as plain text. Its chevron opens the
+menu for inserting a Stack to the left or right.
 
-`renameStack@1` checks authenticated ownership and current Wall membership, then
-updates only the embedded Stack's name. Stack IDs, Rows, Placements, and other
-Walls are preserved. The browser now pins user owner V6 and web Actor V6;
-`renameStack@1` and its models are unchanged.
+The `renameStack` command checks authenticated ownership and current Wall
+membership, then updates only the embedded Stack's name.
 
 `BrickWrapper` owns intrinsic content sizing and self-contained flat/card appearance,
 and stretches vertically inside a Wall Row.
@@ -281,7 +273,7 @@ clipping layer, and BrickAction at 20. StackAction retains its existing z-index
 surface without editor actions or an added edge. The separate native pointer
 image retains its 2px `#1F9BFC` edge, with no halos or card shadow.
 
-Selected means a Brick's edit form or a Stack's name editor is open. Active means DOM focus, including
+Selected means a Brick's edit form is open. Active means DOM focus, including
 keyboard focus. A shared 1px `#1F9BFC` content stroke and sharp same-blue halos
 (30% opacity outside and 15% inside) decorate hover, focus, and selection without
 changing layout. Selection can keep that content paint while focus is in the

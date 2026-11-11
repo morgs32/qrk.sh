@@ -218,7 +218,6 @@
 }
 
 /* Selection persists while its edit form owns focus outside the Wall. */
-[data-wall-stack-id].is-selected-stack::after,
 .wall-placement.is-selected > .wall-placement-content > .brick-hover-surface::after,
 [data-drawer-module-id]:focus-within > .brick-hover-surface::after,
 .wall-placement:focus-within > .wall-placement-content > .brick-hover-surface::after {

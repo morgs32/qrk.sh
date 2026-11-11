@@ -12,32 +12,34 @@ export function CopyButton({ text }: { text: string }) {
 
   return (
     <Tooltip>
-      <TooltipTrigger asChild>
-        <Button
-          type="button"
-          size="icon"
-          variant="secondary"
-          className="size-8 shadow-sm"
-          aria-label="Copy share URL"
-          disabled={isCopying}
-          onClick={async () => {
-            try {
-              setIsCopying(true);
-              await navigator.clipboard.writeText(text);
-              setDidCopy(true);
-              window.setTimeout(() => setDidCopy(false), 1200);
-            } finally {
-              setIsCopying(false);
-            }
-          }}
-        >
-          {didCopy ? (
-            <Check className="size-3.5" aria-hidden />
-          ) : (
-            <Copy className="size-3.5" aria-hidden />
-          )}
-        </Button>
-      </TooltipTrigger>
+      <TooltipTrigger
+        render={
+          <Button
+            type="button"
+            size="icon"
+            variant="secondary"
+            className="size-8 shadow-sm"
+            aria-label="Copy share URL"
+            disabled={isCopying}
+            onClick={async () => {
+              try {
+                setIsCopying(true);
+                await navigator.clipboard.writeText(text);
+                setDidCopy(true);
+                window.setTimeout(() => setDidCopy(false), 1200);
+              } finally {
+                setIsCopying(false);
+              }
+            }}
+          >
+            {didCopy ? (
+              <Check className="size-3.5" aria-hidden />
+            ) : (
+              <Copy className="size-3.5" aria-hidden />
+            )}
+          </Button>
+        }
+      />
       <TooltipContent side="left" sideOffset={8}>
         {didCopy ? "Copied" : "Copy"}
       </TooltipContent>

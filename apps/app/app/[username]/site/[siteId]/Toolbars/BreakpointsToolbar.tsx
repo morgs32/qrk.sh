@@ -81,24 +81,26 @@ export function BreakpointsToolbar() {
           <>
             <ToolbarSeparator />
             <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-sm"
-                  aria-label="Close"
-                  onClick={() =>
-                    navigate({
-                      to: "/$username/site/$siteId/page/$pageId",
-                      params,
-                      search: { breakpoint: search.breakpoint },
-                      resetScroll: false,
-                    })
-                  }
-                >
-                  <X className="size-3.5" aria-hidden />
-                </Button>
-              </TooltipTrigger>
+              <TooltipTrigger
+                render={
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label="Close"
+                    onClick={() =>
+                      navigate({
+                        to: "/$username/site/$siteId/page/$pageId",
+                        params,
+                        search: { breakpoint: search.breakpoint },
+                        resetScroll: false,
+                      })
+                    }
+                  >
+                    <X className="size-3.5" aria-hidden />
+                  </Button>
+                }
+              />
               <TooltipContent side="top" sideOffset={8}>
                 Close
               </TooltipContent>

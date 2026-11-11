@@ -8,16 +8,17 @@ import type { LibraryApi } from "../../rpc/LibraryApi";
 import useSWRInfinite from "swr/infinite";
 
 import { Button } from "../../react/button";
-import { Input } from "../../react/Input";
+import { TextInput } from "../../react/TextInput";
 import { cn } from "cn";
 
 const SEARCH_PAGE_SIZE = 48;
 
 export function MaterialSymbolsIconLookup(props: {
   value: string;
+  saveError?: string;
   onChange: (value: { hash: string; name: string; svg: string }) => void;
 }) {
-  const { value, onChange } = props;
+  const { value, onChange, saveError } = props;
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
 
@@ -91,10 +92,14 @@ export function MaterialSymbolsIconLookup(props: {
       <div className="relative">
         <Search
           aria-hidden
-          className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2"
+          className="pointer-events-none absolute top-[7px] left-[90px] z-10 size-3.5"
         />
-        <Input
-          aria-label="Search icons"
+        <TextInput
+          label="Search icons"
+          description={
+            debouncedQuery.length < 2 ? "Enter at least two characters to search." : undefined
+          }
+          error={saveError ?? (error instanceof Error ? error.message : undefined)}
           autoComplete="off"
           className="pl-8"
           onChange={(event) => {
@@ -112,18 +117,7 @@ export function MaterialSymbolsIconLookup(props: {
         </p>
       ) : null}
 
-      {error instanceof Error ? (
-        <p
-          className="m-0 rounded-md border border-destructive/30 bg-destructive/5 p-3"
-          role="alert"
-        >
-          {error.message}
-        </p>
-      ) : null}
-
-      {debouncedQuery.length < 2 ? (
-        <p className="m-0 py-4 text-center">Enter at least two characters to search.</p>
-      ) : isLoading ? (
+      {debouncedQuery.length < 2 ? null : isLoading ? (
         <div className="flex items-center justify-center gap-2 py-6">
           <Loader2 aria-hidden className="size-4 animate-spin" />
           Searching Material Symbols...

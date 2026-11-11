@@ -64,7 +64,6 @@ export function makeModuleView<
           ) => IResult<unknown, { message: string }>;
           previewWidth?: number;
           measureFrame?: (selector: string) => number | undefined;
-          onCancel: () => void;
         }) => ReactNode;
         inlineEditor?: never;
       }
@@ -124,14 +123,13 @@ export function makeModuleView<
   });
 
   function Form(props: Parameters<NonNullable<IModule<string>["Form"]>>[0]) {
-    const { state, onSave, onCancel, previewWidth, measureFrame } = props;
+    const { state, onSave, previewWidth, measureFrame } = props;
     if (EditorForm === undefined) return null;
     const decoded = state === null ? null : decodeState(state, { onExcessProperty: "ignore" });
     return (
       <EditorForm
         state={decoded}
         onSave={onSave}
-        onCancel={onCancel}
         previewWidth={previewWidth}
         measureFrame={measureFrame}
       />

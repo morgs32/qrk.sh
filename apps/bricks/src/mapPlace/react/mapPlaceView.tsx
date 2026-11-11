@@ -11,8 +11,8 @@ const mapPlace = makeModuleView(mapPlaceV1, {
   defaultState: mapPlacePreviewState,
   LineIcon: MapPlaceLineIcon,
   form(props) {
-    const { state, onSave, onCancel } = props;
-    return <MapPlaceForm state={state} onSave={onSave} onCancel={onCancel} />;
+    const { state, onSave } = props;
+    return <MapPlaceForm state={state} onSave={onSave} />;
   },
   variants: {
     default: {

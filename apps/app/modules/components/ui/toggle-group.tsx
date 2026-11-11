@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import * as ToggleGroupPrimitive from "@radix-ui/react-toggle-group";
+import { ToggleGroup as ToggleGroupPrimitive } from "@base-ui/react/toggle-group";
+import { Toggle } from "@base-ui/react/toggle";
 import { type VariantProps } from "class-variance-authority";
 
 import { cn } from "cn";
@@ -13,51 +14,51 @@ const ToggleGroupContext = React.createContext<VariantProps<typeof toggleVariant
   variant: "default",
 });
 
-function ToggleGroup({
-  className,
-  variant,
-  size,
-  children,
-  ...props
-}: React.ComponentPropsWithoutRef<typeof ToggleGroupPrimitive.Root> &
-  VariantProps<typeof toggleVariants>) {
+function ToggleGroup(
+  props: React.ComponentPropsWithoutRef<typeof ToggleGroupPrimitive> &
+    VariantProps<typeof toggleVariants>,
+) {
+  const { className, variant, size, children, ...elementProps } = props;
   return (
-    <ToggleGroupPrimitive.Root
+    <ToggleGroupPrimitive
       data-slot="toggle-group"
-      className={cn("flex items-center justify-center gap-1", className)}
-      {...props}
+      className={(state) =>
+        cn(
+          "flex items-center justify-center gap-1",
+          typeof className === "function" ? className(state) : className,
+        )
+      }
+      {...elementProps}
     >
       <ToggleGroupContext.Provider value={{ variant, size }}>
         {children}
       </ToggleGroupContext.Provider>
-    </ToggleGroupPrimitive.Root>
+    </ToggleGroupPrimitive>
   );
 }
 
-function ToggleGroupItem({
-  className,
-  children,
-  variant,
-  size,
-  ...props
-}: React.ComponentPropsWithoutRef<typeof ToggleGroupPrimitive.Item> &
-  VariantProps<typeof toggleVariants>) {
+function ToggleGroupItem(
+  props: React.ComponentPropsWithoutRef<typeof Toggle> & VariantProps<typeof toggleVariants>,
+) {
+  const { className, children, variant, size, ...elementProps } = props;
   const context = React.useContext(ToggleGroupContext);
 
   return (
-    <ToggleGroupPrimitive.Item
+    <Toggle
       data-slot="toggle-group-item"
-      className={cn(
-        toggleVariants({
-          variant: context.variant || variant,
-          size: context.size || size,
-        }),
-        className,
-      )}
-      {...props}
+      className={(state) =>
+        cn(
+          toggleVariants({
+            variant: context.variant || variant,
+            size: context.size || size,
+          }),
+          typeof className === "function" ? className(state) : className,
+        )
+      }
+      {...elementProps}
     >
       {children}
-    </ToggleGroupPrimitive.Item>
+    </Toggle>
   );
 }
 

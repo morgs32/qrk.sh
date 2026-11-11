@@ -21,8 +21,6 @@ const BREAKPOINTS = [
   { id: "xl", previewWidth: 1440 },
 ];
 
-const panelClassName = "mt-0 data-[state=inactive]:hidden";
-
 export function BrickStory<STATE_SHAPE extends IShape>(props: {
   definition: { id: string; stateShape: STATE_SHAPE };
   view: IModule<string>;
@@ -35,7 +33,6 @@ export function BrickStory<STATE_SHAPE extends IShape>(props: {
   const [moduleState, setModuleState] = useState<unknown>(() =>
     fixture === "unconfigured" ? null : structuredClone(view.defaultState),
   );
-  const [formRevision, setFormRevision] = useState(0);
   const [cardStyle, setCardStyle] = useState(false);
   const [generatePrompt, setGeneratePrompt] = useState("");
   const [generatedSpec, setGeneratedSpec] = useState<Spec>();
@@ -131,16 +128,15 @@ export function BrickStory<STATE_SHAPE extends IShape>(props: {
           <StudioSidebar
             label="Brick preview tools"
             header={
-              <TabsList aria-label="Preview tools" variant="line">
+              <TabsList aria-label="Preview tools" variant="line" activateOnFocus>
                 {Form === undefined ? null : <TabsTrigger value="configure">Configure</TabsTrigger>}
                 <TabsTrigger value="generate">Generate Spec</TabsTrigger>
               </TabsList>
             }
           >
             {Form === undefined ? null : (
-              <TabsContent value="configure" forceMount className={panelClassName}>
+              <TabsContent value="configure" className="mt-0">
                 <Form
-                  key={formRevision}
                   state={moduleState}
                   previewWidth={BREAKPOINTS[0].previewWidth}
                   measureFrame={(selector) => {
@@ -153,11 +149,10 @@ export function BrickStory<STATE_SHAPE extends IShape>(props: {
                     setModuleState(state);
                     return { _tag: "Success", success: undefined };
                   }}
-                  onCancel={() => setFormRevision((revision) => revision + 1)}
                 />
               </TabsContent>
             )}
-            <TabsContent value="generate" forceMount className={panelClassName}>
+            <TabsContent value="generate" keepMounted className="mt-0">
               <form
                 autoComplete="off"
                 className="flex max-w-3xl flex-col gap-2"

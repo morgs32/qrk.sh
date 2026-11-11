@@ -29,7 +29,7 @@ export const BreakpointPicker: StoryObj = {
           <p className="text-sm text-muted-foreground">{breakpoint.previewWidth}px breakpoint</p>
         </div>
         <div className="pointer-events-none fixed inset-x-0 bottom-(--wall-preview-toolbar-gap) flex justify-center px-2">
-          <TooltipProvider delayDuration={0}>
+          <TooltipProvider delay={0}>
             <WallPreviewToolbar aria-label="Breakpoints">
               {BREAKPOINTS.map((row) => (
                 <ToolbarButton

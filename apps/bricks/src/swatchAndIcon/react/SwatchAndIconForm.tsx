@@ -6,6 +6,7 @@ import { Schema } from "effect";
 import { useLayoutEffect, useRef, useState } from "react";
 
 import { MaterialSymbolsIconLookup } from "./MaterialSymbolsIconLookup";
+import { FieldGroup } from "../../react/field";
 import { ColorInput } from "../../react/ColorInput";
 import { swatchAndIconV1 } from "../definition/swatchAndIconV1";
 import { useWarnBeforeUnload } from "../../react/useWarnBeforeUnload";
@@ -50,70 +51,63 @@ export function SwatchAndIconForm(props: {
   };
 
   return (
-    <div className="flex w-full flex-col gap-4">
-      <fieldset className="m-0 grid min-w-0 gap-4 border-0 p-0">
-        <ColorInput
-          label="Swatch color"
-          value={draftColor ?? color}
-          pickerColor={
-            draftColor !== null && hexColorPattern.test(draftColor)
-              ? `#${draftColor.replace(/^#/, "")}`
-              : color
+    <FieldGroup>
+      <ColorInput
+        label="Swatch color"
+        error={colorError}
+        invalid={
+          colorError !== undefined && draftColor !== null && !hexColorPattern.test(draftColor)
+        }
+        value={draftColor ?? color}
+        pickerColor={
+          draftColor !== null && hexColorPattern.test(draftColor)
+            ? `#${draftColor.replace(/^#/, "")}`
+            : color
+        }
+        onChange={(value) => {
+          setDraftColor(value);
+          setColorError(undefined);
+        }}
+        onCommit={(value) => {
+          if (!hexColorPattern.test(value)) {
+            setColorError("Enter a complete hex color, such as #4A7C59.");
+            return;
           }
-          onChange={(value) => {
-            setDraftColor(value);
-            setColorError(undefined);
-          }}
-          onCommit={(value) => {
-            if (!hexColorPattern.test(value)) {
-              setColorError("Enter a complete hex color, such as #4A7C59.");
-              return;
-            }
-            const nextColor = `#${value.replace(/^#/, "")}`;
-            const previous = accepted.current;
-            const currentHex = previous.payload.color
-              .toLowerCase()
-              .replace(/^#(.)(.)(.)$/, "#$1$1$2$2$3$3");
-            const nextHex = nextColor.toLowerCase().replace(/^#(.)(.)(.)$/, "#$1$1$2$2$3$3");
-            const error =
-              currentHex === nextHex
-                ? undefined
-                : save({
-                    payload: { hash: previous.payload.hash, color: nextColor },
-                    data: previous.data,
-                  });
-            setColorError(error);
-            setDraftColor(error === undefined ? null : value);
-          }}
-        />
-        <MaterialSymbolsIconLookup
-          value={draftIcon?.hash ?? hash}
-          onChange={(icon) => {
-            const previous = accepted.current;
-            const error =
-              previous.payload.hash === icon.hash &&
-              previous.data.name === icon.name &&
-              previous.data.svg === icon.svg
-                ? undefined
-                : save({
-                    payload: { hash: icon.hash, color: previous.payload.color },
-                    data: { name: icon.name, svg: icon.svg },
-                  });
-            setIconError(error);
-            setDraftIcon(error === undefined ? null : icon);
-          }}
-        />
-      </fieldset>
-      {colorError !== undefined && (
-        <p className="m-0" role="alert">
-          {colorError}
-        </p>
-      )}
-      {iconError !== undefined && (
-        <p className="m-0" role="alert">
-          {iconError}
-        </p>
-      )}
-    </div>
+          const nextColor = `#${value.replace(/^#/, "")}`;
+          const previous = accepted.current;
+          const currentHex = previous.payload.color
+            .toLowerCase()
+            .replace(/^#(.)(.)(.)$/, "#$1$1$2$2$3$3");
+          const nextHex = nextColor.toLowerCase().replace(/^#(.)(.)(.)$/, "#$1$1$2$2$3$3");
+          const error =
+            currentHex === nextHex
+              ? undefined
+              : save({
+                  payload: { hash: previous.payload.hash, color: nextColor },
+                  data: previous.data,
+                });
+          setColorError(error);
+          setDraftColor(error === undefined ? null : value);
+        }}
+      />
+      <MaterialSymbolsIconLookup
+        saveError={iconError}
+        value={draftIcon?.hash ?? hash}
+        onChange={(icon) => {
+          const previous = accepted.current;
+          const error =
+            previous.payload.hash === icon.hash &&
+            previous.data.name === icon.name &&
+            previous.data.svg === icon.svg
+              ? undefined
+              : save({
+                  payload: { hash: icon.hash, color: previous.payload.color },
+                  data: { name: icon.name, svg: icon.svg },
+                });
+          setIconError(error);
+          setDraftIcon(error === undefined ? null : icon);
+        }}
+      />
+    </FieldGroup>
   );
 }

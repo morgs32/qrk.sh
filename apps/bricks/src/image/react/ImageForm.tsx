@@ -2,100 +2,100 @@
 
 import type { IResult } from "@zerospin/error";
 import { Schema } from "effect";
-import { useId, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { useSWRConfig } from "swr";
 
-import { Button } from "../../react/button";
+import { FieldGroup } from "../../react/field";
 import { ImageUploadInput } from "../../react/ImageUploadInput";
-import { Input } from "../../react/Input";
+import { TextInput } from "../../react/TextInput";
+import { useTextCommit } from "../../react/useTextCommit";
 import { useWarnBeforeUnload } from "../../react/useWarnBeforeUnload";
 import { imageStateSchema, imageV2 } from "../definition/imageV2";
 import type {} from "./ImageUploadSWR";
 
+const blankImage = { imageUrl: "", title: "", crop: null };
+
 export function ImageForm(props: {
   state: typeof imageStateSchema.Type | null;
   onSave: (state: typeof imageStateSchema.Type) => IResult<unknown, { message: string }>;
-  onCancel: () => void;
   previewWidth?: number;
   measureFrame?: (selector: string) => number | undefined;
 }) {
-  const { state, onSave, onCancel, previewWidth, measureFrame } = props;
+  const { state, onSave, previewWidth, measureFrame } = props;
   const { uploadImage } = useSWRConfig();
-  const initialState = state ?? { imageUrl: "", title: "", crop: null };
-  const [formDraft, setDraft] = useState<typeof imageStateSchema.Type | null>(null);
-  const [error, setError] = useState<string>();
-  const draft = formDraft ?? initialState;
-  const hasUnsavedChanges = JSON.stringify(draft) !== JSON.stringify(initialState);
-  const isDirty = state === null || hasUnsavedChanges;
-  const id = useId();
+  const accepted = useRef(state ?? blankImage);
+  useLayoutEffect(() => {
+    accepted.current = state ?? blankImage;
+  }, [state]);
+
+  const [titleDraft, setTitleDraft] = useState<string | null>(null);
+  const [imageDraft, setImageDraft] = useState<{
+    imageUrl: string;
+    crop: typeof imageStateSchema.Type.crop;
+  } | null>(null);
+  const [titleError, setTitleError] = useState<string>();
+  const [imageError, setImageError] = useState<string>();
+  const title = titleDraft ?? state?.title ?? "";
+  const { imageUrl, crop } = imageDraft ?? state ?? blankImage;
   const { defaultWidth, defaultHeight, minWidth } = imageV2.variants.default;
 
-  useWarnBeforeUnload(hasUnsavedChanges);
+  useWarnBeforeUnload(title !== (state?.title ?? "") || imageDraft !== null);
+
+  function save(next: typeof imageStateSchema.Type) {
+    try {
+      const decoded = Schema.decodeUnknownSync(imageStateSchema)(next);
+      const result = onSave(decoded);
+      if (result._tag === "Failure") return result.failure.message ?? "Brick save was refused";
+      accepted.current = decoded;
+    } catch (cause) {
+      return cause instanceof Error ? cause.message : "Failed to save image";
+    }
+  }
+
+  const { schedule, onBlur, onKeyDown, onCompositionEnd } = useTextCommit((value) => {
+    if (value === accepted.current.title) {
+      setTitleDraft(null);
+      setTitleError(undefined);
+      return;
+    }
+    const error = save({ ...accepted.current, title: value });
+    setTitleError(error);
+    if (error === undefined) setTitleDraft(null);
+  });
 
   return (
-    <form
-      autoComplete="off"
-      className="flex w-full flex-col gap-6"
-      onSubmit={(event) => {
-        event.preventDefault();
-        if (!isDirty) return;
-        setError(undefined);
-        try {
-          const result = onSave(Schema.decodeUnknownSync(imageStateSchema)(draft));
-          if (result._tag === "Failure") {
-            setError(result.failure.message ?? "Brick save was refused");
-            return;
-          }
-          setDraft(null);
-        } catch (cause) {
-          setError(cause instanceof Error ? cause.message : "Failed to save image");
-        }
-      }}
-    >
+    <FieldGroup>
       <ImageUploadInput
         label="Edit"
-        imageUrl={draft.imageUrl}
-        crop={draft.crop}
+        saveError={imageError}
+        imageUrl={imageUrl}
+        crop={crop}
         uploadImage={uploadImage}
         getFrameAspectRatio={() =>
           measureFrame?.("[data-image-cover]") ??
           Math.max(minWidth, Math.min(defaultWidth, previewWidth ?? defaultWidth)) /
             (defaultHeight === null ? 200 : defaultHeight - 56)
         }
-        onApply={(source) => setDraft((current) => ({ ...(current ?? initialState), ...source }))}
+        onApply={(source) => {
+          const error = save({ ...accepted.current, ...source });
+          setImageError(error);
+          setImageDraft(error === undefined ? null : source);
+        }}
       />
-      <div className="flex flex-col gap-2">
-        <label className="form-input-label" htmlFor={`${id}-title`}>
-          Title
-        </label>
-        <Input
-          id={`${id}-title`}
-          type="text"
-          value={draft.title}
-          onChange={(event) => setDraft({ ...draft, title: event.target.value })}
-        />
-      </div>
-      {error !== undefined && (
-        <p className="m-0" role="alert">
-          {error}
-        </p>
-      )}
-      <div className="flex flex-wrap gap-2">
-        <Button type="submit" disabled={!isDirty}>
-          Save
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => {
-            setError(undefined);
-            setDraft(null);
-            onCancel();
-          }}
-        >
-          Cancel
-        </Button>
-      </div>
-    </form>
+      <TextInput
+        label="Title"
+        type="text"
+        value={title}
+        error={titleError}
+        onChange={(event) => {
+          setTitleDraft(event.currentTarget.value);
+          setTitleError(undefined);
+          schedule(event);
+        }}
+        onBlur={onBlur}
+        onKeyDown={onKeyDown}
+        onCompositionEnd={onCompositionEnd}
+      />
+    </FieldGroup>
   );
 }

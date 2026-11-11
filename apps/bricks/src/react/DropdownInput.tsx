@@ -1,5 +1,5 @@
 import { Check, ChevronDown } from "lucide-react";
-import { Select } from "radix-ui";
+import { Select } from "@base-ui/react/select";
 import { useId } from "react";
 
 export function DropdownInput(props: {
@@ -21,37 +21,44 @@ export function DropdownInput(props: {
       >
         {label}
       </label>
-      <Select.Root value={value} onValueChange={onChange} disabled={disabled}>
+      <Select.Root
+        items={options}
+        value={value === "" ? null : value}
+        onValueChange={(next) => {
+          if (next !== null) onChange(next);
+        }}
+        disabled={disabled}
+      >
         <Select.Trigger
           id={id}
           className="flex h-7 min-w-0 items-center justify-between gap-1.5 rounded-(--radius-form-input) bg-form-input px-2 text-xs outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:opacity-50 data-[placeholder]:text-muted-foreground [&>span]:truncate"
         >
           <Select.Value placeholder={placeholder} />
-          <Select.Icon asChild>
-            <ChevronDown aria-hidden="true" className="size-3 shrink-0 text-muted-foreground" />
-          </Select.Icon>
+          <Select.Icon
+            render={
+              <ChevronDown aria-hidden="true" className="size-3 shrink-0 text-muted-foreground" />
+            }
+          />
         </Select.Trigger>
         <Select.Portal>
-          <Select.Content
-            position="popper"
-            sideOffset={4}
-            className="qrk-bricks z-50 min-w-(--radix-select-trigger-width) rounded-md border border-border bg-background p-1 text-xs text-foreground shadow-md"
-          >
-            <Select.Viewport>
-              {options.map((option) => (
-                <Select.Item
-                  key={option.value}
-                  value={option.value}
-                  className="relative flex cursor-default select-none items-center rounded-sm py-1.5 pr-6 pl-2 outline-none data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground"
-                >
-                  <Select.ItemText>{option.label}</Select.ItemText>
-                  <Select.ItemIndicator className="absolute right-2">
-                    <Check aria-hidden="true" className="size-3" />
-                  </Select.ItemIndicator>
-                </Select.Item>
-              ))}
-            </Select.Viewport>
-          </Select.Content>
+          <Select.Positioner alignItemWithTrigger={false} sideOffset={4} className="z-50">
+            <Select.Popup className="qrk-bricks min-w-(--anchor-width) rounded-md border border-border bg-background text-xs text-foreground shadow-md">
+              <Select.List className="max-h-(--available-height) overflow-auto p-1">
+                {options.map((option) => (
+                  <Select.Item
+                    key={option.value}
+                    value={option.value}
+                    className="relative flex cursor-default select-none items-center rounded-sm py-1.5 pr-6 pl-2 outline-none data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground"
+                  >
+                    <Select.ItemText>{option.label}</Select.ItemText>
+                    <Select.ItemIndicator className="absolute right-2">
+                      <Check aria-hidden="true" className="size-3" />
+                    </Select.ItemIndicator>
+                  </Select.Item>
+                ))}
+              </Select.List>
+            </Select.Popup>
+          </Select.Positioner>
         </Select.Portal>
       </Select.Root>
     </div>

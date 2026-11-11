@@ -18,7 +18,7 @@ export function StudioSidebar(
     return (
       <aside
         aria-label={label}
-        className="flex h-full min-h-0 w-[320px] max-w-[50%] min-w-0 shrink-0 flex-col border-l border-sidebar-border bg-sidebar text-sidebar-foreground"
+        className="flex h-full min-h-0 w-[320px] max-w-[50%] min-w-0 shrink-0 flex-col border-l border-sidebar-border bg-white text-sidebar-foreground"
       >
         <header className="shrink-0 overflow-x-auto border-b border-sidebar-border px-3">
           {header}

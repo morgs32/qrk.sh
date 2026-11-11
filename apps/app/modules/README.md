@@ -38,14 +38,18 @@ files are retained, and Nx discovers no Library project or dependency cycle.
 ## Brick forms
 
 Module forms and their lookup controls use the shared controls in
-[`@qrk.sh/bricks/react`](../../bricks/src/react). Use `Input` for text, URL,
-search, and file fields and `ColorInput` for labeled hex fields with a color-picker popover.
+[`@qrk.sh/bricks/react`](../../bricks/src/react). Use `TextInput` for labeled
+text, URL, search, and file fields and `ColorInput` for labeled hex fields
+with a color-picker popover.
 The Storybook [Form Inputs catalog](https://bricks.qrk.localhost/?path=/story/components-form-inputs--catalog)
 shows these controls alongside `NumberInput`, `PositionInput`, `SizeInput`,
 `RadiusInput`, `BorderInput`, and `ShadowInput` under **Components → Form Inputs**.
-Border and Shadow use `ColorInput` inside their shared `SwatchPopover`. Use the
-`form-input-label` utility for visible field labels. The shared field tokens in
-`@qrk.sh/bricks/styles.css` also style the Style Inspector inputs.
+Border and Shadow use `ColorInput` inside their shared `SwatchPopover`.
+Brick sidebar forms use [shadcn Base UI Field](https://ui.shadcn.com/docs/components/base/field)
+and `FieldGroup` from the Bricks package. Put the label beside the control and
+use `FieldContent` to stack descriptions, errors, and status below it.
+The shared field tokens in `@qrk.sh/bricks/styles.css` also style the
+Style Inspector inputs.
 
 QRK-owned forms set `autoComplete="off"`. The shared Input and native article
 title/subtitle, hex color, and State JSON fields also set `autoComplete="off"`
@@ -71,26 +75,22 @@ through `BrickDetailsContext`. Swatch and Icon and other Bricks that omit the
 hook simply appear. Moving a Brick, switching breakpoints, and reloading
 supply no insertion signal.
 
-Manual forms receive state, synchronous `onSave(state): IResult`, and
-`onCancel`. Each form renders its own Save and Cancel buttons. Save submits the
-native form, preserving validation and keyboard submission. App stages
-`updateBrick` and renders saved query state, including optimism and rejection
-rollback. Storybook supplies example state. Null forms start blank.
+Sidebar forms receive state and synchronous `onSave(state): IResult`. App
+stages `updateBrick` and renders saved query state, including optimism and
+rejection rollback. Storybook supplies example state. Null forms start blank.
 
-Instagram, GitHub Profile/Activity/Repo, Figma Thumbnail, Link and Map Place
-normalize their draft input and fetch through the existing same-origin `/rpc`
-operations when Save is pressed. The form decodes a complete `{ payload, data }`
-snapshot before calling `onSave` once. Pending status and errors stay local.
-Provider and decode failures, or command staging refusal, preserve the previous
-saved content and the draft. Inputs and duplicate submissions are disabled during
-Save; Cancel remains available. Cancel, navigation, and unmount invalidate the
-submission and close its RPC session, preventing a late save. Closing RPC does
-not undo remote work or already stored assets.
+Instagram, GitHub Profile/Activity/Repo, Figma Thumbnail, and Link commit valid
+text after a 500 ms pause, on blur, or on Enter. Map Place commits a selected
+suggestion. Each form uses its existing same-origin `/rpc` operation and
+decodes a complete `{ payload, data }` snapshot before calling `onSave`.
+Text fields stay editable during lookup. New edits supersede pending work, and
+leaving the form cancels its pending commit and closes the RPC session.
+Closing RPC does not undo remote work or already stored assets.
 
-No provider runner, configure/complete command dispatch, persisted request ID,
-or persisted resolution state remains in the current editor. Reopening the form
-does not resume a lookup. Save is the only retry. App retains its independent
-session-owned layout/spec generation and state revision handling.
+Format help sits under its field. Invalid text is flagged on blur or Enter.
+Pending lookups and failures appear locally. Lookup, decode, or staging failures
+preserve the previous saved content and the draft. Retry a text commit with
+Enter or blur, or choose the place again. Reopening starts with saved state.
 
 GitHub accounts accept URLs or usernames. Repository input accepts an HTTPS URL
 or owner/repository, strips `.git`, lowercases the owner and preserves repository
@@ -99,14 +99,14 @@ nullable thumbnail fields remain valid. Instagram validates the returned usernam
 and retains its imported-image snapshot. Activity validates contribution dates.
 Link removes fragments and saves the response's canonical URL and preview.
 Map Place retains autocomplete as transient search, then validates the selected
-place's identity, finite coordinates, and latitude/longitude ranges during Save.
+place's identity, finite coordinates, and latitude/longitude ranges before saving.
 Provider credentials, caching, and uploads remain in the API Worker.
 
 The seven current module definitions are V2 and contain only `payload` and `data`.
 V1 codecs remain frozen for admitted command history. Existing saved documents
 may retain their old resolution fields; current readers ignore them. A saved
-`data: null` renders the module's empty-content explanation until an explicit
-Save. No history or rows are reset or rewritten by this cleanup. State saves
+`data: null` renders the module's empty-content explanation until a valid
+configuration is committed. No history or rows are reset or rewritten by this cleanup. State saves
 still preserve layout/specs and never capture preview dimensions.
 
 Swatch and Icon retains the selected `{ hash, name, svg }` from paged icon search.
@@ -133,13 +133,13 @@ App Storybook also discovers the colocated Brick stories.
 Each **Modules / <module> / Breakpoint Previews** story compares the module's
 JSX sketch with JSON Render at sm, md, lg, and xl. All four widths use the same
 example state and active spec. The 320px StudioSidebar uses shadcn line tabs
-and is capped at half the preview width. **Configure** shows the module's form
-and keeps its draft across tab switches. **Generate Spec** sends
+on Base UI and is capped at half the preview width. **Configure** shows the
+module's form and cancels pending work when the tab closes. **Generate Spec** sends
 a prompt through the API and previews the resulting spec. **Reset to default**
 restores the versioned default spec.
 **Unconfigured** displays null and blank forms/placeholders only for modules
 declaring `hasPlaceholder: true`. Swatch and Icon always has configured state.
-Provider Save calls the same RPC operations as App and updates only this
+Provider lookups call the same RPC operations as App and update the
 mounted story's example state. Pending and errors come from
 the form interaction; persisted Resolving/Failed fixtures have been removed.
 
@@ -658,34 +658,24 @@ host-binding Page factory remains.
 ## Image editing in the Brick sidebar
 
 Image exposes its module-owned `ImageForm` through the shared module registry.
-The form owns its Image URL and Title drafts, pending state, errors, Save, and
-Cancel. Unconfigured Bricks start with blank Image URL/Title drafts. App
-uses the Form in its authenticated Brick Details panel and stages complete state
-through `updateBrick`; Storybook uses the same Form with local Save/Cancel.
-Image's field groups fill the supplied column, with Save/Cancel aligned to its fields.
+The form owns the Title draft and local save errors. Image upload and crop
+are committed when the user selects **Apply** in the image editor. Title
+commits after a pause, on blur, or on Enter. Each commit uses the latest
+accepted Image state so it preserves the other field. App stages the complete
+state through `updateBrick`. Storybook updates local example state.
 
-Image also offers a single-file picker for nonempty PNG, JPEG,
-WebP, or SVG images up to 5 MiB. Selection uploads immediately; success changes
-only the draft Image URL until Save. Each host supplies
-`uploadImage(file, { signal }): Promise<string>` through `SWRConfig`.
-`ImageForm` reads that function with `useSWRConfig` and explicitly supplies it to
-`useSWRMutation`, which owns request pending/error state. Uploads start only from
-file-selection handlers, with revalidation and cache population disabled.
-`ImageUploadSWR.d.ts` augments SWR's exported `_internal` configuration interface
-with this optional field. Without an uploader, manual Image URL entry and Save
-remain available. No separate upload context, Effect service, layer or runner
-is needed; the shared form contract has no Image-specific upload props.
+Image accepts nonempty PNG, JPEG, WebP, or SVG files up to 5 MiB. Each host
+provides `uploadImage(file, { signal }): Promise<string>` through `SWRConfig`.
+The image editor can also accept a manually entered source URL. Cancel closes
+the image editor and discards the source and crop draft.
 
 Each host owns HTTP, endpoint configuration, multipart fields, credentials, and
 response decoding. Storybook performs anonymous `POST /image/upload`; App's
 host performs `/upload` with its current site ID
 and fresh Clerk authorization. Both forward the form's AbortSignal into `fetch`,
 independently of Zerospin. Returned asset URLs remain publicly readable.
-Image retains file validation, local validation/save errors, picker behavior,
-drafts, Save gating, and cancellation. Fields and Save stay disabled during
-upload. Cancel resets mutation state and separately aborts the request; leaving
-the brick also aborts it. Current-request guards suppress late results because
-SWR reset does not cancel transport. App's PageLayout owns the authenticated
+The image editor disables Apply while uploading. Cancel and leaving the Brick
+abort the request. Current-request guards suppress late results. App's PageLayout owns the authenticated
 uploader. `BrickStory` owns Storybook's anonymous uploader. BrickDetail
 keys the form by its URL-selected Placement, so breakpoint changes, including
 automatic correction after a resize, discard the old draft and abort its upload.

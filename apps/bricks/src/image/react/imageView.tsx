@@ -27,14 +27,13 @@ const decodeState = Schema.decodeUnknownSync(imageStateSchema);
 export const imageView = {
   ...image,
   Form(props: Parameters<NonNullable<typeof image.Form>>[0]) {
-    const { state, onSave, onCancel, previewWidth, measureFrame } = props;
+    const { state, onSave, previewWidth, measureFrame } = props;
     const Form = image.Form;
     if (Form === undefined) return null;
     return (
       <Form
         state={state === null ? null : decodeState(state)}
         onSave={onSave}
-        onCancel={onCancel}
         previewWidth={previewWidth}
         measureFrame={measureFrame}
       />

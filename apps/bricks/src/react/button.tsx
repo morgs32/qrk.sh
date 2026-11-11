@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Slot } from "@radix-ui/react-slot";
+import { useRender } from "@base-ui/react/use-render";
 import { cva, type VariantProps } from "class-variance-authority";
 
 import { cn } from "cn";
@@ -38,16 +38,18 @@ function Button(
       asChild?: boolean;
     },
 ) {
-  const { className, variant, size, asChild = false, ...buttonProps } = props;
-  const Comp = asChild ? Slot : "button";
-
-  return (
-    <Comp
-      data-slot="button"
-      className={cn(buttonVariants({ variant, size, className }))}
-      {...buttonProps}
-    />
-  );
+  const { className, variant, size, asChild = false, children, ...buttonProps } = props;
+  const render = asChild && React.isValidElement(children) ? children : undefined;
+  return useRender({
+    defaultTagName: "button",
+    render,
+    props: {
+      ...buttonProps,
+      "data-slot": "button",
+      className: cn(buttonVariants({ variant, size, className })),
+      ...(render === undefined && { children }),
+    },
+  });
 }
 
 export { Button };

@@ -1,5 +1,5 @@
 import { Scan } from "lucide-react";
-import { Popover } from "radix-ui";
+import { Popover } from "@base-ui/react/popover";
 import { useId } from "react";
 
 import { Button } from "./button";
@@ -38,71 +38,77 @@ export function RadiusInput(props: {
             onChange({ topLeft: radius, topRight: radius, bottomRight: radius, bottomLeft: radius })
           }
         />
-        <Popover.Trigger asChild>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="size-7 rounded-[9px]"
-            aria-label="Edit individual corner radii"
-          >
-            <Scan aria-hidden="true" className="size-3.5" />
-          </Button>
-        </Popover.Trigger>
+        <Popover.Trigger
+          render={
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="size-7 rounded-[9px]"
+              aria-label="Edit individual corner radii"
+            >
+              <Scan aria-hidden="true" className="size-3.5" />
+            </Button>
+          }
+        />
       </div>
       <Popover.Portal>
-        <Popover.Content
-          aria-labelledby={id}
+        <Popover.Positioner
           side="left"
           align="start"
           sideOffset={12}
           collisionPadding={8}
-          className="qrk-bricks z-50 w-64 max-w-[calc(100vw-16px)] rounded-[10px] bg-white text-xs text-neutral-950 shadow-lg"
+          className="z-50"
         >
-          <h2 id={id} className="px-4 py-3 leading-5 font-semibold">
-            Radius
-          </h2>
-          <hr className="border-neutral-200" />
-          <div className="grid gap-2 p-4">
-            {[
-              {
-                key: "topLeft",
-                label: "Top left",
-                radius: topLeft,
-                mark: "rounded-tl-[5px] border-t border-l",
-              },
-              {
-                key: "topRight",
-                label: "Top right",
-                radius: topRight,
-                mark: "rounded-tr-[5px] border-t border-r",
-              },
-              {
-                key: "bottomRight",
-                label: "Bottom right",
-                radius: bottomRight,
-                mark: "rounded-br-[5px] border-b border-r",
-              },
-              {
-                key: "bottomLeft",
-                label: "Bottom left",
-                radius: bottomLeft,
-                mark: "rounded-bl-[5px] border-b border-l",
-              },
-            ].map(({ key, label, radius, mark }) => (
-              <NumberInput
-                key={key}
-                inline
-                steppers
-                label={label}
-                min={0}
-                value={radius}
-                leadingIcon={<span className={`block size-2 ${mark}`} />}
-                onChange={(next) => onChange({ ...value, [key]: next })}
-              />
-            ))}
-          </div>
-        </Popover.Content>
+          <Popover.Popup
+            aria-labelledby={id}
+            className="qrk-bricks w-64 max-w-[calc(100vw-16px)] rounded-[10px] bg-white text-xs text-neutral-950 shadow-lg"
+          >
+            <h2 id={id} className="px-4 py-3 leading-5 font-semibold">
+              Radius
+            </h2>
+            <hr className="border-neutral-200" />
+            <div className="grid gap-2 p-4">
+              {[
+                {
+                  key: "topLeft",
+                  label: "Top left",
+                  radius: topLeft,
+                  mark: "rounded-tl-[5px] border-t border-l",
+                },
+                {
+                  key: "topRight",
+                  label: "Top right",
+                  radius: topRight,
+                  mark: "rounded-tr-[5px] border-t border-r",
+                },
+                {
+                  key: "bottomRight",
+                  label: "Bottom right",
+                  radius: bottomRight,
+                  mark: "rounded-br-[5px] border-b border-r",
+                },
+                {
+                  key: "bottomLeft",
+                  label: "Bottom left",
+                  radius: bottomLeft,
+                  mark: "rounded-bl-[5px] border-b border-l",
+                },
+              ].map(({ key, label, radius, mark }) => (
+                <NumberInput
+                  key={key}
+                  inline
+                  steppers
+                  label={label}
+                  min={0}
+                  value={radius}
+                  leadingIcon={<span className={`block size-2 ${mark}`} />}
+                  onChange={(next) => onChange({ ...value, [key]: next })}
+                />
+              ))}
+            </div>
+          </Popover.Popup>
+        </Popover.Positioner>
       </Popover.Portal>
     </Popover.Root>
   );

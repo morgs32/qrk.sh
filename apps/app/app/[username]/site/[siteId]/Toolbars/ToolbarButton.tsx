@@ -88,7 +88,7 @@ export function ToolbarButton(props: IToolbarButtonProps) {
   if (tooltip) {
     return (
       <Tooltip>
-        <TooltipTrigger asChild>{button}</TooltipTrigger>
+        <TooltipTrigger render={button} />
         <TooltipContent side="top" sideOffset={8}>
           {tooltip}
         </TooltipContent>

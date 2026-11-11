@@ -115,8 +115,17 @@ export default function WorkspacePanelControls(props: {
     { value: "site-settings", label: "Site settings", Icon: Globe },
   ];
   if (isBrickDetails) sections.push({ value: "edit-brick", label: "Edit brick", Icon: Pencil });
+  const items = sections.map(({ value, label, Icon }) => ({
+    value,
+    label: (
+      <>
+        <Icon aria-hidden className="size-3.5" />
+        {label}
+      </>
+    ),
+  }));
 
-  const selectSection = (value: string) => {
+  const selectSection = (value: string | null) => {
     if (value === "modules" || value === "page-settings" || value === "site-settings") {
       void navigate({
         to: `/$username/site/$siteId/page/$pageId/${value}`,
@@ -163,7 +172,7 @@ export default function WorkspacePanelControls(props: {
     <WorkspaceSidebar
       controls={
         <>
-          <Select value={tab} onValueChange={selectSection}>
+          <Select items={items} value={tab} onValueChange={selectSection}>
             <SelectTrigger
               aria-label="Page controls"
               size="sm"
@@ -171,10 +180,9 @@ export default function WorkspacePanelControls(props: {
             >
               <SelectValue />
             </SelectTrigger>
-            <SelectContent position="popper" align="start">
-              {sections.map(({ value, label, Icon }) => (
+            <SelectContent alignItemWithTrigger={false} align="start">
+              {items.map(({ value, label }) => (
                 <SelectItem key={value} value={value} className="text-xs">
-                  <Icon aria-hidden className="size-3.5" />
                   {label}
                 </SelectItem>
               ))}

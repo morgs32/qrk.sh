@@ -19,7 +19,7 @@ export function Toolbars() {
       <SiteToolbar key="Site" />
     ) : null;
   return (
-    <TooltipProvider delayDuration={0}>
+    <TooltipProvider delay={0}>
       <LayoutGroup>
         <div className="grid place-items-center">
           <AnimatePresence mode="sync">{toolbar}</AnimatePresence>

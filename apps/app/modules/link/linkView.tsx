@@ -25,12 +25,11 @@ const link = makeModuleView(linkV1, {
   defaultState: linkPreviewState,
   LineIcon: LinkLineIcon,
   form(props) {
-    const { state, onSave, onCancel } = props;
+    const { state, onSave } = props;
     return (
       <LinkForm
         state={state}
         onSave={onSave}
-        onCancel={onCancel}
         lookupLinkPreview={lookupLinkPreview}
       />
     );

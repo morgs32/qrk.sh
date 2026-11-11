@@ -15,7 +15,8 @@ import { ButtonGroupInput } from "./ButtonGroupInput";
 import { ColorInput } from "./ColorInput";
 import { DropdownInput } from "./DropdownInput";
 import { ImageUploadInput } from "./ImageUploadInput";
-import { Input } from "./Input";
+import { FieldGroup } from "./field";
+import { TextInput } from "./TextInput";
 import { NumberInput } from "./NumberInput";
 import { PositionInput } from "./PositionInput";
 import { RadiusInput } from "./RadiusInput";
@@ -76,20 +77,19 @@ export const Catalog: StoryObj<typeof meta> = {
     });
     const sections = [
       {
-        title: "Input.tsx",
-        content: [
-          { label: "Text", type: "text", placeholder: "Title" },
-          { label: "URL", type: "url", placeholder: "https://example.com" },
-          { label: "Search", type: "search", placeholder: "Search" },
-          { label: "File", type: "file" },
-        ].map(({ label, type, placeholder }) => (
-          <label key={type} className="group grid gap-1.5">
-            <span className="select-none text-xs leading-none font-medium text-muted-foreground group-focus-within:text-primary">
-              {label}
-            </span>
-            <Input type={type} placeholder={placeholder} />
-          </label>
-        )),
+        title: "TextInput.tsx",
+        content: (
+          <FieldGroup>
+            {[
+              { label: "Text", type: "text", placeholder: "Title" },
+              { label: "URL", type: "url", placeholder: "https://example.com" },
+              { label: "Search", type: "search", placeholder: "Search" },
+              { label: "File", type: "file" },
+            ].map(({ label, type, placeholder }) => (
+              <TextInput key={type} label={label} type={type} placeholder={placeholder} />
+            ))}
+          </FieldGroup>
+        ),
       },
       {
         title: "NumberInput.tsx",

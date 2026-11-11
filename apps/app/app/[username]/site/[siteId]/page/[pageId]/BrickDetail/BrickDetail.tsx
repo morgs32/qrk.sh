@@ -174,10 +174,6 @@ export function BrickDetail() {
             },
           });
         }}
-        onCancel={() => {
-          if (navigationPending.current || currentPlacementId.current !== placement.id) return;
-          setEditorEpoch((epoch) => epoch + 1);
-        }}
       />
     ) : (
       <div className="min-w-0 overflow-auto">

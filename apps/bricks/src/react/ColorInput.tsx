@@ -5,6 +5,7 @@ import { useId } from "react";
 import { HexColorPicker } from "react-colorful";
 
 import { Button } from "./button";
+import { Field, FieldContent, FieldError, FieldLabel } from "./field";
 import { Input } from "./Input";
 import { SwatchPopover } from "./SwatchPopover";
 
@@ -15,8 +16,19 @@ export function ColorInput(props: {
   onChange: (color: string) => void;
   onCommit: (color: string) => void;
   picker?: "popover" | "inline";
+  error?: string;
+  invalid?: boolean;
 }) {
-  const { label = "Fill", value, pickerColor, onChange, onCommit, picker = "popover" } = props;
+  const {
+    label = "Fill",
+    value,
+    pickerColor,
+    onChange,
+    onCommit,
+    picker = "popover",
+    error,
+    invalid,
+  } = props;
   const id = useId();
   const colorPicker = (
     <HexColorPicker
@@ -29,46 +41,46 @@ export function ColorInput(props: {
   );
 
   return (
-    <div className="grid gap-3">
-      <div className="group grid grid-cols-[76px_minmax(0,1fr)_28px] items-center gap-1">
-        <label
-          htmlFor={id}
-          className="flex h-7 select-none items-center text-xs leading-none font-medium text-muted-foreground transition-colors group-focus-within:text-primary"
-        >
-          {label}
-        </label>
-        <div className="flex min-w-0 items-center rounded-(--radius-form-input) bg-form-input">
-          <Input
-            id={id}
-            value={value}
-            placeholder="Add..."
-            className="form-input-hex uppercase placeholder:normal-case"
-            onChange={(event) => onChange(event.currentTarget.value)}
-            onBlur={(event) => onCommit(event.currentTarget.value)}
-            onKeyDown={(event) => {
-              if (event.key !== "Enter") return;
-              event.preventDefault();
-              event.currentTarget.blur();
-            }}
-          />
-          {picker === "popover" && (
-            <SwatchPopover label={label} color={value}>
-              {colorPicker}
-            </SwatchPopover>
-          )}
+    <Field orientation="horizontal" data-invalid={invalid || undefined}>
+      <FieldLabel htmlFor={id}>{label}</FieldLabel>
+      <FieldContent>
+        <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_28px] gap-1">
+          <div className="flex min-w-0 items-center rounded-(--radius-form-input) bg-form-input">
+            <Input
+              id={id}
+              aria-invalid={invalid || undefined}
+              aria-describedby={error === undefined ? undefined : `${id}-error`}
+              value={value}
+              placeholder="Add..."
+              className="form-input-hex uppercase placeholder:normal-case"
+              onChange={(event) => onChange(event.currentTarget.value)}
+              onBlur={(event) => onCommit(event.currentTarget.value)}
+              onKeyDown={(event) => {
+                if (event.key !== "Enter") return;
+                event.preventDefault();
+                event.currentTarget.blur();
+              }}
+            />
+            {picker === "popover" && (
+              <SwatchPopover label={label} color={value}>
+                {colorPicker}
+              </SwatchPopover>
+            )}
+          </div>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            aria-label={`Clear ${label.toLowerCase()}`}
+            className="size-7 rounded-[9px] bg-neutral-50 text-neutral-500 hover:bg-neutral-200"
+            onClick={() => onChange("")}
+          >
+            <X aria-hidden="true" className="size-3" />
+          </Button>
         </div>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          aria-label={`Clear ${label.toLowerCase()}`}
-          className="size-7 rounded-[9px] bg-neutral-50 text-neutral-500 hover:bg-neutral-200"
-          onClick={() => onChange("")}
-        >
-          <X aria-hidden="true" className="size-3" />
-        </Button>
-      </div>
-      {picker === "inline" && colorPicker}
-    </div>
+        {error === undefined ? null : <FieldError id={`${id}-error`}>{error}</FieldError>}
+      </FieldContent>
+      {picker === "inline" && <div className="col-span-full pt-2">{colorPicker}</div>}
+    </Field>
   );
 }

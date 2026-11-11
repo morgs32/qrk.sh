@@ -104,15 +104,17 @@ export function PublishSiteDialog(props: { siteId: `sit_${string}` }) {
         setOpen(nextOpen);
       }}
     >
-      <DialogTrigger asChild>
-        <Button
-          type="button"
-          size="sm"
-          className="h-7 gap-1 px-2 py-1 text-xs leading-none font-medium shadow-none"
-        >
-          Publish
-        </Button>
-      </DialogTrigger>
+      <DialogTrigger
+        render={
+          <Button
+            type="button"
+            size="sm"
+            className="h-7 gap-1 px-2 py-1 text-xs leading-none font-medium shadow-none"
+          >
+            Publish
+          </Button>
+        }
+      />
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Publish Site</DialogTitle>
@@ -166,11 +168,13 @@ export function PublishSiteDialog(props: { siteId: `sit_${string}` }) {
             </div>
           )}
           <DialogFooter>
-            <DialogClose asChild>
-              <Button type="button" variant="outline">
-                Cancel
-              </Button>
-            </DialogClose>
+            <DialogClose
+              render={
+                <Button type="button" variant="outline">
+                  Cancel
+                </Button>
+              }
+            />
             <Button type="submit" disabled={rootPage === undefined}>
               Publish Site
             </Button>

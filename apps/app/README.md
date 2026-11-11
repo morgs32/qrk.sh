@@ -10,10 +10,13 @@ form field is focused. Escape uses the Close button's route transition and keeps
 the current breakpoint. Open menus, popovers, and dialogs consume Escape
 first; the next press closes the workspace drawer. Its line tabs open Bricks,
 Page settings, and Site settings. Brick Details shows a selected Edit brick tab.
-Close and any available publishing actions
+Close and any available page-level Publish action
 share the drawer tab bar. Settings and manual Brick editors provide Save and
 Cancel inside their forms. Exit and Set breakpoints are available from the
 floating page controls.
+
+For unpublished sites, the editor navbar shows Publish beside the account
+menu. The button uses 28px height and 8px horizontal padding.
 
 | Area | Worker                    | Pure manifest           |
 | ---- | ------------------------- | ----------------------- |

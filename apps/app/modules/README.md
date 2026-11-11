@@ -510,20 +510,15 @@ drops, invalid source data, and stale destinations create nothing.
 
 The URL owns `?breakpoint=sm|md|lg|xl`, and all four breakpoints are selectable
 at any pane width. Their authored content widths are 360, 720, 1080, and 1440px.
-Studio scales the selected frame down to fit the measured scrollport after
-reserving sidebar gutters. The scale includes both 1px frame borders and caps
-at 100%. Resizing the pane preserves the selected breakpoint and its layout.
+Studio renders the selected frame at its authored width plus both 1px borders.
+The preview reserves at least 32px on each side of the frame in every editor
+layout. It scrolls horizontally when the frame and gutters exceed the pane
+width. Pane resizing preserves the selected breakpoint and its inline
+editors. Explicit breakpoint changes flush Article drafts before switching Walls.
 The toolbar tooltips show the authored widths.
-Article inline editing is available at 100%. Studio flushes Article drafts
-before scaling down. A pending draft can hold the frame at 100% with horizontal
-scrolling until the save recovers. At smaller scales, Article shows its saved
-content. Brick details, layout actions, dragging, and pointer resizing remain
-available. Resize gestures translate pointer movement to the Wall's authored
-pixels.
 PageLayout's single `.wall-preview-viewport` root contains the editor scroll
 region and toolbar anchor. It owns scroll anchoring and floating toolbar
-placement. PagePreview centers the frame at the selected breakpoint's authored
-width and applies the scale.
+placement. PagePreview centers the frame when there is room.
 `PreviewSection` is the single centered element shared by the browser bar, site
 navbar, Wall body, and footer. It owns the real side borders and a border-box
 width of `previewWidth + 2 * PREVIEW_BORDER_WIDTH`, without max-width clamping.
@@ -538,28 +533,21 @@ site navbar sits below it. The full frame has no border or ring; browser/footer
 corners remain rounded without clipping descendants. The footer remains part
 of WallEditor and is 64px tall.
 Stack and placed-Brick action bars stick below the browser bar and any sticky
-navbar while their owner remains visible. Full-height, pointer-transparent hosts
+navbar while their owner remains visible. The Move Brick grip uses the same
+height as the Stack and Row controls. Full-height, pointer-transparent hosts
 bound each bar to its own Stack or Brick without consuming layout space. Hovering
 the Stack action bar or anywhere inside an empty Stack outlines the entire Stack
-with the same blue stroke and halos used by Bricks. The Stack name is plain text,
-and the chevron opens the insertion menu. The Wall sets a 7rem sticky offset with
+with the same blue stroke and halos used by Bricks. The Stack name and chevron
+form one button that opens the insertion menu. The Wall sets a 7rem sticky offset with
 a sticky navbar and 3rem otherwise. Existing
 visibility rules and action layers remain; drawer-preview actions stay absolute,
 and move indicators remain above the controls at z-70. The Cross Row Sticky
 Actions stories exercise both navbar settings, owner-bottom boundaries, menu
 interaction, and unchanged content geometry.
 The Wall Editor story uses the same section widths and a full-width scroll
-owner. Its frame has a minimum width of the selected content width plus both
-side borders, so oversized selections scroll horizontally rather than silently
-shrinking. Its breakpoint controls keep the nominal content-width labels.
-The [Fit To Width story](https://app-storybook.qrk.localhost/?path=/story/app-studio-wall-editor--fit-to-width)
-lets all four breakpoints be previewed at their nominal layout widths. It scales
-the full frame, including borders, down to the available width and caps the
-scale at 100%. Inline editing is available at 100%, where inline-editable Bricks
-move by their grips. Drag display Bricks from anywhere on their surfaces. A
-transition that would close an inline editor flushes its draft first. If a save
-is refused, the story keeps the editor at full size until it can retry.
-The story hides the Bricks drawer, resize grips, and layout menus.
+owner. Its frame uses the selected content width plus both side borders.
+Oversized selections scroll horizontally. Breakpoint controls show the nominal
+content widths.
 The App's route-backed workspace uses a 256px right sidebar from Tailwind
 `lg` upward and the bottom drawer below. The preview reserves 32px on each
 side while the sidebar is open. Catalog drag sources fit the sidebar column
@@ -580,9 +568,9 @@ The Wall Editor story uses the in-memory `useMockAggregateSession`, `SessionProv
 `SessionReady`, seeds Wall layouts plus separate Placement records, and renders the
 production PagePreview above a Bricks Drawer containing ModuleFilmstrip. Its
 memory router redirects Brick-detail navigation back to the Wall, so dragging
-keeps the drawer visible without mounting edit forms. Breakpoint search and
-width control/measurement remain local to the story; it uses neither the App
-width store nor the production guard. Storybook supplies the public Clerk key
+keeps the drawer visible without mounting edit forms. The story owns its
+breakpoint selection and flushes inline drafts before switching Walls.
+Storybook supplies the public Clerk key
 from the App environment for PagePreview's SiteHeader provider. Shared wall presentation components
 import no App store or router. New-Brick creation, layout moves,
 and global Brick deletion are ordinary App commands. Pure layout functions edit
@@ -656,8 +644,11 @@ request/revision checks and per-Placement spec updates remain independent of the
 structural tree. Runtime verification belongs to that plan.
 
 **Selected** means the Brick's edit form is open; **active** means DOM focus.
-Separate menu controls leave links/forms interactive. Placements support
-Edit and Delete Brick actions. App's initialized session and actor guards
+Each placed Brick shows its catalog label and chevron in one actions button,
+beside the move grip. The menu opens the Delete Brick confirmation for all four
+breakpoints.
+Clicking the Brick content opens its editor, and links and forms remain interactive.
+App's initialized session and actor guards
 own persistence, errors, and authorization; no standalone Library session or
 host-binding Page factory remains.
 

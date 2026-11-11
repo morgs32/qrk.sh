@@ -45,8 +45,10 @@ const meta = {
   args: {
     placement,
     brickGap: 0,
+    brickLabel: "Fixture Brick",
     selected: false,
     onEditBrick: editBrick,
+    onRequestDeleteBrick: fn(),
   },
   beforeEach: () => {
     editBrick.mockClear();
@@ -54,14 +56,16 @@ const meta = {
     pressButton.mockClear();
   },
   render: function Render(props) {
-    const { placement, brickGap, selected, onEditBrick } = props;
+    const { placement, brickGap, brickLabel, selected, onEditBrick, onRequestDeleteBrick } = props;
     const [isSelected, setSelected] = useState(selected);
     return (
       <div className="qrk-bricks wall-story flex w-96 p-4">
         <WallPlacement
           placement={placement}
           brickGap={brickGap}
+          brickLabel={brickLabel}
           selected={isSelected}
+          onRequestDeleteBrick={onRequestDeleteBrick}
           onEditBrick={(brickId) => {
             onEditBrick?.(brickId);
             setSelected(true);

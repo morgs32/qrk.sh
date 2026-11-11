@@ -21,16 +21,19 @@ import { siteV1 as Site } from "@qrk.sh/zerospin/src/aggregates/user/models/site
 import { pageV1 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV1";
 import { PREVIEW_BORDER_WIDTH } from "../../../../../../lib/breakpoints";
 import { Drawer } from "../../../../../../components/Drawer/Drawer";
+import { Header } from "../../../../Header";
 import { Toolbars } from "../../Toolbars/Toolbars";
 import WorkspacePanelControls from "./(drawer)/layout";
 import { BrickAutosaveContext } from "./BrickAutosaveContext";
 import { PagePreview } from "./PagePreview";
-import { SIDEBAR_PREVIEW_GUTTER, WORKSPACE_SIDEBAR_WIDTH } from "./WorkspaceSidebar";
+import { PublishSiteDialog } from "./PublishSiteDialog";
 import { useBreakpointGuard } from "./useBreakpointGuard";
 import { useMatchMedia } from "./useMatchMedia";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
 import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
 import NotFound from "@/app/not-found";
+
+const PREVIEW_INLINE_GUTTER = 32;
 
 const ParamsSchema = Schema.Struct({
   username: Schema.String,
@@ -170,25 +173,15 @@ export default function PageLayout(props: { children: ReactNode }) {
   const previewPress = useRef<number | null>(null);
   const { getToken } = useAuth();
   const session = useSession(userSessionDefinition);
-  const previewGutter = sidebarOpen ? SIDEBAR_PREVIEW_GUTTER : 0;
-  const { availableWidth, breakpoint, previewRef, retainingPreview, scale } =
-    useBreakpointGuard(flushPageEditors, previewGutter);
+  const { breakpoint, previewRef } = useBreakpointGuard(PREVIEW_INLINE_GUTTER);
   const frameWidth =
     breakpoint === undefined ? 0 : breakpoint.previewWidth + 2 * PREVIEW_BORDER_WIDTH;
-  // Typing must keep its focus if opening the sidebar would shrink the editor.
-  const openBrickOnInlineFocus =
-    !isDesktop ||
-    sidebarOpen ||
-    (!retainingPreview &&
-      availableWidth !== null &&
-      availableWidth >= frameWidth + WORKSPACE_SIDEBAR_WIDTH + 2 * SIDEBAR_PREVIEW_GUTTER);
   const scrollRef = useCallback<RefCallback<HTMLDivElement>>(
     (element) => {
       editorScroll.current = element;
       const cleanup = previewRef(element);
       return () => {
-        if (typeof cleanup === "function") cleanup();
-        else previewRef(null);
+        cleanup?.();
         editorScroll.current = null;
       };
     },
@@ -294,129 +287,128 @@ export default function PageLayout(props: { children: ReactNode }) {
   return (
     <SWRConfig value={{ uploadImage }}>
       <BrickAutosaveContext value={{ registerBrickFlush, flushBrick, flushPageEditors }}>
-        <div className="flex h-full min-h-0 min-w-0 overflow-hidden">
-          <title>
-            {pageTitle === "" ? `[Editing] ${siteName}` : `[Editing] ${siteName} - ${pageTitle}`}
-          </title>
-          <div
-            className="wall-preview-viewport relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
-            data-drawer-open={drawerOpen}
-            data-sidebar-open={sidebarOpen}
-          >
+        <div className="flex h-full min-h-0 flex-col overflow-hidden">
+          <Header>
+            {!site.isPublished && <PublishSiteDialog siteId={params.siteId} />}
+          </Header>
+          <div className="isolate flex min-h-0 min-w-0 flex-1 overflow-hidden">
+            <title>
+              {pageTitle === "" ? `[Editing] ${siteName}` : `[Editing] ${siteName} - ${pageTitle}`}
+            </title>
             <div
-              ref={scrollRef}
-              onPointerDownCapture={(event) => {
-                if (!event.isPrimary || event.button !== 0) return;
-                // A click can target a shared ancestor when the press and release differ.
-                previewPress.current =
-                  isBrickDetails && isPreviewBackground(event.currentTarget, event.target)
-                    ? event.pointerId
-                    : null;
-              }}
-              onPointerUpCapture={(event) => {
-                if (
-                  previewPress.current === event.pointerId &&
-                  !isPreviewBackground(event.currentTarget, event.target)
-                )
-                  previewPress.current = null;
-              }}
-              onPointerCancelCapture={(event) => {
-                if (previewPress.current === event.pointerId) previewPress.current = null;
-              }}
-              onClick={(event) => {
-                const pointerId = previewPress.current;
-                previewPress.current = null;
-                if (
-                  !isBrickDetails ||
-                  pointerId === null ||
-                  (event.nativeEvent instanceof PointerEvent &&
-                    event.nativeEvent.pointerId !== pointerId) ||
-                  event.defaultPrevented ||
-                  event.button !== 0 ||
-                  event.detail === 0 ||
-                  event.altKey ||
-                  event.ctrlKey ||
-                  event.metaKey ||
-                  event.shiftKey ||
-                  !isPreviewBackground(event.currentTarget, event.target)
-                )
-                  return;
-
-                const selection = event.currentTarget.ownerDocument.getSelection();
-                if (
-                  selection !== null &&
-                  !selection.isCollapsed &&
-                  selection.rangeCount > 0 &&
-                  selection.getRangeAt(0).intersectsNode(event.currentTarget)
-                )
-                  return;
-
-                closePanel();
-              }}
-              className="wall-preview-scroll relative min-h-0 min-w-0 shrink-0 overflow-y-auto pt-[var(--wall-preview-top-gap)] pb-[var(--wall-preview-bottom-gap)]"
-              style={{
-                height: "calc(100% - var(--wall-preview-drawer-height))",
-                overflowX: retainingPreview ? "auto" : "hidden",
-              }}
+              className="wall-preview-viewport relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
+              data-drawer-open={drawerOpen}
+              data-sidebar-open={sidebarOpen}
             >
               <div
-                className="wall-preview-canvas"
+                ref={scrollRef}
+                onPointerDownCapture={(event) => {
+                  if (!event.isPrimary || event.button !== 0) return;
+                  // A click can target a shared ancestor when the press and release differ.
+                  previewPress.current =
+                    isBrickDetails && isPreviewBackground(event.currentTarget, event.target)
+                      ? event.pointerId
+                      : null;
+                }}
+                onPointerUpCapture={(event) => {
+                  if (
+                    previewPress.current === event.pointerId &&
+                    !isPreviewBackground(event.currentTarget, event.target)
+                  )
+                    previewPress.current = null;
+                }}
+                onPointerCancelCapture={(event) => {
+                  if (previewPress.current === event.pointerId) previewPress.current = null;
+                }}
+                onClick={(event) => {
+                  const pointerId = previewPress.current;
+                  previewPress.current = null;
+                  if (
+                    !isBrickDetails ||
+                    pointerId === null ||
+                    (event.nativeEvent instanceof PointerEvent &&
+                      event.nativeEvent.pointerId !== pointerId) ||
+                    event.defaultPrevented ||
+                    event.button !== 0 ||
+                    event.detail === 0 ||
+                    event.altKey ||
+                    event.ctrlKey ||
+                    event.metaKey ||
+                    event.shiftKey ||
+                    !isPreviewBackground(event.currentTarget, event.target)
+                  )
+                    return;
+
+                  const selection = event.currentTarget.ownerDocument.getSelection();
+                  if (
+                    selection !== null &&
+                    !selection.isCollapsed &&
+                    selection.rangeCount > 0 &&
+                    selection.getRangeAt(0).intersectsNode(event.currentTarget)
+                  )
+                    return;
+
+                  closePanel();
+                }}
+                className="wall-preview-scroll relative min-h-0 min-w-0 shrink-0 overflow-auto pt-[var(--wall-preview-top-gap)] pb-[var(--wall-preview-bottom-gap)]"
                 style={{
-                  paddingInline: previewGutter,
-                  minWidth: retainingPreview ? frameWidth + 2 * previewGutter : undefined,
+                  height: "calc(100% - var(--wall-preview-drawer-height))",
                 }}
               >
-                {breakpoint !== undefined && scale !== null && scale > 0 && (
-                  <PagePreview
-                    key={breakpoint.id}
-                    breakpoint={breakpoint}
-                    scale={scale}
-                    openBrickOnInlineFocus={openBrickOnInlineFocus}
-                  />
-                )}
+                <div
+                  className="wall-preview-canvas grid min-h-full"
+                  style={{
+                    paddingInline: PREVIEW_INLINE_GUTTER,
+                    minWidth: frameWidth + 2 * PREVIEW_INLINE_GUTTER,
+                  }}
+                >
+                  {breakpoint !== undefined && (
+                    <PagePreview key={breakpoint.id} breakpoint={breakpoint} />
+                  )}
+                </div>
+              </div>
+              <div
+                className="pointer-events-none absolute inset-x-0 z-80 flex justify-center px-2"
+                style={{
+                  bottom: "calc(var(--wall-preview-drawer-height) + var(--wall-preview-toolbar-gap))",
+                  transition: reducedMotion ? "none" : "bottom 300ms cubic-bezier(0, 0, 0.2, 1)",
+                }}
+              >
+                <Toolbars />
               </div>
             </div>
-            <div
-              className="pointer-events-none absolute inset-x-0 z-80 flex justify-center px-2"
-              style={{
-                bottom: "calc(var(--wall-preview-drawer-height) + var(--wall-preview-toolbar-gap))",
-                transition: reducedMotion ? "none" : "bottom 300ms cubic-bezier(0, 0, 0.2, 1)",
-              }}
-            >
-              <Toolbars isSitePublished={site.isPublished} />
-            </div>
-          </div>
-          {isDesktop ? (
-            sidebarOpen && (
-              <WorkspacePanelControls
-                sidebar
-                bodyRef={attachPanelBody}
-                isSitePublished={site.isPublished}
-                onClose={closePanel}
-              />
-            )
-          ) : (
-            <Drawer
-              side="bottom"
-              open={drawerOpen}
-              animated={
-                drawerOpen ||
-                (typeof document !== "undefined" &&
-                  typeof document.startViewTransition === "function")
-              }
-              aria-label="Workspace drawer"
-            >
-              {drawerOpen && breakpoint !== undefined && (
+            {isDesktop ? (
+              sidebarOpen && (
                 <WorkspacePanelControls
-                  sidebar={false}
+                  sidebar
                   bodyRef={attachPanelBody}
                   isSitePublished={site.isPublished}
                   onClose={closePanel}
                 />
-              )}
-            </Drawer>
-          )}
-          {breakpoint !== undefined && (panelOpen ? createPortal(children, panelBody) : children)}
+              )
+            ) : (
+              <Drawer
+                side="bottom"
+                open={drawerOpen}
+                animated={
+                  drawerOpen ||
+                  (typeof document !== "undefined" &&
+                    typeof document.startViewTransition === "function")
+                }
+                aria-label="Workspace drawer"
+              >
+                {drawerOpen && breakpoint !== undefined && (
+                  <WorkspacePanelControls
+                    sidebar={false}
+                    bodyRef={attachPanelBody}
+                    isSitePublished={site.isPublished}
+                    onClose={closePanel}
+                  />
+                )}
+              </Drawer>
+            )}
+            {breakpoint !== undefined && (panelOpen ? createPortal(children, panelBody) : children)}
+          </div>
         </div>
       </BrickAutosaveContext>
     </SWRConfig>

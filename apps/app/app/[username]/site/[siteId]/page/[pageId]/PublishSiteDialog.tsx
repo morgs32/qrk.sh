@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/dialog";
 import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
 import { useWarnBeforeUnload } from "@/lib/useWarnBeforeUnload";
-import { BrickAutosaveContext } from "../BrickAutosaveContext";
+import { BrickAutosaveContext } from "./BrickAutosaveContext";
 
 export function PublishSiteDialog(props: { siteId: `sit_${string}` }) {
   const { siteId } = props;
@@ -105,8 +105,12 @@ export function PublishSiteDialog(props: { siteId: `sit_${string}` }) {
       }}
     >
       <DialogTrigger asChild>
-        <Button type="button" size="sm">
-          Publish Site
+        <Button
+          type="button"
+          size="sm"
+          className="h-7 gap-1 px-2 py-1 text-xs leading-none font-medium shadow-none"
+        >
+          Publish
         </Button>
       </DialogTrigger>
       <DialogContent>

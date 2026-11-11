@@ -30,6 +30,11 @@ Browser verification on the supplied md page at 965×1034 measured the preview v
 
 ## Responsive workspace sidebar
 
+The dashboard and editor share the App navbar. It stays sticky on the
+dashboard and occupies the top row of the editor's viewport-height flex
+layout. The preview frame fills the available scroll area below the navbar,
+with the existing gutters and bottom drawer reservation.
+
 The App uses a 256px in-flow sidebar at Tailwind `lg` and wider when a
 workspace panel route is open. The Page route reads `MediaQueryList.matches`
 through `useSyncExternalStore` and subscribes to `change`. The media query
@@ -38,9 +43,9 @@ control the authored Wall breakpoint. [React browser API subscriptions](https://
 
 The same route-owned portal target moves between the sidebar and drawer.
 Keeping the target and outlet mounted retains panel drafts across a shell-only
-resize. Studio preserves the selected Wall and scales its bordered frame to
-fit the measured pane, with 32px inline gutters while the sidebar is open.
-When reducing the scale would close an Article editor, Studio flushes its
-draft first. A refused save holds the frame at full size and enables
-horizontal scrolling until the draft can recover. The drawer reserves 25dvh
+resize. Studio preserves the selected Wall and renders its bordered frame at
+the authored width, with 32px inline gutters while the sidebar is open. The
+preview scrolls horizontally when the frame and gutters exceed the pane width.
+Article drafts stay mounted during pane resizing and flush on explicit
+breakpoint changes. The drawer reserves 25dvh
 when open. [React portal identity](https://react.dev/reference/react-dom/createPortal#parameters) · [Page layout](../../apps/app/app/[username]/site/[siteId]/page/[pageId]/layout.tsx)

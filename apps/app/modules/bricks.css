@@ -17,13 +17,7 @@
   --wall-preview-top-gap: 32px;
   --wall-preview-toolbar-height: 38px;
   --wall-preview-toolbar-gap: 24px;
-  --wall-preview-bottom-gap: calc(
-    var(--wall-preview-toolbar-gap) + var(--wall-preview-toolbar-height) / 2
-  );
-  --wall-frame-height: calc(
-    100dvh - var(--wall-preview-drawer-height) - var(--wall-preview-top-gap) -
-      var(--wall-preview-bottom-gap)
-  );
+  --wall-preview-bottom-gap: 32px;
 }
 
 .wall-preview-viewport[data-drawer-open="true"] {
@@ -155,16 +149,23 @@
   opacity: 0.4;
 }
 
-.wall-editor[data-wall-fit-to-width] :is(.stack-action, .wall-row-menu-trigger, .wall-resize-grip) {
-  display: none;
-}
-
 /* Wall controls stick within their owner; drawer preview controls stay absolute. */
 .wall-placement .brick-action {
   position: sticky;
   top: var(--wall-actions-sticky-top);
   right: auto;
   margin-left: auto;
+  max-width: 100%;
+}
+
+.wall-placement .brick-action:has([data-popup-open]) {
+  opacity: 1;
+}
+
+@media (hover: none), (pointer: coarse) {
+  .wall-placement .brick-action {
+    opacity: 1;
+  }
 }
 
 /* Cover the action bar's 1px inset and the 1.5px outline beyond the Brick. */
@@ -257,6 +258,7 @@
 }
 
 .brick-action,
+.stack-action,
 .wall-action-tag {
   background-color: rgb(var(--brick-accent-rgb));
   color: white;

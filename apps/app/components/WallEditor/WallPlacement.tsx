@@ -1,5 +1,6 @@
-import { GripVertical } from "lucide-react";
-import type { ReactNode } from "react";
+import { Menu } from "@base-ui/react/menu";
+import { ChevronDown, GripVertical } from "lucide-react";
+import { useRef, type ReactNode } from "react";
 import { cn } from "cn";
 import { Button } from "../../modules/components/ui/button";
 import { BrickAction } from "../../modules/components/BrickAction";
@@ -13,11 +14,13 @@ export function WallPlacement(props: {
     content: ReactNode;
   };
   brickGap: number;
-  dragWholeBrick?: boolean;
+  brickLabel: string;
   selected: boolean;
   onEditBrick?: (brickId: string) => void;
+  onRequestDeleteBrick: (trigger: HTMLElement | null) => void;
 }) {
-  const { placement, brickGap, dragWholeBrick, selected, onEditBrick } = props;
+  const { placement, brickGap, brickLabel, selected, onEditBrick, onRequestDeleteBrick } = props;
+  const menuTrigger = useRef<HTMLElement>(null);
   // Adjacent half-gap insets preserve touching drop targets at every gap size.
   return (
     <div
@@ -28,11 +31,7 @@ export function WallPlacement(props: {
         minWidth: placement.minWidth + brickGap,
         padding: brickGap / 2,
       }}
-      className={cn(
-        "wall-placement group/brick relative",
-        selected && "is-selected",
-        dragWholeBrick && "cursor-grab select-none active:cursor-grabbing",
-      )}
+      className={cn("wall-placement group/brick relative", selected && "is-selected")}
     >
       <div
         className="wall-placement-content relative z-20 min-w-0 w-full"
@@ -62,7 +61,7 @@ export function WallPlacement(props: {
             !(event.target instanceof Element) ||
             !event.currentTarget.contains(event.target) ||
             event.target.closest(
-              'a, button, input, textarea, select, label, summary, [contenteditable]:not([contenteditable="false"]), [role="button"], [role="link"], [role^="menuitem"], audio, video, canvas',
+              '.brick-action, a, button, input, textarea, select, label, summary, [contenteditable]:not([contenteditable="false"]), [role="button"], [role="link"], [role^="menuitem"], audio, video, canvas',
             )
           )
             return;
@@ -77,19 +76,45 @@ export function WallPlacement(props: {
           onEditBrick?.(placement.brickId);
         }}
       >
-        {!dragWholeBrick && (
-          <BrickAction>
-            <Button
-              type="button"
-              data-wall-drag-handle
-              variant="ghost"
-              className="size-7 cursor-grab rounded-none p-0 active:cursor-grabbing"
-              aria-label={`Move Brick ${placement.brickId}`}
+        <BrickAction>
+          <Menu.Root>
+            <Menu.Trigger
+              ref={menuTrigger}
+              className="wall-action-tag wall-action-tag-button min-w-0"
+              aria-label={`${brickLabel} actions`}
             >
-              <GripVertical className="size-4" aria-hidden="true" />
-            </Button>
-          </BrickAction>
-        )}
+              <span className="min-w-0 truncate" title={brickLabel}>
+                {brickLabel}
+              </span>
+              <ChevronDown
+                className="wall-action-tag-chevron"
+                strokeWidth={1.5}
+                aria-hidden="true"
+              />
+            </Menu.Trigger>
+            <Menu.Portal>
+              <Menu.Positioner side="bottom" align="end" sideOffset={0} className="z-[90]">
+                <Menu.Popup className="wall-action-menu">
+                  <Menu.Item
+                    className="wall-action-menu-item text-destructive"
+                    onClick={() => onRequestDeleteBrick(menuTrigger.current)}
+                  >
+                    Delete brick
+                  </Menu.Item>
+                </Menu.Popup>
+              </Menu.Positioner>
+            </Menu.Portal>
+          </Menu.Root>
+          <Button
+            type="button"
+            data-wall-drag-handle
+            variant="ghost"
+            className="size-(--wall-action-tag-height) cursor-grab rounded-none p-0 active:cursor-grabbing"
+            aria-label={`Move Brick ${placement.brickId}`}
+          >
+            <GripVertical className="size-4" aria-hidden="true" />
+          </Button>
+        </BrickAction>
         {placement.content}
       </div>
     </div>

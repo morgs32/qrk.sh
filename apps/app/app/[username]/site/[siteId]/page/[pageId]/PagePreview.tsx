@@ -16,12 +16,8 @@ import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
 import { SiteHeader } from "../../SiteHeader";
 import { BrickAutosaveContext } from "./BrickAutosaveContext";
 
-export function PagePreview(props: {
-  breakpoint: (typeof BREAKPOINTS)[number];
-  scale: number;
-  openBrickOnInlineFocus: boolean;
-}) {
-  const { breakpoint, scale, openBrickOnInlineFocus } = props;
+export function PagePreview(props: { breakpoint: (typeof BREAKPOINTS)[number] }) {
+  const { breakpoint } = props;
   const autosave = useContext(BrickAutosaveContext);
   if (autosave === null) throw new Error("Brick autosave requires the Page layout");
   const { registerBrickFlush, flushBrick } = autosave;
@@ -53,8 +49,6 @@ export function PagePreview(props: {
     "--wall-preview-width": `${breakpoint.previewWidth}px`,
     "--wall-preview-border-width": `${PREVIEW_BORDER_WIDTH}px`,
     width: breakpoint.previewWidth + 2 * PREVIEW_BORDER_WIDTH,
-    minHeight: `calc(var(--wall-frame-height) / ${scale})`,
-    zoom: scale,
   };
 
   return (
@@ -70,11 +64,18 @@ export function PagePreview(props: {
       <WallEditor
         key={wall.id}
         wallId={wall.id}
-        inlineEditingAvailable={scale === 1}
-        openBrickOnInlineFocus={openBrickOnInlineFocus}
         selectedBrickId={selectedBrickId}
         registerBrickFlush={registerBrickFlush}
         flushBrick={flushBrick}
+        onBrickDeleted={(brickId) => {
+          if (selectedBrickId !== brickId) return;
+          void navigate({
+            to: "/$username/site/$siteId/page/$pageId",
+            params,
+            search: { breakpoint: breakpoint.id },
+            resetScroll: false,
+          });
+        }}
         onEditBrick={(brickId) => {
           if (
             selectedBrickId === brickId ||

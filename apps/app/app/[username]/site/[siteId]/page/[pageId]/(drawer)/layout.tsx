@@ -25,7 +25,6 @@ import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
 import { WorkspaceSidebar } from "../WorkspaceSidebar";
 import { BrickAutosaveContext } from "../BrickAutosaveContext";
-import { PublishSiteDialog } from "./PublishSiteDialog";
 
 const ParamsSchema = Schema.Struct({
   username: Schema.String,
@@ -119,9 +118,10 @@ export default function WorkspacePanelControls(props: {
       });
     }
   };
+  const compactControlClassName =
+    "h-7 gap-1 px-2 py-1 text-xs leading-none font-medium shadow-none";
   const actions = (
     <div className="ml-auto flex shrink-0 items-center gap-2">
-      {!isSitePublished ? <PublishSiteDialog siteId={params.siteId} /> : null}
       {canPublishPage || canPublishUpdates ? (
         <Button
           type="button"
@@ -162,7 +162,7 @@ export default function WorkspacePanelControls(props: {
               <SelectTrigger
                 aria-label="Page controls"
                 size="sm"
-                className="min-w-0 gap-1.5 border-0 px-1.5 text-xs font-semibold shadow-none hover:bg-sidebar-accent"
+                className={`${compactControlClassName} min-w-0 border-0 bg-secondary text-secondary-foreground hover:bg-secondary/80 data-[size=sm]:h-7 dark:bg-secondary dark:hover:bg-secondary/80 [&>svg]:size-3.5`}
               >
                 <SelectValue />
               </SelectTrigger>

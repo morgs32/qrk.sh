@@ -1,3 +1,12 @@
+# AGENTS.md
+
+## Daily choices
+
+- Before the first repository change each day, ask the user whether to work directly on `main` or use branches and PRs.
+- Before the day's first task that requires manual verification, ask whether the user or the agent should perform it.
+- Ask both together when both apply. As soon as the user gives or changes either choice, update the dated record below in this file. Keep the current day's answers and reuse them across chats. Ask only for choices the user has yet to give that day.
+- For 2026-11-11, work directly on `main`. The user performs manual verification.
+
 <!-- intent-skills:start -->
 
 ## Skill Loading
@@ -12,8 +21,6 @@ Before editing files for a substantial task:
 - Multiple matches: prefer the most specific local skill for the package or concern you are changing; load additional skills only when the task spans multiple packages or concerns.
 <!-- intent-skills:end -->
 
-# AGENTS.md
-
 ## Working rules
 
 - Before substantial design recommendations, reviews, or edits, run the installed Intent discovery and load matching local skills, including for read-only rubber-duck discussions. Do not wait until editing to consult package guidance; the missing-dependency policy above still applies.
@@ -22,8 +29,6 @@ Before editing files for a substantial task:
 - Prefer targeted edits, reuse current context, and skip files over 100 KB unless required. Keep control flow simple and explicit; do not change unrelated component props or function arguments.
 - Be terse, concrete, and accurate. Treat the user as an expert, label uncertainty, and show only relevant code excerpts. Every question is blocking until explicitly answered or withdrawn.
 - Keep affected documentation current. User instructions override this file.
-- Before the first repository change each day, check with the user whether to work directly on `main` or use branches and PRs. Follow their choice for that day. If they already gave a choice for the day, use it without asking again.
-- For 2026-11-10, the user chose to work directly on `main`.
 - When the user says "sibs" or "sibling repos", scope the work to repositories using Zerospin. Other adjacent repositories are outside that scope unless explicitly named.
 
 ## PR reviews

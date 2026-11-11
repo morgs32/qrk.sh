@@ -10,7 +10,6 @@ import { makeIdSchema } from "@zerospin/sdk/browser";
 import { siteV1 as Site } from "@qrk.sh/zerospin/src/aggregates/user/models/site/SiteV1";
 
 import { useValidatedParams } from "@/hooks/useValidatedParams";
-import { PublishSiteDialog } from "../page/[pageId]/(drawer)/PublishSiteDialog";
 
 import { ToolbarSeparator } from "./ToolbarSeparator";
 import { ToolbarButton } from "./ToolbarButton";
@@ -26,8 +25,7 @@ const toolbarPresenceTransition = {
   ease: [0, 0, 0.2, 1] as const,
 };
 
-export function SiteToolbar(props: { isSitePublished: boolean }) {
-  const { isSitePublished } = props;
+export function SiteToolbar() {
   const reducedMotion = useReducedMotion();
   const params = useValidatedParams(ParamsSchema);
   const { breakpoint } = useSearch({ from: "/$username/site/$siteId/page/$pageId" });
@@ -109,12 +107,6 @@ export function SiteToolbar(props: { isSitePublished: boolean }) {
           }}
           className="h-7 gap-1.5 px-2 text-[13px] font-normal text-muted-foreground hover:text-foreground"
         />
-        {!isSitePublished ? (
-          <>
-            <ToolbarSeparator />
-            <PublishSiteDialog siteId={params.siteId} />
-          </>
-        ) : null}
       </WallPreviewToolbar>
     </motion.div>
   );

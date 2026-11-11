@@ -1,7 +1,6 @@
 import type { ReactNode, RefCallback } from "react";
 
-export const WORKSPACE_SIDEBAR_WIDTH = 256;
-export const SIDEBAR_PREVIEW_GUTTER = 32;
+export const WORKSPACE_SIDEBAR_WIDTH = 320;
 
 export function WorkspaceSidebar(props: {
   controls: ReactNode;

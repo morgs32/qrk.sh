@@ -1,6 +1,7 @@
 "use client";
 
 import "@fontsource/silkscreen/400.css";
+import { Dialog } from "@base-ui/react/dialog";
 import { Menu } from "@base-ui/react/menu";
 import { ArrowLeft, ArrowRight, Check, ChevronDown } from "lucide-react";
 import type { IInferModelRow } from "@zerospin/core/models/types";
@@ -56,6 +57,7 @@ import { modulesHash } from "../../modules/modulesHash";
 import { makeWallLayoutView } from "./makeWallLayoutView";
 import { useWallResize } from "./useWallResize";
 import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
+import { Button } from "@/components/ui/button";
 
 const DrawerBrickData = Schema.Struct({
   type: Schema.Literal("drawer-brick"),
@@ -73,25 +75,19 @@ const WallPlacementData = Schema.Struct({
 /** Shared interactive Wall; its host owns navigation and the surrounding page chrome. */
 export function WallEditor(props: {
   wallId: IInferModelRow<typeof wallV3>["id"];
-  fitToWidth?: boolean;
-  inlineEditingAvailable?: boolean;
-  openBrickOnInlineFocus?: boolean;
   selectedBrickId?: string | null;
   onEditBrick: (brickId: string) => void;
+  onBrickDeleted: (brickId: string) => void;
   registerBrickFlush: (brickId: string, flush: (onRecover?: () => void) => boolean) => () => void;
   flushBrick: (brickId: string) => boolean;
 }) {
-  const {
-    wallId,
-    fitToWidth = false,
-    inlineEditingAvailable = true,
-    openBrickOnInlineFocus = true,
-    selectedBrickId,
-    onEditBrick,
-    registerBrickFlush,
-    flushBrick,
-  } = props;
+  const { wallId, selectedBrickId, onEditBrick, onBrickDeleted, registerBrickFlush, flushBrick } =
+    props;
   const wallRef = useRef<HTMLDivElement>(null);
+  const deleteReturnFocus = useRef<HTMLElement | null>(null);
+  const [brickToDelete, setBrickToDelete] = useState<IInferModelRow<typeof brickV2>["id"] | null>(
+    null,
+  );
   const moveIndicatorRef = useRef<HTMLDivElement>(null);
   const shadowTargetRef = useRef<typeof wallInsertionTargetSchema.Type | null>(null);
   const shadowRowHeights = useRef(new Map<HTMLElement, number>());
@@ -126,7 +122,7 @@ export function WallEditor(props: {
   });
   const { sections } = makeWallLayoutView({ wall });
   const { brickGap } = wall.page.site;
-  const resizeDisabled = nativeDragActive || fitToWidth;
+  const resizeDisabled = nativeDragActive;
   const resize = useWallResize({
     wallId,
     sections,
@@ -163,7 +159,6 @@ export function WallEditor(props: {
       }
       const rootBox = root.getBoundingClientRect();
       const targetBox = target.getBoundingClientRect();
-      const zoom = root.currentCSSZoom ?? 1;
       let left = targetBox.left;
       if (moveFeedback.kind === "row") {
         const placements = target.querySelectorAll<HTMLElement>("[data-wall-placement-id]");
@@ -183,10 +178,10 @@ export function WallEditor(props: {
         }
       }
       // Only feedback escapes the query container; content keeps its existing layer.
-      indicator.style.left = `${(left - rootBox.left) / zoom}px`;
-      indicator.style.top = `${(targetBox.top - rootBox.top) / zoom}px`;
-      indicator.style.width = `${moveFeedback.kind === "row" ? 0 : targetBox.width / zoom}px`;
-      indicator.style.height = `${targetBox.height / zoom}px`;
+      indicator.style.left = `${left - rootBox.left}px`;
+      indicator.style.top = `${targetBox.top - rootBox.top}px`;
+      indicator.style.width = `${moveFeedback.kind === "row" ? 0 : targetBox.width}px`;
+      indicator.style.height = `${targetBox.height}px`;
     };
     updateBounds();
     const resize = new ResizeObserver(updateBounds);
@@ -628,7 +623,7 @@ export function WallEditor(props: {
                       ),
                   });
                   const rect = rowElement.getBoundingClientRect();
-                  const edgeSize = 8 * (rowElement.currentCSSZoom ?? 1);
+                  const edgeSize = 8;
                   const beforeRow = canCombine
                     ? input.clientY < rect.top + edgeSize
                     : input.clientY < rect.top + rect.height / 2;
@@ -695,12 +690,11 @@ export function WallEditor(props: {
             );
             if (placementElement === null) throw new Error(`Missing Placement ${placement.id}`);
             const handle = placementElement.querySelector<HTMLElement>("[data-wall-drag-handle]");
-            const dragElement = handle ?? (fitToWidth ? placementElement : null);
-            if (dragElement === null)
+            if (handle === null)
               throw new Error(`Missing drag handle for Placement ${placement.id}`);
             cleanups.push(
               draggable({
-                element: dragElement,
+                element: handle,
                 getInitialData: () => ({
                   type: "wall-placement",
                   wallId: wall.id,
@@ -797,7 +791,7 @@ export function WallEditor(props: {
       setShadowSource(null);
       shadowRowHeights.current.clear();
     };
-  }, [fitToWidth, flushBrick, inlineEditingAvailable, onEditBrick, session, wall]);
+  }, [flushBrick, onEditBrick, session, wall]);
 
   const shadowVariant =
     shadowSource === null ? null : modulesHash[shadowSource.moduleId].variants.default;
@@ -872,7 +866,6 @@ export function WallEditor(props: {
     <>
       <div
         ref={wallRef}
-        data-wall-fit-to-width={fitToWidth || undefined}
         data-wall-resizing={resize.preview?.kind}
         data-wall-resize-disabled={resizeDisabled ? "true" : undefined}
         onDragStartCapture={(event) => {
@@ -936,12 +929,12 @@ export function WallEditor(props: {
                           className={`group/stack relative min-h-[50px] min-w-0 ${isEmpty && dropTarget?.kind === "stack" && dropTarget.stackId === stack.id ? "bg-blue-50 outline outline-blue-500 -outline-offset-2" : ""}`}
                         >
                           <StackAction>
-                            <span className="min-w-0 truncate">{stack.name}</span>
                             <Menu.Root>
                               <Menu.Trigger
-                                className="wall-action-tag-button shrink-0"
+                                className="wall-action-tag wall-action-tag-button max-w-full"
                                 aria-label={`Stack ${stack.name} actions`}
                               >
+                                <span className="min-w-0 truncate">{stack.name}</span>
                                 <ChevronDown
                                   className="wall-action-tag-chevron"
                                   strokeWidth={1.5}
@@ -1114,9 +1107,7 @@ export function WallEditor(props: {
                                       const brick = placement.brick;
                                       const module = modulesHash[brick.moduleId];
                                       const { InlineEditor, Render } = module;
-                                      const canEditInline =
-                                        inlineEditingAvailable && InlineEditor !== undefined;
-                                      const dragWholeBrick = fitToWidth && !canEditInline;
+                                      const canEditInline = InlineEditor !== undefined;
                                       return (
                                         <Fragment key={placement.id}>
                                           {dropTarget?.kind === "row" &&
@@ -1125,9 +1116,13 @@ export function WallEditor(props: {
                                             shadow}
                                           <WallPlacement
                                             brickGap={brickGap}
-                                            dragWholeBrick={dragWholeBrick}
+                                            brickLabel={module.label}
                                             selected={brick.id === selectedBrickId}
-                                            onEditBrick={dragWholeBrick ? undefined : onEditBrick}
+                                            onEditBrick={onEditBrick}
+                                            onRequestDeleteBrick={(trigger) => {
+                                              deleteReturnFocus.current = trigger;
+                                              setBrickToDelete(brick.id);
+                                            }}
                                             placement={{
                                               id: placement.id,
                                               brickId: brick.id,
@@ -1137,7 +1132,6 @@ export function WallEditor(props: {
                                               content: (
                                                 <BrickWrapper
                                                   borderWidth={brick.borderWidth}
-                                                  inert={dragWholeBrick || undefined}
                                                   data-wall-inline-editor={
                                                     canEditInline ? "" : undefined
                                                   }
@@ -1150,10 +1144,7 @@ export function WallEditor(props: {
                                                   {canEditInline ? (
                                                     <InlineEditor
                                                       state={brick.state}
-                                                      onFocus={() => {
-                                                        if (openBrickOnInlineFocus)
-                                                          onEditBrick(brick.id);
-                                                      }}
+                                                      onFocus={() => onEditBrick(brick.id)}
                                                       onSave={(state) =>
                                                         stageAggregateSessionCommand({
                                                           session,
@@ -1375,6 +1366,53 @@ export function WallEditor(props: {
           </PreviewSection>
         </div>
       </div>
+      <Dialog.Root
+        open={brickToDelete !== null}
+        onOpenChange={(open) => {
+          if (!open) setBrickToDelete(null);
+        }}
+        onOpenChangeComplete={(open) => {
+          if (!open && !deleteReturnFocus.current?.isConnected) {
+            wallRef.current?.focus({ preventScroll: true });
+          }
+        }}
+      >
+        <Dialog.Portal>
+          <Dialog.Backdrop className="fixed inset-0 z-[100] bg-black/30" />
+          <Dialog.Popup
+            className="fixed left-1/2 top-1/2 z-[101] grid w-[min(28rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 gap-4 border bg-background p-6 text-foreground shadow-xl outline-none"
+            finalFocus={() =>
+              deleteReturnFocus.current?.isConnected ? deleteReturnFocus.current : false
+            }
+          >
+            <Dialog.Title className="text-lg font-medium">Delete Brick?</Dialog.Title>
+            <Dialog.Description className="text-sm text-muted-foreground">
+              This deletes the shared Brick and its Placements at all four breakpoints, then removes
+              empty Rows, Stacks, and Sections.
+            </Dialog.Description>
+            <div className="flex justify-end gap-2">
+              <Dialog.Close render={<Button variant="outline" />}>Cancel</Dialog.Close>
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  if (brickToDelete === null) return;
+                  const result = stageAggregateSessionCommand({
+                    session,
+                    contractName: "deleteBrick",
+                    payload: { brickId: brickToDelete },
+                  });
+                  if (result._tag !== "Success") return;
+                  deleteReturnFocus.current = null;
+                  setBrickToDelete(null);
+                  onBrickDeleted(brickToDelete);
+                }}
+              >
+                Delete Brick
+              </Button>
+            </div>
+          </Dialog.Popup>
+        </Dialog.Portal>
+      </Dialog.Root>
     </>
   );
 }

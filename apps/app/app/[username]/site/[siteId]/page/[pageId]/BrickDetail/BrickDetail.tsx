@@ -13,8 +13,6 @@ import { makeIdSchema, stageAggregateSessionCommand } from "@zerospin/sdk/browse
 import { useLiveQuery, useSession } from "@zerospin/react";
 import { Schema } from "effect";
 import { useLayoutEffect, useRef, useState } from "react";
-import { Dialog } from "@base-ui/react/dialog";
-import { Button } from "@/components/ui/button";
 
 import { useValidatedParams } from "@/hooks/useValidatedParams";
 import { BrickWrapper } from "../../../../../../../modules/components/brick/BrickWrapper";
@@ -188,49 +186,6 @@ export function BrickDetail() {
             )}
           </section>
         )}
-        {brickRow !== undefined ? (
-          <div className="mx-auto mt-2 w-full max-w-3xl px-6">
-            <Dialog.Root key={brickRow.id}>
-              <Dialog.Trigger
-                render={<Button type="button" variant="ghost" className="text-destructive" />}
-              >
-                Delete brick
-              </Dialog.Trigger>
-              <Dialog.Portal>
-                <Dialog.Backdrop className="fixed inset-0 z-[100] bg-black/30" />
-                <Dialog.Popup className="fixed left-1/2 top-1/2 z-[101] grid w-[min(28rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 gap-4 border bg-background p-6 text-foreground shadow-xl outline-none">
-                  <Dialog.Title className="text-lg font-medium">Delete Brick?</Dialog.Title>
-                  <Dialog.Description className="text-sm text-muted-foreground">
-                    This deletes the shared Brick and its Placements at all four breakpoints, then
-                    removes empty Rows, Stacks, and Sections.
-                  </Dialog.Description>
-                  <div className="flex justify-end gap-2">
-                    <Dialog.Close render={<Button variant="outline" />}>Cancel</Dialog.Close>
-                    <Button
-                      variant="destructive"
-                      onClick={() => {
-                        const result = stageAggregateSessionCommand({
-                          session,
-                          contractName: "deleteBrick",
-                          payload: { brickId: brickRow.id },
-                        });
-                        if (result._tag !== "Success") return;
-                        void router.navigate({
-                          to: "/$username/site/$siteId/page/$pageId",
-                          params,
-                          search: { breakpoint: search.breakpoint },
-                          resetScroll: false,
-                        });
-                      }}
-                    >
-                      Delete Brick
-                    </Button>
-                  </div>
-                </Dialog.Popup>
-              </Dialog.Portal>
-            </Dialog.Root>
-          </div>
-        ) : null}
       </div>
     </div>
   );

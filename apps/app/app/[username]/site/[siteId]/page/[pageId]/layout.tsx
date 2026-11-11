@@ -2,7 +2,7 @@
 
 import { useCallback, useLayoutEffect, useRef, type ReactNode, type RefCallback } from "react";
 import { useReducedMotion } from "framer-motion";
-import { useMatches } from "@tanstack/react-router";
+import { useMatches, useRouter } from "@tanstack/react-router";
 import { useAuth } from "@clerk/react";
 import { ClerkOfflineError } from "@clerk/react/errors";
 import { useLiveQuery, useSession } from "@zerospin/react";
@@ -13,6 +13,7 @@ import { siteV1 as Site } from "@qrk.sh/zerospin/src/aggregates/user/models/site
 import { pageV1 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV1";
 import { Drawer } from "../../../../../../modules/lib/Drawer";
 import { Toolbars } from "../../Toolbars/Toolbars";
+import { BrickAutosaveContext } from "./BrickAutosaveContext";
 import { ValidBreakpoint } from "./ValidBreakpoint";
 import { useBreakpointGuard } from "./useBreakpointGuard";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
@@ -28,6 +29,45 @@ const ParamsSchema = Schema.Struct({
 export default function PageLayout(props: { children: ReactNode }) {
   const { children } = props;
   const params = useValidatedParams(ParamsSchema);
+  const { username, siteId, pageId } = params;
+  const router = useRouter();
+  const brickFlushes = useRef(new Map<string, () => boolean>());
+  const registerBrickFlush = useCallback((brickId: string, flush: () => boolean) => {
+    const registered = brickFlushes.current;
+    registered.set(brickId, flush);
+    return () => {
+      if (registered.get(brickId) === flush) registered.delete(brickId);
+    };
+  }, []);
+  const flushBrick = useCallback(
+    (brickId: string) => brickFlushes.current.get(brickId)?.() ?? true,
+    [],
+  );
+  const flushPageEditors = useCallback(() => {
+    let accepted = true;
+    for (const flush of [...brickFlushes.current.values()]) {
+      if (!flush()) accepted = false;
+    }
+    return accepted;
+  }, []);
+  useLayoutEffect(
+    () =>
+      router.subscribe("onBeforeNavigate", ({ fromLocation, toLocation }) => {
+        if (brickFlushes.current.size === 0) return;
+        const [routes, nextParams] = router.getMatchedRoutes(toLocation.pathname);
+        const staysOnPage =
+          routes.some((route) => route.id === "/$username/site/$siteId/page/$pageId") &&
+          nextParams.username === username &&
+          nextParams.siteId === siteId &&
+          nextParams.pageId === pageId;
+        const previousBreakpoint = new URLSearchParams(fromLocation?.searchStr).get("breakpoint");
+        const nextBreakpoint = new URLSearchParams(toLocation.searchStr).get("breakpoint");
+        if (!staysOnPage || previousBreakpoint !== nextBreakpoint) {
+          flushPageEditors();
+        }
+      }),
+    [flushPageEditors, pageId, router, siteId, username],
+  );
   const drawerOpen = useMatches({
     select: (matches) =>
       matches.some((match) => match.routeId === "/$username/site/$siteId/page/$pageId/_drawer"),
@@ -36,7 +76,7 @@ export default function PageLayout(props: { children: ReactNode }) {
   const editorScroll = useRef<HTMLDivElement>(null);
   const { getToken } = useAuth();
   const session = useSession(userSessionDefinition);
-  const { breakpoint, previewRef } = useBreakpointGuard();
+  const { breakpoint, previewRef } = useBreakpointGuard(flushPageEditors);
   const scrollRef = useCallback<RefCallback<HTMLDivElement>>(
     (element) => {
       editorScroll.current = element;
@@ -140,43 +180,46 @@ export default function PageLayout(props: { children: ReactNode }) {
 
   return (
     <SWRConfig value={{ uploadImage }}>
-      <div
-        className="wall-preview-viewport relative flex h-full min-h-0 min-w-0 flex-col overflow-hidden"
-        data-drawer-open={drawerOpen}
-      >
-        <title>
-          {pageTitle === "" ? `[Editing] ${siteName}` : `[Editing] ${siteName} - ${pageTitle}`}
-        </title>
+      <BrickAutosaveContext value={{ registerBrickFlush, flushBrick, flushPageEditors }}>
         <div
-          ref={scrollRef}
-          className="relative min-h-0 min-w-0 shrink-0 overflow-x-hidden overflow-y-auto pt-[var(--wall-preview-top-gap)] pb-[var(--wall-preview-bottom-gap)]"
-          style={{ height: "calc(100% - var(--wall-preview-drawer-height))" }}
+          className="wall-preview-viewport relative flex h-full min-h-0 min-w-0 flex-col overflow-hidden"
+          data-drawer-open={drawerOpen}
         >
-          <ValidBreakpoint />
+          <title>
+            {pageTitle === "" ? `[Editing] ${siteName}` : `[Editing] ${siteName} - ${pageTitle}`}
+          </title>
+          <div
+            ref={scrollRef}
+            className="relative min-h-0 min-w-0 shrink-0 overflow-x-hidden overflow-y-auto pt-[var(--wall-preview-top-gap)] pb-[var(--wall-preview-bottom-gap)]"
+            style={{ height: "calc(100% - var(--wall-preview-drawer-height))" }}
+          >
+            <ValidBreakpoint />
+          </div>
+          <div
+            className="pointer-events-none fixed inset-x-0 z-80 flex justify-center px-2"
+            style={{
+              bottom: drawerOpen
+                ? "calc(25dvh + var(--wall-preview-toolbar-gap))"
+                : "var(--wall-preview-toolbar-gap)",
+              transition: reducedMotion ? "none" : "bottom 300ms cubic-bezier(0, 0, 0.2, 1)",
+            }}
+          >
+            <Toolbars />
+          </div>
+          <Drawer
+            side="bottom"
+            open={drawerOpen}
+            animated={
+              drawerOpen ||
+              (typeof document !== "undefined" &&
+                typeof document.startViewTransition === "function")
+            }
+            aria-label="Workspace drawer"
+          >
+            {breakpoint === undefined ? null : children}
+          </Drawer>
         </div>
-        <div
-          className="pointer-events-none fixed inset-x-0 z-80 flex justify-center px-2"
-          style={{
-            bottom: drawerOpen
-              ? "calc(25dvh + var(--wall-preview-toolbar-gap))"
-              : "var(--wall-preview-toolbar-gap)",
-            transition: reducedMotion ? "none" : "bottom 300ms cubic-bezier(0, 0, 0.2, 1)",
-          }}
-        >
-          <Toolbars />
-        </div>
-        <Drawer
-          side="bottom"
-          open={drawerOpen}
-          animated={
-            drawerOpen ||
-            (typeof document !== "undefined" && typeof document.startViewTransition === "function")
-          }
-          aria-label="Workspace drawer"
-        >
-          {breakpoint === undefined ? null : children}
-        </Drawer>
-      </div>
+      </BrickAutosaveContext>
     </SWRConfig>
   );
 }

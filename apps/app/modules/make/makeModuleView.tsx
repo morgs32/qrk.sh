@@ -76,6 +76,10 @@ export function makeModuleView<
           state: IInferDecodedRow<MODULE["stateShape"]> | null;
           onFocus: () => void;
           renderDrawer: (content: ReactNode) => ReactNode;
+          onSave: (
+            state: IInferDecodedRow<MODULE["stateShape"]>,
+          ) => IResult<unknown, { message: string }>;
+          registerFlush: (flush: () => boolean) => () => void;
         }) => ReactNode;
       }
   ),
@@ -154,9 +158,17 @@ export function makeModuleView<
   function Brick(props: Parameters<IModule<string>["component"]>[0]) {
     const { state, variantId, spec, ...surface } = props;
     if (surface.mode === "studio" && InlineEditor !== undefined) {
-      const { onFocus, renderDrawer } = surface;
+      const { onFocus, renderDrawer, onSave, registerFlush } = surface;
       const decoded = state === null ? null : decodeState(state, { onExcessProperty: "ignore" });
-      return <InlineEditor state={decoded} onFocus={onFocus} renderDrawer={renderDrawer} />;
+      return (
+        <InlineEditor
+          state={decoded}
+          onFocus={onFocus}
+          renderDrawer={renderDrawer}
+          onSave={onSave}
+          registerFlush={registerFlush}
+        />
+      );
     }
     const variant = variants[variantId];
     const Placeholder = variant.placeholder;

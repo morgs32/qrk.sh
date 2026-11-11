@@ -88,12 +88,12 @@ Save. No history or rows are reset or rewritten by this cleanup. State saves
 still preserve layout/specs and never capture preview dimensions.
 
 Swatch and Icon retains the selected `{ hash, name, svg }` from paged icon search.
-SVG data URLs are derived for presentation. Save validates a complete hex color
-and stages the selected icon and color directly, including the saved icon when no
-search runs. A new Swatch starts with the color and icon visible in the drawer
-when it was added; its form opens that saved snapshot. An empty SVG renders no
-graphic, so a saved color can stand alone at a minimum height of 64px. There is
-no Save-time icon request.
+SVG data URLs are derived for presentation. Choosing an icon saves immediately
+with the latest saved color. Color edits save at the end of a picker gesture or
+when a valid hex entry is committed on Enter or blur. Color edits keep the exact
+saved icon. A new Swatch starts with the color and icon visible in the drawer
+when it was added; its form opens that saved snapshot. An empty SVG lets the
+saved color stand alone at a minimum height of 64px.
 
 ## Storybook
 
@@ -111,11 +111,13 @@ the existing API services. Stories live alongside their components in
 
 Each **Modules / <module> / Playground** story preserves the former module page's
 Module metadata, Generate spec and input, sm/md/lg/xl Component/JsonRender previews,
-and Brick Definition JSON. **Configure example** edits local state. Save changes
-the example JSON/previews; Cancel discards the draft. **Unconfigured** displays null
-and blank forms/placeholders only for modules declaring `hasPlaceholder: true`;
-Swatch and Icon always has configured state. Provider Save calls the same RPC operations as App
-and updates only this mounted story's example state. Pending and errors come from
+and Brick Definition JSON. **Configure example** edits local state. Swatch and
+Icon updates the example JSON and previews as edits finish. In forms with Save
+and Cancel, Save updates the example and Cancel discards the draft.
+**Unconfigured** displays null and blank forms/placeholders only for modules
+declaring `hasPlaceholder: true`. Swatch and Icon always has configured state.
+Provider Save calls the same RPC operations as App and updates only this
+mounted story's example state. Pending and errors come from
 the form interaction; persisted Resolving/Failed fixtures have been removed.
 
 Live Generate spec calls the existing `/rpc` operation with the current example

@@ -1,109 +1,119 @@
 "use client";
 
 import type { IResult } from "@zerospin/error";
-
 import { makeEffectSchema, type IInferDecodedRow } from "@zerospin/shapes";
 import { Schema } from "effect";
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 
-import { Button } from "../components/ui/button";
 import { MaterialSymbolsIconLookup } from "./MaterialSymbolsIconLookup";
 import { SwatchAndIconColorForm } from "./SwatchAndIconColorForm";
 import { swatchAndIconV1 } from "@qrk.sh/zerospin/src/modules/swatchAndIcon/swatchAndIconV1";
 import { useWarnBeforeUnload } from "@/lib/useWarnBeforeUnload";
+
+const hexColorPattern = /^#?(?:[a-f\d]{3}|[a-f\d]{6})$/i;
+const swatchStateSchema = Schema.toType(makeEffectSchema(swatchAndIconV1.stateShape));
 
 export function SwatchAndIconForm(props: {
   state: IInferDecodedRow<typeof swatchAndIconV1.stateShape> | null;
   onSave: (
     state: IInferDecodedRow<typeof swatchAndIconV1.stateShape>,
   ) => IResult<unknown, { message: string }>;
-  onCancel: () => void;
 }) {
-  const { state, onSave, onCancel } = props;
+  const { state, onSave } = props;
   if (state === null) throw new Error("Swatch and Icon requires configured state");
-  const savedState = state;
-  const [draft, setDraft] = useState<{
-    color: string;
-    icon: { hash: string; name: string; svg: string };
-  } | null>(null);
-  const color = draft?.color ?? savedState.payload.color;
-  const selectedIcon = draft?.icon ?? { hash: savedState.payload.hash, ...savedState.data };
-  const [saveError, setSaveError] = useState<string>();
-  useWarnBeforeUnload(
-    color !== savedState.payload.color ||
-      selectedIcon.hash !== savedState.payload.hash ||
-      selectedIcon.name !== savedState.data.name ||
-      selectedIcon.svg !== savedState.data.svg,
+  const { hash, color } = state.payload;
+  const { name, svg } = state.data;
+  const accepted = useRef(state);
+  const [draftColor, setDraftColor] = useState<string | null>(null);
+  const [draftIcon, setDraftIcon] = useState<{ hash: string; name: string; svg: string } | null>(
+    null,
   );
+  const [colorError, setColorError] = useState<string>();
+  const [iconError, setIconError] = useState<string>();
+
+  // A later host update replaces the event handlers' last locally accepted value.
+  useLayoutEffect(() => {
+    accepted.current = { payload: { hash, color }, data: { name, svg } };
+  }, [hash, color, name, svg]);
+
+  useWarnBeforeUnload((draftColor !== null && draftColor !== color) || draftIcon !== null);
+
+  const save = (nextState: typeof state) => {
+    try {
+      const decoded = Schema.decodeUnknownSync(swatchStateSchema)(nextState);
+      const result = onSave(decoded);
+      if (result._tag === "Failure") return result.failure.message ?? "Brick save was refused";
+      accepted.current = decoded;
+    } catch (cause) {
+      return cause instanceof Error ? cause.message : String(cause);
+    }
+  };
 
   return (
-    <form
-      autoComplete="off"
-      className="flex w-full flex-col gap-4"
-      noValidate
-      onSubmit={(event) => {
-        event.preventDefault();
-        if (!/^#(?:[a-f\d]{3}|[a-f\d]{6})$/i.test(color)) {
-          setSaveError("Enter a complete hex color, such as #4A7C59.");
-          return;
-        }
-
-        setSaveError(undefined);
-        try {
-          const nextState = Schema.decodeUnknownSync(
-            Schema.toType(makeEffectSchema(swatchAndIconV1.stateShape)),
-          )(
-            {
-              payload: { hash: selectedIcon.hash, color },
-              data: { name: selectedIcon.name, svg: selectedIcon.svg },
-            },
-            { onExcessProperty: "ignore" },
-          );
-          const result = onSave(nextState);
-          if (result._tag === "Failure") {
-            setSaveError(result.failure.message ?? "Brick save was refused");
-          } else setDraft(null);
-        } catch (cause) {
-          setSaveError(cause instanceof Error ? cause.message : String(cause));
-        }
-      }}
-    >
+    <div className="flex w-full flex-col gap-4">
       <fieldset className="m-0 min-w-0 border-0 p-0">
         <legend className="font-medium">Swatch color</legend>
         <SwatchAndIconColorForm
+          value={draftColor ?? color}
+          pickerColor={
+            draftColor !== null && hexColorPattern.test(draftColor)
+              ? `#${draftColor.replace(/^#/, "")}`
+              : color
+          }
           onChange={(value) => {
-            setDraft({ color: value.color, icon: selectedIcon });
-            setSaveError(undefined);
+            setDraftColor(value);
+            setColorError(undefined);
           }}
-          value={{ color }}
+          onCommit={(value) => {
+            if (!hexColorPattern.test(value)) {
+              setColorError("Enter a complete hex color, such as #4A7C59.");
+              return;
+            }
+            const nextColor = `#${value.replace(/^#/, "")}`;
+            const previous = accepted.current;
+            const currentHex = previous.payload.color
+              .toLowerCase()
+              .replace(/^#(.)(.)(.)$/, "#$1$1$2$2$3$3");
+            const nextHex = nextColor.toLowerCase().replace(/^#(.)(.)(.)$/, "#$1$1$2$2$3$3");
+            const error =
+              currentHex === nextHex
+                ? undefined
+                : save({
+                    payload: { hash: previous.payload.hash, color: nextColor },
+                    data: previous.data,
+                  });
+            setColorError(error);
+            setDraftColor(error === undefined ? null : value);
+          }}
         />
         <MaterialSymbolsIconLookup
-          onChange={(value) => {
-            setDraft({ color, icon: value });
-            setSaveError(undefined);
+          value={draftIcon?.hash ?? hash}
+          onChange={(icon) => {
+            const previous = accepted.current;
+            const error =
+              previous.payload.hash === icon.hash &&
+              previous.data.name === icon.name &&
+              previous.data.svg === icon.svg
+                ? undefined
+                : save({
+                    payload: { hash: icon.hash, color: previous.payload.color },
+                    data: { name: icon.name, svg: icon.svg },
+                  });
+            setIconError(error);
+            setDraftIcon(error === undefined ? null : icon);
           }}
-          value={selectedIcon.hash}
         />
       </fieldset>
-      {saveError !== undefined ? (
+      {colorError !== undefined && (
         <p className="m-0" role="alert">
-          {saveError}
+          {colorError}
         </p>
-      ) : null}
-      <div className="flex justify-end gap-2">
-        <Button
-          onClick={() => {
-            setDraft(null);
-            setSaveError(undefined);
-            onCancel();
-          }}
-          type="button"
-          variant="outline"
-        >
-          Cancel
-        </Button>
-        <Button type="submit">Save</Button>
-      </div>
-    </form>
+      )}
+      {iconError !== undefined && (
+        <p className="m-0" role="alert">
+          {iconError}
+        </p>
+      )}
+    </div>
   );
 }

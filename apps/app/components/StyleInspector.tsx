@@ -1,5 +1,4 @@
-import { NumberField } from "@base-ui/react/number-field";
-import { ChevronDown, ChevronUp, Scan, SquareDashed, X } from "lucide-react";
+import { Scan, SquareDashed, X } from "lucide-react";
 import { Fragment, useId, useState } from "react";
 import { HexColorInput, HexColorPicker } from "react-colorful";
 
@@ -13,6 +12,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Separator } from "@/components/ui/separator";
+import { InspectorNumberField } from "./InspectorNumberField";
 
 export function StyleInspector(props: { defaultCornersOpen?: boolean }) {
   const { defaultCornersOpen = false } = props;
@@ -34,7 +34,6 @@ export function StyleInspector(props: { defaultCornersOpen?: boolean }) {
     "[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
   const iconButton =
     "size-7 rounded-[9px] bg-neutral-100 hover:bg-neutral-200 [&_svg:not([class*='size-'])]:size-3.5";
-  const stepperButton = "h-[13px] w-6 rounded-sm text-neutral-600 hover:bg-neutral-200";
 
   return (
     <Popover defaultOpen={defaultCornersOpen}>
@@ -203,27 +202,10 @@ export function StyleInspector(props: { defaultCornersOpen?: boolean }) {
                   <Label htmlFor={`${id}-${dimension}`} className={label}>
                     {dimension}
                   </Label>
-                  <NumberField.Root id={`${id}-${dimension}`} min={0} allowWheelScrub={false}>
-                    <NumberField.Group render={<InputGroup className={field} />}>
-                      <NumberField.Input render={<InputGroupInput className={fieldInput} />} />
-                      <InputGroupAddon align="inline-end" className="grid gap-0 py-0 pr-1">
-                        <NumberField.Increment
-                          render={<Button variant="ghost" size="icon" />}
-                          aria-label={`Increase ${name.toLowerCase()} ${dimension.toLowerCase()}`}
-                          className={stepperButton}
-                        >
-                          <ChevronUp aria-hidden="true" className="size-3" />
-                        </NumberField.Increment>
-                        <NumberField.Decrement
-                          render={<Button variant="ghost" size="icon" />}
-                          aria-label={`Decrease ${name.toLowerCase()} ${dimension.toLowerCase()}`}
-                          className={stepperButton}
-                        >
-                          <ChevronDown aria-hidden="true" className="size-3" />
-                        </NumberField.Decrement>
-                      </InputGroupAddon>
-                    </NumberField.Group>
-                  </NumberField.Root>
+                  <InspectorNumberField
+                    id={`${id}-${dimension}`}
+                    label={`${name} ${dimension.toLowerCase()}`}
+                  />
                 </div>
               </section>
             </Fragment>
@@ -259,40 +241,16 @@ export function StyleInspector(props: { defaultCornersOpen?: boolean }) {
               >
                 {name}
               </Label>
-              <NumberField.Root
+              <InspectorNumberField
                 id={`${id}-corner-${index}`}
-                min={0}
-                allowWheelScrub={false}
+                label={`${corner} radius`}
+                leadingIcon={
+                  <span aria-hidden="true" className={`size-2 border-neutral-500 ${mark}`} />
+                }
+                selectOnFocus
                 value={radii[index]}
                 onValueChange={(value) => setRadii((current) => current.with(index, value))}
-              >
-                <NumberField.Group render={<InputGroup className={field} />}>
-                  <InputGroupAddon className="pl-2">
-                    <span aria-hidden="true" className={`size-2 border-neutral-500 ${mark}`} />
-                  </InputGroupAddon>
-                  <NumberField.Input
-                    render={<InputGroupInput className={fieldInput} />}
-                    aria-label={`${name} (${corner.toLowerCase()}) radius`}
-                    onFocus={(event) => event.currentTarget.select()}
-                  />
-                  <InputGroupAddon align="inline-end" className="grid gap-0 py-0 pr-1">
-                    <NumberField.Increment
-                      render={<Button variant="ghost" size="icon" />}
-                      aria-label={`Increase ${corner.toLowerCase()} radius`}
-                      className={stepperButton}
-                    >
-                      <ChevronUp aria-hidden="true" className="size-3" />
-                    </NumberField.Increment>
-                    <NumberField.Decrement
-                      render={<Button variant="ghost" size="icon" />}
-                      aria-label={`Decrease ${corner.toLowerCase()} radius`}
-                      className={stepperButton}
-                    >
-                      <ChevronDown aria-hidden="true" className="size-3" />
-                    </NumberField.Decrement>
-                  </InputGroupAddon>
-                </NumberField.Group>
-              </NumberField.Root>
+              />
             </div>
           ))}
         </div>

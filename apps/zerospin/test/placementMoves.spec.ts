@@ -1,3 +1,6 @@
+import { userAggregateV10 } from "../src/aggregates/user/UserV10";
+import { publishPageV3 } from "../src/aggregates/user/contracts/publishPage/PublishPageV3";
+import { publishPageV4 } from "../src/aggregates/user/contracts/publishPage/PublishPageV4";
 import { userAggregateV9 } from "../src/aggregates/user/UserV9";
 import { expect, it } from "@effect/vitest";
 import { makeQueryDbVersion, NanoIdFactory } from "@zerospin/sdk";
@@ -1219,5 +1222,205 @@ it.effect("persists atomic Row sizing with current membership, ownership, and pu
         remainingPlacements,
       );
     }
+  }).pipe(Effect.provide(NanoIdFactory)),
+);
+
+it.effect("persists preferred Row width and alignment through insertion and publication", () =>
+  Effect.gen(function* () {
+    const harness = yield* makeSystemHarness({ system });
+    const owner = { release: userAggregateV10, aggregateId: "acct_row_width" };
+    const db = makeQueryDbVersion({ models: userAggregateV10.models });
+    const actor = {
+      aggregateName: userAggregateV10.name,
+      aggregateVersion: userAggregateV10.version,
+      aggregateId: owner.aggregateId,
+      actorName: "web",
+      actorVersion: 10,
+      claims: { aggregateId: owner.aggregateId, clerkUserId: "user_row_width" },
+      externalOutcome: null,
+      nodeId: "node_row_width",
+      sessionName: "userSession",
+    };
+    let pushIndex = 1;
+    yield* harness.push({
+      kind: "system",
+      id: "cmd_row_width_create_user",
+      commandName: "createUser",
+      contractVersion: 1,
+      aggregateName: actor.aggregateName,
+      aggregateVersion: actor.aggregateVersion,
+      aggregateId: owner.aggregateId,
+      externalOutcome: null,
+      payload: {
+        id: "usr_row_width",
+        clerkUserId: actor.claims.clerkUserId,
+        username: null,
+        displayName: null,
+      },
+    });
+    yield* harness.push({
+      ...actor,
+      kind: "actor",
+      id: "cmd_row_width_create_site",
+      commandName: "createSite",
+      contractVersion: 1,
+      pushIndex: pushIndex++,
+      payload: {
+        id: "sit_row_width",
+        userId: "usr_row_width",
+        slug: "sizing",
+        name: null,
+        description: null,
+      },
+    });
+    yield* harness.push({
+      ...actor,
+      kind: "actor",
+      id: "cmd_row_width_create_page",
+      commandName: "createPage",
+      contractVersion: 3,
+      pushIndex: pushIndex++,
+      payload: {
+        id: "pag_row_width",
+        siteId: "sit_row_width",
+        slug: null,
+        title: null,
+        description: null,
+      },
+    });
+    yield* harness.push({
+      ...actor,
+      kind: "actor",
+      id: "cmd_row_width_add_a",
+      commandName: "addBrick",
+      contractVersion: 6,
+      pushIndex: pushIndex++,
+      payload: {
+        id: "brk_row_width_a",
+        pageId: "pag_row_width",
+        moduleId: "swatch-and-icon",
+        state: swatchAndIconPreviewState,
+        target: { kind: "wall", wallId: "wal_pag_row_width_lg", beforeSectionId: null },
+      },
+    });
+    yield* harness.flush();
+    const initial = yield* harness.query(
+      owner,
+      db.query.wall.findFirst({ where: { id: { eq: "wal_pag_row_width_lg" } } }),
+    );
+    if (initial === undefined) expect.fail("Expected the command-created Wall");
+    const row = initial.layout.sections[0].stacks[0].rows[0];
+    const target = { wallId: initial.id, rowId: row.id };
+    expect(row).not.toHaveProperty("preferredWidth");
+    const legacyPublish: { pageId: typeof initial.pageId; snapshotId: `psn_${string}` } = {
+      pageId: initial.pageId,
+      snapshotId: "psn_row_width_old",
+    };
+    const encoded = yield* encodePayload(publishPageV3, { version: 3, payload: legacyPublish });
+    expect(
+      yield* decodeAndAdaptPayload(publishPageV4, {
+        command: { commandName: "publishPage", contractVersion: 3, payload: encoded },
+      }),
+    ).toEqual({ ...legacyPublish, preferredRowSizing: false });
+
+    yield* harness.push({
+      ...actor,
+      kind: "actor",
+      id: "cmd_row_width_resize",
+      commandName: "setRowPreferredWidth",
+      contractVersion: 1,
+      pushIndex: pushIndex++,
+      payload: { ...target, preferredWidth: 480 },
+    });
+    yield* harness.push({
+      ...actor,
+      kind: "actor",
+      id: "cmd_row_width_align",
+      commandName: "setRowAlignment",
+      contractVersion: 1,
+      pushIndex: pushIndex++,
+      payload: { ...target, alignment: "center" },
+    });
+    yield* harness.push({
+      ...actor,
+      kind: "actor",
+      id: "cmd_row_width_add_b",
+      commandName: "addBrick",
+      contractVersion: 6,
+      pushIndex: pushIndex++,
+      payload: {
+        id: "brk_row_width_b",
+        pageId: initial.pageId,
+        moduleId: "swatch-and-icon",
+        state: swatchAndIconPreviewState,
+        target: { kind: "row", ...target, beforePlacementId: null },
+      },
+    });
+    const refused = yield* Effect.exit(
+      harness.push({
+        ...actor,
+        kind: "actor",
+        id: "cmd_row_width_missing",
+        commandName: "setRowPreferredWidth",
+        contractVersion: 1,
+        pushIndex: pushIndex++,
+        payload: { ...target, rowId: "row_row_width_missing", preferredWidth: 720 },
+      }),
+    );
+    expect(Exit.isFailure(refused)).toBe(true);
+
+    yield* harness.push({
+      ...actor,
+      kind: "actor",
+      id: "cmd_row_width_publish_site",
+      commandName: "publishSite",
+      contractVersion: 4,
+      pushIndex: pushIndex++,
+      payload: {
+        siteId: "sit_row_width",
+        pages: [legacyPublish],
+        preferredRowSizing: false,
+      },
+    });
+    const legacy = yield* harness.query(
+      owner,
+      db.query.pageSnapshot.findFirst({ where: { id: { eq: legacyPublish.snapshotId } } }),
+    );
+    const legacyRow = legacy?.content.walls.find((wall) => wall.id === initial.id)?.sections[0]
+      .stacks[0].rows[0];
+    expect(legacy).toBeDefined();
+    expect(legacy?.content).not.toHaveProperty("rowSizing");
+    expect(legacyRow).not.toHaveProperty("preferredWidth");
+    expect(legacyRow).not.toHaveProperty("alignment");
+
+    yield* harness.push({
+      ...actor,
+      kind: "actor",
+      id: "cmd_row_width_publish",
+      commandName: "publishPage",
+      contractVersion: 4,
+      pushIndex: pushIndex++,
+      payload: {
+        pageId: initial.pageId,
+        snapshotId: "psn_row_width_new",
+        preferredRowSizing: true,
+      },
+    });
+    yield* harness.flush();
+    const snapshot = yield* harness.query(
+      owner,
+      db.query.pageSnapshot.findFirst({ where: { id: { eq: "psn_row_width_new" } } }),
+    );
+    expect(snapshot?.content.rowSizing).toBe("preferred");
+    const publishedRow = snapshot?.content.walls.find((wall) => wall.id === initial.id)?.sections[0]
+      .stacks[0].rows[0];
+    expect(publishedRow).toMatchObject({
+      preferredWidth: 480,
+      alignment: "center",
+      placements: [
+        { id: row.placementIds[0], widthWeight: 240 },
+        { id: makePlacementId("brk_row_width_b", "lg"), widthWeight: 240 },
+      ],
+    });
   }).pipe(Effect.provide(NanoIdFactory)),
 );

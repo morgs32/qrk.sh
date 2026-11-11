@@ -4,7 +4,7 @@ import { useContext, useState } from "react";
 import { toast } from "sonner";
 import { useLiveQuery, useSession } from "@zerospin/react";
 import { makeId, stageAggregateSessionCommand } from "@zerospin/sdk/browser";
-import { pageSnapshotV3 as PageSnapshot } from "@qrk.sh/zerospin/src/aggregates/user/models/pageSnapshot/PageSnapshotV3";
+import { pageSnapshotV4 as PageSnapshot } from "@qrk.sh/zerospin/src/aggregates/user/models/pageSnapshot/PageSnapshotV4";
 
 import { SiteTree, type ISiteTreeNode } from "@/components/SiteTree";
 import { Button } from "@/components/ui/button";
@@ -130,6 +130,7 @@ export function PublishSiteDialog(props: { siteId: `sit_${string}` }) {
               session,
               contractName: "publishSite",
               payload: {
+                preferredRowSizing: true,
                 siteId,
                 pages: pages
                   .filter((page) => page.id === rootPage.id || selectedPageIds.includes(page.id))

@@ -32,10 +32,11 @@ import {
   useLayoutEffect,
   useRef,
   useState,
+  type CSSProperties,
   type ReactNode,
 } from "react";
 import { brickV2 } from "@qrk.sh/zerospin/src/aggregates/user/models/brick/BrickV2";
-import { wallV2 } from "@qrk.sh/zerospin/src/aggregates/user/models/wall/WallV2";
+import { wallV3 } from "@qrk.sh/zerospin/src/aggregates/user/models/wall/WallV3";
 import { useLiveQuery, useSession } from "@zerospin/react";
 import { Result, Schema } from "effect";
 import { wallInsertionTargetSchema } from "@qrk.sh/zerospin/src/aggregates/user/layout/wallTargetSchemas";
@@ -65,14 +66,14 @@ const DrawerBrickData = Schema.Struct({
 
 const WallPlacementData = Schema.Struct({
   type: Schema.Literal("wall-placement"),
-  wallId: makeIdSchema(wallV2),
+  wallId: makeIdSchema(wallV3),
   rowId: Schema.String,
   placementId: Schema.String,
 });
 
 /** Shared interactive Wall; its host owns navigation and the surrounding page chrome. */
 export function WallEditor(props: {
-  wallId: IInferModelRow<typeof wallV2>["id"];
+  wallId: IInferModelRow<typeof wallV3>["id"];
   selectedBrickId?: string | null;
   selectedStackId?: string | null;
   onEditBrick?: (brickId: string) => void;
@@ -595,6 +596,14 @@ export function WallEditor(props: {
                 );
               },
               getData: ({ source, input }) => {
+                const before = row.placements.find((placement) => {
+                  const cell = rowElement.querySelector<HTMLElement>(
+                    `[data-wall-placement-id="${CSS.escape(placement.id)}"]`,
+                  );
+                  if (cell === null) throw new Error(`Missing Placement ${placement.id}`);
+                  const rect = cell.getBoundingClientRect();
+                  return input.clientX < rect.left + rect.width / 2;
+                });
                 if (Schema.is(WallPlacementData)(source.data)) {
                   const incoming = wall.placements.find(
                     (placement) => placement.id === source.data.placementId,
@@ -623,14 +632,6 @@ export function WallEditor(props: {
                       beforeRowId: beforeRow ? row.id : (stack.rows[rowIndex + 1]?.id ?? null),
                     };
                   }
-                  const before = row.placements.find((placement) => {
-                    const cell = rowElement.querySelector<HTMLElement>(
-                      `[data-wall-placement-id="${CSS.escape(placement.id)}"]`,
-                    );
-                    if (cell === null) throw new Error(`Missing Placement ${placement.id}`);
-                    const rect = cell.getBoundingClientRect();
-                    return input.clientX < rect.left + rect.width / 2;
-                  });
                   return {
                     wallId: wall.id,
                     kind: "row",
@@ -656,7 +657,12 @@ export function WallEditor(props: {
                     ? "reorder-before"
                     : "reorder-after";
                 if (row.placements.length === 0 || operation === "combine") {
-                  return { wallId: wall.id, kind: "row", rowId: row.id, beforePlacementId: null };
+                  return {
+                    wallId: wall.id,
+                    kind: "row",
+                    rowId: row.id,
+                    beforePlacementId: before?.id ?? null,
+                  };
                 }
                 return {
                   wallId: wall.id,
@@ -814,19 +820,6 @@ export function WallEditor(props: {
     wallWidth: wallBreakpointWidths[wall.breakpoint],
     brickGap,
   });
-  const shadowRow =
-    dropTarget?.kind === "row"
-      ? sections
-          .flatMap((section) => section.stacks)
-          .flatMap((stack) => stack.rows)
-          .find((row) => row.id === dropTarget.rowId)
-      : undefined;
-  const shadowWeightScale =
-    shadowRow === undefined || shadowVariant === null
-      ? 1
-      : (shadowRow.placements.length + 1) /
-        (shadowVariant.defaultWidth +
-          shadowRow.placements.reduce((total, placement) => total + placement.widthWeight, 0));
   const shadow =
     shadowSource !== null && shadowVariant !== null && dropTarget !== null ? (
       <div
@@ -838,10 +831,9 @@ export function WallEditor(props: {
             dropTarget.kind === "row"
               ? undefined
               : dropTarget.kind === "wall"
-                ? `calc(100% + ${brickGap}px)`
-                : "100%",
-          flexBasis: dropTarget.kind === "row" ? 0 : undefined,
-          flexGrow: dropTarget.kind === "row" ? shadowVariant.defaultWidth * shadowWeightScale : 0,
+                ? `min(calc(100% + ${brickGap}px), ${shadowVariant.defaultWidth + brickGap}px)`
+                : `min(100%, ${shadowVariant.defaultWidth + brickGap}px)`,
+          flex: dropTarget.kind === "row" ? "0 0 var(--wall-shadow-cell-width)" : undefined,
           // Empty Walls need the same outer half-gap allowance as populated Rows.
           maxWidth: dropTarget.kind === "wall" ? `calc(100% + ${brickGap}px)` : "100%",
           margin: dropTarget.kind === "wall" ? -brickGap / 2 : undefined,
@@ -910,7 +902,7 @@ export function WallEditor(props: {
                       gridTemplateColumns: stackWidths.map((width) => `${width}px`).join(" "),
                     }}
                   >
-                    {section.stacks.map((stack) => {
+                    {section.stacks.map((stack, stackIndex) => {
                       const canInsert =
                         validateAggregateSessionCommand({
                           session,
@@ -1059,18 +1051,81 @@ export function WallEditor(props: {
                                       : 45,
                                   ),
                             );
-                            const totalWeight =
-                              rowPlacements.reduce(
-                                (total, placement) => total + placement.widthWeight,
+                            const stackWidth = stackWidths[stackIndex] - brickGap;
+                            const preferredWidth =
+                              rowPreview?.kind === "row-width"
+                                ? rowPreview.preferredWidth
+                                : row.preferredWidth;
+                            const minimums = variants.map((variant) => variant.minWidth);
+                            const weights = rowPlacements.map((placement) => placement.widthWeight);
+                            if (incomingVariant !== null) {
+                              minimums.push(incomingVariant.minWidth);
+                              weights.push(incomingVariant.defaultWidth);
+                            }
+                            const floored = weights.map((weight, index) =>
+                              Math.max(weight, minimums[index]),
+                            );
+                            const gapWidth = Math.max(0, weights.length - 1) * brickGap;
+                            const minimumWidth = minimums.reduce(
+                              (sum, width) => sum + width,
+                              gapWidth,
+                            );
+                            const naturalWidth = floored.reduce(
+                              (sum, width) => sum + width,
+                              gapWidth,
+                            );
+                            const contentWidth = Math.min(
+                              stackWidth,
+                              Math.max(minimumWidth, preferredWidth ?? naturalWidth),
+                            );
+                            const proportions = preferredWidth === null ? floored : weights;
+                            const widths: number[] = [...minimums];
+                            let remaining = contentWidth - gapWidth;
+                            let open = proportions.map((_, index) => index);
+                            // Reallocate after pinning any Brick that would fall below its minimum.
+                            while (open.length > 0) {
+                              const largest = open.reduce(
+                                (max, index) => Math.max(max, proportions[index]),
                                 0,
-                              ) + (incomingVariant?.defaultWidth ?? 0);
-                            const placementCount =
-                              row.placements.length + (incomingVariant === null ? 0 : 1);
+                              );
+                              const total = open.reduce(
+                                (sum, index) => sum + proportions[index] / largest,
+                                0,
+                              );
+                              const scale = remaining / total;
+                              const eligible = open.filter(
+                                (index) => (proportions[index] / largest) * scale < minimums[index],
+                              );
+                              if (eligible.length === 0) {
+                                for (const index of open)
+                                  widths[index] = (proportions[index] / largest) * scale;
+                                break;
+                              }
+                              remaining -= eligible.reduce(
+                                (sum, index) => sum + minimums[index],
+                                0,
+                              );
+                              open = open.filter((index) => !eligible.includes(index));
+                            }
+                            const groupStyle: CSSProperties &
+                              Record<"--wall-shadow-cell-width" | "--wall-row-grip-inset", string> =
+                              {
+                                width: contentWidth + brickGap,
+                                marginInlineStart:
+                                  row.alignment === "left"
+                                    ? 0
+                                    : (stackWidth - contentWidth) /
+                                      (row.alignment === "center" ? 2 : 1),
+                                "--wall-row-grip-inset": `${brickGap / 2}px`,
+                                "--wall-shadow-cell-width": `${(widths.at(-1) ?? 0) + brickGap}px`,
+                              };
+                            const rowWidthReadout =
+                              rowReadout?.kind === "row-width" ? rowReadout : null;
                             return (
                               <div
                                 key={row.id}
                                 data-wall-row-id={row.id}
-                                className="relative flow-root min-w-0"
+                                className="wall-row relative flow-root min-w-0"
                               >
                                 {dropTarget?.kind === "stack" &&
                                   dropTarget.stackId === stack.id &&
@@ -1082,137 +1137,196 @@ export function WallEditor(props: {
                                   style={{ minHeight: minHeight + brickGap + 1 }}
                                   className={`relative -m-[0.5px] flex min-h-[49px] min-w-0 items-stretch p-[0.5px] ${row.placements.length === 0 && dropTarget?.kind === "row" && dropTarget.rowId === row.id ? "bg-blue-50 outline outline-blue-500 -outline-offset-2" : ""}`}
                                 >
-                                  {rowPlacements.map((placement, placementIndex) => {
-                                    const nextPlacement = rowPlacements[placementIndex + 1];
-                                    const widthReadout =
-                                      rowReadout?.kind === "width" &&
-                                      rowReadout.leftPlacementId === placement.id &&
-                                      rowReadout.rightPlacementId === nextPlacement?.id
-                                        ? rowReadout
-                                        : null;
-                                    const brick = placement.brick;
-                                    const module = modulesHash[brick.moduleId];
-                                    const Component = module.component;
-                                    const inStudio =
-                                      onEditBrick !== undefined &&
-                                      renderBrickDrawer !== undefined &&
-                                      registerBrickFlush !== undefined;
-                                    return (
-                                      <Fragment key={placement.id}>
-                                        {dropTarget?.kind === "row" &&
-                                          dropTarget.rowId === row.id &&
-                                          dropTarget.beforePlacementId === placement.id &&
-                                          shadow}
-                                        <WallPlacement
-                                          brickGap={brickGap}
-                                          selected={brick.id === selectedBrickId}
-                                          onEditBrick={onEditBrick}
-                                          placement={{
-                                            id: placement.id,
-                                            brickId: brick.id,
-                                            widthWeight:
-                                              (placement.widthWeight / totalWeight) *
-                                              placementCount,
-                                            minWidth: module.variants[placement.variantId].minWidth,
-                                            content:
-                                              brick.state === null ||
-                                              isNonEmptySpec(placement.spec) ? (
-                                                <BrickWrapper
-                                                  borderWidth={brick.borderWidth}
-                                                  data-wall-inline-editor={
-                                                    inStudio && module.hasInlineEditor
-                                                      ? ""
-                                                      : undefined
-                                                  }
-                                                  className={
-                                                    wall.page.site.cardStyle
-                                                      ? "brick-surface-card"
-                                                      : undefined
-                                                  }
-                                                >
-                                                  <Component
-                                                    {...(inStudio
-                                                      ? {
-                                                          mode: "studio",
-                                                          onFocus: () => onEditBrick(brick.id),
-                                                          renderDrawer: (content) =>
-                                                            renderBrickDrawer(brick.id, content),
-                                                          onSave: (state) =>
-                                                            stageAggregateSessionCommand({
-                                                              session,
-                                                              contractName: "updateBrick",
-                                                              payload: {
-                                                                brickId: brick.id,
-                                                                moduleId: brick.moduleId,
-                                                                state,
-                                                              },
-                                                            }),
-                                                          registerFlush: (flush) =>
-                                                            registerBrickFlush(brick.id, flush),
-                                                        }
-                                                      : { mode: "view" })}
-                                                    state={brick.state}
-                                                    variantId={placement.variantId}
-                                                    spec={
-                                                      isNonEmptySpec(placement.spec)
-                                                        ? placement.spec
-                                                        : module.variants[placement.variantId].spec
+                                  <div
+                                    data-wall-row-group
+                                    className="relative flex shrink-0 items-stretch"
+                                    style={groupStyle}
+                                  >
+                                    {rowPlacements.map((placement, placementIndex) => {
+                                      const nextPlacement = rowPlacements[placementIndex + 1];
+                                      const widthReadout =
+                                        rowReadout?.kind === "width" &&
+                                        rowReadout.leftPlacementId === placement.id &&
+                                        rowReadout.rightPlacementId === nextPlacement?.id
+                                          ? rowReadout
+                                          : null;
+                                      const brick = placement.brick;
+                                      const module = modulesHash[brick.moduleId];
+                                      const Component = module.component;
+                                      const inStudio =
+                                        onEditBrick !== undefined &&
+                                        renderBrickDrawer !== undefined &&
+                                        registerBrickFlush !== undefined;
+                                      return (
+                                        <Fragment key={placement.id}>
+                                          {dropTarget?.kind === "row" &&
+                                            dropTarget.rowId === row.id &&
+                                            dropTarget.beforePlacementId === placement.id &&
+                                            shadow}
+                                          <WallPlacement
+                                            brickGap={brickGap}
+                                            selected={brick.id === selectedBrickId}
+                                            onEditBrick={onEditBrick}
+                                            placement={{
+                                              id: placement.id,
+                                              brickId: brick.id,
+                                              width: widths[placementIndex],
+                                              minWidth:
+                                                module.variants[placement.variantId].minWidth,
+                                              content:
+                                                brick.state === null ||
+                                                isNonEmptySpec(placement.spec) ? (
+                                                  <BrickWrapper
+                                                    borderWidth={brick.borderWidth}
+                                                    data-wall-inline-editor={
+                                                      inStudio && module.hasInlineEditor
+                                                        ? ""
+                                                        : undefined
                                                     }
-                                                  />
-                                                </BrickWrapper>
-                                              ) : (
-                                                <p role="alert">Invalid Brick spec</p>
-                                              ),
-                                          }}
-                                        />
-                                        {nextPlacement !== undefined && (
-                                          <span
-                                            aria-hidden="true"
-                                            className="wall-width-resize-slot relative z-20 w-0 shrink-0 self-stretch"
-                                          >
+                                                    className={
+                                                      wall.page.site.cardStyle
+                                                        ? "brick-surface-card"
+                                                        : undefined
+                                                    }
+                                                  >
+                                                    <Component
+                                                      {...(inStudio
+                                                        ? {
+                                                            mode: "studio",
+                                                            onFocus: () => onEditBrick(brick.id),
+                                                            renderDrawer: (content) =>
+                                                              renderBrickDrawer(brick.id, content),
+                                                            onSave: (state) =>
+                                                              stageAggregateSessionCommand({
+                                                                session,
+                                                                contractName: "updateBrick",
+                                                                payload: {
+                                                                  brickId: brick.id,
+                                                                  moduleId: brick.moduleId,
+                                                                  state,
+                                                                },
+                                                              }),
+                                                            registerFlush: (flush) =>
+                                                              registerBrickFlush(brick.id, flush),
+                                                          }
+                                                        : { mode: "view" })}
+                                                      state={brick.state}
+                                                      variantId={placement.variantId}
+                                                      spec={
+                                                        isNonEmptySpec(placement.spec)
+                                                          ? placement.spec
+                                                          : module.variants[placement.variantId]
+                                                              .spec
+                                                      }
+                                                    />
+                                                  </BrickWrapper>
+                                                ) : (
+                                                  <p role="alert">Invalid Brick spec</p>
+                                                ),
+                                            }}
+                                          />
+                                          {nextPlacement !== undefined && (
                                             <span
-                                              data-wall-width-resize-handle
-                                              data-row-id={row.id}
-                                              data-left-placement-id={placement.id}
-                                              data-right-placement-id={nextPlacement.id}
-                                              data-wall-resize-active={
-                                                widthReadout === null ? undefined : ""
-                                              }
-                                              className="wall-resize-grip wall-width-resize-grip"
-                                              draggable={false}
-                                              onPointerDown={(event) =>
-                                                resize.startWidthResize({
-                                                  event,
-                                                  rowId: row.id,
-                                                  leftPlacementId: placement.id,
-                                                  rightPlacementId: nextPlacement.id,
-                                                })
-                                              }
-                                              onDragStart={(event) => event.preventDefault()}
-                                              onClick={(event) => {
-                                                event.preventDefault();
-                                                event.stopPropagation();
-                                              }}
+                                              aria-hidden="true"
+                                              className="wall-width-resize-slot relative z-20 w-0 shrink-0 self-stretch"
                                             >
-                                              {widthReadout !== null && (
-                                                <span
-                                                  data-wall-resize-readout
-                                                  className="wall-resize-readout"
-                                                >
-                                                  {`${Math.round(widthReadout.leftWidth)} px | ${Math.round(widthReadout.rightWidth)} px`}
-                                                </span>
-                                              )}
+                                              <span
+                                                data-wall-width-resize-handle
+                                                data-row-id={row.id}
+                                                data-left-placement-id={placement.id}
+                                                data-right-placement-id={nextPlacement.id}
+                                                data-wall-resize-active={
+                                                  widthReadout === null ? undefined : ""
+                                                }
+                                                className="wall-resize-grip wall-width-resize-grip"
+                                                draggable={false}
+                                                onPointerDown={(event) =>
+                                                  resize.startWidthResize({
+                                                    event,
+                                                    rowId: row.id,
+                                                    leftPlacementId: placement.id,
+                                                    rightPlacementId: nextPlacement.id,
+                                                  })
+                                                }
+                                                onDragStart={(event) => event.preventDefault()}
+                                                onClick={(event) => {
+                                                  event.preventDefault();
+                                                  event.stopPropagation();
+                                                }}
+                                              >
+                                                {widthReadout !== null && (
+                                                  <span
+                                                    data-wall-resize-readout
+                                                    className="wall-resize-readout"
+                                                  >
+                                                    {`${Math.round(widthReadout.leftWidth)} px | ${Math.round(widthReadout.rightWidth)} px`}
+                                                  </span>
+                                                )}
+                                              </span>
                                             </span>
+                                          )}
+                                        </Fragment>
+                                      );
+                                    })}
+                                    {dropTarget?.kind === "row" &&
+                                      dropTarget.rowId === row.id &&
+                                      dropTarget.beforePlacementId === null &&
+                                      shadow}
+                                    {row.placements.length > 0 && (
+                                      <span
+                                        role="separator"
+                                        aria-label="Resize Row width"
+                                        aria-orientation="vertical"
+                                        data-wall-row-width-resize-handle
+                                        data-side={row.alignment === "right" ? "left" : "right"}
+                                        data-wall-resize-active={
+                                          rowWidthReadout === null ? undefined : ""
+                                        }
+                                        className="wall-resize-grip wall-row-width-resize-grip z-30"
+                                        draggable={false}
+                                        onPointerDown={(event) =>
+                                          resize.startRowWidthResize({ event, rowId: row.id })
+                                        }
+                                        onDragStart={(event) => event.preventDefault()}
+                                      >
+                                        {rowWidthReadout !== null && (
+                                          <span
+                                            data-wall-resize-readout
+                                            className="wall-resize-readout"
+                                          >
+                                            {`${Math.round(rowWidthReadout.width)} px`}
                                           </span>
                                         )}
-                                      </Fragment>
-                                    );
-                                  })}
-                                  {dropTarget?.kind === "row" &&
-                                    dropTarget.rowId === row.id &&
-                                    dropTarget.beforePlacementId === null &&
-                                    shadow}
+                                      </span>
+                                    )}
+                                  </div>
                                 </div>
+                                {row.placements.length > 0 && !nativeDragActive && (
+                                  <div
+                                    className="wall-row-alignment"
+                                    role="group"
+                                    aria-label="Row alignment"
+                                  >
+                                    {(
+                                      ["left", "center", "right"] satisfies (typeof row.alignment)[]
+                                    ).map((alignment) => (
+                                      <button
+                                        key={alignment}
+                                        type="button"
+                                        aria-pressed={row.alignment === alignment}
+                                        onClick={() =>
+                                          stageAggregateSessionCommand({
+                                            session,
+                                            contractName: "setRowAlignment",
+                                            payload: { wallId: wall.id, rowId: row.id, alignment },
+                                          })
+                                        }
+                                      >
+                                        {alignment}
+                                      </button>
+                                    ))}
+                                  </div>
+                                )}
                                 <span
                                   aria-hidden="true"
                                   data-wall-height-resize-handle

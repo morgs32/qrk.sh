@@ -191,6 +191,7 @@ export function StyleInspector(props: { defaultCornersOpen?: boolean }) {
           {[
             { name: "Row", dimension: "Width" },
             { name: "Stack", dimension: "Height" },
+            { name: "Brick", dimension: "Width" },
           ].map(({ name, dimension }) => (
             <Fragment key={name}>
               <Separator className="bg-neutral-200" />
@@ -199,11 +200,11 @@ export function StyleInspector(props: { defaultCornersOpen?: boolean }) {
                   {name}
                 </h2>
                 <div className={`mt-3 ${styleRow}`}>
-                  <Label htmlFor={`${id}-${dimension}`} className={label}>
+                  <Label htmlFor={`${id}-${name}-${dimension}`} className={label}>
                     {dimension}
                   </Label>
                   <InspectorNumberField
-                    id={`${id}-${dimension}`}
+                    id={`${id}-${name}-${dimension}`}
                     label={`${name} ${dimension.toLowerCase()}`}
                   />
                 </div>

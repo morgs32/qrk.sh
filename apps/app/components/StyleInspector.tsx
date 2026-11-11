@@ -1,5 +1,5 @@
 import { BrickWall, Layers, Paintbrush, Rows3, Scan, SquareDashed, X } from "lucide-react";
-import { Fragment, useId, useState } from "react";
+import { useId, useState } from "react";
 import { HexColorInput, HexColorPicker } from "react-colorful";
 
 import { Button } from "@/components/ui/button";
@@ -20,7 +20,6 @@ export function StyleInspector(props: {
   layout?: "sidebar" | "drawer";
 }) {
   const { defaultCornersOpen = false, layout = "sidebar" } = props;
-  const isDrawer = layout === "drawer";
   const id = useId();
   const [radii, setRadii] = useState<(number | null)[]>([0, 0, 0, 0]);
   const [border, setBorder] = useState("0");
@@ -28,15 +27,30 @@ export function StyleInspector(props: {
   const [shadow, setShadow] = useState("");
   const [shadowColor, setShadowColor] = useState("");
   const [fill, setFill] = useState("");
+
+  if (layout === "sidebar") {
+    return (
+      <aside
+        aria-label="Style inspector"
+        data-slot="sidebar"
+        data-sidebar="sidebar"
+        className="flex min-h-svh w-64 max-w-full shrink-0 flex-col border-l border-sidebar-border bg-sidebar text-sidebar-foreground"
+      >
+        <div
+          data-slot="sidebar-content"
+          data-sidebar="content"
+          className="flex min-h-0 flex-1 flex-col gap-2 overflow-auto"
+        />
+      </aside>
+    );
+  }
+
   const hasMixedRadius = radii.some((radius) => radius !== radii[0]);
 
   const typography = "font-[Geist_Variable,Arial,sans-serif] text-xs text-neutral-950";
-  const styleRow = isDrawer
-    ? "grid grid-cols-[minmax(0,1fr)_28px] items-center gap-x-1 gap-y-2"
-    : "grid grid-cols-[76px_minmax(0,1fr)_28px] items-center gap-1";
-  const styleLabel = isDrawer
-    ? "col-span-2 font-mono text-[10px] font-normal tracking-wide text-neutral-600 uppercase"
-    : "text-xs font-normal text-neutral-500";
+  const styleRow = "grid grid-cols-[minmax(0,1fr)_28px] items-center gap-x-1 gap-y-2";
+  const styleLabel =
+    "col-span-2 font-mono text-[10px] font-normal tracking-wide text-neutral-600 uppercase";
   const dimensions = [
     { name: "Row", dimension: "Width", Icon: Rows3 },
     { name: "Stack", dimension: "Height", Icon: Layers },
@@ -54,11 +68,9 @@ export function StyleInspector(props: {
     "size-7 rounded-[9px] bg-neutral-100 hover:bg-neutral-200 [&_svg:not([class*='size-'])]:size-3.5";
 
   const styles = (
-    <div
-      className={isDrawer ? "grid max-w-4xl grid-cols-2 gap-4 sm:grid-cols-4" : "mt-3 grid gap-3"}
-    >
+    <div className="grid max-w-4xl grid-cols-2 gap-4 sm:grid-cols-4">
       <div className={styleRow}>
-        <Label htmlFor={`${id}-radius`} className={isDrawer ? styleLabel : "text-xs"}>
+        <Label htmlFor={`${id}-radius`} className={styleLabel}>
           Radius
         </Label>
         <InputGroup className={field}>
@@ -165,8 +177,8 @@ export function StyleInspector(props: {
             </PopoverAnchor>
             <PopoverContent
               aria-labelledby={`${id}-${name}-color`}
-              side={isDrawer ? "top" : "left"}
-              sideOffset={isDrawer ? 68 : 21}
+              side="top"
+              sideOffset={68}
               align="start"
               collisionPadding={8}
               className={`w-64 max-w-[calc(100vw-16px)] rounded-[10px] border-neutral-100 bg-white p-0 shadow-lg ${typography}`}
@@ -194,28 +206,15 @@ export function StyleInspector(props: {
   );
   const dimensionSections = dimensions.map(({ name, dimension }) => {
     const fieldId = `${id}-${name}-${dimension}`;
-    const control = (
-      <div className={isDrawer ? "grid w-full max-w-xs gap-2" : `mt-3 ${styleRow}`}>
-        <Label htmlFor={fieldId} className={isDrawer ? styleLabel : label}>
-          {dimension}
-        </Label>
-        <InspectorNumberField id={fieldId} label={`${name} ${dimension.toLowerCase()}`} />
-      </div>
-    );
-    return isDrawer ? (
+    return (
       <TabsContent key={name} value={name} forceMount className={panel}>
-        {control}
+        <div className="grid w-full max-w-xs gap-2">
+          <Label htmlFor={fieldId} className={styleLabel}>
+            {dimension}
+          </Label>
+          <InspectorNumberField id={fieldId} label={`${name} ${dimension.toLowerCase()}`} />
+        </div>
       </TabsContent>
-    ) : (
-      <Fragment key={name}>
-        <Separator className="bg-neutral-200" />
-        <section aria-labelledby={`${id}-${name}`} className="px-4 pt-5 pb-4">
-          <h2 id={`${id}-${name}`} className="leading-5 font-medium">
-            {name}
-          </h2>
-          {control}
-        </section>
-      </Fragment>
     );
   });
 
@@ -224,53 +223,36 @@ export function StyleInspector(props: {
       <PopoverAnchor asChild>
         <aside
           aria-label="Style inspector"
-          className={`${typography} bg-white ${
-            isDrawer
-              ? "w-full border-t border-neutral-200 shadow-[0_-4px_18px_-8px_rgba(0,0,0,0.18)] antialiased tabular-nums"
-              : "w-[260px] max-w-full shrink-0 border-l border-neutral-200 pt-[18px]"
-          }`}
+          className={`${typography} w-full border-t border-neutral-200 bg-white shadow-[0_-4px_18px_-8px_rgba(0,0,0,0.18)] antialiased tabular-nums`}
         >
-          {isDrawer ? (
-            <Tabs defaultValue="Styles" className="gap-0">
-              <TabsList
-                aria-label="Inspector sections"
-                className="h-10 w-full justify-start gap-5 overflow-x-auto rounded-none border-b border-neutral-200 bg-transparent px-5 py-0"
-              >
-                <TabsTrigger value="Styles" className={tab}>
-                  <Paintbrush aria-hidden="true" className="size-3.5" />
-                  Styles
+          <Tabs defaultValue="Styles" className="gap-0">
+            <TabsList
+              aria-label="Inspector sections"
+              className="h-10 w-full justify-start gap-5 overflow-x-auto rounded-none border-b border-neutral-200 bg-transparent px-5 py-0"
+            >
+              <TabsTrigger value="Styles" className={tab}>
+                <Paintbrush aria-hidden="true" className="size-3.5" />
+                Styles
+              </TabsTrigger>
+              {dimensions.map(({ name, Icon }) => (
+                <TabsTrigger key={name} value={name} className={tab}>
+                  <Icon aria-hidden="true" className="size-3.5" />
+                  {name}
                 </TabsTrigger>
-                {dimensions.map(({ name, Icon }) => (
-                  <TabsTrigger key={name} value={name} className={tab}>
-                    <Icon aria-hidden="true" className="size-3.5" />
-                    {name}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-              <TabsContent value="Styles" forceMount className={panel}>
-                {styles}
-              </TabsContent>
-              {dimensionSections}
-            </Tabs>
-          ) : (
-            <>
-              <Separator className="bg-neutral-200" />
-              <section aria-labelledby={`${id}-styles`} className="px-4 pt-5 pb-4">
-                <h2 id={`${id}-styles`} className="leading-5 font-medium">
-                  Styles
-                </h2>
-                {styles}
-              </section>
-              {dimensionSections}
-            </>
-          )}
+              ))}
+            </TabsList>
+            <TabsContent value="Styles" forceMount className={panel}>
+              {styles}
+            </TabsContent>
+            {dimensionSections}
+          </Tabs>
         </aside>
       </PopoverAnchor>
       <PopoverContent
         aria-labelledby={`${id}-corner-title`}
-        side={isDrawer ? "top" : "left"}
+        side="top"
         align="start"
-        alignOffset={isDrawer ? 20 : 72}
+        alignOffset={20}
         collisionPadding={8}
         className={`w-64 max-w-[calc(100vw-16px)] rounded-[10px] border-neutral-100 bg-white p-0 shadow-lg ${typography}`}
       >

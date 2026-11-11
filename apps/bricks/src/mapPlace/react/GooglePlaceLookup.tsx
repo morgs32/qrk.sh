@@ -1,89 +1,66 @@
 "use client";
 
+import { Combobox } from "@base-ui/react/combobox";
 import { newSyncRpcSession } from "@zerospin/core/utils/getApi/newSyncRpcSession/newSyncRpcSession";
 import { Loader2, MapPin, Search, X } from "lucide-react";
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import type { LibraryApi } from "../../rpc/LibraryApi";
-import type { IGooglePlaceSuggestion } from "../../rpc/types";
+import { useEffect, useId, useRef, useState } from "react";
 
-import { TextInput } from "../../react/TextInput";
+import { Field, FieldContent, FieldDescription, FieldError, FieldLabel } from "../../react/field";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+} from "../../react/input-group";
 import { useWarnBeforeUnload } from "../../react/useWarnBeforeUnload";
-import { cn } from "cn";
+import type { LibraryApi } from "../../rpc/LibraryApi";
+import type { IGooglePlaceSuggestion, IRpcEither } from "../../rpc/types";
+
+async function searchGooglePlaces(query: string, signal: AbortSignal) {
+  using api = newSyncRpcSession<LibraryApi>("/rpc");
+  const close = () => api[Symbol.dispose]();
+  signal.addEventListener("abort", close, { once: true });
+  try {
+    return await api.googlePlacesBackend().autocomplete(query);
+  } finally {
+    signal.removeEventListener("abort", close);
+  }
+}
 
 export function GooglePlaceLookup(props: {
   value: string;
   onChange: (value: string) => void;
   saveError?: string;
   status?: string;
+  disabled?: boolean;
+  searchPlaces?: (
+    query: string,
+    signal: AbortSignal,
+  ) => Promise<IRpcEither<readonly IGooglePlaceSuggestion[]>>;
 }) {
-  const { value, onChange, saveError, status } = props;
+  const { value, onChange, saveError, status, disabled, searchPlaces = searchGooglePlaces } = props;
+  const id = useId();
   const [query, setQuery] = useState("");
-  const [suggestions, setSuggestions] = useState<ReadonlyArray<IGooglePlaceSuggestion>>([]);
+  const [selected, setSelected] = useState<IGooglePlaceSuggestion | null>(null);
+  const [suggestions, setSuggestions] = useState<readonly IGooglePlaceSuggestion[]>([]);
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
-  const [isLoadingInitialPlace, setIsLoadingInitialPlace] = useState(value.length > 0);
-  const [isSelected, setIsSelected] = useState(value.length > 0);
-  const [isOpen, setIsOpen] = useState(false);
-  const [activeIndex, setActiveIndex] = useState(-1);
+  const [isLoadingInitialPlace, setIsLoadingInitialPlace] = useState(value !== "");
+  const [open, setOpen] = useState(false);
   const [lookupError, setLookupError] = useState<string>();
-  useWarnBeforeUnload(!isSelected && query.length > 0);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>(null);
   const activeSuggestions = useRef<AbortController | null>(null);
   const activeInitialPlace = useRef<AbortController | null>(null);
 
-  useLayoutEffect(() => {
-    return () => {
-      activeSuggestions.current?.abort();
-      activeSuggestions.current = null;
-      activeInitialPlace.current?.abort();
-      activeInitialPlace.current = null;
-      if (debounceRef.current !== null) clearTimeout(debounceRef.current);
-    };
-  }, []);
+  const selection = selected?.placeId === value ? selected : null;
+  const items =
+    selection !== null && !suggestions.some((item) => item.placeId === selection.placeId)
+      ? [selection, ...suggestions]
+      : suggestions;
+  const error = saveError ?? lookupError;
+  const canSearch = value === "" && query.trim().length >= 2;
+  useWarnBeforeUnload(value === "" && query.length > 0);
 
-  const fetchSuggestions = useCallback(async (input: string) => {
-    const normalizedInput = input.trim();
-    if (normalizedInput.length < 2) {
-      setSuggestions([]);
-      setIsOpen(false);
-      return;
-    }
-
-    activeSuggestions.current?.abort();
-    const controller = new AbortController();
-    activeSuggestions.current = controller;
-    setIsLoadingSuggestions(true);
-    setLookupError(undefined);
-
-    try {
-      using api = newSyncRpcSession<LibraryApi>("/rpc");
-      const result = await api.googlePlacesBackend().autocomplete(normalizedInput);
-      if (controller.signal.aborted || activeSuggestions.current !== controller) return;
-
-      if (result._tag === "Left") {
-        setSuggestions([]);
-        setLookupError(result.left.message);
-        setIsOpen(true);
-        return;
-      }
-
-      setSuggestions(result.right);
-      setIsOpen(true);
-    } catch (cause) {
-      if (controller.signal.aborted || activeSuggestions.current !== controller) return;
-      setSuggestions([]);
-      setLookupError(cause instanceof Error ? cause.message : String(cause));
-      setIsOpen(true);
-    } finally {
-      if (activeSuggestions.current === controller) {
-        activeSuggestions.current = null;
-        setIsLoadingSuggestions(false);
-      }
-    }
-  }, []);
-
-  useLayoutEffect(() => {
-    if (value.length === 0) {
+  useEffect(() => {
+    if (value === "" || selection !== null) {
       setIsLoadingInitialPlace(false);
       return;
     }
@@ -91,30 +68,35 @@ export function GooglePlaceLookup(props: {
     const controller = new AbortController();
     activeInitialPlace.current = controller;
     setIsLoadingInitialPlace(true);
-
+    setLookupError(undefined);
     void (async () => {
       try {
         using api = newSyncRpcSession<LibraryApi>("/rpc");
-        const result = await api.googlePlacesBackend().getPlace(value);
-
-        if (controller.signal.aborted || activeInitialPlace.current !== controller) {
-          return;
+        const close = () => api[Symbol.dispose]();
+        controller.signal.addEventListener("abort", close, { once: true });
+        try {
+          const result = await api.googlePlacesBackend().getPlace(value);
+          if (controller.signal.aborted) return;
+          if (result._tag === "Left") {
+            setLookupError(result.left.message);
+            setQuery(value);
+            return;
+          }
+          const { name, address } = result.right;
+          setSelected({
+            placeId: value,
+            mainText: name,
+            secondaryText: address,
+            description: name,
+          });
+          setQuery(name);
+        } finally {
+          controller.signal.removeEventListener("abort", close);
         }
-
-        if (result._tag === "Left") {
-          setLookupError(result.left.message);
-          setQuery(value);
-          return;
-        }
-
-        setLookupError(undefined);
-        setQuery(result.right.name);
-        setIsSelected(true);
       } catch (cause) {
-        if (!controller.signal.aborted && activeInitialPlace.current === controller) {
-          setLookupError(cause instanceof Error ? cause.message : String(cause));
-          setQuery(value);
-        }
+        if (controller.signal.aborted) return;
+        setLookupError(cause instanceof Error ? cause.message : String(cause));
+        setQuery(value);
       } finally {
         if (activeInitialPlace.current === controller) {
           activeInitialPlace.current = null;
@@ -124,211 +106,150 @@ export function GooglePlaceLookup(props: {
     })();
 
     return () => {
+      activeInitialPlace.current = null;
       controller.abort();
-      if (activeInitialPlace.current === controller) activeInitialPlace.current = null;
     };
-  }, [value]);
+  }, [selection, value]);
 
   useEffect(() => {
-    if (debounceRef.current !== null) {
-      clearTimeout(debounceRef.current);
-    }
-
-    if (isSelected || query.trim().length < 2) {
-      setSuggestions([]);
-      setIsOpen(false);
-      return;
-    }
-
-    debounceRef.current = setTimeout(() => {
-      void fetchSuggestions(query);
+    if (!canSearch) return;
+    const controller = new AbortController();
+    activeSuggestions.current = controller;
+    setIsLoadingSuggestions(true);
+    const timer = setTimeout(() => {
+      void (async () => {
+        try {
+          const result = await searchPlaces(query.trim(), controller.signal);
+          if (controller.signal.aborted) return;
+          if (result._tag === "Left") {
+            setLookupError(result.left.message);
+            return;
+          }
+          setSuggestions(result.right);
+        } catch (cause) {
+          if (!controller.signal.aborted)
+            setLookupError(cause instanceof Error ? cause.message : String(cause));
+        } finally {
+          if (activeSuggestions.current === controller) {
+            activeSuggestions.current = null;
+            setIsLoadingSuggestions(false);
+          }
+        }
+      })();
     }, 300);
 
     return () => {
-      if (debounceRef.current !== null) {
-        clearTimeout(debounceRef.current);
-      }
+      clearTimeout(timer);
+      activeSuggestions.current = null;
+      controller.abort();
     };
-  }, [fetchSuggestions, isSelected, query]);
+  }, [canSearch, query, searchPlaces]);
 
-  useEffect(() => {
-    const closeOnOutsidePointer = (event: MouseEvent) => {
-      if (containerRef.current !== null && !event.composedPath().includes(containerRef.current)) {
-        setIsOpen(false);
-        setActiveIndex(-1);
-      }
-    };
-
-    document.addEventListener("click", closeOnOutsidePointer);
-    return () => {
-      document.removeEventListener("click", closeOnOutsidePointer);
-    };
-  }, []);
+  function editQuery(next: string) {
+    activeSuggestions.current?.abort();
+    activeInitialPlace.current?.abort();
+    setQuery(next);
+    setSelected(null);
+    setSuggestions([]);
+    setLookupError(undefined);
+    setIsLoadingSuggestions(false);
+    setIsLoadingInitialPlace(false);
+    if (next.trim().length < 2) setOpen(false);
+    if (value !== "") onChange("");
+  }
 
   return (
-    <div className="relative w-full" ref={containerRef}>
-      <div className="relative">
-        <div className="pointer-events-none absolute top-0 left-20 z-10 flex h-7 items-center pl-2.5">
-          {isLoadingSuggestions || isLoadingInitialPlace ? (
-            <Loader2 className="size-3.5 animate-spin" aria-hidden />
-          ) : (
-            <Search className="size-3.5" aria-hidden />
-          )}
-        </div>
-        <TextInput
-          label="Place"
-          error={saveError ?? lookupError}
-          status={status}
-          aria-autocomplete="list"
-          aria-controls="google-places-listbox"
-          aria-expanded={isOpen && lookupError === undefined}
-          autoComplete="off"
-          className="pl-8 pr-8"
-          onChange={(event) => {
+    <Field orientation="horizontal">
+      <FieldLabel htmlFor={id}>Place</FieldLabel>
+      <FieldContent>
+        <Combobox.Root
+          items={items}
+          filter={null}
+          value={selection}
+          inputValue={query}
+          open={open && canSearch && lookupError === undefined}
+          onOpenChange={setOpen}
+          openOnInputClick={false}
+          disabled={disabled}
+          itemToStringLabel={(item) => item.mainText}
+          itemToStringValue={(item) => item.placeId}
+          isItemEqualToValue={(item, current) => item.placeId === current.placeId}
+          onInputValueChange={(next, details) => {
+            if (details.reason === "input-change") editQuery(next);
+          }}
+          onValueChange={(next) => {
+            if (next === null) return;
             activeSuggestions.current?.abort();
-            activeSuggestions.current = null;
-            activeInitialPlace.current?.abort();
-            activeInitialPlace.current = null;
-            setIsLoadingSuggestions(false);
-            setIsLoadingInitialPlace(false);
+            setSelected(next);
+            setQuery(next.mainText);
             setSuggestions([]);
-            setIsOpen(false);
-            setQuery(event.target.value);
-            setIsSelected(false);
             setLookupError(undefined);
-            setActiveIndex(-1);
-
-            if (value.length > 0) {
-              onChange("");
-            }
+            setIsLoadingSuggestions(false);
+            onChange(next.placeId);
           }}
-          onKeyDown={(event) => {
-            if (event.key === "Escape" && isOpen) {
-              event.preventDefault();
-              setIsOpen(false);
-              setActiveIndex(-1);
-              return;
-            }
-
-            if (!isOpen || suggestions.length === 0) {
-              return;
-            }
-
-            if (event.key === "ArrowDown") {
-              event.preventDefault();
-              setActiveIndex((currentIndex) =>
-                currentIndex < suggestions.length - 1 ? currentIndex + 1 : 0,
-              );
-              return;
-            }
-
-            if (event.key === "ArrowUp") {
-              event.preventDefault();
-              setActiveIndex((currentIndex) =>
-                currentIndex > 0 ? currentIndex - 1 : suggestions.length - 1,
-              );
-              return;
-            }
-
-            if (event.key === "Enter" && activeIndex >= 0) {
-              event.preventDefault();
-              const suggestion = suggestions[activeIndex];
-              if (suggestion !== undefined) {
-                activeSuggestions.current?.abort();
-                activeSuggestions.current = null;
-                setIsLoadingSuggestions(false);
-                setQuery(suggestion.mainText);
-                setSuggestions([]);
-                setIsOpen(false);
-                setIsSelected(true);
-                setActiveIndex(-1);
-                onChange(suggestion.placeId);
-              }
-              return;
-            }
-          }}
-          placeholder="Search for a place..."
-          role="combobox"
-          value={query}
-        />
-        {query.length > 0 ? (
-          <button
-            aria-label="Clear place search"
-            className="absolute top-0 right-0 flex h-7 items-center pr-2.5"
-            onClick={() => {
-              activeSuggestions.current?.abort();
-              activeSuggestions.current = null;
-              activeInitialPlace.current?.abort();
-              activeInitialPlace.current = null;
-              setIsLoadingSuggestions(false);
-              setIsLoadingInitialPlace(false);
-              setQuery("");
-              setSuggestions([]);
-              setLookupError(undefined);
-              setIsOpen(false);
-              setIsSelected(false);
-              setActiveIndex(-1);
-              onChange("");
-            }}
-            type="button"
-          >
-            <X className="size-3.5" aria-hidden />
-          </button>
-        ) : null}
-      </div>
-
-      {isOpen && lookupError === undefined ? (
-        <div
-          className="relative z-50 mt-2 overflow-hidden rounded-md border border-border bg-background shadow-lg"
-          id="google-places-listbox"
-          role="listbox"
         >
-          {suggestions.length > 0 ? (
-            <ul className="m-0 list-none p-1">
-              {suggestions.map((suggestion, index) => (
-                <li
-                  aria-selected={index === activeIndex}
-                  className={cn(
-                    "flex cursor-pointer items-start gap-2 rounded-sm px-3 py-2 transition-colors",
-                    index === activeIndex ? "bg-accent" : "hover:bg-accent/50",
-                  )}
-                  id={`google-place-option-${index}`}
-                  key={suggestion.placeId}
-                  onMouseDown={(event) => {
-                    event.preventDefault();
-                    activeSuggestions.current?.abort();
-                    activeSuggestions.current = null;
-                    setIsLoadingSuggestions(false);
-                    setQuery(suggestion.mainText);
-                    setSuggestions([]);
-                    setIsOpen(false);
-                    setIsSelected(true);
-                    setActiveIndex(-1);
-                    onChange(suggestion.placeId);
-                  }}
-                  onMouseEnter={() => {
-                    setActiveIndex(index);
-                  }}
-                  role="option"
+          <Combobox.InputGroup render={<InputGroup />}>
+            <Combobox.Input
+              id={id}
+              render={<InputGroupInput />}
+              aria-describedby={error === undefined ? undefined : `${id}-error`}
+              placeholder="Search for a place..."
+            />
+            <InputGroupAddon aria-hidden="true">
+              {isLoadingSuggestions || isLoadingInitialPlace ? (
+                <Loader2 className="size-3.5 animate-spin" />
+              ) : (
+                <Search className="size-3.5" />
+              )}
+            </InputGroupAddon>
+            {query === "" ? null : (
+              <InputGroupAddon align="inline-end">
+                <InputGroupButton
+                  aria-label="Clear place search"
+                  disabled={disabled}
+                  onClick={() => editQuery("")}
                 >
-                  <MapPin className="mt-0.5 size-3.5 shrink-0" aria-hidden />
-                  <div className="min-w-0 flex-1">
-                    <p className="m-0 truncate font-medium">{suggestion.mainText}</p>
-                    {suggestion.secondaryText.length > 0 ? (
-                      <p className="m-0 mt-0.5 truncate">{suggestion.secondaryText}</p>
-                    ) : null}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          ) : !isLoadingSuggestions && query.trim().length >= 2 ? (
-            <p className="m-0 px-3 py-4 text-center">No places found for &ldquo;{query}&rdquo;</p>
-          ) : null}
-          <p className="m-0 border-t border-border px-3 py-1.5 text-right">
-            Powered by Google Places
-          </p>
-        </div>
-      ) : null}
-    </div>
+                  <X aria-hidden="true" className="size-3.5" />
+                </InputGroupButton>
+              </InputGroupAddon>
+            )}
+          </Combobox.InputGroup>
+          <Combobox.Portal>
+            <Combobox.Positioner sideOffset={4} className="z-50">
+              <Combobox.Popup className="qrk-bricks w-(--anchor-width) overflow-hidden rounded-md border border-border bg-background text-xs text-foreground shadow-lg">
+                <Combobox.Status className="px-3 py-4 text-center empty:hidden">
+                  {isLoadingSuggestions ? "Searching…" : null}
+                </Combobox.Status>
+                <Combobox.Empty className="px-3 py-4 text-center empty:hidden">
+                  {isLoadingSuggestions ? null : `No places found for “${query}”`}
+                </Combobox.Empty>
+                <Combobox.List className="max-h-64 overflow-auto empty:hidden">
+                  {(item: IGooglePlaceSuggestion) => (
+                    <Combobox.Item
+                      key={item.placeId}
+                      value={item}
+                      className="flex cursor-default items-start gap-2 rounded-sm px-3 py-2 outline-none data-[highlighted]:bg-accent"
+                    >
+                      <MapPin className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+                      <div className="min-w-0 flex-1">
+                        <p className="m-0 truncate font-medium">{item.mainText}</p>
+                        {item.secondaryText === "" ? null : (
+                          <p className="m-0 mt-0.5 truncate">{item.secondaryText}</p>
+                        )}
+                      </div>
+                    </Combobox.Item>
+                  )}
+                </Combobox.List>
+                <p className="m-0 border-t border-border px-3 py-1.5 text-right">
+                  Powered by Google Places
+                </p>
+              </Combobox.Popup>
+            </Combobox.Positioner>
+          </Combobox.Portal>
+        </Combobox.Root>
+        {error === undefined ? null : <FieldError id={`${id}-error`}>{error}</FieldError>}
+        {status === undefined ? null : <FieldDescription role="status">{status}</FieldDescription>}
+      </FieldContent>
+    </Field>
   );
 }

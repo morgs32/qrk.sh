@@ -1,8 +1,8 @@
 import { Scan } from "lucide-react";
 import { Popover } from "@base-ui/react/popover";
-import { useId } from "react";
 
 import { Button } from "./button";
+import { PopoverContent } from "./popover";
 import { NumberInput } from "./NumberInput";
 
 export function RadiusInput(props: {
@@ -22,7 +22,6 @@ export function RadiusInput(props: {
   const { value, onChange } = props;
   const { topLeft, topRight, bottomRight, bottomLeft } = value;
   const mixed = topLeft !== topRight || topLeft !== bottomRight || topLeft !== bottomLeft;
-  const id = useId();
 
   return (
     <Popover.Root>
@@ -52,64 +51,49 @@ export function RadiusInput(props: {
           }
         />
       </div>
-      <Popover.Portal>
-        <Popover.Positioner
-          side="left"
-          align="start"
-          sideOffset={12}
-          collisionPadding={8}
-          className="z-50"
-        >
-          <Popover.Popup
-            aria-labelledby={id}
-            className="qrk-bricks w-64 max-w-[calc(100vw-16px)] rounded-[10px] bg-white text-xs text-neutral-950 shadow-lg"
-          >
-            <h2 id={id} className="px-4 py-3 leading-5 font-semibold">
-              Radius
-            </h2>
-            <hr className="border-neutral-200" />
-            <div className="grid gap-2 p-4">
-              {[
-                {
-                  key: "topLeft",
-                  label: "Top left",
-                  radius: topLeft,
-                  mark: "rounded-tl-[5px] border-t border-l",
-                },
-                {
-                  key: "topRight",
-                  label: "Top right",
-                  radius: topRight,
-                  mark: "rounded-tr-[5px] border-t border-r",
-                },
-                {
-                  key: "bottomRight",
-                  label: "Bottom right",
-                  radius: bottomRight,
-                  mark: "rounded-br-[5px] border-b border-r",
-                },
-                {
-                  key: "bottomLeft",
-                  label: "Bottom left",
-                  radius: bottomLeft,
-                  mark: "rounded-bl-[5px] border-b border-l",
-                },
-              ].map(({ key, label, radius, mark }) => (
-                <NumberInput
-                  key={key}
-                  inline
-                  steppers
-                  label={label}
-                  min={0}
-                  value={radius}
-                  leadingIcon={<span className={`block size-2 ${mark}`} />}
-                  onChange={(next) => onChange({ ...value, [key]: next })}
-                />
-              ))}
-            </div>
-          </Popover.Popup>
-        </Popover.Positioner>
-      </Popover.Portal>
+      <PopoverContent>
+        <Popover.Title className="px-4 py-3 leading-5 font-semibold">Radius</Popover.Title>
+        <hr className="border-neutral-200" />
+        <div className="grid gap-2 p-4">
+          {[
+            {
+              key: "topLeft",
+              label: "Top left",
+              radius: topLeft,
+              mark: "rounded-tl-[5px] border-t border-l",
+            },
+            {
+              key: "topRight",
+              label: "Top right",
+              radius: topRight,
+              mark: "rounded-tr-[5px] border-t border-r",
+            },
+            {
+              key: "bottomRight",
+              label: "Bottom right",
+              radius: bottomRight,
+              mark: "rounded-br-[5px] border-b border-r",
+            },
+            {
+              key: "bottomLeft",
+              label: "Bottom left",
+              radius: bottomLeft,
+              mark: "rounded-bl-[5px] border-b border-l",
+            },
+          ].map(({ key, label, radius, mark }) => (
+            <NumberInput
+              key={key}
+              inline
+              steppers
+              label={label}
+              min={0}
+              value={radius}
+              leadingIcon={<span className={`block size-2 ${mark}`} />}
+              onChange={(next) => onChange({ ...value, [key]: next })}
+            />
+          ))}
+        </div>
+      </PopoverContent>
     </Popover.Root>
   );
 }

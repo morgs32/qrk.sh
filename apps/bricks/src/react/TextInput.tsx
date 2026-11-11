@@ -1,11 +1,14 @@
-import { type ComponentProps, useId } from "react";
+import { type ComponentProps, type ReactNode, useId } from "react";
 
 import { Field, FieldContent, FieldDescription, FieldError, FieldLabel } from "./field";
 import { Input } from "./Input";
+import { InputGroup, InputGroupAddon, InputGroupInput } from "./input-group";
 
 export function TextInput(
   props: ComponentProps<typeof Input> & {
     label: string;
+    orientation?: ComponentProps<typeof Field>["orientation"];
+    leadingIcon?: ReactNode;
     description?: string;
     error?: string;
     status?: string;
@@ -13,6 +16,8 @@ export function TextInput(
 ) {
   const {
     label,
+    orientation = "horizontal",
+    leadingIcon,
     description,
     error,
     status,
@@ -25,17 +30,27 @@ export function TextInput(
   const descriptionId = description === undefined ? undefined : `${inputId}-description`;
   const errorId = error === undefined ? undefined : `${inputId}-error`;
 
+  const controlProps = {
+    ...inputProps,
+    id: inputId,
+    "aria-describedby":
+      [describedBy, descriptionId, errorId].filter(Boolean).join(" ") || undefined,
+  };
+
   return (
-    <Field orientation="horizontal" data-invalid={inputProps["aria-invalid"] || undefined}>
-      <FieldLabel htmlFor={inputId}>{label}</FieldLabel>
+    <Field orientation={orientation} data-invalid={inputProps["aria-invalid"] || undefined}>
+      <FieldLabel htmlFor={inputId} className={orientation === "vertical" ? "min-h-0" : undefined}>
+        {label}
+      </FieldLabel>
       <FieldContent>
-        <Input
-          {...inputProps}
-          id={inputId}
-          aria-describedby={
-            [describedBy, descriptionId, errorId].filter(Boolean).join(" ") || undefined
-          }
-        />
+        {leadingIcon == null ? (
+          <Input {...controlProps} />
+        ) : (
+          <InputGroup>
+            <InputGroupInput {...controlProps} />
+            <InputGroupAddon aria-hidden="true">{leadingIcon}</InputGroupAddon>
+          </InputGroup>
+        )}
         {description === undefined ? null : (
           <FieldDescription id={descriptionId}>{description}</FieldDescription>
         )}

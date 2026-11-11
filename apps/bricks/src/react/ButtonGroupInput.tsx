@@ -1,6 +1,8 @@
-import { ToggleGroup } from "@base-ui/react/toggle-group";
-import { Toggle } from "@base-ui/react/toggle";
+import { RadioGroup } from "@base-ui/react/radio-group";
+import { Radio } from "@base-ui/react/radio";
 import { useId, type ReactNode } from "react";
+
+import { Field } from "./field";
 
 export function ButtonGroupInput(props: {
   label: string;
@@ -13,39 +15,34 @@ export function ButtonGroupInput(props: {
   const id = useId();
 
   return (
-    <div className="group grid grid-cols-[76px_minmax(0,1fr)] items-center gap-1">
+    <Field orientation="horizontal">
       <span
         id={id}
-        className="flex h-7 items-center text-xs font-medium text-muted-foreground group-focus-within:text-primary"
+        className="flex min-h-7 items-center text-xs font-medium text-muted-foreground group-focus-within/field:text-primary"
       >
         {label}
       </span>
-      <ToggleGroup
-        role="radiogroup"
+      <RadioGroup
         aria-labelledby={id}
-        value={value === "" ? [] : [value]}
-        onValueChange={(next) => {
-          const [selected] = next;
-          if (selected !== undefined && selected !== "") onChange(selected);
+        value={value}
+        onValueChange={(selected) => {
+          if (typeof selected === "string" && selected !== "") onChange(selected);
         }}
         disabled={disabled}
         className="flex h-7 min-w-0 items-center gap-1 rounded-(--radius-form-input) bg-form-input p-1 disabled:opacity-50"
       >
         {options.map((option) => (
-          <Toggle
+          <Radio.Root
             key={option.value}
             value={option.value}
             aria-label={option.label}
             title={option.label}
-            role="radio"
-            aria-checked={value !== "" && option.value === value}
-            aria-pressed={undefined}
-            className="flex h-full min-w-0 flex-1 items-center justify-center rounded-sm text-xs text-muted-foreground outline-none hover:bg-background/70 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-50 data-pressed:bg-background data-pressed:text-foreground [&_svg]:size-3.5"
+            className="flex h-full min-w-0 flex-1 items-center justify-center rounded-sm text-xs text-muted-foreground outline-none hover:bg-background/70 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-50 data-checked:bg-background data-checked:text-foreground [&_svg]:size-3.5"
           >
             {option.icon}
-          </Toggle>
+          </Radio.Root>
         ))}
-      </ToggleGroup>
-    </div>
+      </RadioGroup>
+    </Field>
   );
 }

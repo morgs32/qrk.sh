@@ -1,5 +1,6 @@
 "use client";
 
+import { Slider } from "@base-ui/react/slider";
 import { Dialog } from "@base-ui/react/dialog";
 import { Tabs } from "@base-ui/react/tabs";
 import { useEffect, useId, useRef, useState } from "react";
@@ -256,19 +257,27 @@ export function ImageUploadInput(props: {
                   <fieldset disabled={!loaded || applying} className="grid gap-2">
                     <FieldGroup>
                       <Field orientation="horizontal">
-                        <FieldLabel htmlFor={`${id}-zoom`}>Zoom</FieldLabel>
+                        <FieldLabel id={`${id}-zoom`}>Zoom</FieldLabel>
                         <FieldContent>
-                          <input
-                            id={`${id}-zoom`}
-                            type="range"
+                          <Slider.Root
+                            data-slot="slider"
                             min={1}
                             max={20}
                             step={0.05}
+                            disabled={!loaded || applying}
                             value={framing.zoom}
-                            onChange={(event) =>
-                              setDraft({ ...framing, zoom: event.currentTarget.valueAsNumber })
-                            }
-                          />
+                            onValueChange={(zoom) => setDraft({ ...framing, zoom })}
+                          >
+                            <Slider.Control className="relative flex h-7 w-full touch-none items-center">
+                              <Slider.Track className="relative h-1.5 w-full grow overflow-hidden rounded-full bg-muted">
+                                <Slider.Indicator className="absolute h-full bg-primary" />
+                              </Slider.Track>
+                              <Slider.Thumb
+                                aria-labelledby={`${id}-zoom`}
+                                className="size-3.5 rounded-full border border-primary bg-background shadow-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+                              />
+                            </Slider.Control>
+                          </Slider.Root>
                         </FieldContent>
                       </Field>
                     </FieldGroup>

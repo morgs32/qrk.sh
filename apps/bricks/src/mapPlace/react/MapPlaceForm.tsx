@@ -112,6 +112,7 @@ export function MapPlaceForm(props: {
           onChange={(value) => void selectPlace(value)}
           value={googlePlaceId}
           saveError={saveError}
+          disabled={isSaving}
           status={isSaving ? "Fetching place…" : undefined}
         />
       </FieldGroup>

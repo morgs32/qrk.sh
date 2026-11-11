@@ -13,12 +13,18 @@ import { cn } from "cn";
 
 const SEARCH_PAGE_SIZE = 48;
 
+async function searchMaterialSymbols(query: string, offset: number, limit: number) {
+  using api = newSyncRpcSession<LibraryApi>("/rpc");
+  return await api.searchIcons(query, offset, limit);
+}
+
 export function MaterialSymbolsIconLookup(props: {
   value: string;
   saveError?: string;
+  searchIcons?: LibraryApi["searchIcons"];
   onChange: (value: { hash: string; name: string; svg: string }) => void;
 }) {
-  const { value, onChange, saveError } = props;
+  const { value, onChange, saveError, searchIcons = searchMaterialSymbols } = props;
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
 
@@ -69,8 +75,7 @@ export function MaterialSymbolsIconLookup(props: {
       ];
     },
     async ([, searchQuery, offset, limit]: [string, string, number, number]) => {
-      using api = newSyncRpcSession<LibraryApi>("/rpc");
-      const result = await api.searchIcons(searchQuery, offset, limit);
+      const result = await searchIcons(searchQuery, offset, limit);
 
       if (result._tag === "Left") {
         throw new Error(result.left.message);
@@ -89,27 +94,21 @@ export function MaterialSymbolsIconLookup(props: {
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="relative">
-        <Search
-          aria-hidden
-          className="pointer-events-none absolute top-[7px] left-[90px] z-10 size-3.5"
-        />
-        <TextInput
-          label="Search icons"
-          description={
-            debouncedQuery.length < 2 ? "Enter at least two characters to search." : undefined
-          }
-          error={saveError ?? (error instanceof Error ? error.message : undefined)}
-          autoComplete="off"
-          className="pl-8"
-          onChange={(event) => {
-            setQuery(event.target.value);
-          }}
-          placeholder="Search Material Symbols icons..."
-          type="search"
-          value={query}
-        />
-      </div>
+      <TextInput
+        label="Search icons"
+        leadingIcon={<Search className="size-3.5" />}
+        description={
+          debouncedQuery.length < 2 ? "Enter at least two characters to search." : undefined
+        }
+        error={saveError ?? (error instanceof Error ? error.message : undefined)}
+        autoComplete="off"
+        onChange={(event) => {
+          setQuery(event.target.value);
+        }}
+        placeholder="Search Material Symbols icons..."
+        type="search"
+        value={query}
+      />
 
       {value.length > 0 ? (
         <p className="m-0 truncate">
@@ -126,23 +125,23 @@ export function MaterialSymbolsIconLookup(props: {
         <>
           <div
             className="grid grid-cols-8 gap-2"
-            role="listbox"
+            role="group"
             aria-label="Material Symbols icon results"
           >
             {data?.map((page) =>
               page.results.map((icon) => (
-                <button
+                <Button
+                  variant="outline"
                   aria-label={`${icon.name}, ${icon.familyName}`}
-                  aria-selected={value === icon.hash}
+                  aria-current={value === icon.hash || undefined}
                   className={cn(
-                    "relative flex aspect-square items-center justify-center rounded-md border bg-background p-2 transition-colors hover:bg-accent",
+                    "relative flex size-auto min-w-0 aspect-square items-center justify-center rounded-md border bg-background p-2 transition-colors hover:bg-accent",
                     value === icon.hash ? "border-primary ring-2 ring-primary/20" : "border-border",
                   )}
                   key={icon.hash}
                   onClick={() => {
                     onChange({ hash: icon.hash, name: icon.name, svg: icon.svg });
                   }}
-                  role="option"
                   type="button"
                 >
                   <Image
@@ -158,7 +157,7 @@ export function MaterialSymbolsIconLookup(props: {
                       <Check aria-hidden className="size-3" />
                     </span>
                   ) : null}
-                </button>
+                </Button>
               )),
             )}
           </div>

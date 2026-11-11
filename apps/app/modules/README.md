@@ -47,9 +47,19 @@ shows these controls alongside `NumberInput`, `PositionInput`, `SizeInput`,
 Border and Shadow use `ColorInput` inside their shared `SwatchPopover`.
 Brick sidebar forms use [shadcn Base UI Field](https://ui.shadcn.com/docs/components/base/field)
 and `FieldGroup` from the Bricks package. Put the label beside the control and
-use `FieldContent` to stack descriptions, errors, and status below it.
+use `FieldContent` to stack descriptions, errors, and status below it. Text
+fields can stack their label above the control, as Figma’s Link field does.
+Integrated icons and actions use Input Group. The input comes first in DOM
+order. The group draws the input’s focus and invalid rings, and tabbable
+actions show their own focus. Number fields use the same surface around their
+Base UI input and steppers.
 The shared field tokens in `@qrk.sh/bricks/styles.css` also style the
 Style Inspector inputs.
+
+Map Place uses Base UI Combobox for popup navigation and option announcements,
+with Google Places supplying results. Material Symbols presents its paginated
+results as buttons and marks the current icon. Shadow shorthand reports a
+validation error below the input and keeps the last accepted shadow.
 
 QRK-owned forms set `autoComplete="off"`. The shared Input and native article
 title/subtitle, hex color, and State JSON fields also set `autoComplete="off"`

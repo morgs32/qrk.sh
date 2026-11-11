@@ -6,7 +6,7 @@ import { HexColorPicker } from "react-colorful";
 
 import { Button } from "./button";
 import { Field, FieldContent, FieldError, FieldLabel } from "./field";
-import { Input } from "./Input";
+import { InputGroup, InputGroupAddon, InputGroupInput } from "./input-group";
 import { SwatchPopover } from "./SwatchPopover";
 
 export function ColorInput(props: {
@@ -45,8 +45,8 @@ export function ColorInput(props: {
       <FieldLabel htmlFor={id}>{label}</FieldLabel>
       <FieldContent>
         <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_28px] gap-1">
-          <div className="flex min-w-0 items-center rounded-(--radius-form-input) bg-form-input">
-            <Input
+          <InputGroup>
+            <InputGroupInput
               id={id}
               aria-invalid={invalid || undefined}
               aria-describedby={error === undefined ? undefined : `${id}-error`}
@@ -62,11 +62,13 @@ export function ColorInput(props: {
               }}
             />
             {picker === "popover" && (
-              <SwatchPopover label={label} color={value}>
-                {colorPicker}
-              </SwatchPopover>
+              <InputGroupAddon align="inline-end">
+                <SwatchPopover label={label} color={value}>
+                  {colorPicker}
+                </SwatchPopover>
+              </InputGroupAddon>
             )}
-          </div>
+          </InputGroup>
           <Button
             type="button"
             variant="ghost"

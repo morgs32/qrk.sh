@@ -3,7 +3,7 @@ import { ChevronDown, ChevronUp } from "lucide-react";
 import { useId, type ReactNode } from "react";
 
 import { Button } from "./button";
-import { Input } from "./Input";
+import { InputGroupAddon, InputGroupInput, inputGroupClassName } from "./input-group";
 
 export function NumberInput(props: {
   label: string;
@@ -57,18 +57,18 @@ export function NumberInput(props: {
           {label}
         </label>
       )}
-      <NumberField.Group className="flex h-(--spacing-form-input) min-w-0 items-center rounded-(--radius-form-input) bg-form-input">
-        {prefix !== undefined && (
-          <span aria-hidden="true" className="pl-2 text-xs text-muted-foreground">
+      <NumberField.Group className={inputGroupClassName} data-slot="input-group">
+        <NumberField.Input
+          render={<InputGroupInput />}
+          aria-label={label}
+          placeholder={placeholder}
+        />
+        {(prefix !== undefined || leadingIcon !== undefined) && (
+          <InputGroupAddon aria-hidden="true" className="gap-1">
             {prefix}
-          </span>
-        )}
-        {leadingIcon !== undefined && (
-          <span aria-hidden="true" className="pl-2 text-muted-foreground">
             {leadingIcon}
-          </span>
+          </InputGroupAddon>
         )}
-        <NumberField.Input render={<Input />} aria-label={label} placeholder={placeholder} />
         {steppers && (
           <div className="grid shrink-0 pr-1">
             <NumberField.Increment
@@ -87,7 +87,9 @@ export function NumberInput(props: {
             </NumberField.Decrement>
           </div>
         )}
-        {trailing}
+        {trailing === undefined ? null : (
+          <InputGroupAddon align="inline-end">{trailing}</InputGroupAddon>
+        )}
       </NumberField.Group>
     </NumberField.Root>
   );

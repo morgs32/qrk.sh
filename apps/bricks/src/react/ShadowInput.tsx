@@ -3,7 +3,8 @@ import { useId, useState } from "react";
 
 import { Button } from "./button";
 import { ColorInput } from "./ColorInput";
-import { Input } from "./Input";
+import { Field, FieldContent, FieldError, FieldLabel } from "./field";
+import { InputGroup, InputGroupAddon, InputGroupInput } from "./input-group";
 import { NumberInput } from "./NumberInput";
 import { SwatchPopover } from "./SwatchPopover";
 
@@ -26,63 +27,79 @@ export function ShadowInput(props: {
   const { value, onChange } = props;
   const { x, y, blur, spread, color } = value;
   const [draft, setDraft] = useState<string | null>(null);
+  const [error, setError] = useState<string>();
   const id = useId();
   const pickerColor = /^#(?:[a-f\d]{3}|[a-f\d]{6})$/i.test(color) ? color : "#ffffff";
 
   return (
-    <div className="group grid grid-cols-[76px_minmax(0,1fr)_28px] items-center gap-1">
-      <label
-        htmlFor={id}
-        className="text-xs font-medium text-muted-foreground group-focus-within:text-primary"
-      >
-        Shadow
-      </label>
-      <div className="flex min-w-0 items-center rounded-(--radius-form-input) bg-form-input">
-        <Input
-          id={id}
-          value={draft ?? [x, y, blur, spread].map((dimension) => dimension ?? 0).join(", ")}
-          placeholder="Add..."
-          onChange={(event) => setDraft(event.currentTarget.value)}
-          onBlur={(event) => {
-            const parts = event.currentTarget.value.split(",").map((part) => part.trim());
-            if (parts.length !== 4 || parts.some((part) => part === "")) return;
-            const [nextX, nextY, nextBlur, nextSpread] = parts.map(Number);
-            if (![nextX, nextY, nextBlur, nextSpread].every(Number.isFinite) || nextBlur < 0)
-              return;
-            onChange({ ...value, x: nextX, y: nextY, blur: nextBlur, spread: nextSpread });
-            setDraft(null);
-          }}
-        />
-        <SwatchPopover label="Shadow" color={color}>
-          <ColorInput
-            label="Color"
-            value={color}
-            pickerColor={pickerColor}
-            picker="inline"
-            onChange={(next) => onChange({ ...value, color: next })}
-            onCommit={(next) => onChange({ ...value, color: next })}
-          />
-          {[
-            { key: "x", label: "X", dimension: x },
-            { key: "y", label: "Y", dimension: y },
-            { key: "blur", label: "Blur", dimension: blur },
-            { key: "spread", label: "Spread", dimension: spread },
-          ].map(({ key, label, dimension }) => (
-            <NumberInput
-              key={key}
-              inline
-              steppers
-              label={label}
-              value={dimension}
-              min={key === "blur" ? 0 : undefined}
-              onChange={(next) => {
+    <div className="grid grid-cols-[minmax(0,1fr)_28px] items-start gap-1">
+      <Field orientation="horizontal" data-invalid={error !== undefined || undefined}>
+        <FieldLabel htmlFor={id}>Shadow</FieldLabel>
+        <FieldContent>
+          <InputGroup>
+            <InputGroupInput
+              id={id}
+              aria-invalid={error !== undefined || undefined}
+              aria-describedby={error === undefined ? undefined : `${id}-error`}
+              value={draft ?? [x, y, blur, spread].map((dimension) => dimension ?? 0).join(", ")}
+              placeholder="Add..."
+              onChange={(event) => {
+                setDraft(event.currentTarget.value);
+                setError(undefined);
+              }}
+              onBlur={(event) => {
+                const parts = event.currentTarget.value.split(",").map((part) => part.trim());
+                const [nextX, nextY, nextBlur, nextSpread] = parts.map(Number);
+                if (
+                  parts.length !== 4 ||
+                  parts.some((part) => part === "") ||
+                  ![nextX, nextY, nextBlur, nextSpread].every(Number.isFinite) ||
+                  nextBlur < 0
+                ) {
+                  setError("Enter four numbers separated by commas. Blur must be zero or greater.");
+                  return;
+                }
+                setError(undefined);
+                onChange({ ...value, x: nextX, y: nextY, blur: nextBlur, spread: nextSpread });
                 setDraft(null);
-                onChange({ ...value, [key]: next });
               }}
             />
-          ))}
-        </SwatchPopover>
-      </div>
+            <InputGroupAddon align="inline-end">
+              <SwatchPopover label="Shadow" color={color}>
+                <ColorInput
+                  label="Color"
+                  value={color}
+                  pickerColor={pickerColor}
+                  picker="inline"
+                  onChange={(next) => onChange({ ...value, color: next })}
+                  onCommit={(next) => onChange({ ...value, color: next })}
+                />
+                {[
+                  { key: "x", label: "X", dimension: x },
+                  { key: "y", label: "Y", dimension: y },
+                  { key: "blur", label: "Blur", dimension: blur },
+                  { key: "spread", label: "Spread", dimension: spread },
+                ].map(({ key, label, dimension }) => (
+                  <NumberInput
+                    key={key}
+                    inline
+                    steppers
+                    label={label}
+                    value={dimension}
+                    min={key === "blur" ? 0 : undefined}
+                    onChange={(next) => {
+                      setDraft(null);
+                      setError(undefined);
+                      onChange({ ...value, [key]: next });
+                    }}
+                  />
+                ))}
+              </SwatchPopover>
+            </InputGroupAddon>
+          </InputGroup>
+          {error === undefined ? null : <FieldError id={`${id}-error`}>{error}</FieldError>}
+        </FieldContent>
+      </Field>
       <Button
         type="button"
         variant="ghost"
@@ -91,6 +108,7 @@ export function ShadowInput(props: {
         className="size-7 rounded-[9px] bg-neutral-50 text-neutral-500 hover:bg-neutral-200"
         onClick={() => {
           setDraft(null);
+          setError(undefined);
           onChange({ x: 0, y: 0, blur: 0, spread: 0, color: "" });
         }}
       >

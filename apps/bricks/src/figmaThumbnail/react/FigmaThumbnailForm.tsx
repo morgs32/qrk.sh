@@ -6,6 +6,7 @@ import { normalizeFigmaThumbnailInput } from "../definition/normalizeFigmaThumbn
 import { makeEffectSchema, type IInferDecodedRow } from "@zerospin/shapes";
 import { newSyncRpcSession } from "@zerospin/core/utils/getApi/newSyncRpcSession/newSyncRpcSession";
 import { Schema } from "effect";
+import { Link2 } from "lucide-react";
 import type { LibraryApi } from "../../rpc/LibraryApi";
 import { useState } from "react";
 
@@ -94,7 +95,9 @@ export function FigmaThumbnailForm(props: {
     <form autoComplete="off" onSubmit={(event) => event.preventDefault()}>
       <FieldGroup>
         <TextInput
-          label="Figma document URL"
+          label="Link"
+          orientation="vertical"
+          leadingIcon={<Link2 className="size-3.5" />}
           description="Paste an HTTPS Figma document URL."
           error={validationError ?? saveError}
           status={isSaving ? "Fetching preview…" : undefined}

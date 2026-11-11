@@ -1348,9 +1348,13 @@ export function WallEditor(props: {
                                     event.stopPropagation();
                                   }}
                                 >
-                                  {rowReadout?.kind === "height" && (
+                                  {rowReadout?.kind === "height" ? (
                                     <span data-wall-resize-readout className="wall-resize-readout">
                                       {`${Math.round(rowReadout.height)} px`}
+                                    </span>
+                                  ) : (
+                                    <span className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 rounded bg-white px-1 text-[11px] leading-4 text-zinc-600">
+                                      Row
                                     </span>
                                   )}
                                 </span>

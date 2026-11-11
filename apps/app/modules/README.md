@@ -56,10 +56,10 @@ login, signup, account, and password flows retain autofill. Private Meowdown pop
 fields, including link editing and code-language search, remain unchanged. The
 application's place and icon search suggestions remain available.
 
-Module views take `mode: "studio" | "view"`. Studio can render a module-owned
-inline editor in the Placement and let that same editor render drawer controls
-from its draft. Read-only hosts use view mode. The selected Brick’s drawer
-hosts the other modules’ forms.
+Modules expose `Render` for saved Brick content and may provide `InlineEditor`
+or `Form` for editing. The Wall Editor mounts an inline editor in its Placement
+and owns its autosave and focus wiring. The selected Brick’s drawer hosts a
+form when the module provides one, or displays the Brick when it has no editor.
 
 Manual forms receive state, synchronous `onSave(state): IResult`, and
 `onCancel`. Each form renders its own Save and Cancel buttons. Save submits the
@@ -482,7 +482,7 @@ from 0 to 12, defaulting to 0. SiteSettings saves it through `updateSiteSettings
 whose guard rejects values outside that range. Each Placement and insertion
 shadow uses half the gap as padding. The content-height Wall wrapper offsets
 the outer inset so Bricks sit flush with the Wall edges at every gap size.
-The full-width preview frame has no border. Its centered sections share real
+The preview frame has no border. Its centered sections share real
 1px zinc-300 side borders owned by PreviewSection; the browser bar uses a real top
 border rather than an outside ring. The browser bar shares the zinc-300 border color.
 Square white backing rows behind the 48px chrome and 64px footer mask Wall
@@ -508,23 +508,22 @@ destination; the other Walls append a Row to the last Stack, creating missing
 parents. Successful local staging opens the Brick form. Cancellation, outside
 drops, invalid source data, and stale destinations create nothing.
 
-There is no WallEditorProvider or WallViewportProvider/context. The URL owns
-`?breakpoint=sm|md|lg|xl`. Static `BREAKPOINTS.previewWidth` values are exact page
-content widths: 360, 720, 1080, and 1440px. The App-only Zustand viewport store
-holds available content width, measured by `useBreakpointGuard` through its
-plain `previewRef` as `max(0, element.clientWidth - 2 * PREVIEW_BORDER_WIDTH)`.
-`PREVIEW_BORDER_WIDTH` is exported from `modules/lib/breakpoints.ts` and is 1px.
-PagePreview and the Wall Editor story supply it as `--wall-preview-border-width`.
-Guard selection, ValidBreakpoint rendering, and
-floating-toolbar availability all compare against that same content-width
-measurement. Below 362px of available total width, the UI explains the minimum
-space needed instead of mounting or shrinking a Wall. Width growth enables
-choices while keeping the current URL selection; breakpoint labels retain their
-nominal content widths. The separate development URL is removed.
+The URL owns `?breakpoint=sm|md|lg|xl`, and all four breakpoints are selectable
+at any pane width. Their authored content widths are 360, 720, 1080, and 1440px.
+Studio scales the selected frame down to fit the measured scrollport after
+reserving sidebar gutters. The scale includes both 1px frame borders and caps
+at 100%. Resizing the pane preserves the selected breakpoint and its layout.
+The toolbar tooltips show the authored widths.
+Article inline editing is available at 100%. Studio flushes Article drafts
+before scaling down. A pending draft can hold the frame at 100% with horizontal
+scrolling until the save recovers. At smaller scales, Article shows its saved
+content. Brick details, layout actions, dragging, and pointer resizing remain
+available. Resize gestures translate pointer movement to the Wall's authored
+pixels.
 PageLayout's single `.wall-preview-viewport` root contains the editor scroll
-region and drawer spacer, toolbar anchor, and Drawer as siblings. It owns scroll
-anchoring/clamping and floating toolbar placement. PagePreview owns a full-width
-flex frame whose minimum height fills the available preview space.
+region and toolbar anchor. It owns scroll anchoring and floating toolbar
+placement. PagePreview centers the frame at the selected breakpoint's authored
+width and applies the scale.
 `PreviewSection` is the single centered element shared by the browser bar, site
 navbar, Wall body, and footer. It owns the real side borders and a border-box
 width of `previewWidth + 2 * PREVIEW_BORDER_WIDTH`, without max-width clamping.
@@ -553,18 +552,22 @@ The Wall Editor story uses the same section widths and a full-width scroll
 owner. Its frame has a minimum width of the selected content width plus both
 side borders, so oversized selections scroll horizontally rather than silently
 shrinking. Its breakpoint controls keep the nominal content-width labels.
-
+The [Fit To Width story](https://app-storybook.qrk.localhost/?path=/story/app-studio-wall-editor--fit-to-width)
+lets all four breakpoints be previewed at their nominal layout widths. It scales
+the full frame, including borders, down to the available width and caps the
+scale at 100%. Inline editing is available at 100%, where inline-editable Bricks
+move by their grips. Drag display Bricks from anywhere on their surfaces. A
+transition that would close an inline editor flushes its draft first. If a save
+is refused, the story keeps the editor at full size until it can retry.
+The story hides the Bricks drawer, resize grips, and layout menus.
 The App's route-backed workspace uses a 256px right sidebar from Tailwind
-`lg` upward and the bottom drawer below. The sidebar scrollport shows the
-selected Wall at its authored size with 32px side gutters, scrolling
-horizontally as needed. Catalog drag sources fit the column using CSS zoom,
-while drops use the existing Wall sizing. The drawer keeps the measured fit
-rule, including editor flush before an active Wall is replaced.
+`lg` upward and the bottom drawer below. The preview reserves 32px on each
+side while the sidebar is open. Catalog drag sources fit the sidebar column
+using CSS zoom, and drops use the selected breakpoint's authored Wall sizing.
 
 Both floating toolbars keep a 38px height and concentric corners: the buttons'
 8px radius plus their 5px inset (4px padding and 1px border) gives the shell a
-13px radius. The URL-selected breakpoint is bold, fully opaque, and disabled;
-other unavailable breakpoints remain disabled and dimmed.
+13px radius. The URL-selected breakpoint is bold, fully opaque, and disabled.
 Reduced motion skips positional toolbar animation; drawer animation is unchanged.
 
 **Default** and **Empty Wall** under **Studio / WallEditor.tsx** exercise

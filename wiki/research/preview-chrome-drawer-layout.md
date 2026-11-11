@@ -37,8 +37,10 @@ controls the shell. The existing preview measurement and URL continue to
 control the authored Wall breakpoint. [React browser API subscriptions](https://react.dev/reference/react/useSyncExternalStore#subscribing-to-a-browser-api) · [Tailwind viewport breakpoints](https://tailwindcss.com/docs/responsive-design)
 
 The same route-owned portal target moves between the sidebar and drawer.
-Keeping the target and outlet mounted retains drafts across a shell-only
-resize. While the sidebar is open, the preview preserves an oversized Wall
-at full size with 32px inline gutters. Entering the drawer restores the fit
-rule after measuring the new pane. The drawer still reserves 25dvh when
-open. [React portal identity](https://react.dev/reference/react-dom/createPortal#parameters) · [Page layout](../../apps/app/app/[username]/site/[siteId]/page/[pageId]/layout.tsx)
+Keeping the target and outlet mounted retains panel drafts across a shell-only
+resize. Studio preserves the selected Wall and scales its bordered frame to
+fit the measured pane, with 32px inline gutters while the sidebar is open.
+When reducing the scale would close an Article editor, Studio flushes its
+draft first. A refused save holds the frame at full size and enables
+horizontal scrolling until the draft can recover. The drawer reserves 25dvh
+when open. [React portal identity](https://react.dev/reference/react-dom/createPortal#parameters) · [Page layout](../../apps/app/app/[username]/site/[siteId]/page/[pageId]/layout.tsx)

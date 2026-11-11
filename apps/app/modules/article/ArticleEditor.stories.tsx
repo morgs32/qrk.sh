@@ -4,51 +4,43 @@ import type { IResult } from "@zerospin/error";
 import { useState } from "react";
 import { expect, fn, mocked, userEvent, waitFor, within } from "storybook/test";
 import { BrickWrapper } from "../components/brick/BrickWrapper";
-import { articleView } from "./articleView";
+import { ArticleEditor } from "./ArticleEditor";
 
 const meta = {
   title: "Modules/Article",
-  component: articleView.component,
+  component: ArticleEditor,
   parameters: { layout: "fullscreen" },
   args: {
     state: articlePreviewState,
-    mode: "studio",
     onFocus: fn(),
-    renderDrawer: () => null,
     onSave: fn((_state: unknown): IResult<unknown, { message: string }> => ({
       _tag: "Success",
       success: undefined,
     })),
     registerFlush: fn((_flush: (onRecover?: () => void) => boolean) => () => {}),
-    variantId: "default",
-    spec: articleView.variants.default.spec,
   },
   render: function Render(props) {
-    const { state, variantId, spec, ...surface } = props;
+    const { state, onFocus, onSave, registerFlush } = props;
     const [savedState, setSavedState] = useState(state);
     return (
       <main className="mx-auto min-h-screen w-full max-w-3xl bg-zinc-50 p-4 sm:p-8">
+        <h1 className="mb-2 font-mono text-neutral-500">Studio editor</h1>
         <BrickWrapper>
-          <articleView.component
+          <ArticleEditor
             state={savedState}
-            variantId={variantId}
-            spec={spec}
-            {...(surface.mode === "studio"
-              ? {
-                  ...surface,
-                  onSave: (nextState) => {
-                    const result = surface.onSave(nextState);
-                    if (result._tag === "Success") setSavedState(nextState);
-                    return result;
-                  },
-                }
-              : surface)}
+            onFocus={onFocus}
+            onSave={(nextState) => {
+              const result = onSave(nextState);
+              if (result._tag === "Success") setSavedState(nextState);
+              return result;
+            }}
+            registerFlush={registerFlush}
           />
         </BrickWrapper>
       </main>
     );
   },
-} satisfies Meta<typeof articleView.component>;
+} satisfies Meta<typeof ArticleEditor>;
 
 export default meta;
 
@@ -57,7 +49,6 @@ export const UnconfiguredEditor: StoryObj<typeof meta> = { args: { state: null }
 export const BodyFirstAutosave: StoryObj<typeof meta> = {
   args: { state: null },
   play: async ({ args, canvasElement }) => {
-    if (args.mode !== "studio") throw new Error("Expected the Studio editor");
     const body = await within(canvasElement).findByLabelText("Article content");
     await userEvent.type(body, "Body first");
     await waitFor(
@@ -77,7 +68,6 @@ export const BodyFirstAutosave: StoryObj<typeof meta> = {
 export const RetryFailedAutosave: StoryObj<typeof meta> = {
   args: { state: null },
   play: async ({ args, canvasElement }) => {
-    if (args.mode !== "studio") throw new Error("Expected the Studio editor");
     const save = mocked(args.onSave);
     save.mockReturnValueOnce({ _tag: "Failure", failure: { message: "Save refused." } });
     const canvas = within(canvasElement);
@@ -110,7 +100,6 @@ export const RetryFailedAutosave: StoryObj<typeof meta> = {
 export const DiscardFailedAutosave: StoryObj<typeof meta> = {
   args: { state: { title: "Saved title", subtitle: "", content: "Saved body" } },
   play: async ({ args, canvasElement }) => {
-    if (args.mode !== "studio") throw new Error("Expected the Studio editor");
     const save = mocked(args.onSave);
     save.mockReturnValueOnce({ _tag: "Failure", failure: { message: "Save refused." } });
     const canvas = within(canvasElement);

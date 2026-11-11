@@ -11,7 +11,7 @@ import type { IInferResource } from "@zerospin/core/models/types";
 import { sessionRepoDbConfig } from "@zerospin/core/aggregateSession/sessionRepoDbConfig";
 import { makeShapeCodecs } from "@zerospin/shapes";
 import { Schema } from "effect";
-import { useState } from "react";
+import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { Laptop, Monitor, MoveHorizontal, MoveVertical, Smartphone, Tablet } from "lucide-react";
 
@@ -431,6 +431,7 @@ function WallEditorStory(props: {
   crossRowFixture: boolean;
   sizingFixture: boolean;
   resizeFixture: boolean;
+  fitToWidth: boolean;
 }) {
   const {
     emptyWall,
@@ -445,6 +446,7 @@ function WallEditorStory(props: {
     crossRowFixture,
     sizingFixture,
     resizeFixture,
+    fitToWidth,
   } = props;
   const [shadowVisible, setShadowVisible] = useState(false);
   const [editorVisible, setEditorVisible] = useState(true);
@@ -464,13 +466,77 @@ function WallEditorStory(props: {
   const [selectedBrickId, setSelectedBrickId] = useState<string | null>(() =>
     selected ? (resources.brick[0]?.id ?? null) : null,
   );
-  const [breakpoint, setBreakpoint] = useState<(typeof BREAKPOINTS)[number]>(BREAKPOINTS[0]);
+  const [requestedBreakpoint, setRequestedBreakpoint] = useState<(typeof BREAKPOINTS)[number]>(
+    BREAKPOINTS[0],
+  );
+  const [preview, setPreview] = useState({
+    breakpoint: requestedBreakpoint,
+    inlineEditingAvailable: !fitToWidth,
+  });
+  const { breakpoint, inlineEditingAvailable } = preview;
+  const [availableWidth, setAvailableWidth] = useState(0);
+  const observePreviewWidth = useCallback((element: HTMLElement | null) => {
+    if (element === null) return;
+    const observer = new ResizeObserver(([entry]) => setAvailableWidth(entry.contentRect.width));
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+  const brickFlushes = useRef(new Map<string, (onRecover?: () => void) => boolean>());
+  const registerBrickFlush = useCallback(
+    (brickId: string, flush: (onRecover?: () => void) => boolean) => {
+      const registered = brickFlushes.current;
+      registered.set(brickId, flush);
+      return () => {
+        if (registered.get(brickId) === flush) registered.delete(brickId);
+      };
+    },
+    [],
+  );
+  const flushBrick = useCallback(
+    (brickId: string) => brickFlushes.current.get(brickId)?.() ?? true,
+    [],
+  );
+  const [recoveryAttempt, setRecoveryAttempt] = useState(0);
+  const retryPreview = useCallback(() => setRecoveryAttempt((attempt) => attempt + 1), []);
+  const requestedInlineEditing =
+    !fitToWidth || availableWidth >= requestedBreakpoint.previewWidth + 2 * PREVIEW_BORDER_WIDTH;
+  useLayoutEffect(() => {
+    if (breakpoint === requestedBreakpoint && inlineEditingAvailable === requestedInlineEditing)
+      return;
+    // Keep the full-size editor mounted until its draft can leave this preview.
+    if (inlineEditingAvailable) {
+      let ready = true;
+      for (const flush of brickFlushes.current.values()) {
+        if (!flush(retryPreview)) ready = false;
+      }
+      if (!ready) return;
+    }
+    setPreview({
+      breakpoint: requestedBreakpoint,
+      inlineEditingAvailable: requestedInlineEditing,
+    });
+  }, [
+    breakpoint,
+    inlineEditingAvailable,
+    recoveryAttempt,
+    requestedBreakpoint,
+    requestedInlineEditing,
+    retryPreview,
+  ]);
+
   const wallId = prefixId(wall, `story-${breakpoint.id}`);
+  const frameWidth = breakpoint.previewWidth + 2 * PREVIEW_BORDER_WIDTH;
   const previewStyle = {
     "--wall-preview-width": `${breakpoint.previewWidth}px`,
     "--wall-preview-border-width": `${PREVIEW_BORDER_WIDTH}px`,
-    minWidth: breakpoint.previewWidth + 2 * PREVIEW_BORDER_WIDTH,
-    minHeight: "100%",
+    minWidth: frameWidth,
+    ...(fitToWidth
+      ? {
+          width: frameWidth,
+          marginInline: "auto",
+          zoom: inlineEditingAvailable ? 1 : Math.min(1, availableWidth / frameWidth),
+        }
+      : { minHeight: "100%" }),
   };
 
   const session = useMockAggregateSession(userSessionDefinition, { claims, resources });
@@ -499,9 +565,11 @@ function WallEditorStory(props: {
           }}
           className="flex h-dvh min-h-0 flex-col overflow-hidden bg-zinc-100 text-zinc-900 antialiased"
         >
-          <header className="flex h-14 shrink-0 items-center justify-between gap-4 border-b border-zinc-200 bg-white px-6">
+          <header
+            className={`flex shrink-0 items-center justify-between border-b border-zinc-200 bg-white ${fitToWidth ? "min-h-14 flex-wrap gap-2 px-3 py-2" : "h-14 gap-4 px-6"}`}
+          >
             <h1 className="text-sm font-medium tracking-tight">Wall editor</h1>
-            {fixture !== "default" && resources.brick.length > 0 ? (
+            {!fitToWidth && fixture !== "default" && resources.brick.length > 0 ? (
               <label className="flex items-center gap-2 text-sm">
                 <input
                   type="checkbox"
@@ -527,7 +595,7 @@ function WallEditorStory(props: {
                     size="sm"
                     aria-label={`${entry.id} preview, ${entry.previewWidth}px`}
                     aria-pressed={entry.id === breakpoint.id}
-                    onClick={() => setBreakpoint(entry)}
+                    onClick={() => setRequestedBreakpoint(entry)}
                     className={`h-7 gap-2 rounded-md px-2.5 text-xs tabular-nums ${entry.id === breakpoint.id ? "bg-white text-zinc-950 shadow-sm" : "text-zinc-500"}`}
                   >
                     <Icon className="size-3.5" aria-hidden="true" />
@@ -538,7 +606,11 @@ function WallEditorStory(props: {
             </div>
           </header>
           <div className={`flex min-h-0 flex-1 flex-col ${verticalAtLg ? "lg:flex-row" : ""}`}>
-            <main className="min-h-0 min-w-0 flex-1 overflow-auto px-8 py-6">
+            <main
+              ref={fitToWidth ? observePreviewWidth : undefined}
+              className={`min-h-0 min-w-0 flex-1 overflow-auto px-8 py-6 ${fitToWidth ? "wall-preview-scroll" : ""}`}
+              aria-label={fitToWidth ? `${breakpoint.id} page preview` : undefined}
+            >
               {resizeFixture ? (
                 <>
                   <ResizeDiagnostics wallId={wallId} />
@@ -567,7 +639,7 @@ function WallEditorStory(props: {
                 </div>
               ) : null}
               <div
-                className="wall-preview-frame relative isolate flex w-full flex-col"
+                className={`wall-preview-frame relative isolate flex w-full flex-col ${fitToWidth && availableWidth === 0 && !inlineEditingAvailable ? "invisible" : ""}`}
                 style={previewStyle}
                 data-breakpoint={breakpoint.id}
               >
@@ -582,15 +654,23 @@ function WallEditorStory(props: {
                     <WallEditor
                       key={wallId}
                       wallId={wallId}
+                      fitToWidth={fitToWidth}
+                      inlineEditingAvailable={inlineEditingAvailable}
                       selectedBrickId={selectedBrickId}
-                      onEditBrick={fixture === "default" ? undefined : setSelectedBrickId}
+                      onEditBrick={setSelectedBrickId}
+                      registerBrickFlush={registerBrickFlush}
+                      flushBrick={flushBrick}
                     />
                   ) : null}
                 </div>
               </div>
             </main>
             <div
-              className={`h-[280px] min-w-0 shrink-0 ${verticalAtLg ? "lg:h-full lg:w-[420px]" : ""}`}
+              className={
+                fitToWidth
+                  ? "hidden"
+                  : `h-[280px] min-w-0 shrink-0 ${verticalAtLg ? "lg:h-full lg:w-[420px]" : ""}`
+              }
             >
               <Drawer
                 side="bottom"
@@ -697,7 +777,9 @@ const meta = {
       selected,
     } = props;
     const shadowFixture = context.id.includes("--shadow-brick");
-    const crossRowFixture = context.id.includes("--cross-row-");
+    const fitToWidth = context.id.endsWith("--fit-to-width");
+    const crossRowFixture =
+      context.id.includes("--cross-row-") || (fitToWidth && fixture === "default");
     const sizingFixture = context.id.includes("--sizing-foundation");
     const resizeFixture = context.id.includes("--pointer-resize");
     const populatedFixture =
@@ -717,6 +799,7 @@ const meta = {
         crossRowFixture={crossRowFixture}
         sizingFixture={sizingFixture}
         resizeFixture={resizeFixture}
+        fitToWidth={fitToWidth}
       />
     );
   },
@@ -733,6 +816,7 @@ const meta = {
 
 export default meta;
 export const Default: StoryObj<typeof meta> = {};
+export const FitToWidth: StoryObj<typeof meta> = {};
 export const EmptyWall: StoryObj<typeof meta> = { args: { emptyWall: true } };
 
 /** No capture stubs or synthetic play: use this fixture for native mouse, pen, and touch input. */

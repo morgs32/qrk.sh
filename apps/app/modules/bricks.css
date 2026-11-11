@@ -30,10 +30,6 @@
   --wall-preview-drawer-height: 25dvh;
 }
 
-.wall-preview-viewport[data-sidebar-open="true"] .wall-preview-canvas {
-  padding-inline: 32px;
-}
-
 .wall-preview-frame {
   --wall-frame-radius: 12px;
 }
@@ -157,6 +153,10 @@
 
 .wall-placement[data-wall-moving] {
   opacity: 0.4;
+}
+
+.wall-editor[data-wall-fit-to-width] :is(.stack-action, .wall-row-menu-trigger, .wall-resize-grip) {
+  display: none;
 }
 
 /* Wall controls stick within their owner; drawer preview controls stay absolute. */

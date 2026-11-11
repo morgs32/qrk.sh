@@ -74,7 +74,6 @@ export function makeModuleView<
         inlineEditor: (props: {
           state: IInferDecodedRow<MODULE["stateShape"]> | null;
           onFocus: () => void;
-          renderDrawer: (content: ReactNode) => ReactNode;
           onSave: (
             state: IInferDecodedRow<MODULE["stateShape"]>,
           ) => IResult<unknown, { message: string }>;
@@ -90,7 +89,7 @@ export function makeModuleView<
   const defaultState = decodeState(view.defaultState, { onExcessProperty: "ignore" });
   const def: IModuleBrickDef<MODULE["id"]> = { moduleId: module.id, state: defaultState };
   const EditorForm = view.form;
-  const InlineEditor = view.inlineEditor;
+  const Editor = view.inlineEditor;
   const variants = mapValues(view.variants, (variant, variantId) => {
     if (module.hasPlaceholder !== (variant.placeholder !== undefined)) {
       throw new Error(
@@ -146,32 +145,16 @@ export function makeModuleView<
     return <EditorForm state={decoded} onSave={onSave} onCancel={onCancel} />;
   }
 
-  function Brick(props: Parameters<IModule<string>["component"]>[0]) {
-    const { state, variantId, spec, ...surface } = props;
-    if (surface.mode === "studio" && InlineEditor !== undefined) {
-      const { onFocus, renderDrawer, onSave, registerFlush } = surface;
-      const decoded = state === null ? null : decodeState(state, { onExcessProperty: "ignore" });
-      return (
-        <InlineEditor
-          state={decoded}
-          onFocus={onFocus}
-          renderDrawer={renderDrawer}
-          onSave={onSave}
-          registerFlush={registerFlush}
-        />
-      );
-    }
+  function Render(props: Parameters<IModule<string>["Render"]>[0]) {
+    const { state, variantId, spec } = props;
     const variant = variants[variantId];
-    const Placeholder = variant.placeholder;
-    if (state === null) {
-      if (Placeholder === undefined) throw new Error(`${module.id} requires configured state`);
-      return <Placeholder />;
-    }
     const Authored = variant.component;
+    if (state === null) return <Authored state={state} />;
     const decoded = decodeState(state, { onExcessProperty: "ignore" });
     // An empty content snapshot belongs to the module's authored rendering.
     if (variant.registry === undefined || ("data" in decoded && decoded.data === null)) {
-      return <Authored state={decoded} />;
+      const Component = view.variants[variantId].component;
+      return <Component state={decoded} />;
     }
     const initialState = makeInitialState(decoded);
     return (
@@ -193,7 +176,25 @@ export function makeModuleView<
     def,
     variants,
     ...(EditorForm === undefined ? {} : { Form }),
-    hasInlineEditor: InlineEditor !== undefined,
-    component: Brick,
+    ...(Editor === undefined
+      ? {}
+      : {
+          InlineEditor: function InlineEditor(
+            props: Parameters<NonNullable<IModule<string>["InlineEditor"]>>[0],
+          ) {
+            const { state, onFocus, onSave, registerFlush } = props;
+            const decoded =
+              state === null ? null : decodeState(state, { onExcessProperty: "ignore" });
+            return (
+              <Editor
+                state={decoded}
+                onFocus={onFocus}
+                onSave={onSave}
+                registerFlush={registerFlush}
+              />
+            );
+          },
+        }),
+    Render,
   };
 }

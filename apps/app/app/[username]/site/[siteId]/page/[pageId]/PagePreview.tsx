@@ -6,8 +6,7 @@ import { pageV1 } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV1"
 import { siteV1 } from "@qrk.sh/zerospin/src/aggregates/user/models/site/SiteV1";
 import { useLiveQuery, useSession } from "@zerospin/react";
 import { Schema } from "effect";
-import { useContext, useEffect, useState } from "react";
-import { createPortal } from "react-dom";
+import { useContext } from "react";
 
 import { BREAKPOINTS, PREVIEW_BORDER_WIDTH } from "../../../../../../modules/lib/breakpoints";
 import { BrowserChrome } from "../../../../../../modules/lib/BrowserChrome";
@@ -17,21 +16,17 @@ import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
 import { SiteHeader } from "../../SiteHeader";
 import { BrickAutosaveContext } from "./BrickAutosaveContext";
 
-export function PagePreview(props: { breakpoint: (typeof BREAKPOINTS)[number] }) {
-  const { breakpoint } = props;
+export function PagePreview(props: {
+  breakpoint: (typeof BREAKPOINTS)[number];
+  scale: number;
+  openBrickOnInlineFocus: boolean;
+}) {
+  const { breakpoint, scale, openBrickOnInlineFocus } = props;
   const autosave = useContext(BrickAutosaveContext);
   if (autosave === null) throw new Error("Brick autosave requires the Page layout");
   const { registerBrickFlush, flushBrick } = autosave;
   const navigate = useNavigate();
   const { brickId: selectedBrickId } = useParams({ strict: false });
-  const [brickDrawer, setBrickDrawer] = useState<HTMLElement | null>(null);
-  useEffect(() => {
-    setBrickDrawer(
-      selectedBrickId === undefined
-        ? null
-        : document.getElementById(`brick-editor-drawer-${selectedBrickId}`),
-    );
-  }, [selectedBrickId]);
   const session = useSession(userSessionDefinition);
   const params = useValidatedParams(
     Schema.Struct({
@@ -57,12 +52,14 @@ export function PagePreview(props: { breakpoint: (typeof BREAKPOINTS)[number] })
   const previewStyle = {
     "--wall-preview-width": `${breakpoint.previewWidth}px`,
     "--wall-preview-border-width": `${PREVIEW_BORDER_WIDTH}px`,
-    minHeight: "var(--wall-frame-height)",
+    width: breakpoint.previewWidth + 2 * PREVIEW_BORDER_WIDTH,
+    minHeight: `calc(var(--wall-frame-height) / ${scale})`,
+    zoom: scale,
   };
 
   return (
     <div
-      className="wall-preview-frame relative isolate flex w-full flex-col"
+      className="wall-preview-frame relative isolate mx-auto flex flex-col"
       style={previewStyle}
       data-breakpoint={breakpoint.id}
       role="region"
@@ -73,14 +70,11 @@ export function PagePreview(props: { breakpoint: (typeof BREAKPOINTS)[number] })
       <WallEditor
         key={wall.id}
         wallId={wall.id}
+        inlineEditingAvailable={scale === 1}
+        openBrickOnInlineFocus={openBrickOnInlineFocus}
         selectedBrickId={selectedBrickId}
         registerBrickFlush={registerBrickFlush}
         flushBrick={flushBrick}
-        renderBrickDrawer={(brickId, content) =>
-          brickDrawer?.id === `brick-editor-drawer-${brickId}` && brickId === selectedBrickId
-            ? createPortal(content, brickDrawer)
-            : null
-        }
         onEditBrick={(brickId) => {
           if (
             selectedBrickId === brickId ||

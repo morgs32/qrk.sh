@@ -97,7 +97,6 @@ export function BrickDetail() {
   if (site === undefined) return <NotFound />;
   const brick = brickRow !== undefined ? modulesHash[brickRow.moduleId] : undefined;
   const view = placement === undefined ? undefined : brick?.variants[placement.variantId];
-  const BrickComponent = brick?.component;
   const Form = brick?.Form;
   const formState = brickRow?.state === undefined ? brick?.defaultState : brickRow.state;
   const rawSpec: unknown =
@@ -121,7 +120,6 @@ export function BrickDetail() {
       : undefined;
   const unavailable =
     brick === undefined ||
-    BrickComponent === undefined ||
     brickRow === undefined ||
     placement === undefined ||
     entry === undefined ||
@@ -138,7 +136,7 @@ export function BrickDetail() {
               This brick is not available in this page's current session.
             </p>
           </div>
-        ) : brick.hasInlineEditor ? null : (
+        ) : brick.InlineEditor !== undefined ? null : (
           <section>
             {Form !== undefined ? (
               <div className="mx-auto mt-8 w-full max-w-3xl px-6">
@@ -179,8 +177,7 @@ export function BrickDetail() {
                     borderWidth={brickRow.borderWidth}
                     className={site.cardStyle ? "brick-surface-card" : undefined}
                   >
-                    <BrickComponent
-                      mode="view"
+                    <brick.Render
                       variantId={placement.variantId}
                       state={brickRow.state}
                       spec={spec}

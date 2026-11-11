@@ -18,7 +18,7 @@ export function BreakpointPreviewRow(props: {
   const maxPerPage = brick.maxPerPage;
   const view = brick.variants.default;
   const Component = view.component;
-  const JsonRender = brick.component;
+  const { Render } = brick;
   const previewWidth = Math.min(view.defaultWidth, entry.previewWidth);
 
   return (
@@ -29,7 +29,7 @@ export function BreakpointPreviewRow(props: {
       <div className="overflow-x-auto px-4 py-8">
         <div className="flex w-max items-start gap-4">
           <div>
-            <p className="m-0 mb-2 font-mono text-neutral-500">Component</p>
+            <p className="m-0 mb-2 font-mono text-neutral-500">Authored component</p>
             <div
               className="relative shrink-0"
               style={{ width: previewWidth, minWidth: view.minWidth }}
@@ -40,18 +40,13 @@ export function BreakpointPreviewRow(props: {
             </div>
           </div>
           <div>
-            <p className="m-0 mb-2 font-mono text-neutral-500">JsonRender</p>
+            <p className="m-0 mb-2 font-mono text-neutral-500">Saved spec</p>
             <div
               className="relative shrink-0"
               style={{ width: previewWidth, minWidth: view.minWidth }}
             >
               <BrickWrapper className={cardStyle ? "brick-surface-card" : undefined}>
-                <JsonRender
-                  mode="view"
-                  variantId="default"
-                  state={moduleState}
-                  spec={specs[entry.id]}
-                />
+                <Render variantId="default" state={moduleState} spec={specs[entry.id]} />
               </BrickWrapper>
             </div>
           </div>

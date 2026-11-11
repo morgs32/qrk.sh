@@ -9,7 +9,7 @@ const preview: Preview = {
       storySort: {
         order: [
           "Studio",
-          ["Wall Editor", "Wall Placement", "Site Tree"],
+          ["WallEditor.tsx", "Wall Placement", "Site Tree"],
           "Modules",
           "Components",
           "Experiments",

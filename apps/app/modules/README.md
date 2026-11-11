@@ -559,9 +559,11 @@ Both floating toolbars keep a 38px height and concentric corners: the buttons'
 other unavailable breakpoints remain disabled and dimmed.
 Reduced motion skips positional toolbar animation; drawer animation is unchanged.
 
-**Wall Editor / Default** and **Empty wall** exercise production insertion and
-presentation. The old hover-study gallery and its separate mock stylesheet are
-removed; the representation stories exercise the production owners directly.
+**Default** and **Empty Wall** under **Studio / WallEditor.tsx** exercise
+production insertion and presentation. Stories that run interaction scripts
+are in **Scripted** under the same section. The old hover-study gallery and
+its separate mock stylesheet are removed; the representation stories exercise
+the production owners directly.
 
 The Wall Editor story uses the in-memory `useMockAggregateSession`, `SessionProvider`, and
 `SessionReady`, seeds Wall layouts plus separate Placement records, and renders the

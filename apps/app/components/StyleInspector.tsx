@@ -1,20 +1,9 @@
 import { NumberField } from "@base-ui/react/number-field";
-import {
-  ChevronDown,
-  ChevronUp,
-  FlipHorizontal2,
-  FlipVertical2,
-  RotateCcw,
-  RotateCw,
-  Scan,
-  SquareDashed,
-  X,
-} from "lucide-react";
+import { ChevronDown, ChevronUp, Scan, SquareDashed, X } from "lucide-react";
 import { useId, useState } from "react";
 import { HexColorInput, HexColorPicker } from "react-colorful";
 
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   InputGroup,
   InputGroupAddon,
@@ -34,14 +23,10 @@ export function StyleInspector(props: { defaultCornersOpen?: boolean }) {
   const [shadow, setShadow] = useState("");
   const [shadowColor, setShadowColor] = useState("");
   const [fill, setFill] = useState("");
-  const [rotation, setRotation] = useState("0");
-  const [flippedHorizontally, setFlippedHorizontally] = useState(false);
-  const [flippedVertically, setFlippedVertically] = useState(false);
   const hasMixedRadius = radii.some((radius) => radius !== radii[0]);
 
   const typography = "font-[Geist_Variable,Arial,sans-serif] text-xs text-neutral-950";
   const styleRow = "grid grid-cols-[76px_minmax(0,1fr)_28px] items-center gap-1";
-  const transformRow = "grid grid-cols-[76px_minmax(0,1fr)_28px_28px] items-center gap-1";
   const label = "text-xs font-normal text-neutral-500";
   const field = "h-7 rounded-[9px] border-transparent bg-neutral-100 shadow-none";
   const fieldInput = "h-7 px-2 py-0 text-xs leading-4 md:text-xs";
@@ -201,73 +186,6 @@ export function StyleInspector(props: { defaultCornersOpen?: boolean }) {
                   </Popover>
                 );
               })}
-            </div>
-          </section>
-          <Separator className="bg-neutral-200" />
-          <section aria-labelledby={`${id}-transforms`} className="px-4 pt-5 pb-4">
-            <h2 id={`${id}-transforms`} className="leading-5 font-medium">
-              Transforms
-            </h2>
-            <div className="mt-3 grid gap-3">
-              <div className={transformRow}>
-                <Label htmlFor={`${id}-rotation`} className={label}>
-                  Rotate
-                </Label>
-                <Input
-                  id={`${id}-rotation`}
-                  type="number"
-                  value={rotation}
-                  className={`${field} ${fieldInput} ${numberInput}`}
-                  onChange={(event) => setRotation(event.currentTarget.value)}
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  aria-label="Rotate 90 degrees clockwise"
-                  className={iconButton}
-                  onClick={() => setRotation((value) => String(Number(value) + 90))}
-                >
-                  <RotateCw aria-hidden="true" />
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  aria-label="Rotate 90 degrees counterclockwise"
-                  className={iconButton}
-                  onClick={() => setRotation((value) => String(Number(value) - 90))}
-                >
-                  <RotateCcw aria-hidden="true" />
-                </Button>
-              </div>
-              <div role="group" aria-labelledby={`${id}-flip`} className={transformRow}>
-                <span id={`${id}-flip`} className={label}>
-                  Flip
-                </span>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  aria-label="Flip horizontally"
-                  aria-pressed={flippedHorizontally}
-                  className={`${iconButton} col-start-3 aria-pressed:bg-neutral-300`}
-                  onClick={() => setFlippedHorizontally((flipped) => !flipped)}
-                >
-                  <FlipHorizontal2 aria-hidden="true" />
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  aria-label="Flip vertically"
-                  aria-pressed={flippedVertically}
-                  className={`${iconButton} aria-pressed:bg-neutral-300`}
-                  onClick={() => setFlippedVertically((flipped) => !flipped)}
-                >
-                  <FlipVertical2 aria-hidden="true" />
-                </Button>
-              </div>
             </div>
           </section>
         </aside>

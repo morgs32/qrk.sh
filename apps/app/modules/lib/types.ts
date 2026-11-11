@@ -40,6 +40,8 @@ export type IModule<MODULE extends string> = {
             mode: "studio";
             onFocus: () => void;
             renderDrawer: (content: ReactNode) => ReactNode;
+            onSave: (state: unknown) => IResult<unknown, { message: string }>;
+            registerFlush: (flush: () => boolean) => () => void;
           }
       ),
     ): ReactNode;

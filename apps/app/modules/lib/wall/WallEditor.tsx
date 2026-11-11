@@ -79,9 +79,19 @@ export function WallEditor(props: {
   onEditBrick?: (brickId: string) => void;
   onEditStack?: (stackId: string) => void;
   renderBrickDrawer?: (brickId: string, content: ReactNode) => ReactNode;
+  registerBrickFlush?: (brickId: string, flush: () => boolean) => () => void;
+  flushBrick?: (brickId: string) => boolean;
 }) {
-  const { wallId, selectedBrickId, selectedStackId, onEditBrick, onEditStack, renderBrickDrawer } =
-    props;
+  const {
+    wallId,
+    selectedBrickId,
+    selectedStackId,
+    onEditBrick,
+    onEditStack,
+    renderBrickDrawer,
+    registerBrickFlush,
+    flushBrick,
+  } = props;
   const wallRef = useRef<HTMLDivElement>(null);
   const moveIndicatorRef = useRef<HTMLDivElement>(null);
   const shadowTargetRef = useRef<typeof wallInsertionTargetSchema.Type | null>(null);
@@ -423,6 +433,7 @@ export function WallEditor(props: {
           setMoveFeedback(null);
           if (move === null || !source.element.isConnected) return;
           const { placement, target } = move;
+          if (flushBrick?.(placement.brickId) === false) return;
           if (target.kind === "row") {
             const row = rows.find((row) => row.id === target.rowId);
             if (row === undefined) throw new Error(`Missing destination Row ${target.rowId}`);
@@ -774,7 +785,7 @@ export function WallEditor(props: {
       setShadowSource(null);
       shadowRowHeights.current.clear();
     };
-  }, [onEditBrick, session, wall]);
+  }, [flushBrick, onEditBrick, session, wall]);
 
   const shadowVariant =
     shadowSource === null ? null : modulesHash[shadowSource.moduleId].variants.default;
@@ -1143,7 +1154,9 @@ export function WallEditor(props: {
                                       const module = modulesHash[brick.moduleId];
                                       const Component = module.component;
                                       const inStudio =
-                                        onEditBrick !== undefined && renderBrickDrawer !== undefined;
+                                        onEditBrick !== undefined &&
+                                        renderBrickDrawer !== undefined &&
+                                        registerBrickFlush !== undefined;
                                       return (
                                         <Fragment key={placement.id}>
                                           {dropTarget?.kind === "row" &&
@@ -1183,6 +1196,18 @@ export function WallEditor(props: {
                                                             onFocus: () => onEditBrick(brick.id),
                                                             renderDrawer: (content) =>
                                                               renderBrickDrawer(brick.id, content),
+                                                            onSave: (state) =>
+                                                              stageAggregateSessionCommand({
+                                                                session,
+                                                                contractName: "updateBrick",
+                                                                payload: {
+                                                                  brickId: brick.id,
+                                                                  moduleId: brick.moduleId,
+                                                                  state,
+                                                                },
+                                                              }),
+                                                            registerFlush: (flush) =>
+                                                              registerBrickFlush(brick.id, flush),
                                                           }
                                                         : { mode: "view" })}
                                                       state={brick.state}

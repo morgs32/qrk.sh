@@ -720,8 +720,18 @@ literal Markdown content. Markdown round trips can normalize source.
 Studio mounts one `ArticleEditor` at the active Placement. An unconfigured Brick
 starts with blank fields. Focusing the Article opens the Brick drawer for
 management actions. Opening and closing the drawer retains the Article draft
-and editor history. Phase 1 keeps Article changes in the mounted editor’s draft.
-Autosave belongs to Phase 2.
+and editor history. Article stages the latest changed snapshot after one second
+without edits, once text composition has finished. It reads the Markdown from
+Meowdown at save time and retains the caret and undo history across save echoes.
+Opening a blank Article alone leaves it unconfigured.
+
+The Studio host supplies the synchronous save callback and registers Article’s
+flush. App flushes before leaving the Page, replacing its breakpoint Wall,
+moving the Placement, or publishing. The editor also attempts a flush when the
+tab becomes hidden. Saves use the existing `updateBrick` command for content
+shared across breakpoints. A successful stage updates the local session, which
+owns delivery and reconciliation. Save-error controls and recovery on navigation
+belong to Phase 3.
 
 Native Meowdown controls retain formatting, selection, undo/redo,
 and image resizing. Drag/drop is blocked and block drag handles are disabled;

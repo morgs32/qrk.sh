@@ -6,13 +6,14 @@ import { StyleInspector } from "./StyleInspector";
 const meta = {
   title: "Components/Style Inspector",
   component: StyleInspector,
+  parameters: { layout: "fullscreen" },
   decorators: [
     (Story, { args }) => (
       <div
         className={
           args.layout === "drawer"
             ? "flex min-h-dvh items-end bg-neutral-100"
-            : "flex min-h-[374px] w-[550px] max-w-full justify-end bg-neutral-100"
+            : "flex min-h-svh justify-end bg-background"
         }
       >
         <Story />
@@ -23,9 +24,7 @@ const meta = {
 
 export default meta;
 
-export const Default: StoryObj<typeof meta> = { args: { defaultCornersOpen: true } };
-export const CornersClosed: StoryObj<typeof meta> = {};
+export const Default: StoryObj<typeof meta> = {};
 export const Drawer: StoryObj<typeof meta> = {
   args: { layout: "drawer" },
-  parameters: { layout: "fullscreen" },
 };

@@ -79,7 +79,7 @@ export function WallEditor(props: {
   onEditBrick?: (brickId: string) => void;
   onEditStack?: (stackId: string) => void;
   renderBrickDrawer?: (brickId: string, content: ReactNode) => ReactNode;
-  registerBrickFlush?: (brickId: string, flush: () => boolean) => () => void;
+  registerBrickFlush?: (brickId: string, flush: (onRecover?: () => void) => boolean) => () => void;
   flushBrick?: (brickId: string) => boolean;
 }) {
   const {

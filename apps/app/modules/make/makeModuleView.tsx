@@ -79,7 +79,7 @@ export function makeModuleView<
           onSave: (
             state: IInferDecodedRow<MODULE["stateShape"]>,
           ) => IResult<unknown, { message: string }>;
-          registerFlush: (flush: () => boolean) => () => void;
+          registerFlush: (flush: (onRecover?: () => void) => boolean) => () => void;
         }) => ReactNode;
       }
   ),

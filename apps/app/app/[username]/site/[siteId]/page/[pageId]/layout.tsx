@@ -2,7 +2,7 @@
 
 import { useCallback, useLayoutEffect, useRef, type ReactNode, type RefCallback } from "react";
 import { useReducedMotion } from "framer-motion";
-import { useMatches, useRouter } from "@tanstack/react-router";
+import { useBlocker, useMatches, type ShouldBlockFn } from "@tanstack/react-router";
 import { useAuth } from "@clerk/react";
 import { ClerkOfflineError } from "@clerk/react/errors";
 import { useLiveQuery, useSession } from "@zerospin/react";
@@ -30,44 +30,85 @@ export default function PageLayout(props: { children: ReactNode }) {
   const { children } = props;
   const params = useValidatedParams(ParamsSchema);
   const { username, siteId, pageId } = params;
-  const router = useRouter();
-  const brickFlushes = useRef(new Map<string, () => boolean>());
-  const registerBrickFlush = useCallback((brickId: string, flush: () => boolean) => {
-    const registered = brickFlushes.current;
-    registered.set(brickId, flush);
-    return () => {
-      if (registered.get(brickId) === flush) registered.delete(brickId);
-    };
-  }, []);
+  const brickFlushes = useRef(new Map<string, (onRecover?: () => void) => boolean>());
+  const pendingFlushes = useRef(new Map<() => boolean, Set<() => void>>());
+  const pendingNavigation = useRef<((block: boolean) => void) | null>(null);
+  const registerBrickFlush = useCallback(
+    (brickId: string, flush: (onRecover?: () => void) => boolean) => {
+      const registered = brickFlushes.current;
+      registered.set(brickId, flush);
+      return () => {
+        if (registered.get(brickId) !== flush) return;
+        registered.delete(brickId);
+        const finishNavigation = pendingNavigation.current;
+        queueMicrotask(() => {
+          // A Wall rerender can refresh the registration without removing the editor.
+          if (registered.get(brickId) === flush) return;
+          const recoveries = pendingFlushes.current.get(flush);
+          if (recoveries === undefined) return;
+          finishNavigation?.(true);
+          for (const recover of recoveries) recover();
+        });
+      };
+    },
+    [],
+  );
   const flushBrick = useCallback(
     (brickId: string) => brickFlushes.current.get(brickId)?.() ?? true,
     [],
   );
-  const flushPageEditors = useCallback(() => {
-    let accepted = true;
+  const flushPageEditors = useCallback((onRecover?: () => void) => {
+    let pending = 0;
     for (const flush of [...brickFlushes.current.values()]) {
-      if (!flush()) accepted = false;
+      if (onRecover === undefined) {
+        if (!flush()) pending += 1;
+        continue;
+      }
+      const recover = () => {
+        const recoveries = pendingFlushes.current.get(flush);
+        if (!recoveries?.delete(recover)) return;
+        if (recoveries.size === 0) pendingFlushes.current.delete(flush);
+        pending -= 1;
+        if (pending === 0) onRecover();
+      };
+      if (flush(recover)) continue;
+      pending += 1;
+      const recoveries = pendingFlushes.current.get(flush) ?? new Set<() => void>();
+      recoveries.add(recover);
+      pendingFlushes.current.set(flush, recoveries);
     }
-    return accepted;
+    return pending === 0;
   }, []);
-  useLayoutEffect(
-    () =>
-      router.subscribe("onBeforeNavigate", ({ fromLocation, toLocation }) => {
-        if (brickFlushes.current.size === 0) return;
-        const [routes, nextParams] = router.getMatchedRoutes(toLocation.pathname);
-        const staysOnPage =
-          routes.some((route) => route.id === "/$username/site/$siteId/page/$pageId") &&
-          nextParams.username === username &&
-          nextParams.siteId === siteId &&
-          nextParams.pageId === pageId;
-        const previousBreakpoint = new URLSearchParams(fromLocation?.searchStr).get("breakpoint");
-        const nextBreakpoint = new URLSearchParams(toLocation.searchStr).get("breakpoint");
-        if (!staysOnPage || previousBreakpoint !== nextBreakpoint) {
-          flushPageEditors();
-        }
-      }),
-    [flushPageEditors, pageId, router, siteId, username],
+  const shouldBlockNavigation = useCallback<ShouldBlockFn>(
+    ({ current, next }) => {
+      if (brickFlushes.current.size === 0) return false;
+      const staysOnPage =
+        "username" in next.params &&
+        next.params.username === username &&
+        "siteId" in next.params &&
+        next.params.siteId === siteId &&
+        "pageId" in next.params &&
+        next.params.pageId === pageId;
+      const previousBreakpoint =
+        "breakpoint" in current.search ? current.search.breakpoint : undefined;
+      const nextBreakpoint = "breakpoint" in next.search ? next.search.breakpoint : undefined;
+      if (staysOnPage && previousBreakpoint === nextBreakpoint) return false;
+
+      pendingNavigation.current?.(true);
+      return new Promise<boolean>((resolve) => {
+        const finish = (block: boolean) => {
+          if (pendingNavigation.current !== finish) return;
+          pendingNavigation.current = null;
+          resolve(block);
+        };
+        pendingNavigation.current = finish;
+        if (flushPageEditors(() => finish(false))) finish(false);
+      });
+    },
+    [flushPageEditors, pageId, siteId, username],
   );
+  useBlocker({ shouldBlockFn: shouldBlockNavigation, enableBeforeUnload: false });
+  useLayoutEffect(() => () => pendingNavigation.current?.(true), [pageId, siteId, username]);
   const drawerOpen = useMatches({
     select: (matches) =>
       matches.some((match) => match.routeId === "/$username/site/$siteId/page/$pageId/_drawer"),
@@ -76,7 +117,7 @@ export default function PageLayout(props: { children: ReactNode }) {
   const editorScroll = useRef<HTMLDivElement>(null);
   const { getToken } = useAuth();
   const session = useSession(userSessionDefinition);
-  const { breakpoint, previewRef } = useBreakpointGuard(flushPageEditors);
+  const { breakpoint, previewRef, retainingPreview } = useBreakpointGuard(flushPageEditors);
   const scrollRef = useCallback<RefCallback<HTMLDivElement>>(
     (element) => {
       editorScroll.current = element;
@@ -190,8 +231,11 @@ export default function PageLayout(props: { children: ReactNode }) {
           </title>
           <div
             ref={scrollRef}
-            className="relative min-h-0 min-w-0 shrink-0 overflow-x-hidden overflow-y-auto pt-[var(--wall-preview-top-gap)] pb-[var(--wall-preview-bottom-gap)]"
-            style={{ height: "calc(100% - var(--wall-preview-drawer-height))" }}
+            className="relative min-h-0 min-w-0 shrink-0 overflow-y-auto pt-[var(--wall-preview-top-gap)] pb-[var(--wall-preview-bottom-gap)]"
+            style={{
+              height: "calc(100% - var(--wall-preview-drawer-height))",
+              overflowX: retainingPreview ? "auto" : "hidden",
+            }}
           >
             <ValidBreakpoint />
           </div>

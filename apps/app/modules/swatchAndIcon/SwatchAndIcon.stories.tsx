@@ -1,18 +1,29 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { ModulePlayground } from "../../.storybook/ModulePlayground/ModulePlayground";
+import { BrickBreakpointPreviews } from "../../.storybook/BrickBreakpointPreviews";
+import { iconSvgGraphicView } from "./SwatchAndIcon/components/IconSvgGraphic";
+import { swatchAndIconColorView } from "./SwatchAndIcon/components/SwatchAndIconColor";
 
 const meta = {
   title: "Modules/Swatch and Icon",
-  component: ModulePlayground,
-  parameters: { layout: "fullscreen" },
-  args: { moduleId: "swatch-and-icon", fixture: "configured" },
-  argTypes: {
-    moduleId: { control: false },
-    fixture: { control: false },
+  parameters: { layout: "fullscreen", controls: { disable: true } },
+  args: { fixture: "configured" },
+  render(props) {
+    const { fixture } = props;
+    return (
+      <BrickBreakpointPreviews
+        key={fixture}
+        moduleId="swatch-and-icon"
+        fixture={fixture}
+        renderSketch={(state) => (
+          <swatchAndIconColorView.Component color={state.payload.color}>
+            <iconSvgGraphicView.Component name={state.data.name} svg={state.data.svg} />
+          </swatchAndIconColorView.Component>
+        )}
+      />
+    );
   },
-  render: (args) => <ModulePlayground key={`${args.moduleId}:${args.fixture}`} {...args} />,
-} satisfies Meta<typeof ModulePlayground>;
+} satisfies Meta<{ fixture: "configured" | "unconfigured" }>;
 
 export default meta;
 
-export const Playground: StoryObj<typeof meta> = {};
+export const Playground: StoryObj<typeof meta> = { name: "Breakpoint Previews" };

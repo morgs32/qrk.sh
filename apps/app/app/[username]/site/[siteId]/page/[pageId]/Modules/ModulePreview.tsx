@@ -25,7 +25,10 @@ export function ModulePreview(props: {
     moduleAction,
   } = props;
   const previewRef = useRef<HTMLDivElement>(null);
-  const [previewState, setPreviewState] = useState<unknown>(() => brickModule.def.state);
+  const [{ state: previewState, revision: previewRevision }, setPreviewFrame] = useState(() => ({
+    state: brickModule.def.state,
+    revision: 0,
+  }));
   const committedState = useRef(previewState);
   const dragInProgress = useRef(false);
   const [dragging, setDragging] = useState(false);
@@ -33,7 +36,8 @@ export function ModulePreview(props: {
   const [documentVisible, setDocumentVisible] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(true);
   const updatePreviewState = useCallback((state: unknown) => {
-    if (!dragInProgress.current) setPreviewState(state);
+    if (!dragInProgress.current)
+      setPreviewFrame(({ revision }) => ({ state, revision: revision + 1 }));
   }, []);
   useLayoutEffect(() => {
     committedState.current = previewState;
@@ -94,11 +98,15 @@ export function ModulePreview(props: {
   }, [brickModule.id, brickModule.hasPlaceholder]);
   const maxPerPage = brickModule.maxPerPage;
   const view = brickModule.variants.default;
-  const Component = view.component;
+  const { Render } = brickModule;
   const Preview = view.preview;
   const entry = BREAKPOINTS.find((row) => row.id === breakpoint);
   if (entry === undefined) throw new Error(`Unknown breakpoint: ${breakpoint}`);
   const previewWidth = Math.max(view.minWidth, Math.min(view.defaultWidth, entry.previewWidth));
+  // Start the JSON Render state store with this frame so the drag snapshot matches the DOM.
+  const renderedPreview = (
+    <Render key={previewRevision} state={previewState} variantId="default" spec={view.spec} />
+  );
 
   return (
     <div
@@ -146,13 +154,15 @@ export function ModulePreview(props: {
           </BrickAction>
           <BrickWrapper className={cardStyle ? "brick-surface-card" : undefined}>
             {Preview === undefined ? (
-              <Component state={previewState} />
+              renderedPreview
             ) : (
               <Preview
                 state={previewState}
                 setState={updatePreviewState}
                 isActive={isVisible && documentVisible && !dragging && !reducedMotion}
-              />
+              >
+                {renderedPreview}
+              </Preview>
             )}
           </BrickWrapper>
         </div>

@@ -1,5 +1,4 @@
 import { swatchAndIconPreviewState } from "@qrk.sh/zerospin/src/modules/swatchAndIcon/swatchAndIconPreviewState";
-import { SwatchAndIcon } from "./SwatchAndIcon";
 import { SwatchAndIconPreview } from "./SwatchAndIconPreview";
 import { makeModuleView } from "../make/makeModuleView";
 import { registry } from "./generator/SwatchAndIconJsonRenderRegistry";
@@ -13,9 +12,8 @@ export const swatchAndIconView = makeModuleView(swatchAndIconV1, {
   form: SwatchAndIconForm,
   variants: {
     default: {
-      component: SwatchAndIcon,
       preview: SwatchAndIconPreview,
-      generator: { registry, defaultSpec: swatchAndIconV1.defaultSpec },
+      registry,
     },
   },
 });

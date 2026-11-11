@@ -117,15 +117,15 @@ pnpm nx run @qrk.sh/app:build-storybook
 Open `http://127.0.0.1:10020`; `PORT` overrides the default. App Storybook
 uses its own Vite configuration and the App/module styles and fonts.
 Fixture previews require no persisted editor or API Worker; live actions require
-the existing API services. Module stories live alongside their components, and
-the shared playground lives in `apps/app/.storybook/ModulePlayground/`. The
-static build goes to `apps/app/storybook-static/`.
+the existing API services. Module stories live alongside their components and
+use the shared [Breakpoint Previews](../.storybook/BrickBreakpointPreviews.tsx)
+view. The static build goes to `apps/app/storybook-static/`.
 
-Each **Modules / <module> / Playground** story preserves the former module page's
-Module metadata, Generate spec and input, sm/md/lg/xl Component/JsonRender previews,
-and Brick Definition JSON. **Configure example** edits local state. Swatch and
-Icon updates the example JSON and previews as edits finish. In forms with Save
-and Cancel, Save updates the example and Cancel discards the draft.
+Each **Modules / <module> / Breakpoint Previews** story compares the module's
+JSX sketch with JSON Render at sm, md, lg, and xl. All four widths use the same
+example state and active spec. **Configure** shows the module's form in the
+bottom drawer. **Generate Spec** sends a prompt through the API and previews
+the resulting spec. **Reset to default** restores the versioned default spec.
 **Unconfigured** displays null and blank forms/placeholders only for modules
 declaring `hasPlaceholder: true`. Swatch and Icon always has configured state.
 Provider Save calls the same RPC operations as App and updates only this
@@ -692,7 +692,7 @@ drafts, Save gating, and cancellation. Fields and Save stay disabled during
 upload. Cancel resets mutation state and separately aborts the request; leaving
 the brick also aborts it. Current-request guards suppress late results because
 SWR reset does not cancel transport. App's PageLayout owns the authenticated
-uploader; Storybook's ModulePlayground owns its anonymous uploader. BrickDetail
+uploader. Storybook's Breakpoint Previews owns its anonymous uploader. BrickDetail
 keys the form by its URL-selected Placement, so breakpoint changes, including
 automatic correction after a resize, discard the old draft and abort its upload.
 Completed R2 objects remain stored.

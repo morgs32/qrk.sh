@@ -318,12 +318,18 @@ callbacks; App stages commands and Storybook edits local examples. Module-owned
 normalization/provider logic stays in its module; session orchestration belongs
 to App and survives form unmount until the session ends.
 
-Each of the ten module playgrounds preserves Module metadata, Generate spec and
-its prompt input, sm/md/lg/xl Component-versus-JsonRender previews, and Brick
-Definition JSON. Example state, drafts, generated specs, errors, and loading are
-local to the story. Live Generate spec uses the existing API Worker and a
-server-held credential; fixture previews need no persisted user session. Existing
-lookup/upload controls retain their API/environment wiring.
+Each module's **Breakpoint Previews** story compares its JSX sketch with JSON
+Render at sm, md, lg, and xl using one example state and one spec. The bottom
+drawer shows the module form under **Configure** and prompt-based generation
+under **Generate Spec**. Story state and generated specs live in the mounted
+story. Generation uses the existing API Worker and its server-held credential.
+Fixture previews need no persisted user session. Lookup and upload controls
+keep their existing API and environment wiring.
+
+App catalog previews render the module's versioned default spec with the current
+example state. The Wall uses the Placement's saved spec when present and the
+module's default otherwise. The module placeholder handles unconfigured Bricks,
+and a shared status handles configured Bricks with no saved content.
 
 App catalog previews use the module's resolved preferred `defaultWidth`, capped
 at the active breakpoint width. Shared module-version variant definitions own

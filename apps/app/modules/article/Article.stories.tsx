@@ -1,19 +1,33 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { ModulePlayground } from "../../.storybook/ModulePlayground/ModulePlayground";
+import { BrickBreakpointPreviews } from "../../.storybook/BrickBreakpointPreviews";
+import { articleBrickContentView } from "./ArticleBrickContent";
 
 const meta = {
   title: "Modules/Article",
-  component: ModulePlayground,
-  parameters: { layout: "fullscreen" },
-  args: { moduleId: "article", fixture: "configured" },
-  argTypes: {
-    moduleId: { control: false },
-    fixture: { control: false },
+  parameters: { layout: "fullscreen", controls: { disable: true } },
+  args: { fixture: "configured" },
+  render(props) {
+    const { fixture } = props;
+    return (
+      <BrickBreakpointPreviews
+        key={fixture}
+        moduleId="article"
+        fixture={fixture}
+        renderSketch={(state) => {
+          return (
+            <articleBrickContentView.Component
+              title={state.title}
+              subtitle={state.subtitle}
+              content={state.content}
+            />
+          );
+        }}
+      />
+    );
   },
-  render: (args) => <ModulePlayground key={`${args.moduleId}:${args.fixture}`} {...args} />,
-} satisfies Meta<typeof ModulePlayground>;
+} satisfies Meta<{ fixture: "configured" | "unconfigured" }>;
 
 export default meta;
 
-export const Playground: StoryObj<typeof meta> = {};
+export const Playground: StoryObj<typeof meta> = { name: "Breakpoint Previews" };
 export const Unconfigured: StoryObj<typeof meta> = { args: { fixture: "unconfigured" } };

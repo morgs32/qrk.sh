@@ -26,7 +26,7 @@ function makeInitialState(state: unknown): Record<string, unknown> {
   return {};
 }
 
-/** Compose shared variant sizing with React rendering, placeholders, and optional generators. */
+/** Compose shared variant sizing with JSON Render and module-owned editing UI. */
 export function makeModuleView<
   MODULE extends {
     id: string;
@@ -45,17 +45,14 @@ export function makeModuleView<
     LineIcon: ComponentType<SVGProps<SVGSVGElement>>;
     variants: {
       default: {
-        component: (props: { state: IInferDecodedRow<MODULE["stateShape"]> }) => ReactNode;
         placeholder?: () => ReactNode;
         preview?: (props: {
           state: IInferDecodedRow<MODULE["stateShape"]>;
           setState: (state: IInferDecodedRow<MODULE["stateShape"]>) => void;
           isActive: boolean;
+          children: ReactNode;
         }) => ReactNode;
-        generator?: {
-          registry: ComponentRegistry;
-          defaultSpec: Spec;
-        };
+        registry: ComponentRegistry;
       };
     };
   } & (
@@ -96,21 +93,9 @@ export function makeModuleView<
         `makeModuleView: ${JSON.stringify(module.id)} placeholder must match its declaration`,
       );
     }
-    const Component = variant.component;
     const PreviewComponent = variant.preview;
-    function Authored(props: { state: unknown }) {
-      const { state } = props;
-      const Placeholder = variant.placeholder;
-      if (state === null) {
-        if (Placeholder === undefined) throw new Error(`${module.id} requires configured state`);
-        return <Placeholder />;
-      }
-      const decoded = decodeState(state, { onExcessProperty: "ignore" });
-      return <Component state={decoded} />;
-    }
     return {
       ...module.variants[variantId],
-      component: Authored,
       placeholder: variant.placeholder,
       preview:
         PreviewComponent === undefined
@@ -119,18 +104,21 @@ export function makeModuleView<
               state: unknown;
               setState: (state: unknown) => void;
               isActive: boolean;
+              children: ReactNode;
             }) {
-              const { state, setState, isActive } = props;
+              const { state, setState, isActive, children } = props;
               return (
                 <PreviewComponent
                   state={decodeState(state, { onExcessProperty: "ignore" })}
                   setState={setState}
                   isActive={isActive}
-                />
+                >
+                  {children}
+                </PreviewComponent>
               );
             },
-      spec: variant.generator?.defaultSpec ?? defaultSpec,
-      registry: variant.generator?.registry,
+      spec: defaultSpec,
+      registry: variant.registry,
     };
   });
 
@@ -148,14 +136,14 @@ export function makeModuleView<
   function Render(props: Parameters<IModule<string>["Render"]>[0]) {
     const { state, variantId, spec } = props;
     const variant = variants[variantId];
-    const Authored = variant.component;
-    if (state === null) return <Authored state={state} />;
-    const decoded = decodeState(state, { onExcessProperty: "ignore" });
-    // An empty content snapshot belongs to the module's authored rendering.
-    if (variant.registry === undefined || ("data" in decoded && decoded.data === null)) {
-      const Component = view.variants[variantId].component;
-      return <Component state={decoded} />;
+    if (state === null) {
+      const Placeholder = variant.placeholder;
+      if (Placeholder === undefined) throw new Error(`${module.id} requires configured state`);
+      return <Placeholder />;
     }
+    const decoded = decodeState(state, { onExcessProperty: "ignore" });
+    if ("data" in decoded && decoded.data === null)
+      return <p role="status">This brick has no saved content.</p>;
     const initialState = makeInitialState(decoded);
     return (
       <StateProvider initialState={initialState}>

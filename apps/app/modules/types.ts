@@ -6,7 +6,7 @@ import type { ComponentRegistry } from "@json-render/react";
 import type { IShape } from "@zerospin/shapes";
 import type { makeModuleVersion } from "@qrk.sh/zerospin/src/modules/make/makeModuleVersion";
 
-/** A library module: shared state and flat authored variants with optional json-render. */
+/** A library module with shared state and JSON Render variants. */
 export type IModule<MODULE extends string> = {
   /** Kebab-case module id, unique across the library. */
   id: MODULE;
@@ -34,18 +34,16 @@ export type IModule<MODULE extends string> = {
   Render: (props: { state: unknown; spec: Spec; variantId: "default" }) => ReactNode;
   variants: {
     default: ReturnType<typeof makeModuleVersion>["variants"]["default"] & {
-      component: {
-        bivarianceHack(props: { state: unknown }): ReactNode;
-      }["bivarianceHack"];
       /** Display-only markup for an explicitly unconfigured brick (state === null). */
       placeholder?: () => ReactNode;
       preview?: (props: {
         state: unknown;
         setState: (state: unknown) => void;
         isActive: boolean;
+        children: ReactNode;
       }) => ReactNode;
       spec: Spec;
-      registry?: ComponentRegistry;
+      registry: ComponentRegistry;
     };
   };
   stateShape: IShape;

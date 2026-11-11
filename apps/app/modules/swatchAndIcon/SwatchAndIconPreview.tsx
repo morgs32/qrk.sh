@@ -1,8 +1,7 @@
 import { swatchAndIconPreviewState } from "@qrk.sh/zerospin/src/modules/swatchAndIcon/swatchAndIconPreviewState";
-import { useEffect } from "react";
+import { useEffect, type ReactNode } from "react";
 import type { IInferDecodedRow } from "@zerospin/shapes";
 import { swatchAndIconV1 } from "@qrk.sh/zerospin/src/modules/swatchAndIcon/swatchAndIconV1";
-import { SwatchAndIcon } from "./SwatchAndIcon";
 
 const frames = [
   swatchAndIconPreviewState,
@@ -33,8 +32,9 @@ export function SwatchAndIconPreview(props: {
   state: IInferDecodedRow<typeof swatchAndIconV1.stateShape>;
   setState: (state: IInferDecodedRow<typeof swatchAndIconV1.stateShape>) => void;
   isActive: boolean;
+  children: ReactNode;
 }) {
-  const { state, setState, isActive } = props;
+  const { state, setState, isActive, children } = props;
   useEffect(() => {
     if (!isActive) return;
     const interval = setInterval(() => {
@@ -43,5 +43,5 @@ export function SwatchAndIconPreview(props: {
     }, 2000);
     return () => clearInterval(interval);
   }, [state, setState, isActive]);
-  return <SwatchAndIcon state={state} />;
+  return children;
 }

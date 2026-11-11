@@ -1134,59 +1134,55 @@ export function WallEditor(props: {
                                               width: widths[placementIndex],
                                               minWidth:
                                                 module.variants[placement.variantId].minWidth,
-                                              content:
-                                                brick.state === null ||
-                                                isNonEmptySpec(placement.spec) ? (
-                                                  <BrickWrapper
-                                                    borderWidth={brick.borderWidth}
-                                                    inert={dragWholeBrick || undefined}
-                                                    data-wall-inline-editor={
-                                                      canEditInline ? "" : undefined
-                                                    }
-                                                    className={
-                                                      wall.page.site.cardStyle
-                                                        ? "brick-surface-card"
-                                                        : undefined
-                                                    }
-                                                  >
-                                                    {canEditInline ? (
-                                                      <InlineEditor
-                                                        state={brick.state}
-                                                        onFocus={() => {
-                                                          if (openBrickOnInlineFocus)
-                                                            onEditBrick(brick.id);
-                                                        }}
-                                                        onSave={(state) =>
-                                                          stageAggregateSessionCommand({
-                                                            session,
-                                                            contractName: "updateBrick",
-                                                            payload: {
-                                                              brickId: brick.id,
-                                                              moduleId: brick.moduleId,
-                                                              state,
-                                                            },
-                                                          })
-                                                        }
-                                                        registerFlush={(flush) =>
-                                                          registerBrickFlush(brick.id, flush)
-                                                        }
-                                                      />
-                                                    ) : (
-                                                      <Render
-                                                        state={brick.state}
-                                                        variantId={placement.variantId}
-                                                        spec={
-                                                          isNonEmptySpec(placement.spec)
-                                                            ? placement.spec
-                                                            : module.variants[placement.variantId]
-                                                                .spec
-                                                        }
-                                                      />
-                                                    )}
-                                                  </BrickWrapper>
-                                                ) : (
-                                                  <p role="alert">Invalid Brick spec</p>
-                                                ),
+                                              content: (
+                                                <BrickWrapper
+                                                  borderWidth={brick.borderWidth}
+                                                  inert={dragWholeBrick || undefined}
+                                                  data-wall-inline-editor={
+                                                    canEditInline ? "" : undefined
+                                                  }
+                                                  className={
+                                                    wall.page.site.cardStyle
+                                                      ? "brick-surface-card"
+                                                      : undefined
+                                                  }
+                                                >
+                                                  {canEditInline ? (
+                                                    <InlineEditor
+                                                      state={brick.state}
+                                                      onFocus={() => {
+                                                        if (openBrickOnInlineFocus)
+                                                          onEditBrick(brick.id);
+                                                      }}
+                                                      onSave={(state) =>
+                                                        stageAggregateSessionCommand({
+                                                          session,
+                                                          contractName: "updateBrick",
+                                                          payload: {
+                                                            brickId: brick.id,
+                                                            moduleId: brick.moduleId,
+                                                            state,
+                                                          },
+                                                        })
+                                                      }
+                                                      registerFlush={(flush) =>
+                                                        registerBrickFlush(brick.id, flush)
+                                                      }
+                                                    />
+                                                  ) : (
+                                                    <Render
+                                                      state={brick.state}
+                                                      variantId={placement.variantId}
+                                                      spec={
+                                                        isNonEmptySpec(placement.spec)
+                                                          ? placement.spec
+                                                          : module.variants[placement.variantId]
+                                                              .spec
+                                                      }
+                                                    />
+                                                  )}
+                                                </BrickWrapper>
+                                              ),
                                             }}
                                           />
                                           {nextPlacement !== undefined && (

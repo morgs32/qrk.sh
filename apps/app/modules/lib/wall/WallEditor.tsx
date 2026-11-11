@@ -903,6 +903,7 @@ export function WallEditor(props: {
                     }}
                   >
                     {section.stacks.map((stack, stackIndex) => {
+                      const isEmpty = stack.rows.length === 0;
                       const canInsert =
                         validateAggregateSessionCommand({
                           session,
@@ -918,7 +919,8 @@ export function WallEditor(props: {
                         <div
                           key={stack.id}
                           data-wall-stack-id={stack.id}
-                          className={`group/stack relative min-h-[50px] min-w-0 ${stack.id === selectedStackId ? "is-selected-stack after:pointer-events-none after:absolute after:inset-0 after:z-[29] after:border after:border-[#1f9bfc] after:content-['']" : ""} ${stack.rows.length === 0 && dropTarget?.kind === "stack" && dropTarget.stackId === stack.id ? "bg-blue-50 outline outline-blue-500 -outline-offset-2" : ""}`}
+                          data-wall-stack-empty={isEmpty ? "" : undefined}
+                          className={`group/stack relative min-h-[50px] min-w-0 ${stack.id === selectedStackId ? "is-selected-stack" : ""} ${isEmpty && dropTarget?.kind === "stack" && dropTarget.stackId === stack.id ? "bg-blue-50 outline outline-blue-500 -outline-offset-2" : ""}`}
                         >
                           <StackAction>
                             {onEditStack === undefined ? (
@@ -1375,7 +1377,7 @@ export function WallEditor(props: {
           )}
           {sections.length === 0 && dropTarget?.kind === "wall" && shadow}
         </PreviewSection>
-        <div className="wall-preview-footer relative z-40 h-16 shrink-0 bg-white">
+        <div className="wall-preview-footer relative z-40 h-16 shrink-0">
           <PreviewSection className="flex h-16 shrink-0 items-center justify-end gap-1 rounded-b-[var(--wall-frame-radius,12px)] border-b bg-white px-3 text-[10px] leading-4 text-black/60 shadow-[inset_0_1px_0_var(--color-zinc-200)]">
             <span>powered by</span>
             <span style={{ fontFamily: "Silkscreen, monospace" }}>qrk.sh</span>

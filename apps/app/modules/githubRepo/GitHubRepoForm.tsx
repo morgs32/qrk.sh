@@ -10,7 +10,7 @@ import type { LibraryApi } from "@qrk.sh/api/modules/LibraryApi.public";
 import { useLayoutEffect, useId, useRef, useState } from "react";
 
 import { Button } from "../components/ui/button";
-import { Input } from "../components/ui/input";
+import { Input } from "@/components/FormInputs/Input";
 import { githubRepoV1 } from "@qrk.sh/zerospin/src/modules/githubRepo/githubRepoV1";
 import { useWarnBeforeUnload } from "@/lib/useWarnBeforeUnload";
 

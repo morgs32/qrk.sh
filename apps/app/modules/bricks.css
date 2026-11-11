@@ -4,6 +4,10 @@
   --brick-accent-rgb: 31 155 252;
 }
 
+.brick-catalog-preview {
+  --brick-catalog-inset: 0.75rem;
+}
+
 .wall-preview-viewport {
   --wall-preview-drawer-height: 0px;
   --wall-preview-top-gap: 32px;
@@ -31,14 +35,25 @@
   --wall-frame-radius: 16px;
 }
 
-/* Cover the top scroll gutter without clipping the preview or changing its height. */
-.wall-preview-chrome {
-  box-shadow: 0 calc(-1 * var(--wall-preview-top-gap, 24px)) 0 white;
+.wall-preview-scroll {
+  --wall-preview-canvas-background: #f5f5f5;
+  background-color: var(--wall-preview-canvas-background);
 }
 
-/* Keep the bottom scroll gutter white below the normal-flow footer. */
+.wall-preview-chrome,
 .wall-preview-footer {
-  box-shadow: 0 var(--wall-preview-bottom-gap, 24px) 0 white;
+  background-color: var(--wall-preview-canvas-background, white);
+}
+
+/* Cover the top scroll gutter without clipping the preview or changing its height. */
+.wall-preview-chrome {
+  box-shadow: 0 calc(-1 * var(--wall-preview-top-gap, 24px)) 0
+    var(--wall-preview-canvas-background, white);
+}
+
+/* Match the canvas below the normal-flow footer. */
+.wall-preview-footer {
+  box-shadow: 0 var(--wall-preview-bottom-gap, 24px) 0 var(--wall-preview-canvas-background, white);
 }
 
 .qrk-responsive-insets {
@@ -94,7 +109,8 @@
 }
 
 .brick-hover-surface.brick-surface-card {
-  border-radius: 8px;
+  --brick-card-radius: 8px;
+  border-radius: var(--brick-card-radius);
   background: white;
   box-shadow:
     0 8px 28px rgb(0 0 0 / 6%),
@@ -143,34 +159,62 @@
   margin-left: auto;
 }
 
-/* Content clips inside the surface; its decoration remains outside that clip. */
-.brick-hover-surface::after {
+/* Cover the action bar's 1px inset and the 1.5px outline beyond the Brick. */
+.wall-placement .brick-action::before {
   content: "";
   position: absolute;
-  inset: 0;
-  border: 1px solid rgb(var(--brick-accent-rgb));
+  inset: -2.5px -2.5px 0 0;
+  z-index: -1;
+  background-color: inherit;
+  pointer-events: none;
+}
+
+/* Bricks and Stacks share the outline paint and retain their own layers. */
+.brick-hover-surface::after,
+[data-wall-stack-id]::after {
+  --interaction-outline-width: 1px;
+  --interaction-outline-outset: calc(var(--interaction-outline-width) / 2);
+  content: "";
+  position: absolute;
+  inset: calc(-1 * var(--interaction-outline-outset));
+  border: var(--interaction-outline-width) solid rgb(var(--brick-accent-rgb));
+  /* Opaque equivalents of the blue accent at 30% and 15% over white. */
   box-shadow:
-    0 0 0 1px rgb(var(--brick-accent-rgb) / 30%),
-    inset 0 0 0 1px rgb(var(--brick-accent-rgb) / 15%);
-  border-radius: inherit;
+    0 0 0 1px #bce1fe,
+    inset 0 0 0 1px #ddf0ff;
   opacity: 0;
   pointer-events: none;
+}
+
+.brick-hover-surface::after {
+  border-radius: inherit;
   z-index: 19;
+}
+
+.brick-hover-surface.brick-surface-card::after {
+  border-radius: calc(var(--brick-card-radius) + var(--interaction-outline-outset));
+}
+
+[data-wall-stack-id]::after {
+  /* Paint above idle Placements and below Placements with visible actions. */
+  z-index: 1;
 }
 
 @media (hover: hover) and (pointer: fine) {
   /* Lift the entire placement above neighboring bricks during hover. */
   .wall-placement:hover {
-    z-index: 1;
+    z-index: 2;
   }
 
   [data-drawer-module-id]:hover > .brick-hover-surface::after,
-  .wall-placement:hover > .wall-placement-content > .brick-hover-surface::after {
+  .wall-placement:hover > .wall-placement-content > .brick-hover-surface::after,
+  [data-wall-stack-id]:is([data-wall-stack-empty]:hover, :has(> * > .stack-action:hover))::after {
     opacity: 1;
   }
 }
 
 /* Selection persists while its edit form owns focus outside the Wall. */
+[data-wall-stack-id].is-selected-stack::after,
 .wall-placement.is-selected > .wall-placement-content > .brick-hover-surface::after,
 [data-drawer-module-id]:focus-within > .brick-hover-surface::after,
 .wall-placement:focus-within > .wall-placement-content > .brick-hover-surface::after {
@@ -178,7 +222,7 @@
 }
 
 .wall-placement:is(:focus-within, .is-selected) {
-  z-index: 1;
+  z-index: 2;
 }
 
 /* Insertion feedback copies appearance, without editor decoration or controls. */
@@ -192,6 +236,7 @@
 
 /* The native pointer image has its own edge, without normal hover halos. */
 .brick-drag-preview .brick-hover-surface::after {
+  --interaction-outline-outset: 0px;
   border-width: 2px;
   box-shadow: none;
   opacity: 1;
@@ -277,10 +322,8 @@
 }
 
 .wall-row-width-resize-grip::after {
-  width: 8px;
-  height: 22px;
-  background: white;
-  border: 2px solid rgb(var(--brick-accent-rgb));
+  width: 4px;
+  height: 20px;
   pointer-events: none;
 }
 

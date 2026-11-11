@@ -7,7 +7,7 @@ export function BrowserChrome(props: { breakpoint: "sm" | "md" | "lg" | "xl" }) 
   const isMobile = breakpoint === "sm" || breakpoint === "md";
 
   return (
-    <div className="wall-preview-chrome pointer-events-none sticky top-0 z-60 h-12 shrink-0 bg-white">
+    <div className="wall-preview-chrome pointer-events-none sticky top-0 z-60 h-12 shrink-0">
       <PreviewSection
         className={cn(
           "flex h-12 shrink-0 items-center justify-center border-t border-b border-zinc-300 bg-zinc-100 px-3",

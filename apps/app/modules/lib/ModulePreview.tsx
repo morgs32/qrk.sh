@@ -93,17 +93,19 @@ export function ModulePreview(props: {
 
   return (
     <div
-      className={`flex h-full min-h-0 w-max shrink-0 flex-col overflow-y-auto overscroll-y-contain border-r border-zinc-200 ${verticalAtLg ? "lg:h-auto lg:w-full lg:overflow-visible lg:border-r-0 lg:border-b lg:last:border-b-0" : ""}`}
+      className={`brick-catalog-preview flex h-full min-h-0 w-max shrink-0 flex-col overflow-y-auto overscroll-y-contain border-r border-zinc-200 ${verticalAtLg ? "lg:h-auto lg:w-full lg:overflow-visible lg:border-r-0 lg:border-b lg:last:border-b-0" : ""}`}
     >
-      <h2
-        className={`sticky top-0 z-10 m-0 shrink-0 px-8 py-4 font-normal ${verticalAtLg ? "lg:static" : ""}`}
+      <header
+        className={`sticky top-0 z-10 flex shrink-0 items-baseline gap-3 border-b border-zinc-200 bg-white px-[var(--brick-catalog-inset)] py-2 text-zinc-950 ${verticalAtLg ? "lg:static" : ""}`}
       >
-        {brickModule.label}
-      </h2>
-      <div className={`px-8 pb-16 pt-2 ${verticalAtLg ? "lg:pb-8" : ""}`}>
+        <h2 className="m-0 font-normal">{brickModule.label}</h2>
         {maxPerPage !== undefined ? (
-          <p className="mb-3 mt-0 max-w-64 text-sm text-zinc-500">Limit: {maxPerPage} per page.</p>
+          <span className="text-xs text-zinc-500">Limit: {maxPerPage} per page.</span>
         ) : null}
+      </header>
+      <div
+        className={`px-[var(--brick-catalog-inset)] pb-16 pt-[var(--brick-catalog-inset)] ${verticalAtLg ? "lg:pb-8" : ""}`}
+      >
         <div
           ref={previewRef}
           data-drawer-module-id={brickModule.id}
@@ -119,7 +121,7 @@ export function ModulePreview(props: {
                 child.draggable = false;
               });
           }}
-          className={`group/brick relative shrink-0 cursor-grab ${verticalAtLg ? "lg:max-w-full" : ""} ${dragging ? "opacity-40" : ""}`}
+          className={`group/brick relative z-0 shrink-0 cursor-grab ${verticalAtLg ? "lg:max-w-full" : ""} ${dragging ? "opacity-40" : ""}`}
           style={{
             width: Math.min(view.defaultWidth, entry.previewWidth),
             minWidth: view.minWidth,

@@ -8,7 +8,7 @@ import { makeEffectSchema } from "@zerospin/shapes";
 import { useSWRConfig } from "swr";
 import useSWRMutation from "swr/mutation";
 
-import { Input } from "../components/ui/input";
+import { Input } from "@/components/FormInputs/Input";
 import { Button } from "../components/ui/button";
 import { imageV1 } from "@qrk.sh/zerospin/src/modules/image/imageV1";
 import { useWarnBeforeUnload } from "@/lib/useWarnBeforeUnload";
@@ -116,9 +116,10 @@ export function ImageForm(props: {
     >
       {uploadImage !== undefined ? (
         <div className="flex flex-col gap-2">
-          <input
+          <Input
             accept="image/png,image/jpeg,image/webp,image/svg+xml"
             aria-label="Choose image"
+            className="hidden"
             disabled={isBusy}
             hidden
             onChange={(event) => {

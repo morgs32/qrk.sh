@@ -1,8 +1,10 @@
-import { BrickWall, Layers, Paintbrush, Rows3, Scan, SquareDashed, X } from "lucide-react";
-import { useId, useState } from "react";
+import { NumberField } from "@base-ui/react/number-field";
+import { BrickWall, Layers, Minus, Paintbrush, Plus, Rows3, Scan, X } from "lucide-react";
+import { type ReactNode, useId, useState } from "react";
 import { HexColorInput, HexColorPicker } from "react-colorful";
 
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   InputGroup,
   InputGroupAddon,
@@ -11,46 +13,40 @@ import {
 } from "@/components/ui/input-group";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { InspectorNumberField } from "./InspectorNumberField";
 
 export function StyleInspector(props: {
+  children?: ReactNode;
   defaultCornersOpen?: boolean;
   layout?: "sidebar" | "drawer";
 }) {
-  const { defaultCornersOpen = false, layout = "sidebar" } = props;
+  const { children, defaultCornersOpen = false, layout = "sidebar" } = props;
+  const isSidebar = layout === "sidebar";
   const id = useId();
+  const [sidebarSection, setSidebarSection] = useState("Styles");
   const [radii, setRadii] = useState<(number | null)[]>([0, 0, 0, 0]);
   const [border, setBorder] = useState("0");
   const [borderColor, setBorderColor] = useState("");
-  const [shadow, setShadow] = useState("");
+  const [shadowDraft, setShadowDraft] = useState<string | null>(null);
   const [shadowColor, setShadowColor] = useState("");
+  const [shadowDimensions, setShadowDimensions] = useState<(number | null)[]>([0, 0, 0, 0]);
   const [fill, setFill] = useState("");
-
-  if (layout === "sidebar") {
-    return (
-      <aside
-        aria-label="Style inspector"
-        data-slot="sidebar"
-        data-sidebar="sidebar"
-        className="flex min-h-svh w-64 max-w-full shrink-0 flex-col border-l border-sidebar-border bg-sidebar text-sidebar-foreground"
-      >
-        <div
-          data-slot="sidebar-content"
-          data-sidebar="content"
-          className="flex min-h-0 flex-1 flex-col gap-2 overflow-auto"
-        />
-      </aside>
-    );
-  }
 
   const hasMixedRadius = radii.some((radius) => radius !== radii[0]);
 
   const typography = "font-[Geist_Variable,Arial,sans-serif] text-xs text-neutral-950";
   const styleRow = "grid grid-cols-[minmax(0,1fr)_28px] items-center gap-x-1 gap-y-2";
   const styleLabel =
-    "col-span-2 font-mono text-[10px] font-normal tracking-wide text-neutral-600 uppercase";
+    "col-span-2 font-mono text-[10px] font-normal tracking-wide text-black uppercase";
   const dimensions = [
     { name: "Row", dimension: "Width", Icon: Rows3 },
     { name: "Stack", dimension: "Height", Icon: Layers },
@@ -59,31 +55,28 @@ export function StyleInspector(props: {
   const panel = "mt-0 min-h-24 px-5 py-4 data-[state=inactive]:hidden";
   const tab =
     "h-10 flex-none gap-1.5 rounded-none border-b-2 border-transparent px-0 py-0 font-mono text-xs data-[state=active]:border-neutral-900 data-[state=active]:bg-transparent data-[state=active]:font-semibold data-[state=active]:shadow-none dark:data-[state=active]:bg-transparent";
-  const label = "text-xs font-normal text-neutral-500";
-  const field = "h-7 rounded-[9px] border-transparent bg-neutral-100 shadow-none";
+  const label = "text-xs font-normal text-black";
+  const field = "h-7 rounded-[9px] border-0 bg-neutral-100 shadow-none dark:bg-neutral-100";
   const fieldInput = "h-7 px-2 py-0 text-xs leading-4 md:text-xs";
   const numberInput =
     "[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
   const iconButton =
-    "size-7 rounded-[9px] bg-neutral-100 hover:bg-neutral-200 [&_svg:not([class*='size-'])]:size-3.5";
+    "size-7 rounded-[9px] bg-white hover:bg-neutral-200 [&_svg:not([class*='size-'])]:size-3.5";
 
   const styles = (
-    <div className="grid max-w-4xl grid-cols-2 gap-4 sm:grid-cols-4">
+    <div className={isSidebar ? "grid gap-4" : "grid max-w-4xl grid-cols-2 gap-4 sm:grid-cols-4"}>
       <div className={styleRow}>
         <Label htmlFor={`${id}-radius`} className={styleLabel}>
           Radius
         </Label>
         <InputGroup className={field}>
-          <InputGroupAddon className="pl-2 text-neutral-500">
-            <SquareDashed aria-hidden="true" className="size-3" />
-          </InputGroupAddon>
           <InputGroupInput
             id={`${id}-radius`}
             type="number"
             min={0}
             value={hasMixedRadius ? "" : (radii[0] ?? "")}
             placeholder={hasMixedRadius ? "Mixed" : undefined}
-            className={`${fieldInput} ${numberInput} !pl-1`}
+            className={`${fieldInput} ${numberInput}`}
             onChange={(event) => {
               const { value, valueAsNumber } = event.currentTarget;
               if (value === "" || valueAsNumber >= 0) {
@@ -114,8 +107,8 @@ export function StyleInspector(props: {
         },
         {
           name: "Shadow",
-          value: shadow,
-          setValue: setShadow,
+          value: shadowDraft ?? shadowDimensions.map((dimension) => dimension ?? 0).join(", "),
+          setValue: setShadowDraft,
           color: shadowColor,
           setColor: setShadowColor,
         },
@@ -136,13 +129,32 @@ export function StyleInspector(props: {
                     min={name === "Border" ? 0 : undefined}
                     value={value}
                     placeholder="Add..."
-                    className={`${fieldInput} ${numberInput} text-neutral-500 placeholder:text-neutral-500`}
+                    className={`${fieldInput} ${numberInput} placeholder:text-neutral-500 ${name === "Border" ? "text-neutral-500" : "text-neutral-950"} ${name === "Fill" ? "uppercase placeholder:normal-case" : ""}`}
                     onChange={(event) => {
                       const nextValue = event.currentTarget.value;
                       if (name !== "Border" || !nextValue.startsWith("-")) {
                         setValue(nextValue);
                       }
                     }}
+                    onBlur={
+                      name === "Shadow"
+                        ? (event) => {
+                            const parts = event.currentTarget.value
+                              .split(",")
+                              .map((part) => part.trim());
+                            const values = parts.map(Number);
+                            if (
+                              parts.length === 4 &&
+                              parts.every(Boolean) &&
+                              values.every(Number.isFinite) &&
+                              values[2] >= 0
+                            ) {
+                              setShadowDimensions(values);
+                            }
+                            setShadowDraft(null);
+                          }
+                        : undefined
+                    }
                   />
                   <InputGroupAddon align="inline-end" className="py-0 pr-0.5 has-[>button]:mr-0">
                     <PopoverTrigger asChild>
@@ -153,7 +165,7 @@ export function StyleInspector(props: {
                       >
                         <span
                           aria-hidden="true"
-                          className="size-3 rounded-[2px] bg-white ring-1 ring-black/10 ring-inset"
+                          className="size-3 rounded-[2px] bg-white"
                           style={{ backgroundColor: color }}
                         />
                       </InputGroupButton>
@@ -167,18 +179,23 @@ export function StyleInspector(props: {
                   aria-label={`Clear ${name.toLowerCase()}`}
                   className={`${iconButton} bg-neutral-50 text-neutral-500`}
                   onClick={() => {
-                    setValue(name === "Border" ? "0" : "");
+                    if (name === "Shadow") {
+                      setShadowDraft(null);
+                      setShadowDimensions([0, 0, 0, 0]);
+                    } else {
+                      setValue(name === "Border" ? "0" : "");
+                    }
                     if (name !== "Fill") setColor("");
                   }}
                 >
-                  <X aria-hidden="true" />
+                  <X aria-hidden="true" className="size-3" />
                 </Button>
               </div>
             </PopoverAnchor>
             <PopoverContent
               aria-labelledby={`${id}-${name}-color`}
-              side="top"
-              sideOffset={68}
+              side={isSidebar ? "left" : "top"}
+              sideOffset={isSidebar ? 12 : 68}
               align="start"
               collisionPadding={8}
               className={`w-64 max-w-[calc(100vw-16px)] rounded-[10px] border-neutral-100 bg-white p-0 shadow-lg ${typography}`}
@@ -187,7 +204,7 @@ export function StyleInspector(props: {
                 {name}
               </h2>
               <Separator className="bg-neutral-200" />
-              <div className="grid gap-3 p-4">
+              <div className={`grid p-4 ${name === "Shadow" ? "gap-2" : "gap-3"}`}>
                 <HexColorPicker color={hex} onChange={setColor} style={{ width: "100%" }} />
                 <HexColorInput
                   aria-label={`${name} hex color`}
@@ -195,8 +212,47 @@ export function StyleInspector(props: {
                   color={hex}
                   onChange={setColor}
                   prefixed
-                  className={`${field} w-full border px-2 font-mono outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50`}
+                  className={`${field} w-full px-2 font-mono outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50`}
                 />
+                {name === "Shadow" &&
+                  ["X", "Y", "Blur", "Spread"].map((dimension, index) => {
+                    const fieldId = `${id}-shadow-${dimension}`;
+                    return (
+                      <NumberField.Root
+                        key={dimension}
+                        id={fieldId}
+                        min={dimension === "Blur" ? 0 : undefined}
+                        allowWheelScrub={false}
+                        value={shadowDimensions[index]}
+                        onValueChange={(value) =>
+                          setShadowDimensions((current) => current.with(index, value))
+                        }
+                      >
+                        <NumberField.Group className="grid grid-cols-[76px_minmax(0,1fr)_28px_28px] items-center gap-1">
+                          <Label htmlFor={fieldId} className={label}>
+                            {dimension}
+                          </Label>
+                          <NumberField.Input
+                            render={<Input className={`${field} ${fieldInput}`} />}
+                          />
+                          <NumberField.Increment
+                            render={<Button variant="ghost" size="icon" />}
+                            aria-label={`Increase shadow ${dimension.toLowerCase()}`}
+                            className={iconButton}
+                          >
+                            <Plus aria-hidden="true" />
+                          </NumberField.Increment>
+                          <NumberField.Decrement
+                            render={<Button variant="ghost" size="icon" />}
+                            aria-label={`Decrease shadow ${dimension.toLowerCase()}`}
+                            className={iconButton}
+                          >
+                            <Minus aria-hidden="true" />
+                          </NumberField.Decrement>
+                        </NumberField.Group>
+                      </NumberField.Root>
+                    );
+                  })}
               </div>
             </PopoverContent>
           </Popover>
@@ -206,16 +262,17 @@ export function StyleInspector(props: {
   );
   const dimensionSections = dimensions.map(({ name, dimension }) => {
     const fieldId = `${id}-${name}-${dimension}`;
-    return (
-      <TabsContent key={name} value={name} forceMount className={panel}>
+    return {
+      name,
+      content: (
         <div className="grid w-full max-w-xs gap-2">
           <Label htmlFor={fieldId} className={styleLabel}>
             {dimension}
           </Label>
           <InspectorNumberField id={fieldId} label={`${name} ${dimension.toLowerCase()}`} />
         </div>
-      </TabsContent>
-    );
+      ),
+    };
   });
 
   return (
@@ -223,36 +280,84 @@ export function StyleInspector(props: {
       <PopoverAnchor asChild>
         <aside
           aria-label="Style inspector"
-          className={`${typography} w-full border-t border-neutral-200 bg-white shadow-[0_-4px_18px_-8px_rgba(0,0,0,0.18)] antialiased tabular-nums`}
+          data-slot={isSidebar ? "sidebar" : undefined}
+          data-sidebar={isSidebar ? "sidebar" : undefined}
+          className={`${typography} antialiased tabular-nums ${
+            isSidebar
+              ? "flex min-h-svh w-64 max-w-full shrink-0 flex-col border-l border-sidebar-border bg-white"
+              : "w-full border-t border-neutral-200 bg-white shadow-[0_-4px_18px_-8px_rgba(0,0,0,0.18)]"
+          }`}
         >
-          <Tabs defaultValue="Styles" className="gap-0">
-            <TabsList
-              aria-label="Inspector sections"
-              className="h-10 w-full justify-start gap-5 overflow-x-auto rounded-none border-b border-neutral-200 bg-transparent px-5 py-0"
-            >
-              <TabsTrigger value="Styles" className={tab}>
-                <Paintbrush aria-hidden="true" className="size-3.5" />
-                Styles
-              </TabsTrigger>
-              {dimensions.map(({ name, Icon }) => (
-                <TabsTrigger key={name} value={name} className={tab}>
-                  <Icon aria-hidden="true" className="size-3.5" />
-                  {name}
-                </TabsTrigger>
+          {isSidebar ? (
+            <div data-sidebar="content">
+              <div className="border-b border-sidebar-border px-3 py-2">
+                <Select value={sidebarSection} onValueChange={setSidebarSection}>
+                  <SelectTrigger
+                    aria-label="Inspector section"
+                    size="sm"
+                    className="-ml-1.5 gap-1.5 rounded-md border-0 bg-transparent px-1.5 py-0 text-xs font-semibold shadow-none hover:bg-sidebar-accent data-[size=sm]:h-7 dark:bg-transparent [&>svg]:size-3"
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent
+                    position="popper"
+                    align="start"
+                    className="rounded-md bg-white text-neutral-950"
+                  >
+                    {[{ name: "Styles", Icon: Paintbrush }, ...dimensions].map(({ name, Icon }) => (
+                      <SelectItem key={name} value={name} className="text-xs">
+                        <Icon aria-hidden="true" className="size-3.5" />
+                        {name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div hidden={sidebarSection !== "Styles"} className="px-3 py-4">
+                {styles}
+                {children}
+              </div>
+              {dimensionSections.map(({ name, content }) => (
+                <div key={name} hidden={sidebarSection !== name} className="px-3 py-4">
+                  {content}
+                </div>
               ))}
-            </TabsList>
-            <TabsContent value="Styles" forceMount className={panel}>
-              {styles}
-            </TabsContent>
-            {dimensionSections}
-          </Tabs>
+            </div>
+          ) : (
+            <Tabs defaultValue="Styles" className="gap-0">
+              <TabsList
+                aria-label="Inspector sections"
+                className="h-10 w-full justify-start gap-5 overflow-x-auto rounded-none border-b border-neutral-200 bg-transparent px-5 py-0"
+              >
+                <TabsTrigger value="Styles" className={tab}>
+                  <Paintbrush aria-hidden="true" className="size-3.5" />
+                  Styles
+                </TabsTrigger>
+                {dimensions.map(({ name, Icon }) => (
+                  <TabsTrigger key={name} value={name} className={tab}>
+                    <Icon aria-hidden="true" className="size-3.5" />
+                    {name}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+              <TabsContent value="Styles" forceMount className={panel}>
+                {styles}
+              </TabsContent>
+              {dimensionSections.map(({ name, content }) => (
+                <TabsContent key={name} value={name} forceMount className={panel}>
+                  {content}
+                </TabsContent>
+              ))}
+            </Tabs>
+          )}
         </aside>
       </PopoverAnchor>
       <PopoverContent
         aria-labelledby={`${id}-corner-title`}
-        side="top"
+        side={isSidebar ? "left" : "top"}
         align="start"
-        alignOffset={20}
+        alignOffset={isSidebar ? 48 : 20}
+        sideOffset={isSidebar ? 8 : undefined}
         collisionPadding={8}
         className={`w-64 max-w-[calc(100vw-16px)] rounded-[10px] border-neutral-100 bg-white p-0 shadow-lg ${typography}`}
       >
@@ -271,10 +376,7 @@ export function StyleInspector(props: {
               key={corner}
               className="group grid grid-cols-[76px_minmax(0,1fr)] items-center gap-1"
             >
-              <Label
-                htmlFor={`${id}-corner-${index}`}
-                className={`${label} group-focus-within:text-neutral-950`}
-              >
+              <Label htmlFor={`${id}-corner-${index}`} className={label}>
                 {name}
               </Label>
               <InspectorNumberField

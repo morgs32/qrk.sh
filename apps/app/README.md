@@ -9,7 +9,8 @@ Workspace drawers use TanStack Hotkeys for Escape dismissal, including while a
 form field is focused. Escape uses the Close button's route transition and keeps
 the current breakpoint. Open menus, popovers, and dialogs consume Escape
 first; the next press closes the workspace drawer. Its line tabs open Bricks,
-Page settings, and Site settings. Close and any available publishing actions
+Page settings, and Site settings. Brick Details shows a selected Edit brick tab.
+Close and any available publishing actions
 share the drawer tab bar. Settings and manual Brick editors provide Save and
 Cancel inside their forms. Exit and Set breakpoints are available from the
 floating page controls.

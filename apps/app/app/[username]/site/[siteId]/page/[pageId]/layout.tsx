@@ -231,7 +231,7 @@ export default function PageLayout(props: { children: ReactNode }) {
           </title>
           <div
             ref={scrollRef}
-            className="relative min-h-0 min-w-0 shrink-0 overflow-y-auto pt-[var(--wall-preview-top-gap)] pb-[var(--wall-preview-bottom-gap)]"
+            className="wall-preview-scroll relative min-h-0 min-w-0 shrink-0 overflow-y-auto pt-[var(--wall-preview-top-gap)] pb-[var(--wall-preview-bottom-gap)]"
             style={{
               height: "calc(100% - var(--wall-preview-drawer-height))",
               overflowX: retainingPreview ? "auto" : "hidden",

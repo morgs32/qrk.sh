@@ -2,7 +2,7 @@
 
 import { useContext, type ReactNode } from "react";
 import { useMatches, useNavigate, useSearch } from "@tanstack/react-router";
-import { File, Globe, Plus, X } from "lucide-react";
+import { File, Globe, Pencil, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useHotkey } from "@tanstack/react-hotkeys";
@@ -97,12 +97,15 @@ export default function DrawerLayout(props: { children: ReactNode }) {
     { preventDefault: false, requireReset: true },
   );
 
+  const isBrickDetails = routeId === "/$username/site/$siteId/page/$pageId/_drawer/brick/$brickId";
   const tab =
-    routeId === "/$username/site/$siteId/page/$pageId/_drawer/page-settings"
-      ? "page-settings"
-      : routeId === "/$username/site/$siteId/page/$pageId/_drawer/site-settings"
-        ? "site-settings"
-        : "modules";
+    isBrickDetails
+      ? "edit-brick"
+      : routeId === "/$username/site/$siteId/page/$pageId/_drawer/page-settings"
+        ? "page-settings"
+        : routeId === "/$username/site/$siteId/page/$pageId/_drawer/site-settings"
+          ? "site-settings"
+          : "modules";
   return (
     <Tabs
       value={tab}
@@ -122,7 +125,7 @@ export default function DrawerLayout(props: { children: ReactNode }) {
     >
       <header className="flex shrink-0 items-center gap-2 border-b border-border px-2">
         <div className="flex min-w-0 items-center gap-2 overflow-x-auto">
-          <TabsList variant="line" aria-label="Page controls">
+          <TabsList variant="line" aria-label="Page controls" className="h-11">
             <TabsTrigger
               value="modules"
               onClick={() => {
@@ -142,6 +145,12 @@ export default function DrawerLayout(props: { children: ReactNode }) {
               <Plus aria-hidden />
               Bricks
             </TabsTrigger>
+            {isBrickDetails ? (
+              <TabsTrigger value="edit-brick">
+                <Pencil aria-hidden />
+                Edit brick
+              </TabsTrigger>
+            ) : null}
             <TabsTrigger value="page-settings">
               <File aria-hidden />
               Page settings
@@ -158,6 +167,7 @@ export default function DrawerLayout(props: { children: ReactNode }) {
             <Button
               type="button"
               size="sm"
+              className="font-bold"
               onClick={() => {
                 if (!autosave.flushPageEditors()) return;
                 const snapshotId = session.runSync(makeId(PageSnapshot));

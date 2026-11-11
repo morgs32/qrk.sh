@@ -8,7 +8,7 @@ import type { LibraryApi } from "@qrk.sh/api/modules/LibraryApi.public";
 import useSWRInfinite from "swr/infinite";
 
 import { Button } from "../components/ui/button";
-import { Input } from "../components/ui/input";
+import { Input } from "@/components/FormInputs/Input";
 import { cn } from "cn";
 
 const SEARCH_PAGE_SIZE = 48;

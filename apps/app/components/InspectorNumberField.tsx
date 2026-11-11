@@ -14,7 +14,8 @@ export function InspectorNumberField(props: {
   onValueChange?: (value: number | null) => void;
 }) {
   const { id, label, leadingIcon, selectOnFocus, value, onValueChange } = props;
-  const stepperButton = "h-[13px] w-6 rounded-sm text-neutral-600 hover:bg-neutral-200";
+  const stepperButton =
+    "h-[13px] w-6 rounded-sm text-neutral-600 hover:bg-transparent hover:text-neutral-950 dark:hover:bg-transparent";
 
   return (
     <NumberField.Root
@@ -26,7 +27,7 @@ export function InspectorNumberField(props: {
     >
       <NumberField.Group
         render={
-          <InputGroup className="h-7 rounded-[9px] border-transparent bg-neutral-100 shadow-none" />
+          <InputGroup className="h-7 rounded-[9px] border-0 bg-neutral-100 shadow-none dark:bg-neutral-100" />
         }
       >
         {leadingIcon ? <InputGroupAddon className="pl-2">{leadingIcon}</InputGroupAddon> : null}

@@ -39,6 +39,11 @@ files are retained, and Nx discovers no Library project or dependency cycle.
 
 ## Brick forms
 
+Module Forms and their lookup controls use the shared controls in
+[`components/FormInputs`](../components/FormInputs). Use `Input` for text, URL,
+search, and file fields and `ColorInput` for a hex field with a color picker.
+The Style Inspector Sidebar story shows these controls under Styles.
+
 QRK-owned forms set `autoComplete="off"`. The shared Input and native article
 title/subtitle, hex color, and State JSON fields also set `autoComplete="off"`
 and `data-1p-ignore="true"` to suppress browser and 1Password suggestions. The
@@ -167,6 +172,8 @@ transitions and drawer lifecycle.
 `renderModuleLink`. Columns scroll vertically inside a horizontal strip, with
 headings pinned above their previews. App supplies catalog/insertion actions;
 Storybook supplies its own module examples. Live preview content stays interactive.
+`--brick-catalog-inset` sets the heading's side padding and the preview's top
+and side padding.
 `ModulePreview` owns its current local preview state, initialized from the module's
 `defaultState`. A module can supply `preview({ state, setState, isActive })`
 to change that local state. `IntersectionObserver`, document visibility, dragging,
@@ -180,10 +187,11 @@ snapshot. Catalog Add uses the current preview state; static module-detail Add
 uses the `defaultState` displayed there. Preview animation never changes a saved
 Brick.
 Drawer previews share the placed Brick's content decoration on hover or DOM
-focus: an opaque 1px `#1F9BFC` stroke with sharp 1px same-blue halos at 30%
-opacity outside and 15% inside. It overlays the content without changing layout,
-moving the Brick, or adding hover animation. Selection keeps this decoration on a
-placed Brick while its edit form is open, independently of DOM focus.
+focus: an opaque 1px `#1F9BFC` stroke centered on the Brick's edge, with sharp 1px
+solid halos in `#BCE1FE` outside and `#DDF0FF` inside. It overlays the content
+without changing layout, moving the Brick, or adding hover animation. Selection
+keeps this decoration on a placed Brick while its edit form is open,
+independently of DOM focus.
 
 Card styling is an ordinary boolean presentation prop on shared previews;
 BrickCardStyleContext is removed. Module playgrounds own a local checkbox
@@ -531,8 +539,11 @@ corners remain rounded without clipping descendants. The footer remains part
 of WallEditor and is 64px tall.
 Stack and placed-Brick action bars stick below the browser bar and any sticky
 navbar while their owner remains visible. Full-height, pointer-transparent hosts
-bound each bar to its own Stack or Brick without consuming layout space. The Wall
-sets a 7rem sticky offset with a sticky navbar and 3rem otherwise. Existing
+bound each bar to its own Stack or Brick without consuming layout space. Hovering
+the Stack action bar or anywhere inside an empty Stack outlines the entire Stack
+with the same blue stroke and halos used by Bricks. The outline also appears while
+the Stack drawer is open. The Wall sets a 7rem sticky offset with a sticky navbar
+and 3rem otherwise. Existing
 visibility rules and action layers remain; drawer-preview actions stay absolute,
 and move indicators remain above the controls at z-70. The Cross Row Sticky
 Actions stories exercise both navbar settings, owner-bottom boundaries, menu
@@ -587,19 +598,22 @@ ancestor. Drawer, placed, detail, and breakpoint previews use that same owner.
 The insertion shadow clones this complete surface and remains inert at 40%
 opacity without an added border, outline, halo, or editor action controls.
 
-One shared content decoration supplies hover, DOM focus, and selection: a 1px
-opaque `#1F9BFC` stroke with sharp 1px same-blue halos at 30% outside and 15%
-inside. Selected still means the Brick's edit form is open; active means DOM
+One shared content decoration supplies hover, DOM focus, and selection. The 1px
+opaque `#1F9BFC` stroke straddles the Brick or Stack edge by 0.5px on each side,
+with sharp 1px solid halos in `#BCE1FE` outside and `#DDF0FF` inside. Selected still
+means the Brick's edit form is open; active means DOM
 focus. Selection keeps the content decoration while focus is in the drawer, but
 it does not force BrickAction visible. Placement hitboxes remain stationary.
 The separate outer Placement stroke is reserved for its open portal menu;
 keyboard focus reveals the shared content decoration instead. The menu portal
 can take focus outside the Brick, so that outer indication retains its own owner.
 
-On hover-capable fine pointers, the whole Placement temporarily rises above
-neighboring Bricks at z-index 1, across Rows, Stacks, and Sections. Hover ending
-restores normal stacking. Stack controls, browser chrome, menus, and floating
-toolbars remain above it; focus, selection, and open-menu state do not raise it.
+Hover on a fine pointer, DOM focus, and selection raise the Placement to
+z-index 2. The Stack outline sits at z-index 1 so it paints over idle content.
+The Brick action bar fills the inset at the top-right corner to cover the
+centered stroke and halo where they meet.
+Stack controls, browser chrome, menus, and floating toolbars remain above the
+raised Placement.
 Placement isolation, internal decoration ordering, and viewport clipping remain.
 Editor styling uses `.wall-placement` with `.is-selected` and `.is-menu-open`;
 Storybook scopes Placement styling through `.wall-story .wall-placement`.

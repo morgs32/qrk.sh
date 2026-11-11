@@ -9,7 +9,7 @@ import { collapseAllNested, defaultStyles, JsonView } from "react-json-view-lite
 import { SWRConfig } from "swr";
 
 import { Button } from "../components/ui/button";
-import { Input } from "../components/ui/input";
+import { Input } from "@/components/FormInputs/Input";
 import type { LibraryApi } from "@qrk.sh/api/modules/LibraryApi.public";
 import type { IScrapeError } from "@qrk.sh/api/modules/types";
 import { BreakpointPreviewRow } from "./BreakpointPreviewRow";

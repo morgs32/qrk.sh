@@ -6,7 +6,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import type { LibraryApi } from "@qrk.sh/api/modules/LibraryApi.public";
 import type { IGooglePlaceSuggestion } from "@qrk.sh/api/modules/types";
 
-import { Input } from "../components/ui/input";
+import { Input } from "@/components/FormInputs/Input";
 import { useWarnBeforeUnload } from "@/lib/useWarnBeforeUnload";
 import { cn } from "cn";
 

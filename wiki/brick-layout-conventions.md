@@ -27,9 +27,12 @@ Stacks reserve 160px plus the existing cell gap allowance. Widths are automatic,
 not saved Stack preferences. Fit uses the authored Wall width, independently of
 the editor viewport. The Section track budget is the Wall width plus one gap;
 each Placement cell minimum includes its module minimum plus one gap.
-Rows divide all available width according to each Placement’s saved positive
-`widthWeight`, initially its module preferred width. Module minimum widths
-constrain the resulting proportions. Each Row owns `minHeight`: null selects
+Rows span their Stacks. Their Brick groups use each Placement’s saved positive
+`widthWeight` as its preferred width in CSS pixels, initially the module default.
+When the group must shrink, it distributes width proportionally with module
+minimums as floors. A Row can save a preferred group width including interior
+gaps, and its Bricks then share that width according to their weights. The group
+aligns Left, Center, or Right inside the Row. Left is the default. Each Row owns `minHeight`: null selects
 automatic module preferred heights; a saved pixel minimum replaces that preference.
 The shared 45px floor, module minimums, and taller content or insertion shadows
 can grow the Row, and every visible surface stretches to match. There is no
@@ -86,8 +89,9 @@ reactive queries rather than local fixture mutations.
 
 Placed Bricks use zero flex basis and normalized growth weights, filling their
 Row horizontally. An existing-Row insertion shadow contributes its module
-preferred width as a temporary weight. A new-Row or empty-Wall shadow fills the
-available width. Cell minimum widths include the configured Brick gap for two
+preferred width as a temporary weight. A new-Row or empty-Wall shadow starts at
+the module’s preferred width and caps it at the available width. Cell minimum
+widths include the configured Brick gap for two
 half-gap padding insets; outer half-gap allowances remain unchanged.
 Each Row applies a common surface-height floor plus gap insets. Null `minHeight`
 uses the tallest member or incoming shadow’s module preferred height; an explicit
@@ -340,7 +344,7 @@ GitHub Activity its calendar scrolling/fades, and Link its wrapping copy column.
 ## Persistence and publication
 
 All saved creates, updates, moves, and deletes occur through registered commands.
-The browser session pins user owner release V8 and web Actor V8, using WallV2,
+Plan 047 pinned user owner release V8 and web Actor V8, using WallV2,
 PlacementV2 and PageSnapshotV3. Concrete next-version commands bind those models;
 new Placements get their module default width as a weight and new Rows get a null
 minimum. V8 adds sizing commands while retaining those exact models and existing
@@ -375,6 +379,12 @@ trade visible surface width between adjacent Bricks, clamping both module
 minimums. The complete Row's resulting surface widths become its submitted
 weights, preserving the other Bricks' visible widths even when minimums have
 overridden the saved proportions. Gap padding stays outside those measurements.
+
+The outlined outer width grip changes the whole Brick group. The opposite
+edge stays anchored for Left and Right alignment, and the group stays centered
+for Center alignment. The readout shows the occupied width including interior
+gaps. Empty space remains available for drops. Alignment and preferred width
+save independently through `setRowAlignment` and `setRowPreferredWidth`.
 
 The bottom grip straddles the Row's bottom edge and changes its shared surface
 height. Module minimums and natural content constrain the result. Release saves
@@ -431,9 +441,14 @@ retain their existing session owner. Local staging Success is distinct from a
 finalized canonical outcome. Spec/provider completions retain revision/request
 checks and tolerate deleted Bricks.
 
+The App session binds User V10 and Web Actor V10, using Wall V3 and PageSnapshot V4. Editable historical
+Rows use their existing saved weights without rewriting Placement data. V4
+publish commands carry the new sizing rule and Row settings. Adapting historical
+publish commands keeps the legacy V3 snapshot representation.
+
 Immutable publication snapshots contain shared Bricks once and all four ordered
 Wall → Section → Stack → Row → Placement/spec hierarchies, including Row minimum
-heights and Placement width weights. The same V3 builder drives
+heights and Placement width weights. The current snapshot builder also drives
 saved-versus-published comparison, so movement changes dirty state. Generation,
 revisions, and editor bookkeeping stay outside snapshots. Public website rendering
 remains deferred.

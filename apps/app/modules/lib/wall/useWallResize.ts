@@ -10,7 +10,7 @@ import {
 import { useSession } from "@zerospin/react";
 import { stageAggregateSessionCommand } from "@zerospin/sdk/browser";
 import type { IInferModelRow } from "@zerospin/core/models/types";
-import type { wallV2 } from "@qrk.sh/zerospin/src/aggregates/user/models/wall/WallV2";
+import type { wallV3 } from "@qrk.sh/zerospin/src/aggregates/user/models/wall/WallV3";
 import type { placementV2 } from "@qrk.sh/zerospin/src/aggregates/user/models/placement/PlacementV2";
 import type { rowIdSchema } from "@qrk.sh/zerospin/src/aggregates/user/layout/wallLayoutSchema";
 import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
@@ -19,7 +19,7 @@ import type { makeWallLayoutView } from "./makeWallLayoutView";
 
 /** Own one pointer gesture; only its completed visible geometry becomes a command. */
 export function useWallResize(props: {
-  wallId: IInferModelRow<typeof wallV2>["id"];
+  wallId: IInferModelRow<typeof wallV3>["id"];
   sections: ReturnType<typeof makeWallLayoutView>["sections"];
   brickGap: number;
   wallRef: RefObject<HTMLDivElement | null>;
@@ -39,7 +39,7 @@ export function useWallResize(props: {
   } | null>(null);
   const touchReset = useRef<{ rowId: typeof rowIdSchema.Type; until: number } | null>(null);
   const gesture = useRef<{
-    kind: "width" | "height";
+    kind: "width" | "height" | "row-width";
     wallId: typeof wallId;
     rowId: typeof rowIdSchema.Type;
     brickGap: number;
@@ -56,6 +56,10 @@ export function useWallResize(props: {
     height: number;
     minimumHeight: number;
     availableWidth: number;
+    contentWidth: number;
+    alignment: ReturnType<
+      typeof makeWallLayoutView
+    >["sections"][number]["stacks"][number]["rows"][number]["alignment"];
     activated: boolean;
     previewCommitted: boolean;
     finishing: boolean;
@@ -78,6 +82,7 @@ export function useWallResize(props: {
         }[];
       }
     | { kind: "height"; rowId: typeof rowIdSchema.Type; minHeight: number }
+    | { kind: "row-width"; rowId: typeof rowIdSchema.Type; preferredWidth: number }
     | null
   >(null);
   const [measuredReadout, setMeasuredReadout] = useState<
@@ -90,6 +95,7 @@ export function useWallResize(props: {
         rightWidth: number;
       }
     | { kind: "height"; rowId: typeof rowIdSchema.Type; height: number }
+    | { kind: "row-width"; rowId: typeof rowIdSchema.Type; width: number }
     | null
   >(null);
 
@@ -101,6 +107,8 @@ export function useWallResize(props: {
   const sizingSignature = (row: NonNullable<ReturnType<typeof findRow>>) =>
     JSON.stringify({
       minHeight: row.minHeight,
+      preferredWidth: row.preferredWidth,
+      alignment: row.alignment,
       placements: row.placements.map((placement) => ({
         id: placement.id,
         moduleId: placement.brick.moduleId,
@@ -130,6 +138,16 @@ export function useWallResize(props: {
         kind: "height",
         rowId: current.rowId,
         minHeight: Math.max(current.minimumHeight, current.height + current.y - current.startY),
+      });
+      return;
+    }
+    if (current.kind === "row-width") {
+      const delta = current.x - current.startX;
+      const scale = current.alignment === "center" ? 2 : current.alignment === "right" ? -1 : 1;
+      setDraft({
+        kind: "row-width",
+        rowId: current.rowId,
+        preferredWidth: Math.max(1, current.contentWidth + delta * scale),
       });
       return;
     }
@@ -175,6 +193,19 @@ export function useWallResize(props: {
           return previous;
         return { kind: "height", rowId: current.rowId, height };
       });
+      return;
+    }
+    if (current.kind === "row-width") {
+      const group = current.line.querySelector<HTMLElement>("[data-wall-row-group]");
+      if (group === null) throw new Error("Missing Row width readout group");
+      const width = group.getBoundingClientRect().width - current.brickGap;
+      setMeasuredReadout((previous) =>
+        previous?.kind === "row-width" &&
+        previous.rowId === current.rowId &&
+        previous.width === width
+          ? previous
+          : { kind: "row-width", rowId: current.rowId, width },
+      );
       return;
     }
     const { leftPlacementId, rightPlacementId } = current;
@@ -252,6 +283,19 @@ export function useWallResize(props: {
       });
       return;
     }
+    if (current.kind === "row-width") {
+      const group = current.line.querySelector<HTMLElement>("[data-wall-row-group]");
+      if (group === null) throw new Error("Missing Row width commit group");
+      const preferredWidth = group.getBoundingClientRect().width - brickGap;
+      clearGesture();
+      if (Math.abs(preferredWidth - current.contentWidth) <= 0.5) return;
+      stageAggregateSessionCommand({
+        session,
+        contractName: "setRowPreferredWidth",
+        payload: { wallId, rowId: current.rowId, preferredWidth },
+      });
+      return;
+    }
     if (draft.kind !== "width") throw new Error("Missing final width preview");
     const changed = draft.placements.some(
       (entry, index) => Math.abs(entry.widthWeight - current.placements[index].width) > 0.5,
@@ -284,7 +328,7 @@ export function useWallResize(props: {
   const start = (props: {
     event: PointerEvent<HTMLSpanElement>;
     rowId: typeof rowIdSchema.Type;
-    kind: "width" | "height";
+    kind: "width" | "height" | "row-width";
     leftPlacementId: IInferModelRow<typeof placementV2>["id"] | null;
     rightPlacementId: IInferModelRow<typeof placementV2>["id"] | null;
   }) => {
@@ -319,6 +363,8 @@ export function useWallResize(props: {
       };
     });
     const surface = line.querySelector<HTMLElement>(".brick-hover-surface");
+    const group = line.querySelector<HTMLElement>("[data-wall-row-group]");
+    if (kind === "row-width" && (group === null || placements.length === 0)) return;
     const current: NonNullable<(typeof gesture)["current"]> = {
       kind,
       wallId: latest.current.wallId,
@@ -345,6 +391,9 @@ export function useWallResize(props: {
         ),
       ),
       availableWidth: line.getBoundingClientRect().width,
+      contentWidth:
+        group === null ? 0 : group.getBoundingClientRect().width - latest.current.brickGap,
+      alignment: row.alignment,
       activated: false,
       previewCommitted: false,
       finishing: false,
@@ -363,7 +412,7 @@ export function useWallResize(props: {
         Math.hypot(current.x - current.startX, current.y - current.startY),
       );
       const distance =
-        current.kind === "width" ? current.x - current.startX : current.y - current.startY;
+        current.kind === "height" ? current.y - current.startY : current.x - current.startX;
       if (!current.activated && Math.abs(distance) < 3) return;
       current.activated = true;
       lastHeightTap.current = null;
@@ -480,6 +529,13 @@ export function useWallResize(props: {
     const { event, rowId, leftPlacementId, rightPlacementId } = props;
     start({ event, rowId, kind: "width", leftPlacementId, rightPlacementId });
   };
+  const startRowWidthResize = (props: {
+    event: PointerEvent<HTMLSpanElement>;
+    rowId: typeof rowIdSchema.Type;
+  }) => {
+    const { event, rowId } = props;
+    start({ event, rowId, kind: "row-width", leftPlacementId: null, rightPlacementId: null });
+  };
   const startHeightResize = (props: {
     event: PointerEvent<HTMLSpanElement>;
     rowId: typeof rowIdSchema.Type;
@@ -509,5 +565,12 @@ export function useWallResize(props: {
       : null;
   const readout =
     preview !== null && current?.activated && !current.finishing ? measuredReadout : null;
-  return { preview, readout, startWidthResize, startHeightResize, resetHeight };
+  return {
+    preview,
+    readout,
+    startWidthResize,
+    startRowWidthResize,
+    startHeightResize,
+    resetHeight,
+  };
 }

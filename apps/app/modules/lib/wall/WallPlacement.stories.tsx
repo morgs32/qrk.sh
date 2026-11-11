@@ -10,7 +10,7 @@ const pressButton = fn();
 const placement = {
   id: "story-placement",
   brickId: "story-brick",
-  widthWeight: 1,
+  width: 320,
   minWidth: 160,
   content: (
     <div className="brick-surface space-y-3 border bg-white p-6">

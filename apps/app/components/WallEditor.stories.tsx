@@ -938,7 +938,8 @@ export const SizingFoundation: StoryObj<typeof meta> = {
         const secondBox = second.getBoundingClientRect();
         const lineBox = line.getBoundingClientRect();
         expect(placements[0].getBoundingClientRect().left).toBeCloseTo(lineBox.left + 0.5, 1);
-        expect(placements[1].getBoundingClientRect().right).toBeCloseTo(lineBox.right - 0.5, 1);
+        const expectedGroupWidth = Math.min(entry.previewWidth, 720 + args.brickGap);
+        expect(secondBox.right - firstBox.left).toBeCloseTo(expectedGroupWidth, 1);
         expect(firstBox.width).toBeGreaterThanOrEqual(159.9);
         expect(secondBox.width).toBeGreaterThanOrEqual(159.9);
         expect(secondBox.left - firstBox.right).toBeCloseTo(args.brickGap, 1);
@@ -1800,10 +1801,13 @@ export const PreviewBrick: StoryObj<typeof meta> = {
     if (!surface || !content || !actions) throw new Error("Missing catalog Brick surface");
     const action = within(source).getByRole("button", { name: "Preview brick action" });
     const before = surface.getBoundingClientRect();
-    // Catalog previews retain module sizing; the singleton placement fills its Row.
+    // The singleton uses the same preferred width, capped by its Stack.
     const variant = modulesHash[args.fixture].variants.default;
     expect(before.width).toBeCloseTo(variant.defaultWidth, 1);
-    expect(placed.getBoundingClientRect().width).toBeCloseTo(BREAKPOINTS[0].previewWidth, 1);
+    expect(placed.getBoundingClientRect().width).toBeCloseTo(
+      Math.min(BREAKPOINTS[0].previewWidth, variant.defaultWidth),
+      1,
+    );
     if (variant.defaultHeight !== null) {
       expect(placed.getBoundingClientRect().height).toBeCloseTo(variant.defaultHeight, 1);
     }
@@ -2007,9 +2011,11 @@ export const ShadowBrick: StoryObj<typeof meta> = {
       const shadow = canvasElement.querySelector<HTMLElement>(".wall-shadow-placeholder");
       const shadowSurface = shadow?.querySelector<HTMLElement>(".brick-hover-surface");
       if (!shadow || !shadowSurface) throw new Error("Missing insertion shadow surface");
-      // A new Row fills the Wall, including the empty-Wall half-gap allowance.
-      expect(shadowSurface.getBoundingClientRect().width).toBeCloseTo(entry.previewWidth, 1);
       const variant = modulesHash[args.fixture].variants.default;
+      expect(shadowSurface.getBoundingClientRect().width).toBeCloseTo(
+        Math.min(entry.previewWidth, variant.defaultWidth),
+        1,
+      );
       expect(shadowSurface.getBoundingClientRect().height).toBeGreaterThanOrEqual(
         Math.max(45, variant.minHeight ?? 45, variant.defaultHeight ?? 45),
       );

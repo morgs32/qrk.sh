@@ -1,9 +1,6 @@
 import { useLayoutEffect, useRef, type ReactNode } from "react";
 
-export function WorkspaceSidebar(props: {
-  controls: ReactNode;
-  children: ReactNode;
-}) {
+export function WorkspaceSidebar(props: { controls: ReactNode; children: ReactNode }) {
   const { controls, children } = props;
   const sidebarRef = useRef<HTMLElement>(null);
   useLayoutEffect(() => {

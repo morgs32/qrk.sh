@@ -49,7 +49,9 @@ import {
 } from "@qrk.sh/zerospin/src/aggregates/user/layout/wallSizing";
 
 import { StackAction } from "../../modules/components/StackAction";
+import { BrickDetailsContext } from "@qrk.sh/bricks/react/BrickDetailsTrigger";
 import { BrickWrapper } from "@qrk.sh/bricks/react/BrickWrapper";
+import { BrickInsertionContext } from "@qrk.sh/bricks/react/useAfterBrickInserted";
 import { WallPlacement } from "./WallPlacement";
 import { WallDropIndicator } from "./WallDropIndicator";
 import { PreviewSection } from "../PagePreview/PreviewSection";
@@ -76,7 +78,7 @@ const WallPlacementData = Schema.Struct({
 export function WallEditor(props: {
   wallId: IInferModelRow<typeof wallV3>["id"];
   selectedBrickId?: string | null;
-  onEditBrick: (brickId: string, source?: "inline-focus") => void;
+  onEditBrick: (brickId: string) => void;
   onBrickDeleted: (brickId: string) => void;
   registerBrickFlush: (brickId: string, flush: (onRecover?: () => void) => boolean) => () => void;
   flushBrick: (brickId: string) => boolean;
@@ -103,6 +105,10 @@ export function WallEditor(props: {
   } | null>(null);
   const dropTarget = dropFeedback?.target ?? null;
   const [nativeDragActive, setNativeDragActive] = useState(false);
+  const [pendingInsertion, setPendingInsertion] = useState<{
+    brickId: string;
+    run: (action: () => void) => void;
+  } | null>(null);
   const [shadowSource, setShadowSource] = useState<{
     element: HTMLElement;
     moduleId: keyof typeof modulesHash;
@@ -120,6 +126,16 @@ export function WallEditor(props: {
         },
       }),
   });
+  useEffect(() => {
+    if (
+      pendingInsertion === null ||
+      !wall.placements.some((placement) => placement.brick.id === pendingInsertion.brickId)
+    )
+      return;
+    // The placed Brick's layout effect has already had a chance to respond.
+    setPendingInsertion((current) => (current === pendingInsertion ? null : current));
+  }, [pendingInsertion, wall.placements]);
+
   const { sections } = makeWallLayoutView({ wall });
   const { brickGap } = wall.page.site;
   const resizeDisabled = nativeDragActive;
@@ -517,7 +533,15 @@ export function WallEditor(props: {
             },
           });
           if (result._tag !== "Success") return;
-          onEditBrick(id);
+          let handled = false;
+          setPendingInsertion({
+            brickId: id,
+            run(action) {
+              if (handled) return;
+              handled = true;
+              action();
+            },
+          });
         },
       }),
     ];
@@ -791,7 +815,7 @@ export function WallEditor(props: {
       setShadowSource(null);
       shadowRowHeights.current.clear();
     };
-  }, [flushBrick, onEditBrick, session, wall]);
+  }, [flushBrick, session, wall]);
 
   const shadowVariant =
     shadowSource === null ? null : modulesHash[shadowSource.moduleId].variants.default;
@@ -1118,7 +1142,6 @@ export function WallEditor(props: {
                                             brickGap={brickGap}
                                             brickLabel={module.label}
                                             selected={brick.id === selectedBrickId}
-                                            onEditBrick={onEditBrick}
                                             onRequestDeleteBrick={(trigger) => {
                                               deleteReturnFocus.current = trigger;
                                               setBrickToDelete(brick.id);
@@ -1141,37 +1164,48 @@ export function WallEditor(props: {
                                                       : undefined
                                                   }
                                                 >
-                                                  {canEditInline ? (
-                                                    <InlineEditor
-                                                      state={brick.state}
-                                                      onFocus={() => onEditBrick(brick.id, "inline-focus")}
-                                                      onSave={(state) =>
-                                                        stageAggregateSessionCommand({
-                                                          session,
-                                                          contractName: "updateBrick",
-                                                          payload: {
-                                                            brickId: brick.id,
-                                                            moduleId: brick.moduleId,
-                                                            state,
-                                                          },
-                                                        })
+                                                  <BrickDetailsContext.Provider
+                                                    value={() => onEditBrick(brick.id)}
+                                                  >
+                                                    <BrickInsertionContext.Provider
+                                                      value={
+                                                        pendingInsertion?.brickId === brick.id
+                                                          ? pendingInsertion.run
+                                                          : null
                                                       }
-                                                      registerFlush={(flush) =>
-                                                        registerBrickFlush(brick.id, flush)
-                                                      }
-                                                    />
-                                                  ) : (
-                                                    <Render
-                                                      state={brick.state}
-                                                      variantId={placement.variantId}
-                                                      spec={
-                                                        isNonEmptySpec(placement.spec)
-                                                          ? placement.spec
-                                                          : module.variants[placement.variantId]
-                                                              .spec
-                                                      }
-                                                    />
-                                                  )}
+                                                    >
+                                                      {canEditInline ? (
+                                                        <InlineEditor
+                                                          state={brick.state}
+                                                          onSave={(state) =>
+                                                            stageAggregateSessionCommand({
+                                                              session,
+                                                              contractName: "updateBrick",
+                                                              payload: {
+                                                                brickId: brick.id,
+                                                                moduleId: brick.moduleId,
+                                                                state,
+                                                              },
+                                                            })
+                                                          }
+                                                          registerFlush={(flush) =>
+                                                            registerBrickFlush(brick.id, flush)
+                                                          }
+                                                        />
+                                                      ) : (
+                                                        <Render
+                                                          state={brick.state}
+                                                          variantId={placement.variantId}
+                                                          spec={
+                                                            isNonEmptySpec(placement.spec)
+                                                              ? placement.spec
+                                                              : module.variants[placement.variantId]
+                                                                  .spec
+                                                          }
+                                                        />
+                                                      )}
+                                                    </BrickInsertionContext.Provider>
+                                                  </BrickDetailsContext.Provider>
                                                 </BrickWrapper>
                                               ),
                                             }}

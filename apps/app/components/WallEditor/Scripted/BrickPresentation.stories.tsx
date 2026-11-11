@@ -101,7 +101,7 @@ export const PlacementBrick: StoryObj<typeof meta> = {
     docs: {
       description: {
         story:
-          "The play function checks focus, selection while focus is elsewhere, and the direct edit button. Pointer hover remains available for direct inspection; selection alone does not reveal action tabs.",
+          "The play function checks focus, selection while focus is elsewhere, and module-owned edit surfaces. Pointer hover remains available for direct inspection; selection alone does not reveal action tabs.",
       },
     },
   },
@@ -139,14 +139,18 @@ export const PlacementBrick: StoryObj<typeof meta> = {
     expect(selectedPaint.boxShadow).toContain("rgba(31, 155, 252, 0.15)");
     if (!placementElement.matches(":hover"))
       await waitFor(() => expect(getComputedStyle(actions).opacity).toBe("0"));
-    const action = within(placementElement).getByRole("button", { name: /Edit Brick / });
-    action.focus();
+    const placedBrick = within(placementElement);
+    const focusTarget =
+      args.fixture === "article"
+        ? placedBrick.getByRole("textbox", { name: "Article title" })
+        : placedBrick.getByRole("group", { name: "Edit Swatch and Icon" });
+    focusTarget.focus();
     await waitFor(() => expect(getComputedStyle(actions).opacity).toBe("1"));
     expect(getComputedStyle(actions).backgroundColor).toBe("rgb(31, 155, 252)");
     expect(surface.getBoundingClientRect().height).toBeCloseTo(before.height, 1);
-    await userEvent.click(action);
-    expect(within(placementElement).queryByRole("menu")).toBeNull();
-    expect(document.activeElement).toBe(action);
+    await userEvent.click(focusTarget);
+    expect(placedBrick.queryByRole("menu")).toBeNull();
+    expect(document.activeElement).toBe(focusTarget);
     expect(surface.getBoundingClientRect().width).toBeCloseTo(before.width, 1);
     expect(surface.getBoundingClientRect().height).toBeCloseTo(before.height, 1);
     expect(placementElement.getBoundingClientRect().height).toBeCloseTo(hitbox.height, 1);

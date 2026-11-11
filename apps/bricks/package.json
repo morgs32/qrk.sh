@@ -14,6 +14,8 @@
     "./link/LinkForm": "./src/link/react/LinkForm.tsx",
     "./link/LinkPlaceholder": "./src/link/react/LinkPlaceholder.tsx",
     "./link/LinkLineIcon": "./src/link/react/LinkLineIcon.tsx",
+    "./react/BrickDetailsTrigger": "./src/react/BrickDetailsTrigger.tsx",
+    "./react/useAfterBrickInserted": "./src/react/useAfterBrickInserted.ts",
     "./react/makeModuleView": "./src/react/makeModuleView.tsx",
     "./react/types": "./src/react/types.ts",
     "./react/BrickWrapper": "./src/react/BrickWrapper.tsx",
@@ -49,6 +51,7 @@
     "dev:app": "pnpm run storybook --ci"
   },
   "dependencies": {
+    "@fontsource-variable/geist-mono": "5.3.0",
     "@json-render/core": "^0.20.0",
     "@json-render/react": "^0.20.0",
     "@meowdown/core": "0.72.1",
@@ -75,6 +78,7 @@
     "swr": "^2.3.3"
   },
   "devDependencies": {
+    "@base-ui/react": "^1.6.0",
     "@fontsource-variable/geist": "^5.2.8",
     "@storybook/addon-a11y": "^10.6.0",
     "@storybook/addon-docs": "^10.6.0",

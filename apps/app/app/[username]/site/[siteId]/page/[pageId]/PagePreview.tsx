@@ -76,12 +76,8 @@ export function PagePreview(props: { breakpoint: (typeof BREAKPOINTS)[number] })
             resetScroll: false,
           });
         }}
-        onEditBrick={(brickId, source) => {
-          if (
-            selectedBrickId === brickId ||
-            (source === "inline-focus" && !window.matchMedia("(min-width: 64rem)").matches)
-          )
-            return;
+        onEditBrick={(brickId) => {
+          if (selectedBrickId === brickId) return;
           void navigate({
             to: "/$username/site/$siteId/page/$pageId/brick/$brickId",
             params: { ...params, brickId },

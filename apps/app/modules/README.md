@@ -39,9 +39,11 @@ files are retained, and Nx discovers no Library project or dependency cycle.
 
 Module forms and their lookup controls use the shared controls in
 [`@qrk.sh/bricks/react`](../../bricks/src/react). Use `Input` for text, URL,
-search, and file fields and `ColorInput` for a hex field with a color picker.
-The Storybook [Form Inputs catalog](https://app-storybook.qrk.localhost/?path=/story/components-form-inputs--catalog)
-shows these controls under **Components → Form Inputs**. Use the
+search, and file fields and `ColorInput` for labeled hex fields with a color-picker popover.
+The Storybook [Form Inputs catalog](https://bricks.qrk.localhost/?path=/story/components-form-inputs--catalog)
+shows these controls alongside `NumberInput`, `PositionInput`, `SizeInput`,
+`RadiusInput`, `BorderInput`, and `ShadowInput` under **Components → Form Inputs**.
+Border and Shadow use `ColorInput` inside their shared `SwatchPopover`. Use the
 `form-input-label` utility for visible field labels. The shared field tokens in
 `@qrk.sh/bricks/styles.css` also style the Style Inspector inputs.
 
@@ -56,8 +58,18 @@ application's place and icon search suggestions remain available.
 
 Modules expose `Render` for saved Brick content and may provide `InlineEditor`
 or `Form` for editing. The Wall Editor mounts an inline editor in its Placement
-and owns its autosave and focus wiring. The selected Brick’s drawer hosts a
+and supplies save and flush callbacks. The selected Brick’s sidebar panel hosts a
 form when the module provides one, or displays the Brick when it has no editor.
+Studio provides `openDetails()` through
+`BrickDetailsContext` for placed Bricks. Each module chooses which interactions
+call it. Sidebar-form views wrap their `Render` in `BrickDetailsTrigger`. In the
+catalog and on published pages, that component returns its children directly.
+
+A placed Brick can use `useAfterBrickInserted` to run an action once after a
+successful catalog drop. Article focuses its title and Image opens its form
+through `BrickDetailsContext`. Swatch and Icon and other Bricks that omit the
+hook simply appear. Moving a Brick, switching breakpoints, and reloading
+supply no insertion signal.
 
 Manual forms receive state, synchronous `onSave(state): IResult`, and
 `onCancel`. Each form renders its own Save and Cancel buttons. Save submits the
@@ -101,7 +113,7 @@ Swatch and Icon retains the selected `{ hash, name, svg }` from paged icon searc
 SVG data URLs are derived for presentation. Choosing an icon saves immediately
 with the latest saved color. Color edits save at the end of a picker gesture or
 when a valid hex entry is committed on Enter or blur. Color edits keep the exact
-saved icon. A new Swatch starts with the color and icon visible in the drawer
+saved icon. A new Swatch starts with the color and icon visible in the catalog
 when it was added; its form opens that saved snapshot. An empty SVG lets the
 saved color stand alone at a minimum height of 64px.
 
@@ -162,17 +174,8 @@ Article's stylesheet, Storybook, and App declare
 `@layer theme, base, components, meowdown, utilities` before imports so Preflight
 precedes Meowdown rules and utilities remain last.
 
-The shared `Drawer` preserves its optional controlled `open` behavior and 300ms
-visibility transform. A controlled bottom drawer slides fully below the viewport
-when closed; reduced motion skips the animation and the closed shell is inert
-and hidden from assistive technology. These are retained shared capabilities,
-not a requirement to recreate the retired Library shell in App. Drawer owns no
-routing, breadcrumbs, or settings actions. App retains its own route-owned
-transitions and drawer lifecycle.
-
-`ModuleFilmstrip` is router-independent and receives host links through
-`renderModuleLink`. Columns scroll vertically inside a horizontal strip, with
-headings pinned above their previews. App supplies catalog/insertion actions;
+`ModuleFilmstrip` lays out previews in a vertical catalog and measures the
+padded card width for thumbnail sizing. App supplies the catalog actions, and
 Storybook supplies its own module examples. Live preview content stays interactive.
 `--brick-catalog-inset` sets the heading's side padding and the preview's top
 and side padding.
@@ -183,12 +186,12 @@ and reduced-motion preference determine `isActive`: it is true only while the
 preview is visible, the document is visible, that preview is not being dragged,
 and reduced motion is disabled. Swatch and Icon owns a discrete two-second color/SVG cycle through
 this callback and pauses it while inactive. Preview ticks write no model data.
-Drag start captures the committed preview state and freezes the drawer rendering;
+Drag start captures the committed preview state and freezes the catalog rendering;
 the native drag copy, insertion shadow, and newly created Brick use that same
 snapshot. Catalog Add uses the current preview state; static module-detail Add
 uses the `defaultState` displayed there. Preview animation never changes a saved
 Brick.
-Drawer previews share the placed Brick's content decoration on hover or DOM
+Catalog previews share the placed Brick's content decoration on hover or DOM
 focus: an opaque 1px `#1F9BFC` stroke centered on the Brick's edge, with sharp 1px
 solid halos in `#BCE1FE` outside and `#DDF0FF` inside. It overlays the content
 without changing layout, moving the Brick, or adding hover animation. Selection
@@ -198,7 +201,7 @@ independently of DOM focus.
 Card styling is an ordinary boolean presentation prop on shared previews;
 BrickCardStyleContext is removed. Module playgrounds own a local checkbox
 starting false. App reads saved `Site.cardStyle` directly, with no local preview
-override or drawer-header Cards control; SiteSettings owns its unsaved field and
+override or sidebar-header Cards control; SiteSettings owns its unsaved field and
 persists it only on Save. Storybook's visual toggle changes no model layout or
 preview width. `BrickWrapper` owns the self-contained content surface; callers
 supply the existing `brick-surface-card` class for an 8px radius, white background,
@@ -423,7 +426,7 @@ route dependencies. It renders above the Wall in the shared preview scroll
 container, with existing
 WallPlacement edit/delete controls. Module catalog/detail routes own their scoped
 add handlers for query-encoded insertion targets.
-Drawer `ModulePreview` templates are copy drag sources carrying the module ID and
+Catalog `ModulePreview` templates are copy drag sources carrying the module ID and
 the committed creation-state snapshot. Their desktop native drag preview copies the rendered
 Brick and uses the library's pointer offset (16px horizontally, 8px vertically)
 to leave insertion feedback visible. Its detached container retains the source's
@@ -431,7 +434,7 @@ font, text color, and Brick theme. The floating copy keeps a 2px `#1F9BFC`
 edge without relying on hover, removes interaction halos and card shadows, and
 hides editor action controls. This pointer-following image is distinct from the
 borderless insertion shadow on the Wall. WallEditor owns production drop targeting.
-Module Page limits apply before accepting drawer templates. Compatible Rows use
+Module Page limits apply before accepting catalog templates. Compatible Rows use
 top/bottom quarters for new Rows and their middle half for left/right Placement
 insertion. Incompatible Rows use top/bottom halves for new Rows.
 
@@ -444,20 +447,20 @@ backgrounds create their first Row. No canvas gesture creates a Stack or Section
 The source remains in place at 40% opacity. A local, pointer-transparent drop
 indicator marks joins vertically and new Rows horizontally without changing
 layout: a 1px white line has a crisp 1px blue outline and a second 1px light-blue band, with a white-filled 8px circle
-outlined in blue with the same crisp light-blue outer band. Selection, content interactions, and the open drawer are
+outlined in blue with the same crisp light-blue outer band. Selection, content interactions, and the open sidebar are
 preserved. Unchanged or invalidated
 drops stage nothing; singleton Rows are not replaced at their existing position.
 Existing-Row drops use `movePlacementToRow@2`; new-Row drops use
 `movePlacementToNewRow@1` with `newRowId` allocated only after an accepted drop.
 
-Drawer-template insertion feedback opens temporary space using a copy of the drawer's existing
+Catalog insertion feedback opens temporary space using a copy of the catalog's existing
 `.brick-hover-surface` at 40% opacity, without an added border, outline, or halo,
 without rerendering its module or reading providers. Preview and shadow content
 use the same natural height as placed content; the shadow has no separate minimum
 height and retains the flat/card treatment. It occupies a Placement slot in a compatible Row, a new Row
 in a Stack, or the first slot in an empty Wall. Its content is inert and ignores
 pointer events; its host accepts drops at the visible slot's stable
-before-Placement or before-Row destination. Drawer templates use this shadow;
+before-Placement or before-Row destination. Catalog templates use this shadow;
 saved-Placement moves use the insertion lines described above.
 Each Row's drop-target wrapper contains its real content and its owned
 before/after shadow. Local feedback retains the owning Row separately from the
@@ -538,7 +541,7 @@ the Stack action bar or anywhere inside an empty Stack outlines the entire Stack
 with the same blue stroke and halos used by Bricks. The Stack name and chevron
 form one button that opens the insertion menu. The Wall sets a 7rem sticky offset with
 a sticky navbar and 3rem otherwise. Existing
-visibility rules and action layers remain; drawer-preview actions stay absolute,
+visibility rules and action layers remain; catalog-preview actions stay absolute,
 and move indicators remain above the controls at z-70. The Cross Row Sticky
 Actions stories exercise both navbar settings, owner-bottom boundaries, menu
 interaction, and unchanged content geometry.
@@ -546,15 +549,15 @@ The Wall Editor story uses the same section widths and a full-width scroll
 owner. Its frame uses the selected content width plus both side borders.
 Oversized selections scroll horizontally. Breakpoint controls show the nominal
 content widths.
-The App's route-backed workspace uses a 256px right sidebar from Tailwind
-`lg` upward and the bottom drawer below. The preview reserves 32px on each
-side while the sidebar is open. Catalog drag sources fit the sidebar column
-using CSS zoom, and drops use the selected breakpoint's authored Wall sizing.
+The App's route-backed workspace uses a 320px right sidebar at Tailwind `lg`
+and wider. Below `lg`, the same sidebar overlays the right edge and occupies at
+most 75% of the viewport width. The Wall remains interactive in the exposed area
+and keeps its 32px side gutters. Catalog drag sources fit the measured sidebar
+column using CSS zoom. Drops use the selected breakpoint's authored Wall sizing.
 
 Both floating toolbars keep a 38px height and concentric corners: the buttons'
 8px radius plus their 5px inset (4px padding and 1px border) gives the shell a
 13px radius. The URL-selected breakpoint is bold, fully opaque, and disabled.
-Reduced motion skips positional toolbar animation; drawer animation is unchanged.
 
 **Default** and **Empty Wall** under **Studio / WallEditor.tsx** exercise
 production insertion and presentation. Stories that run interaction scripts
@@ -564,9 +567,9 @@ the production owners directly.
 
 The Wall Editor story uses the in-memory `useMockAggregateSession`, `SessionProvider`, and
 `SessionReady`, seeds Wall layouts plus separate Placement records, and renders the
-production PagePreview above a Bricks Drawer containing ModuleFilmstrip. Its
+production WallEditor beside a WorkspaceSidebar containing ModuleFilmstrip. Its
 memory router redirects Brick-detail navigation back to the Wall, so dragging
-keeps the drawer visible without mounting edit forms. The story owns its
+keeps the sidebar visible without mounting edit forms. The story owns its
 breakpoint selection and flushes inline drafts before switching Walls.
 Storybook supplies the public Clerk key
 from the App environment for PagePreview's SiteHeader provider. Shared wall presentation components
@@ -594,7 +597,7 @@ previews default to no saved content border. Saved border width remains distinct
 from interaction paint. StackAction retains its existing z-index 30 and separate Stack scope.
 
 `brick-surface-card` styles the surface itself rather than requiring a card
-ancestor. Drawer, placed, detail, and breakpoint previews use that same owner.
+ancestor. Catalog, placed, detail, and breakpoint previews use that same owner.
 The insertion shadow clones this complete surface and remains inert at 40%
 opacity without an added border, outline, halo, or editor action controls.
 
@@ -602,7 +605,7 @@ One shared content decoration supplies hover, DOM focus, and selection. The 1px
 opaque `#1F9BFC` stroke straddles the Brick or Stack edge by 0.5px on each side,
 with sharp 1px solid halos in `#BCE1FE` outside and `#DDF0FF` inside. Selected still
 means the Brick's edit form is open; active means DOM
-focus. Selection keeps the content decoration while focus is in the drawer, but
+focus. Selection keeps the content decoration while focus is in the sidebar, but
 it does not force BrickAction visible. Placement hitboxes remain stationary.
 The separate outer Placement stroke is reserved for its open portal menu;
 keyboard focus reveals the shared content decoration instead. The menu portal
@@ -641,21 +644,22 @@ The hard replacement of the old layout tables is tracked in
 request/revision checks and per-Placement spec updates remain independent of the
 structural tree. Runtime verification belongs to that plan.
 
-**Selected** means the Brick's edit form is open; **active** means DOM focus.
+**Selected** means the Brick's Edit Brick panel is open; **active** means DOM focus.
 Each placed Brick shows its catalog label and chevron in one actions button,
 beside the move grip. The menu opens the Delete Brick confirmation for all four
 breakpoints.
-Clicking the Brick content opens its editor, and links and forms remain interactive.
+Sidebar-form Bricks open their details on a content click or when their focused
+edit surface receives Enter or Space. Nested links and controls remain interactive.
 App's initialized session and actor guards
 own persistence, errors, and authorization; no standalone Library session or
 host-binding Page factory remains.
 
-## Image editing in the brick drawer
+## Image editing in the Brick sidebar
 
 Image exposes its module-owned `ImageForm` through the shared module registry.
 The form owns its Image URL and Title drafts, pending state, errors, Save, and
 Cancel. Unconfigured Bricks start with blank Image URL/Title drafts. App
-uses the Form in its authenticated Brick detail drawer and stages complete state
+uses the Form in its authenticated Brick Details panel and stages complete state
 through `updateBrick`; Storybook uses the same Form with local Save/Cancel.
 Image's field groups fill the supplied column, with Save/Cancel aligned to its fields.
 
@@ -736,7 +740,7 @@ literal Markdown content. Markdown round trips can normalize source.
 
 Studio mounts one `ArticleEditor` in the Article’s Placement at the current
 breakpoint. An unconfigured Brick starts with blank fields. Focusing the
-Article opens the Brick drawer for management actions. Closing the drawer
+Article leaves the sidebar state alone at every width. Closing Brick Details
 deselects the Brick and keeps the editor, draft, and undo history in the
 Placement. Article stages the latest changed snapshot after one second without
 edits, once text composition has finished. It reads the Markdown from Meowdown
@@ -765,8 +769,8 @@ Native Meowdown controls retain formatting, selection, undo/redo,
 and image resizing. Drag/drop is blocked and block drag handles are disabled;
 table menus remain usable. Resizing writes width/height into a trailing Markdown
 comment.
-Portaled menus appear above the drawer. Escape first dismisses an editor
-control or selection, then closes the drawer.
+Portaled menus appear above the sidebar. Escape first dismisses an editor
+control or selection, then closes the sidebar.
 
 Article module rendering retains its white shell and clips overflowing content;
 the editor surface does not paint the background. Content changes, image loads,

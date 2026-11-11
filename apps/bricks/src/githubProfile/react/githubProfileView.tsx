@@ -1,12 +1,13 @@
 import { githubProfilePreviewState } from "../definition/githubProfilePreviewState";
 import { makeModuleView } from "../../react/makeModuleView";
+import { BrickDetailsTrigger } from "../../react/BrickDetailsTrigger";
 import { registry } from "./generator/GitHubProfileJsonRenderRegistry";
 import { githubProfileV1 } from "../definition/githubProfileV1";
 import { GitHubProfileForm } from "./GitHubProfileForm";
 import { GitHubProfilePlaceholder } from "./GitHubProfilePlaceholder";
 import { GitHubProfileLineIcon } from "./GitHubProfileLineIcon";
 
-export const githubProfileView = makeModuleView(githubProfileV1, {
+const githubProfile = makeModuleView(githubProfileV1, {
   defaultState: githubProfilePreviewState,
   LineIcon: GitHubProfileLineIcon,
   form: GitHubProfileForm,
@@ -19,3 +20,15 @@ export const githubProfileView = makeModuleView(githubProfileV1, {
     },
   },
 });
+
+export const githubProfileView = {
+  ...githubProfile,
+  Render(props: Parameters<typeof githubProfile.Render>[0]) {
+    const { state, spec, variantId } = props;
+    return (
+      <BrickDetailsTrigger label={`Edit ${githubProfile.label}`}>
+        <githubProfile.Render state={state} spec={spec} variantId={variantId} />
+      </BrickDetailsTrigger>
+    );
+  },
+};

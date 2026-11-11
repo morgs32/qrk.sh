@@ -70,7 +70,6 @@ export function makeModuleView<
         form?: never;
         inlineEditor: (props: {
           state: IInferDecodedRow<MODULE["stateShape"]> | null;
-          onFocus: () => void;
           onSave: (
             state: IInferDecodedRow<MODULE["stateShape"]>,
           ) => IResult<unknown, { message: string }>;
@@ -170,17 +169,10 @@ export function makeModuleView<
           InlineEditor: function InlineEditor(
             props: Parameters<NonNullable<IModule<string>["InlineEditor"]>>[0],
           ) {
-            const { state, onFocus, onSave, registerFlush } = props;
+            const { state, onSave, registerFlush } = props;
             const decoded =
               state === null ? null : decodeState(state, { onExcessProperty: "ignore" });
-            return (
-              <Editor
-                state={decoded}
-                onFocus={onFocus}
-                onSave={onSave}
-                registerFlush={registerFlush}
-              />
-            );
+            return <Editor state={decoded} onSave={onSave} registerFlush={registerFlush} />;
           },
         }),
     Render,

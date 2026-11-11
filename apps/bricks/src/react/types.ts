@@ -21,7 +21,6 @@ export type IModule<MODULE extends string> = {
   hasPlaceholder: boolean;
   InlineEditor?: (props: {
     state: unknown;
-    onFocus: () => void;
     onSave: (state: unknown) => IResult<unknown, { message: string }>;
     registerFlush: (flush: (onRecover?: () => void) => boolean) => () => void;
   }) => ReactNode;

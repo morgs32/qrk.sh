@@ -16,11 +16,10 @@ export function WallPlacement(props: {
   brickGap: number;
   brickLabel: string;
   selected: boolean;
-  onEditBrick?: (brickId: string) => void;
   onRequestDeleteBrick: (trigger: HTMLElement | null) => void;
 }) {
-  const { placement, brickGap, brickLabel, selected, onEditBrick, onRequestDeleteBrick } = props;
-  const menuTrigger = useRef<HTMLElement>(null);
+  const { placement, brickGap, brickLabel, selected, onRequestDeleteBrick } = props;
+  const menuTrigger = useRef<HTMLButtonElement>(null);
   // Adjacent half-gap insets preserve touching drop targets at every gap size.
   return (
     <div
@@ -33,49 +32,7 @@ export function WallPlacement(props: {
       }}
       className={cn("wall-placement group/brick relative", selected && "is-selected")}
     >
-      <div
-        className="wall-placement-content relative z-20 min-w-0 w-full"
-        role={onEditBrick === undefined ? undefined : "group"}
-        tabIndex={onEditBrick === undefined ? undefined : 0}
-        aria-label={onEditBrick === undefined ? undefined : `Edit Brick ${placement.brickId}`}
-        aria-keyshortcuts={onEditBrick === undefined ? undefined : "Enter Space"}
-        onKeyDown={(event) => {
-          if (
-            onEditBrick === undefined ||
-            event.defaultPrevented ||
-            event.target !== event.currentTarget ||
-            (event.key !== "Enter" && event.key !== " ")
-          )
-            return;
-          event.preventDefault();
-          if (!event.repeat) onEditBrick(placement.brickId);
-        }}
-        onClick={(event) => {
-          if (
-            event.defaultPrevented ||
-            event.button !== 0 ||
-            event.altKey ||
-            event.ctrlKey ||
-            event.metaKey ||
-            event.shiftKey ||
-            !(event.target instanceof Element) ||
-            !event.currentTarget.contains(event.target) ||
-            event.target.closest(
-              '.brick-action, a, button, input, textarea, select, label, summary, [contenteditable]:not([contenteditable="false"]), [role="button"], [role="link"], [role^="menuitem"], audio, video, canvas',
-            )
-          )
-            return;
-          const selection = event.currentTarget.ownerDocument.getSelection();
-          if (
-            selection !== null &&
-            !selection.isCollapsed &&
-            selection.rangeCount > 0 &&
-            selection.getRangeAt(0).intersectsNode(event.currentTarget)
-          )
-            return;
-          onEditBrick?.(placement.brickId);
-        }}
-      >
+      <div className="wall-placement-content relative z-20 min-w-0 w-full">
         <BrickAction>
           <Menu.Root>
             <Menu.Trigger

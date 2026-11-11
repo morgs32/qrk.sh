@@ -5,16 +5,18 @@ App serves the editor at <https://app.qrk.localhost/>.
 The site navbar uses 16px side padding in the sm preview and 24px from the md
 preview upward, based on the preview container's 720px threshold.
 
-Workspace drawers use TanStack Hotkeys for Escape dismissal, including while a
-form field is focused. Escape uses the Close button's route transition and keeps
-the current breakpoint. Open menus, popovers, dialogs, and Article body text
-selection consume Escape first. When Escape dismisses the drawer from an inline
-Article field, it also blurs the field and deselects the Brick. The drawer tabs open Bricks,
-Page settings, and Site settings. Brick Details shows a selected Edit brick tab.
-Close and any available page-level Publish action
-share the drawer tab bar. Settings and manual Brick editors provide Save and
-Cancel inside their forms. Exit and Set breakpoints are available from the
-floating page controls.
+The workspace uses a 320px right sidebar at Tailwind `lg` and wider. Below
+`lg`, the sidebar overlays the right edge at up to 75% of the viewport width.
+The exposed Wall remains interactive. Page controls opens Bricks, Page settings,
+and Site settings. Brick selection opens Edit brick. Inline Article focus opens
+Edit brick at `lg` and wider. At narrower widths, inline focus leaves the current
+route and sidebar state alone.
+
+Close and Escape keep the current breakpoint. Open menus, popovers, dialogs,
+and Article body text selection consume Escape first. When Escape dismisses the
+sidebar from an inline Article field, it blurs the field and deselects the Brick.
+Settings and manual Brick editors provide Save and Cancel inside their forms.
+Exit and Set breakpoints are available from the floating page controls.
 
 For unpublished sites, the editor navbar shows Publish beside the account
 menu. The button uses 28px height and 8px horizontal padding.
@@ -25,7 +27,7 @@ menu. The button uses 28px height and 8px horizontal padding.
 
 ## Brick catalog
 
-The Bricks drawer provides draggable previews with plain module labels. Dragging
+The Bricks catalog provides draggable previews with plain module labels. Dragging
 creates Bricks through the Wall's existing command path; Brick Details edits saved
 Bricks. Module metadata and Component/JsonRender comparisons live in Storybook's
 module playgrounds. The App has no per-module inspection pages or URL-driven
@@ -42,8 +44,8 @@ first Row. The canvas creates no Stacks or Sections.
 
 The source stays in place at 40% opacity. A noninteractive 2px blue line marks
 existing-Row insertion vertically or new-Row insertion horizontally, without
-changing layout. Brick content remains interactive, selection and the drawer
-remain open, and drawer templates retain their existing shadow feedback.
+changing layout. Brick content remains interactive, selection and the sidebar
+remain open, and catalog templates retain their existing shadow feedback.
 Cancellation, invalidated destinations, and unchanged drops—including replacing a
 singleton Row at its current position—stage no move.
 

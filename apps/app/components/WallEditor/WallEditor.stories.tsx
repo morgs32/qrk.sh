@@ -693,15 +693,7 @@ const meta = {
     },
     context,
   ) {
-    const {
-      emptyWall,
-      brickGap,
-      stickyNavbar,
-      borderWidth,
-      cardStyle,
-      fixture,
-      selected,
-    } = props;
+    const { emptyWall, brickGap, stickyNavbar, borderWidth, cardStyle, fixture, selected } = props;
     const shadowFixture = context.id.includes("--shadow-brick");
     const crossRowFixture = context.id.includes("--cross-row-");
     const sizingFixture = context.id.includes("--sizing-foundation");

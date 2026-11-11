@@ -9,6 +9,6 @@ Vite configuration.
 App owns `app.qrk.sh` and `app.qrk.localhost`, with application and
 asset paths rooted at `/`. Web remains the Next.js owner of public and
 authentication routes. The username and page layouts retain the session and
-editor across drawer navigation; drawer state comes from matched route IDs.
+editor across sidebar navigation. Matched route IDs determine whether the sidebar is open.
 
 Follow the repository root instructions and the [App README](./README.md).

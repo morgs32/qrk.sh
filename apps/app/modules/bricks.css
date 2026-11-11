@@ -81,7 +81,7 @@
   opacity: 0.4;
 }
 
-/* Wall controls stick within their owner; drawer preview controls stay absolute. */
+/* Wall controls stick within their owner; catalog preview controls stay absolute. */
 .wall-placement .brick-action {
   position: sticky;
   top: var(--wall-actions-sticky-top);

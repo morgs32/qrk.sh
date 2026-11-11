@@ -1,8 +1,9 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
+import { BrickDetailsContext, BrickDetailsTrigger } from "@qrk.sh/bricks/react/BrickDetailsTrigger";
 import { expect, fireEvent, fn, userEvent, within } from "storybook/test";
 
-import { WallPlacement } from "./WallPlacement";
+import { WallPlacement } from "../WallPlacement";
 
 const editBrick = fn();
 const followLink = fn();
@@ -39,7 +40,7 @@ const placement = {
 };
 
 const meta = {
-  title: "Studio/Wall Placement",
+  title: "Studio/Wall Placement/Scripted",
   id: "app-studio-wall-placement",
   component: WallPlacement,
   args: {
@@ -47,7 +48,6 @@ const meta = {
     brickGap: 0,
     brickLabel: "Fixture Brick",
     selected: false,
-    onEditBrick: editBrick,
     onRequestDeleteBrick: fn(),
   },
   beforeEach: () => {
@@ -56,20 +56,30 @@ const meta = {
     pressButton.mockClear();
   },
   render: function Render(props) {
-    const { placement, brickGap, brickLabel, selected, onEditBrick, onRequestDeleteBrick } = props;
+    const { placement, brickGap, brickLabel, selected, onRequestDeleteBrick } = props;
     const [isSelected, setSelected] = useState(selected);
     return (
       <div className="qrk-bricks wall-story flex w-96 p-4">
         <WallPlacement
-          placement={placement}
+          placement={{
+            ...placement,
+            content: (
+              <BrickDetailsContext.Provider
+                value={() => {
+                  editBrick(placement.brickId);
+                  setSelected(true);
+                }}
+              >
+                <BrickDetailsTrigger label={`Edit ${brickLabel}`}>
+                  {placement.content}
+                </BrickDetailsTrigger>
+              </BrickDetailsContext.Provider>
+            ),
+          }}
           brickGap={brickGap}
           brickLabel={brickLabel}
           selected={isSelected}
           onRequestDeleteBrick={onRequestDeleteBrick}
-          onEditBrick={(brickId) => {
-            onEditBrick?.(brickId);
-            setSelected(true);
-          }}
         />
       </div>
     );
@@ -109,16 +119,18 @@ export const ClickSelection: StoryObj<typeof meta> = {
       selection.removeAllRanges();
     }
 
-    const edit = canvas.getByRole("group", { name: "Edit Brick story-brick" });
-    expect(canvas.queryByRole("button", { name: "Edit Brick story-brick" })).toBeNull();
+    const edit = canvas.getByRole("group", { name: "Edit Fixture Brick" });
+    expect(canvas.queryByRole("button", { name: "Edit Fixture Brick" })).toBeNull();
     expect(canvas.queryByRole("button", { name: "Brick story-brick actions" })).toBeNull();
     edit.focus();
     await userEvent.keyboard("{Enter}");
     expect(editBrick).toHaveBeenCalledOnce();
     expect(editBrick).toHaveBeenCalledWith("story-brick");
 
-    await userEvent.click(text);
+    await userEvent.keyboard(" ");
     expect(editBrick).toHaveBeenCalledTimes(2);
+    await userEvent.click(text);
+    expect(editBrick).toHaveBeenCalledTimes(3);
     expect(canvasElement.querySelector("[data-wall-placement-id]")).toHaveClass("is-selected");
   },
 };

@@ -6,7 +6,7 @@ import { Schema } from "effect";
 import { useLayoutEffect, useRef, useState } from "react";
 
 import { MaterialSymbolsIconLookup } from "./MaterialSymbolsIconLookup";
-import { SwatchAndIconColorForm } from "./SwatchAndIconColorForm";
+import { ColorInput } from "../../react/ColorInput";
 import { swatchAndIconV1 } from "../definition/swatchAndIconV1";
 import { useWarnBeforeUnload } from "../../react/useWarnBeforeUnload";
 
@@ -51,9 +51,9 @@ export function SwatchAndIconForm(props: {
 
   return (
     <div className="flex w-full flex-col gap-4">
-      <fieldset className="m-0 min-w-0 border-0 p-0">
-        <legend className="font-medium">Swatch color</legend>
-        <SwatchAndIconColorForm
+      <fieldset className="m-0 grid min-w-0 gap-4 border-0 p-0">
+        <ColorInput
+          label="Swatch color"
           value={draftColor ?? color}
           pickerColor={
             draftColor !== null && hexColorPattern.test(draftColor)

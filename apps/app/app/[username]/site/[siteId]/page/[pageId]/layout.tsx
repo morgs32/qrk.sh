@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  useCallback,
-  useLayoutEffect,
-  useRef,
-  type ReactNode,
-  type RefCallback,
-} from "react";
+import { useCallback, useLayoutEffect, useRef, type ReactNode, type RefCallback } from "react";
 import { useBlocker, useMatches, useNavigate, type ShouldBlockFn } from "@tanstack/react-router";
 import { useAuth } from "@clerk/react";
 import { ClerkOfflineError } from "@clerk/react/errors";
@@ -271,9 +265,7 @@ export default function PageLayout(props: { children: ReactNode }) {
             <title>
               {pageTitle === "" ? `[Editing] ${siteName}` : `[Editing] ${siteName} - ${pageTitle}`}
             </title>
-            <div
-              className="wall-preview-viewport relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
-            >
+            <div className="wall-preview-viewport relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
               <div
                 ref={scrollRef}
                 onPointerDownCapture={(event) => {

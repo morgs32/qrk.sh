@@ -1,6 +1,6 @@
 # 061 — Sidebar-only Studio workspace
 
-**Status:** Ready for implementation.
+**Status:** Implemented. Manual Studio verification pending.
 
 Studio currently switches between a right sidebar and a bottom drawer for the
 same routes. Use one workspace sidebar across viewport sizes. Below Tailwind
@@ -19,10 +19,10 @@ interactive. This supersedes the responsive shell decision in
    every viewport size. Bricks, Page settings, Site settings, and Edit brick
    retain their existing URLs and route state. The sidebar body is a single
    vertical scroll area. Settings use the actual sidebar container width.
-3. At desktop widths, focusing an inline Article field opens Brick Details as
-   it does today. Below `lg`, inline focus leaves the current sidebar state
-   and route alone. Explicit Brick selection and an accepted catalog drop open
-   Brick Details at any width.
+3. [Plan 062](062-plan-brick-owned-interactions.md) supersedes this plan's
+   inline-focus navigation. Article focus leaves the sidebar state and route
+   alone at every width. Sidebar-form Bricks and accepted catalog drops can
+   open Brick Details at any width.
 4. Preserve Close, Escape, and the current background-click behavior for Brick
    Details. Menus, dialogs, and text selection get the first chance to consume
    Escape. Keep breakpoint controls accessible while the overlay is open.
@@ -64,7 +64,8 @@ interactive. This supersedes the responsive shell decision in
    Reserve enough space at the bottom of the overlay body to scroll its last
    control above the toolbar. Keep the global router transition policy and
    existing preview scroll anchoring.
-4. Keep Brick Details navigation in PagePreview. Distinguish an inline field
+4. Keep Brick Details navigation in PagePreview. The inline-focus wiring
+   described here was replaced by Plan 062. Distinguish an inline field
    focus from an explicit edit with an optional second argument
    `source?: "inline-focus"` on WallEditor's existing `onEditBrick` callback.
    WallEditor supplies it only from the module's existing `onFocus` callback.
@@ -111,13 +112,13 @@ interactive. This supersedes the responsive shell decision in
 
 ```text
 qrk.sh/
-├── ~ AGENTS.md
+├── ~ {AGENTS.md, README.md}
 ├── apps/app/
 │   ├── ~ {AGENTS.md, README.md, routeTree.gen.ts}
 │   ├── app/
 │   │   ├── ~ globals.css
 │   │   └── [username]/site/[siteId]/
-│   │       ├── Toolbars/~ Toolbars.tsx
+│   │       ├── Toolbars/~ {Toolbars.tsx, BreakpointsToolbar.tsx}
 │   │       └── page/[pageId]/
 │   │           ├── ~ {layout.tsx, PagePreview.tsx, WorkspaceSidebar.tsx}
 │   │           ├── − useMatchMedia.ts
@@ -152,3 +153,15 @@ qrk.sh/
    thumbnail fit, and a successful drag onto the exposed Wall with a
    drag-capable pointer. Check the breakpoint toolbar can still be used while
    the overlay is open. Record the user's result before archiving the plan.
+
+
+## Results
+
+1. The App build and Storybook build passed through Nx, including the Bricks
+   import check. The generated public route paths match the previous route
+   tree, and the App search found no retired workspace drawer routes,
+   reservation CSS, drag markers, or Drawer component consumers.
+2. `git diff --check` passed.
+
+**Remaining work:** The user will run manual Studio scenarios 2 and 3 above.
+Record the result and archive this plan after those checks pass.

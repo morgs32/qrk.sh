@@ -6,6 +6,7 @@ import type { IResult } from "@zerospin/error";
 import type { IInferDecodedRow } from "@zerospin/shapes";
 import { isEqual } from "es-toolkit";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useAfterBrickInserted } from "../../react/useAfterBrickInserted";
 import { useWarnBeforeUnload } from "../../react/useWarnBeforeUnload";
 import { BrickShell } from "../../react/BrickShell";
 import { Button } from "../../react/button";
@@ -15,13 +16,12 @@ import "./article-editor.css";
 
 export function ArticleEditor(props: {
   state: IInferDecodedRow<typeof articleV1.stateShape> | null;
-  onFocus: () => void;
   onSave: (
     state: IInferDecodedRow<typeof articleV1.stateShape>,
   ) => IResult<unknown, { message: string }>;
   registerFlush: (flush: (onRecover?: () => void) => boolean) => () => void;
 }) {
-  const { state, onFocus, onSave, registerFlush } = props;
+  const { state, onSave, registerFlush } = props;
   const savedState = state ?? { title: "", subtitle: "", content: null };
   const [draft, setDraft] = useState<{ state: typeof savedState; bodyChanged: boolean } | null>(
     null,
@@ -33,6 +33,7 @@ export function ArticleEditor(props: {
   const [mounted, setMounted] = useState(false);
   const [editorStart, setEditorStart] = useState({ key: 0, markdown: savedState.content ?? "" });
   const editorRef = useRef<EditorHandle>(null);
+  const titleRef = useRef<HTMLTextAreaElement>(null);
   // Navigation can request a flush before React commits the latest input event.
   const current = useRef({ draft, staged, savedState, onSave, saveError });
   const composing = useRef(false);
@@ -50,6 +51,10 @@ export function ArticleEditor(props: {
   });
 
   useWarnBeforeUnload(draft !== null);
+
+  useAfterBrickInserted(() => {
+    titleRef.current?.focus();
+  });
 
   const finishDraft = useCallback(() => {
     current.current.draft = null;
@@ -200,14 +205,6 @@ export function ArticleEditor(props: {
           composing.current = false;
           if (current.current.draft !== null || pendingRecoveries.current.size > 0) scheduleSave();
         }}
-        onFocus={(event) => {
-          if (
-            event.currentTarget.contains(event.target) &&
-            !(event.target instanceof HTMLButtonElement) &&
-            !event.currentTarget.contains(event.relatedTarget)
-          )
-            onFocus();
-        }}
       >
         {saveError !== null && (
           <div className="mb-4 flex flex-col gap-2">
@@ -239,6 +236,7 @@ export function ArticleEditor(props: {
           </div>
         )}
         <textarea
+          ref={titleRef}
           className="qrk-article-title-input"
           rows={1}
           autoComplete="off"

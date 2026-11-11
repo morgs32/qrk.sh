@@ -5,6 +5,7 @@ import { LinkLineIcon } from "@qrk.sh/bricks/link/LinkLineIcon";
 import { LinkPlaceholder } from "@qrk.sh/bricks/link/LinkPlaceholder";
 import { linkReactRegistry } from "@qrk.sh/bricks/link/react";
 import { makeModuleView } from "@qrk.sh/bricks/react/makeModuleView";
+import { BrickDetailsTrigger } from "@qrk.sh/bricks/react/BrickDetailsTrigger";
 import type { LibraryApi } from "@qrk.sh/bricks/rpc";
 import { newSyncRpcSession } from "@zerospin/core/utils/getApi/newSyncRpcSession/newSyncRpcSession";
 
@@ -20,7 +21,7 @@ async function lookupLinkPreview(url: string, signal: AbortSignal) {
   }
 }
 
-export const linkView = makeModuleView(linkV1, {
+const link = makeModuleView(linkV1, {
   defaultState: linkPreviewState,
   LineIcon: LinkLineIcon,
   form(props) {
@@ -43,3 +44,15 @@ export const linkView = makeModuleView(linkV1, {
     },
   },
 });
+
+export const linkView = {
+  ...link,
+  Render(props: Parameters<typeof link.Render>[0]) {
+    const { state, spec, variantId } = props;
+    return (
+      <BrickDetailsTrigger label={`Edit ${link.label}`}>
+        <link.Render state={state} spec={spec} variantId={variantId} />
+      </BrickDetailsTrigger>
+    );
+  },
+};

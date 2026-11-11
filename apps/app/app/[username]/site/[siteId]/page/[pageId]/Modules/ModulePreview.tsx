@@ -15,13 +15,7 @@ export function ModulePreview(props: {
   sidebarCardWidth?: number;
   moduleAction?: (state: unknown) => ReactNode;
 }) {
-  const {
-    brickModule,
-    breakpoint,
-    cardStyle,
-    sidebarCardWidth,
-    moduleAction,
-  } = props;
+  const { brickModule, breakpoint, cardStyle, sidebarCardWidth, moduleAction } = props;
   const previewRef = useRef<HTMLDivElement>(null);
   const [{ state: previewState, revision: previewRevision }, setPreviewFrame] = useState(() => ({
     state: brickModule.def.state,
@@ -107,9 +101,7 @@ export function ModulePreview(props: {
   );
 
   return (
-    <div
-      className="brick-catalog-preview flex min-h-0 w-full shrink-0 flex-col border-b border-zinc-200 last:border-b-0"
-    >
+    <div className="brick-catalog-preview flex min-h-0 w-full shrink-0 flex-col border-b border-zinc-200 last:border-b-0">
       <header className="flex shrink-0 items-baseline gap-3 border-b border-zinc-200 bg-white px-[var(--brick-catalog-inset)] py-2 text-zinc-950">
         <h2 className="m-0 font-normal">{brickModule.label}</h2>
         {maxPerPage !== undefined ? (

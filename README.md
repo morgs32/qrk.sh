@@ -192,9 +192,8 @@ without replacing its children; `SessionReady` gates readers until the initializ
 database is published and owns local retry/error presentation. The
 dashboard uses the installed Silkscreen font for its `QRK.SH` wordmark.
 Browser-owned data and editor drafts stay under the content readiness gate.
-Persistent Router layouts retain the editor across drawers; the drawer shell
-and Router-managed native View Transitions retain their 300 ms exit, reduced-motion behavior,
-and focus restoration.
+Persistent Router layouts retain the editor across workspace sidebar navigation.
+The right sidebar overlays the Wall below Tailwind `lg`.
 See [App's README](apps/app/README.md) for routes and browser checks.
 
 The signed-in Clerk user supplies its Clerk user ID directly as `aggregateId`,

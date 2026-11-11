@@ -1,3 +1,9 @@
+@import "@fontsource-variable/geist-mono";
+
+@utility form-input-hex {
+  font-family: "Geist Mono Variable", ui-monospace, monospace;
+}
+
 @theme static {
   --color-form-input: oklch(0.97 0 0);
   --radius-form-input: 9px;

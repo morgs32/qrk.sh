@@ -1,12 +1,13 @@
 import { swatchAndIconPreviewState } from "../definition/swatchAndIconPreviewState";
 import { SwatchAndIconPreview } from "./SwatchAndIconPreview";
 import { makeModuleView } from "../../react/makeModuleView";
+import { BrickDetailsTrigger } from "../../react/BrickDetailsTrigger";
 import { registry } from "./generator/SwatchAndIconJsonRenderRegistry";
 import { swatchAndIconV1 } from "../definition/swatchAndIconV1";
 import { SwatchAndIconForm } from "./SwatchAndIconForm";
 import { SwatchAndIconLineIcon } from "./SwatchAndIconLineIcon";
 
-export const swatchAndIconView = makeModuleView(swatchAndIconV1, {
+const swatchAndIcon = makeModuleView(swatchAndIconV1, {
   defaultState: swatchAndIconPreviewState,
   LineIcon: SwatchAndIconLineIcon,
   form: SwatchAndIconForm,
@@ -17,3 +18,15 @@ export const swatchAndIconView = makeModuleView(swatchAndIconV1, {
     },
   },
 });
+
+export const swatchAndIconView = {
+  ...swatchAndIcon,
+  Render(props: Parameters<typeof swatchAndIcon.Render>[0]) {
+    const { state, spec, variantId } = props;
+    return (
+      <BrickDetailsTrigger label={`Edit ${swatchAndIcon.label}`}>
+        <swatchAndIcon.Render state={state} spec={spec} variantId={variantId} />
+      </BrickDetailsTrigger>
+    );
+  },
+};

@@ -34,6 +34,7 @@ export function StyleInspector(props: { defaultCornersOpen?: boolean }) {
     "[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
   const iconButton =
     "size-7 rounded-[9px] bg-neutral-100 hover:bg-neutral-200 [&_svg:not([class*='size-'])]:size-3.5";
+  const stepperButton = "h-[13px] w-6 rounded-sm text-neutral-600 hover:bg-neutral-200";
 
   return (
     <Popover defaultOpen={defaultCornersOpen}>
@@ -205,6 +206,22 @@ export function StyleInspector(props: { defaultCornersOpen?: boolean }) {
                   <NumberField.Root id={`${id}-${dimension}`} min={0} allowWheelScrub={false}>
                     <NumberField.Group render={<InputGroup className={field} />}>
                       <NumberField.Input render={<InputGroupInput className={fieldInput} />} />
+                      <InputGroupAddon align="inline-end" className="grid gap-0 py-0 pr-1">
+                        <NumberField.Increment
+                          render={<Button variant="ghost" size="icon" />}
+                          aria-label={`Increase ${name.toLowerCase()} ${dimension.toLowerCase()}`}
+                          className={stepperButton}
+                        >
+                          <ChevronUp aria-hidden="true" className="size-3" />
+                        </NumberField.Increment>
+                        <NumberField.Decrement
+                          render={<Button variant="ghost" size="icon" />}
+                          aria-label={`Decrease ${name.toLowerCase()} ${dimension.toLowerCase()}`}
+                          className={stepperButton}
+                        >
+                          <ChevronDown aria-hidden="true" className="size-3" />
+                        </NumberField.Decrement>
+                      </InputGroupAddon>
                     </NumberField.Group>
                   </NumberField.Root>
                 </div>
@@ -262,14 +279,14 @@ export function StyleInspector(props: { defaultCornersOpen?: boolean }) {
                     <NumberField.Increment
                       render={<Button variant="ghost" size="icon" />}
                       aria-label={`Increase ${corner.toLowerCase()} radius`}
-                      className="h-[13px] w-6 rounded-sm text-neutral-600 hover:bg-neutral-200"
+                      className={stepperButton}
                     >
                       <ChevronUp aria-hidden="true" className="size-3" />
                     </NumberField.Increment>
                     <NumberField.Decrement
                       render={<Button variant="ghost" size="icon" />}
                       aria-label={`Decrease ${corner.toLowerCase()} radius`}
-                      className="h-[13px] w-6 rounded-sm text-neutral-600 hover:bg-neutral-200"
+                      className={stepperButton}
                     >
                       <ChevronDown aria-hidden="true" className="size-3" />
                     </NumberField.Decrement>

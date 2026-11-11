@@ -5,45 +5,57 @@ import { useNavigate, useSearch } from "@tanstack/react-router";
 import { BREAKPOINTS, PREVIEW_BORDER_WIDTH } from "../../../../../../modules/lib/breakpoints";
 import { useEditorViewportStore } from "@/stores/useEditorViewportStore";
 
-/** Measure this preview and keep its URL breakpoint within the available width. */
-export function useBreakpointGuard(flushPageEditors: (onRecover?: () => void) => boolean) {
+/** Measure the preview pane and keep the selected Wall mounted until it is safe to replace. */
+export function useBreakpointGuard(
+  flushPageEditors: (onRecover?: () => void) => boolean,
+  sidebarOpen: boolean,
+) {
   const { breakpoint: requestedBreakpoint } = useSearch({
     from: "/$username/site/$siteId/page/$pageId",
   });
   const navigate = useNavigate();
-  const availableWidth = useEditorViewportStore((state) => state.availableWidth);
+  const [measurement, setMeasurement] = useState<{
+    width: number;
+    sidebarOpen: boolean;
+  } | null>(null);
+  const committedMeasurement = useRef(measurement);
   const [retainingPreview, setRetainingPreview] = useState(false);
-  const hasCurrentMeasurement = useRef(false);
   const breakpoint = BREAKPOINTS.find((entry) => entry.id === requestedBreakpoint);
-  const previewWidth = useRef(breakpoint?.previewWidth);
+  const layout = useRef({ breakpoint, sidebarOpen });
+  const measurePreview = useRef<(() => void) | null>(null);
   useLayoutEffect(() => {
-    previewWidth.current = breakpoint?.previewWidth;
-  }, [breakpoint]);
+    layout.current = { breakpoint, sidebarOpen };
+    measurePreview.current?.();
+  }, [breakpoint, sidebarOpen]);
   const previewRef = useCallback<RefCallback<HTMLElement>>(
     (element) => {
       if (element === null) return;
-      let attached = true;
       let waitingForRecovery = false;
-      const measure = () => {
-        if (!attached) return;
-        hasCurrentMeasurement.current = true;
-        // Exclude the scrollbar and reserve both frame borders.
-        const width = Math.max(0, element.clientWidth - 2 * PREVIEW_BORDER_WIDTH);
+      const measure = (recovered = false) => {
+        if (measurePreview.current !== measure) return;
+        const { breakpoint, sidebarOpen } = layout.current;
+        // clientWidth excludes the scrollbar. Reserve both frame borders and sidebar gutters.
+        const width = Math.max(
+          0,
+          element.clientWidth - 2 * PREVIEW_BORDER_WIDTH - (sidebarOpen ? 64 : 0),
+        );
         const { availableWidth, setAvailableWidth } = useEditorViewportStore.getState();
-        const currentPreviewWidth = previewWidth.current;
-        // The Wall unmounts as soon as its breakpoint stops fitting.
+        if (availableWidth !== width) setAvailableWidth(width);
+        const previous = committedMeasurement.current;
+        const previewWidth = breakpoint?.previewWidth;
+        // The prior sidebar may have shown a Wall wider than the pane.
         if (
-          currentPreviewWidth !== undefined &&
-          availableWidth !== null &&
-          availableWidth >= currentPreviewWidth &&
-          width < currentPreviewWidth
+          !recovered &&
+          !sidebarOpen &&
+          previewWidth !== undefined &&
+          width < previewWidth &&
+          previous !== null &&
+          (previous.sidebarOpen || previous.width >= previewWidth)
         ) {
           if (!waitingForRecovery) {
             waitingForRecovery = !flushPageEditors(() => {
               waitingForRecovery = false;
-              if (!attached) return;
-              setRetainingPreview(false);
-              setAvailableWidth(Math.max(0, element.clientWidth - 2 * PREVIEW_BORDER_WIDTH));
+              measure(true);
             });
           }
           if (waitingForRecovery) {
@@ -52,30 +64,42 @@ export function useBreakpointGuard(flushPageEditors: (onRecover?: () => void) =>
           }
         }
         setRetainingPreview(false);
-        setAvailableWidth(width);
+        if (previous?.width === width && previous.sidebarOpen === sidebarOpen) return;
+        const next = { width, sidebarOpen };
+        committedMeasurement.current = next;
+        setMeasurement(next);
       };
+      measurePreview.current = measure;
       measure();
-      const observer = new ResizeObserver(measure);
+      const observer = new ResizeObserver(() => measure());
       observer.observe(element);
       return () => {
-        attached = false;
         observer.disconnect();
-        hasCurrentMeasurement.current = false;
+        measurePreview.current = null;
+        committedMeasurement.current = null;
+        setMeasurement(null);
+        setRetainingPreview(false);
         useEditorViewportStore.getState().setAvailableWidth(null);
       };
     },
     [flushPageEditors],
   );
 
+  const visibleBreakpoint =
+    breakpoint !== undefined &&
+    measurement !== null &&
+    (measurement.sidebarOpen || breakpoint.previewWidth <= measurement.width)
+      ? breakpoint
+      : undefined;
   useEffect(() => {
-    if (!hasCurrentMeasurement.current) return;
-    const measuredWidth = useEditorViewportStore.getState().availableWidth;
-    if (measuredWidth === null) return;
-    const largestFitting = BREAKPOINTS.filter((entry) => entry.previewWidth <= measuredWidth).at(
-      -1,
-    );
+    if (
+      measurement === null ||
+      measurement !== committedMeasurement.current ||
+      visibleBreakpoint !== undefined
+    )
+      return;
+    const largestFitting = BREAKPOINTS.findLast((entry) => entry.previewWidth <= measurement.width);
     if (largestFitting === undefined) return;
-    if (breakpoint !== undefined && breakpoint.previewWidth <= measuredWidth) return;
     void navigate({
       to: ".",
       replace: true,
@@ -85,7 +109,12 @@ export function useBreakpointGuard(flushPageEditors: (onRecover?: () => void) =>
         breakpoint: largestFitting.id,
       }),
     });
-  }, [availableWidth, requestedBreakpoint, breakpoint, navigate]);
+  }, [measurement, requestedBreakpoint, visibleBreakpoint, navigate]);
 
-  return { breakpoint, previewRef, retainingPreview };
+  const insufficientWidth =
+    visibleBreakpoint === undefined &&
+    measurement !== null &&
+    measurement.width < BREAKPOINTS[0].previewWidth;
+
+  return { breakpoint, previewRef, retainingPreview, visibleBreakpoint, insufficientWidth };
 }

@@ -8,6 +8,7 @@ import { isEqual } from "es-toolkit";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useWarnBeforeUnload } from "@/lib/useWarnBeforeUnload";
 import { BrickShell } from "../components/brick/BrickShell";
+import { Button } from "../components/ui/button";
 
 import "./article-font.css";
 import "./article-editor.css";
@@ -18,7 +19,7 @@ export function ArticleEditor(props: {
   onSave: (
     state: IInferDecodedRow<typeof articleV1.stateShape>,
   ) => IResult<unknown, { message: string }>;
-  registerFlush: (flush: () => boolean) => () => void;
+  registerFlush: (flush: (onRecover?: () => void) => boolean) => () => void;
 }) {
   const { state, onFocus, onSave, registerFlush } = props;
   const savedState = state ?? { title: "", subtitle: "", content: null };
@@ -27,15 +28,17 @@ export function ArticleEditor(props: {
   );
   // Keep the accepted snapshot visible until the session query echoes it.
   const [staged, setStaged] = useState<typeof savedState | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const editedState = draft?.state ?? staged ?? savedState;
   const [mounted, setMounted] = useState(false);
-  const [initialMarkdown] = useState(savedState.content ?? "");
+  const [editorStart, setEditorStart] = useState({ key: 0, markdown: savedState.content ?? "" });
   const editorRef = useRef<EditorHandle>(null);
   // Navigation can request a flush before React commits the latest input event.
-  const current = useRef({ draft, staged, savedState, onSave });
+  const current = useRef({ draft, staged, savedState, onSave, saveError });
   const composing = useRef(false);
   const saveTimer = useRef<number | undefined>(undefined);
-  const lastAppliedMarkdown = useRef(initialMarkdown);
+  const pendingRecoveries = useRef(new Set<() => void>());
+  const lastAppliedMarkdown = useRef(editorStart.markdown);
 
   useLayoutEffect(() => {
     current.current.savedState = savedState;
@@ -48,38 +51,71 @@ export function ArticleEditor(props: {
 
   useWarnBeforeUnload(draft !== null);
 
-  const flush = useCallback(() => {
-    window.clearTimeout(saveTimer.current);
-    const { draft, staged, savedState, onSave } = current.current;
-    if (draft === null) return true;
-    const editor = editorRef.current;
-    if (composing.current || editor?.editor?.view.composing) return false;
-
-    const previous = staged ?? savedState;
-    let nextState = draft.state;
-    if (draft.bodyChanged) {
-      if (editor === null) return false;
-      const markdown = editor.getMarkdown();
-      nextState = {
-        ...nextState,
-        content: markdown === "" && previous.content === null ? null : markdown,
-      };
-    }
-
-    if (!isEqual(nextState, previous)) {
-      if (onSave(nextState)._tag === "Failure") return false;
-      current.current.staged = nextState;
-      setStaged(nextState);
-    }
-
-    lastAppliedMarkdown.current = nextState.content ?? "";
+  const finishDraft = useCallback(() => {
     current.current.draft = null;
+    current.current.saveError = null;
     setDraft(null);
-    return true;
+    setSaveError(null);
+    const recoveries = [...pendingRecoveries.current];
+    pendingRecoveries.current.clear();
+    for (const resume of recoveries) resume();
   }, []);
 
+  const flush = useCallback(
+    (onRecover?: () => void, retry = false) => {
+      window.clearTimeout(saveTimer.current);
+      const { draft, staged, savedState, onSave, saveError } = current.current;
+      const editor = editorRef.current;
+      if (composing.current || editor?.editor?.view.composing || (saveError !== null && !retry)) {
+        if (onRecover !== undefined) pendingRecoveries.current.add(onRecover);
+        return false;
+      }
+      if (draft === null) {
+        if (onRecover !== undefined) pendingRecoveries.current.delete(onRecover);
+        if (pendingRecoveries.current.size > 0) finishDraft();
+        return true;
+      }
+      if (onRecover !== undefined) pendingRecoveries.current.add(onRecover);
+
+      const previous = staged ?? savedState;
+      let nextState = draft.state;
+      if (draft.bodyChanged) {
+        if (editor === null) return false;
+        const markdown = editor.getMarkdown();
+        nextState = {
+          ...nextState,
+          content: markdown === "" && previous.content === null ? null : markdown,
+        };
+      }
+
+      if (!isEqual(nextState, previous)) {
+        const result = onSave(nextState);
+        if (result._tag === "Failure") {
+          current.current.saveError = result.failure.message;
+          setSaveError(result.failure.message);
+          return false;
+        }
+        current.current.staged = nextState;
+        setStaged(nextState);
+      }
+
+      lastAppliedMarkdown.current = nextState.content ?? "";
+      // The current caller can proceed on true. Resume earlier blocked callers.
+      if (onRecover !== undefined) pendingRecoveries.current.delete(onRecover);
+      finishDraft();
+      return true;
+    },
+    [finishDraft],
+  );
+
   useLayoutEffect(() => registerFlush(flush), [flush, registerFlush]);
-  useLayoutEffect(() => () => window.clearTimeout(saveTimer.current), []);
+  useLayoutEffect(() => {
+    const recoveries = pendingRecoveries.current;
+    return () => {
+      window.clearTimeout(saveTimer.current);
+      recoveries.clear();
+    };
+  }, []);
   useEffect(() => {
     const onVisibilityChange = () => {
       if (document.visibilityState === "hidden") flush();
@@ -89,6 +125,7 @@ export function ArticleEditor(props: {
   }, [flush]);
 
   const scheduleSave = useCallback(() => {
+    if (current.current.saveError !== null) return;
     window.clearTimeout(saveTimer.current);
     saveTimer.current = window.setTimeout(flush, 1000);
   }, [flush]);
@@ -130,7 +167,7 @@ export function ArticleEditor(props: {
     const editor = editorRef.current;
     if (!mounted || editor === null) return;
     editor.editor?.view.dom.setAttribute("aria-label", "Article content");
-  }, [mounted]);
+  }, [mounted, editorStart.key]);
 
   useEffect(() => {
     const editor = editorRef.current;
@@ -161,16 +198,46 @@ export function ArticleEditor(props: {
         }}
         onCompositionEnd={() => {
           composing.current = false;
-          if (current.current.draft !== null) scheduleSave();
+          if (current.current.draft !== null || pendingRecoveries.current.size > 0) scheduleSave();
         }}
         onFocus={(event) => {
           if (
             event.currentTarget.contains(event.target) &&
+            !(event.target instanceof HTMLButtonElement) &&
             !event.currentTarget.contains(event.relatedTarget)
           )
             onFocus();
         }}
       >
+        {saveError !== null && (
+          <div className="mb-4 flex flex-col gap-2">
+            <p className="text-sm text-destructive" role="alert">
+              Couldn’t save the Article. {saveError}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" size="sm" onClick={() => flush(undefined, true)}>
+                Retry
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  window.clearTimeout(saveTimer.current);
+                  composing.current = false;
+                  const { staged, savedState } = current.current;
+                  const markdown = (staged ?? savedState).content ?? "";
+                  lastAppliedMarkdown.current = markdown;
+                  // Replace the editor so undo cannot restore the discarded draft.
+                  setEditorStart((start) => ({ key: start.key + 1, markdown }));
+                  finishDraft();
+                }}
+              >
+                Discard changes
+              </Button>
+            </div>
+          </div>
+        )}
         <input
           className="qrk-article-title-input"
           autoComplete="off"
@@ -207,7 +274,8 @@ export function ArticleEditor(props: {
         >
           {mounted && (
             <MeowdownEditor
-              initialMarkdown={initialMarkdown}
+              key={editorStart.key}
+              initialMarkdown={editorStart.markdown}
               blockHandle={false}
               mode="focus"
               handleRef={editorRef}

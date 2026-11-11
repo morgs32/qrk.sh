@@ -1,12 +1,12 @@
 import type { IInferModelRow } from "@zerospin/core/models/types";
-import type { wallLayoutSchemaV2 } from "@qrk.sh/zerospin/src/aggregates/user/layout/wallLayoutSchemaV2";
+import type { wallLayoutSchemaV3 } from "@qrk.sh/zerospin/src/aggregates/user/layout/wallLayoutSchemaV3";
 import type { placementV2 } from "@qrk.sh/zerospin/src/aggregates/user/models/placement/PlacementV2";
 import type { brickV2 } from "@qrk.sh/zerospin/src/aggregates/user/models/brick/BrickV2";
 
 /** Resolve structural references while preserving the Wall's authoritative array order. */
 export function makeWallLayoutView(props: {
   wall: {
-    layout: typeof wallLayoutSchemaV2.Type;
+    layout: typeof wallLayoutSchemaV3.Type;
     placements: readonly {
       id: IInferModelRow<typeof placementV2>["id"];
       brickId: IInferModelRow<typeof placementV2>["brickId"];
@@ -28,6 +28,8 @@ export function makeWallLayoutView(props: {
         rows: stack.rows.map((row) => ({
           id: row.id,
           minHeight: row.minHeight,
+          preferredWidth: row.preferredWidth ?? null,
+          alignment: row.alignment ?? "left",
           placements: row.placementIds.map((id) => {
             const placement = placements.get(id);
             if (placement === undefined)

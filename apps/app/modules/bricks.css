@@ -101,18 +101,14 @@
     0 1px 6px rgb(0 0 0 / 4%);
 }
 
-/* Row cells share all available width; inline weights set their proportions. */
+/* Row cells use the resolved surface width plus their two half-gap insets. */
 .wall-placement,
 .wall-shadow-placeholder {
   display: flex;
   flex-direction: column;
 }
 
-.wall-placement {
-  flex: 1 1 0;
-}
-
-/* Only an existing-Row shadow participates in horizontal weighted sizing. */
+/* An existing-Row shadow receives its resolved width from the Row. */
 .wall-shadow-placeholder {
   flex: 0 1 auto;
 }
@@ -264,6 +260,64 @@
   pointer-events: none;
 }
 
+.wall-row-width-resize-grip {
+  top: 50%;
+  width: 24px;
+  height: 30px;
+  transform: translateY(-50%);
+  cursor: col-resize;
+}
+
+.wall-row-width-resize-grip[data-side="left"] {
+  left: 0;
+}
+
+.wall-row-width-resize-grip[data-side="right"] {
+  right: 0;
+}
+
+.wall-row-width-resize-grip::after {
+  width: 8px;
+  height: 22px;
+  background: white;
+  border: 2px solid rgb(var(--brick-accent-rgb));
+  pointer-events: none;
+}
+
+.wall-row-width-resize-grip[data-side="left"]::after {
+  left: var(--wall-row-grip-inset);
+}
+
+.wall-row-width-resize-grip[data-side="right"]::after {
+  left: auto;
+  right: var(--wall-row-grip-inset);
+  transform: translate(50%, -50%);
+}
+
+.wall-row-alignment {
+  position: absolute;
+  z-index: 30;
+  top: 2px;
+  left: 50%;
+  display: flex;
+  transform: translateX(-50%);
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background: white;
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.wall-row-alignment button {
+  padding: 1px 5px;
+  text-transform: capitalize;
+}
+
+.wall-row-alignment button[aria-pressed="true"] {
+  background: #edf5ff;
+  color: #154d8b;
+}
+
 .wall-height-resize-grip {
   left: 50%;
   bottom: 0;
@@ -305,8 +359,18 @@
     opacity: 0;
   }
   [data-wall-row-id]:hover > .wall-height-resize-grip,
-  [data-wall-row-id]:hover > [data-wall-row-content] > .wall-width-resize-slot > .wall-resize-grip {
+  .wall-row:hover .wall-width-resize-slot > .wall-resize-grip,
+  .wall-row:hover .wall-row-width-resize-grip {
     opacity: 1;
+  }
+  .wall-row-alignment {
+    opacity: 0;
+    pointer-events: none;
+  }
+  .wall-row:hover .wall-row-alignment,
+  .wall-row-alignment:focus-within {
+    opacity: 1;
+    pointer-events: auto;
   }
 }
 
@@ -320,7 +384,9 @@
 }
 
 .wall-editor[data-wall-resizing="width"],
-.wall-editor[data-wall-resizing="width"] * {
+.wall-editor[data-wall-resizing="width"] *,
+.wall-editor[data-wall-resizing="row-width"],
+.wall-editor[data-wall-resizing="row-width"] * {
   cursor: col-resize !important;
   user-select: none !important;
 }

@@ -1,10 +1,12 @@
+import { behanceView } from "@qrk.sh/bricks/modules/behance/view";
+import { buyMeACoffeeView } from "@qrk.sh/bricks/modules/buyMeACoffee/view";
 import { linkV1 } from "@qrk.sh/bricks/modules/link/definition";
 import { linkPreviewState } from "@qrk.sh/bricks/modules/link/definition/linkPreviewState";
 import { LinkLineIcon } from "@qrk.sh/bricks/modules/link/LinkLineIcon";
 import { LinkPlaceholder } from "@qrk.sh/bricks/modules/link/LinkPlaceholder";
 import { linkReactRegistry } from "@qrk.sh/bricks/modules/link/react";
 import { makeModuleView } from "@qrk.sh/bricks/modules/react/makeModuleView";
-import type { PageSnapshotSchemaV4 } from "@qrk.sh/zerospin/src/aggregates/user/snapshots/pageSnapshotSchemaV4";
+import type { PageSnapshotSchemaV5 } from "@qrk.sh/zerospin/src/aggregates/user/snapshots/pageSnapshotSchemaV5";
 import { articleV1 } from "@qrk.sh/bricks/modules/article/definition";
 import { swatchAndIconV1 } from "@qrk.sh/bricks/modules/swatchAndIcon/definition";
 import { swatchAndIconPreviewState } from "@qrk.sh/bricks/modules/swatchAndIcon/definition/swatchAndIconPreviewState";
@@ -154,7 +156,7 @@ const snapshot = {
       ],
     },
   ],
-} satisfies typeof PageSnapshotSchemaV4.Type;
+} satisfies typeof PageSnapshotSchemaV5.Type;
 
 const meta = {
   title: "Web/WallViewer",
@@ -201,3 +203,41 @@ const meta = {
 
 export default meta;
 export const PublishedSnapshot = {} satisfies StoryObj<typeof meta>;
+
+
+export const PortfolioSnapshot = {
+  args: {
+    snapshot: {
+      ...snapshot,
+      title: "Portfolio",
+      bricks: [
+        { id: "brk_behance", moduleId: "behance", state: behanceView.def.state, borderWidth: 0 },
+        { id: "brk_coffee", moduleId: "buy-me-a-coffee", state: buyMeACoffeeView.def.state, borderWidth: 0 },
+      ],
+      walls: [{
+        id: "wal_lg",
+        breakpoint: "lg",
+        sections: [{
+          id: "sec_portfolio",
+          stacks: [{
+            id: "stk_portfolio",
+            name: "Portfolio",
+            rows: [{
+              id: "row_portfolio",
+              minHeight: null,
+              alignment: "left",
+              placements: [
+                { id: "plc_behance", brickId: "brk_behance", variantId: "default", widthWeight: 400, spec: behanceView.variants.default.spec },
+                { id: "plc_coffee", brickId: "brk_coffee", variantId: "default", widthWeight: 320, spec: buyMeACoffeeView.variants.default.spec },
+              ],
+            }],
+          }],
+        }],
+      }],
+    },
+    renderBrick: (brick, placement) => {
+      const { Render } = brick.moduleId === "behance" ? behanceView : buyMeACoffeeView;
+      return <Render state={brick.state} variantId={placement.variantId} spec={placement.spec} />;
+    },
+  },
+} satisfies StoryObj<typeof meta>;

@@ -31,6 +31,8 @@
       "types": "./src/rpc/types.ts"
     },
     "./modules/article/definition": "./src/modules/article/definition/articleV1.ts",
+    "./modules/behance/view": "./src/modules/behance/react/behanceView.tsx",
+    "./modules/buyMeACoffee/view": "./src/modules/buyMeACoffee/react/buyMeACoffeeView.tsx",
     "./modules/article/view": "./src/modules/article/react/articleView.tsx",
     "./modules/figmaThumbnail/view": "./src/modules/figmaThumbnail/react/figmaThumbnailView.tsx",
     "./modules/githubActivity/view": "./src/modules/githubActivity/react/githubActivityView.tsx",

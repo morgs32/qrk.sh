@@ -35,7 +35,7 @@ import {
   useState,
   type CSSProperties,
 } from "react";
-import { brickV2 } from "@qrk.sh/zerospin/src/aggregates/user/models/brick/BrickV2";
+import { brickV3 } from "@qrk.sh/zerospin/src/aggregates/user/models/brick/BrickV3";
 import { wallV3 } from "@qrk.sh/zerospin/src/aggregates/user/models/wall/WallV3";
 import { useLiveQuery, useSession } from "@zerospin/react";
 import { Result, Schema } from "effect";
@@ -76,7 +76,7 @@ import {
 
 const CatalogBrickData = Schema.Struct({
   type: Schema.Literal("catalog-brick"),
-  moduleId: brickV2.attributesSchema.fields.moduleId,
+  moduleId: brickV3.attributesSchema.fields.moduleId,
   state: Schema.Unknown,
 });
 
@@ -101,7 +101,7 @@ export function WallEditor(props: {
   const wallRef = useRef<HTMLDivElement>(null);
   const deleteReturnFocus = useRef<HTMLElement | null>(null);
   const deleteCancelRef = useRef<HTMLButtonElement>(null);
-  const [brickToDelete, setBrickToDelete] = useState<IInferModelRow<typeof brickV2>["id"] | null>(
+  const [brickToDelete, setBrickToDelete] = useState<IInferModelRow<typeof brickV3>["id"] | null>(
     null,
   );
   const moveIndicatorRef = useRef<HTMLDivElement>(null);
@@ -416,7 +416,7 @@ export function WallEditor(props: {
         session,
         contractName: "addBrick",
         payload: {
-          id: session.runSync(makeId(brickV2)),
+          id: session.runSync(makeId(brickV3)),
           pageId: wall.pageId,
           moduleId: data.success.moduleId,
           state: data.success.state,
@@ -534,7 +534,7 @@ export function WallEditor(props: {
             !source.element.isConnected
           )
             return;
-          const id = session.runSync(makeId(brickV2));
+          const id = session.runSync(makeId(brickV3));
           const result = stageAggregateSessionCommand({
             session,
             contractName: "addBrick",

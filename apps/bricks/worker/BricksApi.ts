@@ -8,6 +8,7 @@ import type {
 } from "@qrk.sh/bricks/rpc/types";
 import { Layer, ManagedRuntime } from "effect";
 
+import { getBehanceProfile } from "./behance/getBehanceProfile";
 import { encodeRpc } from "./encodeRpc";
 import { generateSpec } from "./generateSpec";
 import { getGitHubProfile } from "./githubProfile/getGitHubProfile";
@@ -20,6 +21,12 @@ const managedRuntime = ManagedRuntime.make(Layer.empty);
 export class BricksApi extends RpcTarget {
   constructor(private readonly workerEnv: Env) {
     super();
+  }
+
+  getBehanceProfile(url: string) {
+    return managedRuntime.runPromise(
+      getBehanceProfile({ url, token: this.workerEnv.APIFY_API_TOKEN }).pipe(encodeRpc),
+    );
   }
 
   getInstagramProfile(url: string): Promise<IRpcEither<IInstagramScrapePayload>> {

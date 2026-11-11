@@ -14,6 +14,7 @@ import { followersView } from "./GitHubProfile/components/Followers";
 import { followingView } from "./GitHubProfile/components/Following";
 import { locationView } from "./GitHubProfile/components/Location";
 import { publicReposView } from "./GitHubProfile/components/PublicRepos";
+import illustrationUrl from "./story-illustration.svg?url";
 
 const meta = {
   title: "Modules/GitHub Profile",
@@ -23,6 +24,7 @@ const meta = {
     const { fixture } = props;
     return (
       <BrickStory
+        illustrationUrl={illustrationUrl}
         key={fixture}
         definition={githubProfileV1}
         view={githubProfileView}

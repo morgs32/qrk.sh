@@ -4,6 +4,7 @@ import { githubActivityV1 } from "../definition/githubActivityV1";
 import { githubActivityView } from "./githubActivityView";
 import { BrickShell } from "../../../components/BrickShell";
 import { activityCalendarView } from "./ActivityCalendar";
+import illustrationUrl from "./story-illustration.svg?url";
 
 const meta = {
   title: "Modules/GitHub Activity",
@@ -13,6 +14,7 @@ const meta = {
     const { fixture } = props;
     return (
       <BrickStory
+        illustrationUrl={illustrationUrl}
         key={fixture}
         definition={githubActivityV1}
         view={githubActivityView}

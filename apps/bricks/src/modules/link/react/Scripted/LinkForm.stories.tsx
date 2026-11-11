@@ -4,6 +4,7 @@ import { expect, fn, userEvent, waitFor, within } from "storybook/test";
 
 import { linkPreviewState } from "../../definition/linkPreviewState";
 import { LinkForm } from "../LinkForm";
+import illustrationUrl from "../story-illustration.svg?url";
 
 const meta = {
   title: "Modules/Link/Scripted",
@@ -16,6 +17,7 @@ const meta = {
 
     return (
       <div className="qrk-bricks grid gap-3">
+        <img src={illustrationUrl} alt="" width={264} height={168} className="h-auto max-w-full" />
         {open ? (
           <LinkForm
             state={state}

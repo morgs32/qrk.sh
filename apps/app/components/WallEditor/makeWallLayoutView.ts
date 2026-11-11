@@ -1,7 +1,7 @@
 import type { IInferModelRow } from "@zerospin/core/models/types";
 import type { wallLayoutSchemaV3 } from "@qrk.sh/zerospin/src/aggregates/user/layout/wallLayoutSchemaV3";
 import type { placementV2 } from "@qrk.sh/zerospin/src/aggregates/user/models/placement/PlacementV2";
-import type { brickV2 } from "@qrk.sh/zerospin/src/aggregates/user/models/brick/BrickV2";
+import type { brickV3 } from "@qrk.sh/zerospin/src/aggregates/user/models/brick/BrickV3";
 
 /** Resolve structural references while preserving the Wall's authoritative array order. */
 export function makeWallLayoutView(props: {
@@ -13,7 +13,7 @@ export function makeWallLayoutView(props: {
       variantId: IInferModelRow<typeof placementV2>["variantId"];
       widthWeight: IInferModelRow<typeof placementV2>["widthWeight"];
       spec: IInferModelRow<typeof placementV2>["spec"];
-      brick: IInferModelRow<typeof brickV2>;
+      brick: IInferModelRow<typeof brickV3>;
     }[];
   };
 }) {

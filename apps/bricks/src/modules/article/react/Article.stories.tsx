@@ -3,6 +3,7 @@ import { BrickStory } from "../../../../.storybook/BrickStory";
 import { articleV1 } from "../definition/articleV1";
 import { articleView } from "./articleView";
 import { articleBrickContentView } from "./ArticleBrickContent";
+import illustrationUrl from "./story-illustration.svg?url";
 
 const meta = {
   title: "Modules/Article",
@@ -12,6 +13,7 @@ const meta = {
     const { fixture } = props;
     return (
       <BrickStory
+        illustrationUrl={illustrationUrl}
         key={fixture}
         definition={articleV1}
         view={articleView}

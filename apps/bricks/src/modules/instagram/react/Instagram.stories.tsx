@@ -5,6 +5,7 @@ import { instagramView } from "./instagramView";
 import { instagramCardView } from "./InstagramCard";
 import { instagramPostGridView } from "./InstagramPostGrid";
 import { instagramMediaFooterView } from "./InstagramMediaFooter";
+import illustrationUrl from "./story-illustration.svg?url";
 
 const meta = {
   title: "Modules/Instagram",
@@ -14,6 +15,7 @@ const meta = {
     const { fixture } = props;
     return (
       <BrickStory
+        illustrationUrl={illustrationUrl}
         key={fixture}
         definition={instagramV1}
         view={instagramView}

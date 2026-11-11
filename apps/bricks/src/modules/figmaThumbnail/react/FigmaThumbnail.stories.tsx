@@ -5,6 +5,7 @@ import { figmaThumbnailView } from "./figmaThumbnailView";
 import { figmaCardView } from "./FigmaCard";
 import { figmaThumbnailBandView } from "./FigmaThumbnailBand";
 import { figmaMediaFooterView } from "./FigmaMediaFooter";
+import illustrationUrl from "./story-illustration.svg?url";
 
 const meta = {
   title: "Modules/Figma Thumbnail",
@@ -14,6 +15,7 @@ const meta = {
     const { fixture } = props;
     return (
       <BrickStory
+        illustrationUrl={illustrationUrl}
         key={fixture}
         definition={figmaThumbnailV1}
         view={figmaThumbnailView}

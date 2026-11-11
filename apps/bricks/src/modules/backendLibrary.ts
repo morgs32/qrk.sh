@@ -10,6 +10,9 @@ import { mapPlaceV1 } from "./mapPlace/definition/mapPlaceV1";
 import { swatchAndIconV1 } from "./swatchAndIcon/definition/swatchAndIconV1";
 import { articleV1 } from "./article/definition/articleV1";
 
+import { behanceV1 } from "./behance/definition/behanceV1";
+import { buyMeACoffeeV1 } from "./buyMeACoffee/definition/buyMeACoffeeV1";
+
 export const backendLibrary = makeBackendLibrary({
   "swatch-and-icon": swatchAndIconV1,
   "github-activity": githubActivityV1,
@@ -21,6 +24,8 @@ export const backendLibrary = makeBackendLibrary({
   link: linkV1,
   "map-place": mapPlaceV1,
   article: articleV1,
+  behance: behanceV1,
+  "buy-me-a-coffee": buyMeACoffeeV1,
 });
 
 export type IBackendLibrary = typeof backendLibrary;

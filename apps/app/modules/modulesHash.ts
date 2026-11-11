@@ -11,6 +11,9 @@ import { mapPlaceView } from "@qrk.sh/bricks/modules/mapPlace/view";
 import { swatchAndIconView } from "@qrk.sh/bricks/modules/swatchAndIcon/view";
 import { articleView } from "@qrk.sh/bricks/modules/article/view";
 
+import { behanceView } from "@qrk.sh/bricks/modules/behance/view";
+import { buyMeACoffeeView } from "@qrk.sh/bricks/modules/buyMeACoffee/view";
+
 export const modulesHash = makeModuleViewLibrary<IBackendLibrary>(backendLibrary, {
   "swatch-and-icon": swatchAndIconView,
   "github-activity": githubActivityView,
@@ -22,4 +25,6 @@ export const modulesHash = makeModuleViewLibrary<IBackendLibrary>(backendLibrary
   link: linkView,
   "map-place": mapPlaceView,
   article: articleView,
+  behance: behanceView,
+  "buy-me-a-coffee": buyMeACoffeeView,
 });

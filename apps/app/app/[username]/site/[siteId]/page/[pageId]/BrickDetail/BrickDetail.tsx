@@ -2,7 +2,7 @@
 
 import { modulesHash } from "../../../../../../../modules/modulesHash";
 import { makePlacementId } from "@qrk.sh/zerospin/src/aggregates/user/layout/makePlacementId";
-import { brickV2 } from "@qrk.sh/zerospin/src/aggregates/user/models/brick/BrickV2";
+import { brickV3 } from "@qrk.sh/zerospin/src/aggregates/user/models/brick/BrickV3";
 import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
 import { pageV1 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV1";
 import { siteV1 as Site } from "@qrk.sh/zerospin/src/aggregates/user/models/site/SiteV1";
@@ -27,7 +27,7 @@ const ParamsSchema = Schema.Struct({
 });
 
 function isBrickId(value: string): value is `brk_${string}` {
-  return value.startsWith(`${brickV2.abbreviation}_`);
+  return value.startsWith(`${brickV3.abbreviation}_`);
 }
 
 export function BrickDetail() {

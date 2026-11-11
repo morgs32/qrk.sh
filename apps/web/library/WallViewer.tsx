@@ -4,17 +4,17 @@ import {
   measureWallFit,
   wallBreakpointWidths,
 } from "@qrk.sh/zerospin/src/aggregates/user/layout/wallSizing";
-import type { PageSnapshotSchemaV4 } from "@qrk.sh/zerospin/src/aggregates/user/snapshots/pageSnapshotSchemaV4";
+import type { PageSnapshotSchemaV5 } from "@qrk.sh/zerospin/src/aggregates/user/snapshots/pageSnapshotSchemaV5";
 import { backendLibrary } from "@qrk.sh/bricks/modules/backendLibrary";
 import type { ReactNode } from "react";
 
 export function WallViewer(props: {
-  snapshot: typeof PageSnapshotSchemaV4.Type;
+  snapshot: typeof PageSnapshotSchemaV5.Type;
   breakpoint: keyof typeof wallBreakpointWidths;
   brickGap: number;
   renderBrick: (
-    brick: (typeof PageSnapshotSchemaV4.Type.bricks)[number],
-    placement: (typeof PageSnapshotSchemaV4.Type.walls)[number]["sections"][number]["stacks"][number]["rows"][number]["placements"][number],
+    brick: (typeof PageSnapshotSchemaV5.Type.bricks)[number],
+    placement: (typeof PageSnapshotSchemaV5.Type.walls)[number]["sections"][number]["stacks"][number]["rows"][number]["placements"][number],
   ) => ReactNode;
 }) {
   const { snapshot, breakpoint, brickGap, renderBrick } = props;

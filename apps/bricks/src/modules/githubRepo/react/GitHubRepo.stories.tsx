@@ -11,6 +11,7 @@ import { repoDescriptionView } from "./GitHubRepo/components/RepoDescription";
 import { repoStarsView } from "./GitHubRepo/components/RepoStars";
 import { repoForksView } from "./GitHubRepo/components/RepoForks";
 import { repoLanguageView } from "./GitHubRepo/components/RepoLanguage";
+import illustrationUrl from "./story-illustration.svg?url";
 
 const meta = {
   title: "Modules/GitHub Repo",
@@ -20,6 +21,7 @@ const meta = {
     const { fixture } = props;
     return (
       <BrickStory
+        illustrationUrl={illustrationUrl}
         key={fixture}
         definition={githubRepoV1}
         view={githubRepoView}

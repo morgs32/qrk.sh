@@ -18,8 +18,8 @@ import { useLiveQuery, useSession } from "@zerospin/react";
 import { makeId, makeIdSchema, stageAggregateSessionCommand } from "@zerospin/sdk/browser";
 import { pageV1 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV1";
 import { siteV1 as Site } from "@qrk.sh/zerospin/src/aggregates/user/models/site/SiteV1";
-import { pageSnapshotV4 as PageSnapshot } from "@qrk.sh/zerospin/src/aggregates/user/models/pageSnapshot/PageSnapshotV4";
-import { makePageSnapshotV4 } from "@qrk.sh/zerospin/src/aggregates/user/snapshots/makePageSnapshotV4";
+import { pageSnapshotV5 as PageSnapshot } from "@qrk.sh/zerospin/src/aggregates/user/models/pageSnapshot/PageSnapshotV5";
+import { makePageSnapshotV5 } from "@qrk.sh/zerospin/src/aggregates/user/snapshots/makePageSnapshotV5";
 import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
 import { WorkspaceSidebar } from "../WorkspaceSidebar";
@@ -66,7 +66,8 @@ export default function WorkspacePanelControls(props: {
   const savedContent =
     page === undefined
       ? null
-      : makePageSnapshotV4({
+      : makePageSnapshotV5({
+          preferredRowSizing: true,
           page,
           bricks: page.bricks,
           walls: page.walls,

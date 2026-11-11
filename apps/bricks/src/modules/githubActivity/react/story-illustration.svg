@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 264 168">
+  <rect width="264" height="168" rx="20" fill="#E0F2E5"/>
+  <rect x="23" y="25" width="218" height="118" rx="13" fill="#FAFFFB"/>
+  <path d="M42 47h65" stroke="#24523A" stroke-width="6" stroke-linecap="round"/>
+  <path d="M173 124h12m9 0h12m9 0h8" stroke="#84AD8E" stroke-width="4" stroke-linecap="round"/>
+  <defs>
+    <pattern id="cells" x="42" y="65" width="15" height="12" patternUnits="userSpaceOnUse">
+      <rect width="11" height="9" rx="2" fill="#E2EBE4"/>
+    </pattern>
+  </defs>
+  <rect x="42" y="65" width="181" height="45" fill="url(#cells)"/>
+  <g fill="#A7E0AF">
+    <rect x="42" y="77" width="11" height="9" rx="2"/><rect x="72" y="89" width="11" height="9" rx="2"/>
+    <rect x="102" y="65" width="11" height="9" rx="2"/><rect x="132" y="101" width="11" height="9" rx="2"/>
+    <rect x="177" y="77" width="11" height="9" rx="2"/><rect x="207" y="89" width="11" height="9" rx="2"/>
+  </g>
+  <g fill="#5DBD76">
+    <rect x="57" y="89" width="11" height="9" rx="2"/><rect x="87" y="77" width="11" height="9" rx="2"/>
+    <rect x="117" y="77" width="11" height="9" rx="2"/><rect x="147" y="89" width="11" height="9" rx="2"/>
+    <rect x="162" y="65" width="11" height="9" rx="2"/><rect x="192" y="101" width="11" height="9" rx="2"/>
+  </g>
+  <g fill="#238048">
+    <rect x="117" y="89" width="11" height="9" rx="2"/><rect x="147" y="77" width="11" height="9" rx="2"/>
+    <rect x="162" y="77" width="11" height="9" rx="2"/><rect x="192" y="89" width="11" height="9" rx="2"/>
+  </g>
+</svg>

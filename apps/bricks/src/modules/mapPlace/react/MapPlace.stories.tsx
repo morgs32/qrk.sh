@@ -3,6 +3,7 @@ import { BrickStory } from "../../../../.storybook/BrickStory";
 import { mapPlaceV1 } from "../definition/mapPlaceV1";
 import { mapPlaceView } from "./mapPlaceView";
 import { mapCanvasView } from "./MapCanvas";
+import illustrationUrl from "./story-illustration.svg?url";
 
 const meta = {
   title: "Modules/Map Place",
@@ -12,6 +13,7 @@ const meta = {
     const { fixture } = props;
     return (
       <BrickStory
+        illustrationUrl={illustrationUrl}
         key={fixture}
         definition={mapPlaceV1}
         view={mapPlaceView}

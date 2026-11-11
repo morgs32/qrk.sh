@@ -5,6 +5,7 @@ import { imageView } from "./imageView";
 import { MediaFooter } from "../../../components/MediaFooter";
 import { imageCardView } from "./ImageCard";
 import { imageCoverView } from "./ImageCover";
+import illustrationUrl from "./story-illustration.svg?url";
 
 const meta = {
   title: "Modules/Image",
@@ -14,6 +15,7 @@ const meta = {
     const { fixture } = props;
     return (
       <BrickStory
+        illustrationUrl={illustrationUrl}
         key={fixture}
         definition={imageV2}
         view={imageView}

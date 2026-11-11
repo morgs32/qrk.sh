@@ -4,6 +4,7 @@ import { swatchAndIconV1 } from "../definition/swatchAndIconV1";
 import { swatchAndIconView } from "./swatchAndIconView";
 import { iconSvgGraphicView } from "./SwatchAndIcon/components/IconSvgGraphic";
 import { swatchAndIconColorView } from "./SwatchAndIcon/components/SwatchAndIconColor";
+import illustrationUrl from "./story-illustration.svg?url";
 
 const meta = {
   title: "Modules/Swatch and Icon",
@@ -13,6 +14,7 @@ const meta = {
     const { fixture } = props;
     return (
       <BrickStory
+        illustrationUrl={illustrationUrl}
         key={fixture}
         definition={swatchAndIconV1}
         view={swatchAndIconView}

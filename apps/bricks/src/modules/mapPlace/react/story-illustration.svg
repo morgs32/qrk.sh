@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 264 168">
+  <rect width="264" height="168" rx="20" fill="#E5EDE0"/>
+  <clipPath id="map"><rect width="264" height="168" rx="20"/></clipPath>
+  <g clip-path="url(#map)">
+    <path d="M177-8q-41 39-2 74t-5 111h39q38-72-7-117t12-68z" fill="#B7D9EB"/>
+    <path d="m17 34 51-8 7 40-50 10zm74 82 40 8-5 38-44-7zm126-31 40 8 2 42-39-12z" fill="#C6DEBA"/>
+    <path d="M-9 92 155 61m-92-70 34 184M-5 134l165-32m-51-111 11 64m31 68-9 53M208 43l64-12m-48 18 40 104M9 3l22 168" fill="none" stroke="#FAF9EC" stroke-width="6"/>
+    <path d="M-10 106q88-11 169-31t115-18" fill="none" stroke="#EAC983" stroke-width="8"/>
+  </g>
+  <path d="M151 68c0 14-19 32-19 32s-19-18-19-32a19 19 0 1 1 38 0z" fill="#23574B" stroke="#F5FAEB" stroke-width="2"/>
+  <circle cx="132" cy="68" r="6.5" fill="#F5FAEB"/>
+</svg>

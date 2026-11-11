@@ -24,12 +24,13 @@ const BREAKPOINTS = [
 ];
 
 export function BrickStory<STATE_SHAPE extends IShape>(props: {
+  illustrationUrl: string;
   definition: { id: string; stateShape: STATE_SHAPE };
   view: IModule<string>;
   fixture?: "configured" | "unconfigured";
   renderSketch: (state: IInferDecodedRow<STATE_SHAPE>) => ReactNode;
 }) {
-  const { definition, view, fixture = "configured", renderSketch } = props;
+  const { illustrationUrl, definition, view, fixture = "configured", renderSketch } = props;
   const { Form, Render } = view;
   const variant = view.variants.default;
   const [moduleState, setModuleState] = useState<unknown>(() =>
@@ -81,8 +82,15 @@ export function BrickStory<STATE_SHAPE extends IShape>(props: {
     <SWRConfig value={(config) => ({ ...config, uploadImage })}>
       <div className="qrk-bricks flex h-dvh bg-zinc-50 text-neutral-950">
         <main ref={preview} className="min-w-0 flex-1 overflow-y-auto">
-          <header className="flex justify-end px-5 py-4">
-            <label htmlFor={cardsId} className="flex items-center gap-2 text-sm">
+          <header className="flex items-start justify-between gap-3 px-5 py-4">
+            <img
+              src={illustrationUrl}
+              alt=""
+              width={264}
+              height={168}
+              className="h-auto min-w-0 max-w-full"
+            />
+            <label htmlFor={cardsId} className="flex shrink-0 items-center gap-2 text-sm">
               <Checkbox id={cardsId} checked={cardStyle} onCheckedChange={setCardStyle} />
               Cards
             </label>

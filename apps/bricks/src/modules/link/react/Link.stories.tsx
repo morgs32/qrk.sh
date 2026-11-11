@@ -12,6 +12,7 @@ import { linkHeroImageView } from "./LinkHeroImage";
 import { linkReactRegistry } from "./LinkJsonRenderRegistry";
 import { LinkLineIcon } from "./LinkLineIcon";
 import { LinkPlaceholder } from "./LinkPlaceholder";
+import illustrationUrl from "./story-illustration.svg?url";
 
 async function lookupLinkPreview(url: string, signal: AbortSignal) {
   signal.throwIfAborted();
@@ -48,6 +49,7 @@ const meta = {
     const { fixture } = props;
     return (
       <BrickStory
+        illustrationUrl={illustrationUrl}
         key={fixture}
         definition={linkV1}
         view={view}

@@ -1,5 +1,6 @@
 import type { Spec } from "@json-render/core";
 import type { RpcTarget } from "capnweb";
+import type { behanceImportSchema } from "../modules/behance/definition/behanceSchemas";
 
 import type {
   IFigmaFilePreviewPayload,
@@ -23,6 +24,8 @@ export declare class BricksApi extends RpcTarget {
     state: unknown,
     currentSpec: Spec | null,
   ): Promise<IRpcEither<Spec>>;
+
+  getBehanceProfile(url: string): Promise<IRpcEither<typeof behanceImportSchema.Type>>;
 
   getInstagramProfile(url: string): Promise<IRpcEither<IInstagramScrapePayload>>;
 

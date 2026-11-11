@@ -124,6 +124,13 @@ may retain their old resolution fields; current readers ignore them. A saved
 configuration is committed. No history or rows are reset or rewritten by this cleanup. State saves
 still preserve layout/specs and never capture preview dimensions.
 
+Behance imports a public profile and project candidates through Bricks API.
+Choose up to four projects and save to update the Brick. The saved selection
+supplies the portfolio on every Wall and in the Page snapshot. A failed import
+leaves the saved selection in place. Buy Me a Coffee saves a creator page URL
+and an optional message. Its button opens the creator's hosted support page.
+Both modules require the User V12 release for canonical writes.
+
 Swatch and Icon retains the selected `{ hash, name, svg }` from paged icon search.
 SVG data URLs are derived for presentation. Choosing an icon saves immediately
 with the latest saved color. Color edits save at the end of a picker gesture or
@@ -147,7 +154,9 @@ App Storybook also discovers the colocated Brick stories.
 
 Each **Modules / <module> / Breakpoint Previews** story compares the module's
 JSX sketch with JSON Render at sm, md, lg, and xl. All four widths use the same
-example state and active spec. The 320px StudioSidebar uses shadcn line tabs
+example state and active spec. Each module's Storybook illustration sits at the
+top of its stories and lives beside them as `story-illustration.svg`.
+The 320px StudioSidebar uses shadcn line tabs
 on Base UI and is capped at half the preview width. **Configure** shows the
 module's form and cancels pending work when the tab closes. **Generate Spec** sends
 a prompt through the API and previews the resulting spec. **Reset to default**

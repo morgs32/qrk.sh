@@ -42,7 +42,9 @@ files are retained, and Nx discovers no Library project or dependency cycle.
 Module Forms and their lookup controls use the shared controls in
 [`components/FormInputs`](../components/FormInputs). Use `Input` for text, URL,
 search, and file fields and `ColorInput` for a hex field with a color picker.
-The Style Inspector Sidebar story shows these controls under Styles.
+The Style Inspector Sidebar story shows these controls under Styles. Use the
+`form-input-label` utility for visible field labels. The shared field tokens in
+`app/globals.css` also style the Style Inspector inputs.
 
 QRK-owned forms set `autoComplete="off"`. The shared Input and native article
 title/subtitle, hex color, and State JSON fields also set `autoComplete="off"`

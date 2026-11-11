@@ -2,7 +2,7 @@
 
 import "@fontsource/silkscreen/400.css";
 import { Menu } from "@base-ui/react/menu";
-import { ArrowLeft, ArrowRight, ChevronDown } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, ChevronDown } from "lucide-react";
 import type { IInferModelRow } from "@zerospin/core/models/types";
 import {
   makeId,
@@ -47,7 +47,6 @@ import {
   wallBreakpointWidths,
 } from "@qrk.sh/zerospin/src/aggregates/user/layout/wallSizing";
 
-import { Button } from "../../components/ui/button";
 import { StackAction } from "../../components/StackAction";
 import { BrickWrapper } from "../../components/brick/BrickWrapper";
 import { WallPlacement } from "./WallPlacement";
@@ -926,28 +925,22 @@ export function WallEditor(props: {
                             {onEditStack === undefined ? (
                               <span className="min-w-0 truncate">{stack.name}</span>
                             ) : (
-                              <Button
+                              <button
                                 type="button"
-                                variant="ghost"
                                 aria-label={`Edit stack ${stack.name}`}
                                 onClick={() => onEditStack(stack.id)}
-                                className="h-7 min-w-0 shrink rounded-none px-0 text-xs font-normal text-white hover:bg-transparent hover:text-white"
+                                className="wall-action-tag-button min-w-0 shrink"
                               >
                                 <span className="truncate">{stack.name}</span>
-                              </Button>
+                              </button>
                             )}
                             <Menu.Root>
                               <Menu.Trigger
-                                render={
-                                  <Button
-                                    variant="ghost"
-                                    className="h-7 w-3.5 shrink-0 rounded-none p-0 text-white hover:bg-transparent hover:text-white"
-                                  />
-                                }
+                                className="wall-action-tag-button shrink-0"
                                 aria-label={`Stack ${stack.name} actions`}
                               >
                                 <ChevronDown
-                                  className="size-3.5"
+                                  className="wall-action-tag-chevron"
                                   strokeWidth={1.5}
                                   aria-hidden="true"
                                 />
@@ -959,13 +952,13 @@ export function WallEditor(props: {
                                   sideOffset={0}
                                   className="z-[90]"
                                 >
-                                  <Menu.Popup className="w-max min-w-[90px] max-w-[var(--available-width)] max-h-[var(--available-height)] overflow-y-auto rounded-none border border-[#dedede] bg-white p-0 font-mono text-[15px] leading-[18px] font-normal text-[#111] shadow-[2px_3px_0_#0005] outline-none">
+                                  <Menu.Popup className="wall-action-menu">
                                     <Menu.Item
                                       disabled={!canInsert}
                                       title={
                                         canInsert ? undefined : "Not enough space in this Section"
                                       }
-                                      className="flex min-h-5 cursor-pointer items-center gap-2 px-0.5 py-px outline-none data-[highlighted]:bg-[color-mix(in_srgb,#fff,#111_6%)] data-[disabled]:cursor-default data-[disabled]:opacity-40"
+                                      className="wall-action-menu-item"
                                       onClick={() =>
                                         stageAggregateSessionCommand({
                                           session,
@@ -987,7 +980,7 @@ export function WallEditor(props: {
                                       title={
                                         canInsert ? undefined : "Not enough space in this Section"
                                       }
-                                      className="flex min-h-5 cursor-pointer items-center gap-2 px-0.5 py-px outline-none data-[highlighted]:bg-[color-mix(in_srgb,#fff,#111_6%)] data-[disabled]:cursor-default data-[disabled]:opacity-40"
+                                      className="wall-action-menu-item"
                                       onClick={() =>
                                         stageAggregateSessionCommand({
                                           session,
@@ -1303,31 +1296,64 @@ export function WallEditor(props: {
                                     )}
                                   </div>
                                 </div>
-                                {row.placements.length > 0 && !nativeDragActive && (
-                                  <div
-                                    className="wall-row-alignment"
-                                    role="group"
-                                    aria-label="Row alignment"
-                                  >
-                                    {(
-                                      ["left", "center", "right"] satisfies (typeof row.alignment)[]
-                                    ).map((alignment) => (
-                                      <button
-                                        key={alignment}
-                                        type="button"
-                                        aria-pressed={row.alignment === alignment}
-                                        onClick={() =>
-                                          stageAggregateSessionCommand({
-                                            session,
-                                            contractName: "setRowAlignment",
-                                            payload: { wallId: wall.id, rowId: row.id, alignment },
-                                          })
-                                        }
+                                {!nativeDragActive && rowReadout?.kind !== "height" && (
+                                  <Menu.Root>
+                                    <Menu.Trigger
+                                      aria-label="Row alignment"
+                                      className="wall-row-menu-trigger wall-action-tag wall-action-tag-button"
+                                    >
+                                      Row
+                                      <ChevronDown
+                                        className="wall-action-tag-chevron"
+                                        strokeWidth={1.5}
+                                        aria-hidden="true"
+                                      />
+                                    </Menu.Trigger>
+                                    <Menu.Portal>
+                                      <Menu.Positioner
+                                        side="bottom"
+                                        align="start"
+                                        sideOffset={0}
+                                        className="z-[90]"
                                       >
-                                        {alignment}
-                                      </button>
-                                    ))}
-                                  </div>
+                                        <Menu.Popup className="wall-action-menu">
+                                          <Menu.RadioGroup
+                                            value={row.alignment}
+                                            aria-label="Alignment"
+                                          >
+                                            {(
+                                              ["left", "center", "right"] satisfies (typeof row.alignment)[]
+                                            ).map((alignment) => (
+                                              <Menu.RadioItem
+                                                key={alignment}
+                                                value={alignment}
+                                                closeOnClick
+                                                className="wall-action-menu-item capitalize"
+                                                onClick={() =>
+                                                  stageAggregateSessionCommand({
+                                                    session,
+                                                    contractName: "setRowAlignment",
+                                                    payload: {
+                                                      wallId: wall.id,
+                                                      rowId: row.id,
+                                                      alignment,
+                                                    },
+                                                  })
+                                                }
+                                              >
+                                                <span className="size-4 shrink-0" aria-hidden="true">
+                                                  <Menu.RadioItemIndicator>
+                                                    <Check className="size-4" />
+                                                  </Menu.RadioItemIndicator>
+                                                </span>
+                                                {alignment}
+                                              </Menu.RadioItem>
+                                            ))}
+                                          </Menu.RadioGroup>
+                                        </Menu.Popup>
+                                      </Menu.Positioner>
+                                    </Menu.Portal>
+                                  </Menu.Root>
                                 )}
                                 <span
                                   aria-hidden="true"
@@ -1348,13 +1374,9 @@ export function WallEditor(props: {
                                     event.stopPropagation();
                                   }}
                                 >
-                                  {rowReadout?.kind === "height" ? (
+                                  {rowReadout?.kind === "height" && (
                                     <span data-wall-resize-readout className="wall-resize-readout">
                                       {`${Math.round(rowReadout.height)} px`}
-                                    </span>
-                                  ) : (
-                                    <span className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 rounded bg-white px-1 text-[11px] leading-4 text-zinc-600">
-                                      Row
                                     </span>
                                   )}
                                 </span>

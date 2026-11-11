@@ -383,8 +383,11 @@ overridden the saved proportions. Gap padding stays outside those measurements.
 The outlined outer width grip changes the whole Brick group. The opposite
 edge stays anchored for Left and Right alignment, and the group stays centered
 for Center alignment. The readout shows the occupied width including interior
-gaps. Empty space remains available for drops. Alignment and preferred width
-save independently through `setRowAlignment` and `setRowPreferredWidth`.
+gaps. Empty space remains available for drops. The Row tag sits flush with the
+bottom edge beside the height grip and opens a menu for Left, Center, or Right
+alignment. Row and Stack tags share their sizing tokens and menu styles.
+Alignment and preferred width save independently through `setRowAlignment`
+and `setRowPreferredWidth`.
 
 The bottom grip straddles the Row's bottom edge and changes its shared surface
 height. Module minimums and natural content constrain the result. Release saves

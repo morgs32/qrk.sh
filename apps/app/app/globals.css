@@ -53,6 +53,18 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
+@theme static {
+  --color-form-input: oklch(0.97 0 0);
+  --radius-form-input: 9px;
+  --spacing-form-input: 28px;
+}
+
+@utility form-input-label {
+  &:is(label, span) {
+    @apply font-mono text-[10px] leading-none font-normal tracking-wide text-black uppercase;
+  }
+}
+
 :root {
   --radius: 0.625rem;
   --background: oklch(1 0 0);

@@ -27,12 +27,14 @@ export function InspectorNumberField(props: {
     >
       <NumberField.Group
         render={
-          <InputGroup className="h-7 rounded-[9px] border-0 bg-neutral-100 shadow-none dark:bg-neutral-100" />
+          <InputGroup className="h-(--spacing-form-input) rounded-(--radius-form-input) border-0 bg-form-input shadow-none dark:bg-form-input" />
         }
       >
         {leadingIcon ? <InputGroupAddon className="pl-2">{leadingIcon}</InputGroupAddon> : null}
         <NumberField.Input
-          render={<InputGroupInput className="h-7 px-2 py-0 text-xs leading-4 md:text-xs" />}
+          render={
+            <InputGroupInput className="h-(--spacing-form-input) px-2 py-0 text-xs leading-4 md:text-xs" />
+          }
           aria-label={label}
           onFocus={selectOnFocus ? (event) => event.currentTarget.select() : undefined}
         />

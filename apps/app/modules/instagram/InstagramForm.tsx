@@ -106,7 +106,7 @@ export function InstagramForm(props: {
         }
       }}
     >
-      <label className="font-medium" htmlFor={inputId}>
+      <label className="form-input-label" htmlFor={inputId}>
         Instagram profile URL or username
       </label>
       <Input

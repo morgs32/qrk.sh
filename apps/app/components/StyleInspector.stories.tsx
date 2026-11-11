@@ -46,13 +46,13 @@ export const Sidebar: StoryObj<typeof meta> = {
             { label: "Search", type: "search", placeholder: "Search" },
             { label: "File", type: "file" },
           ].map(({ label, type, placeholder }) => (
-            <label key={type} className="grid gap-1.5 text-xs text-black">
-              {label}
+            <label key={type} className="grid gap-1.5">
+              <span className="form-input-label">{label}</span>
               <Input type={type} placeholder={placeholder} />
             </label>
           ))}
           <div className="grid gap-1.5">
-            <span className="text-xs text-black">Color</span>
+            <span className="form-input-label">Color</span>
             <ColorInput
               value={color}
               pickerColor={pickerColor}

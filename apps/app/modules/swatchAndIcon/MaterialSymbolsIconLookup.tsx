@@ -96,7 +96,7 @@ export function MaterialSymbolsIconLookup(props: {
         <Input
           aria-label="Search icons"
           autoComplete="off"
-          className="h-9 pl-8"
+          className="pl-8"
           onChange={(event) => {
             setQuery(event.target.value);
           }}

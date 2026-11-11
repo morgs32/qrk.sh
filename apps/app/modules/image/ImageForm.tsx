@@ -152,7 +152,7 @@ export function ImageForm(props: {
         </div>
       ) : null}
       <div className="flex flex-col gap-2">
-        <label className="font-medium" htmlFor={`${inputId}-image-url`}>
+        <label className="form-input-label" htmlFor={`${inputId}-image-url`}>
           Image URL
         </label>
         <Input
@@ -169,7 +169,7 @@ export function ImageForm(props: {
         />
       </div>
       <div className="flex flex-col gap-2">
-        <label className="font-medium" htmlFor={`${inputId}-title`}>
+        <label className="form-input-label" htmlFor={`${inputId}-title`}>
           Title
         </label>
         <Input

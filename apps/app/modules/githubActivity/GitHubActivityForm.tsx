@@ -115,7 +115,7 @@ export function GitHubActivityForm(props: {
         }
       }}
     >
-      <label className="font-medium" htmlFor={inputId}>
+      <label className="form-input-label" htmlFor={inputId}>
         GitHub profile URL or username
       </label>
       <Input

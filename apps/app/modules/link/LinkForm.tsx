@@ -107,7 +107,7 @@ export function LinkForm(props: {
         }
       }}
     >
-      <label className="text-sm font-medium leading-none" htmlFor={inputId}>
+      <label className="form-input-label" htmlFor={inputId}>
         Link URL
       </label>
       <Input

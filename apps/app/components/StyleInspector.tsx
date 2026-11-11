@@ -45,8 +45,7 @@ export function StyleInspector(props: {
 
   const typography = "font-[Geist_Variable,Arial,sans-serif] text-xs text-neutral-950";
   const styleRow = "grid grid-cols-[minmax(0,1fr)_28px] items-center gap-x-1 gap-y-2";
-  const styleLabel =
-    "col-span-2 font-mono text-[10px] font-normal tracking-wide text-black uppercase";
+  const styleLabel = "form-input-label col-span-2";
   const dimensions = [
     { name: "Row", dimension: "Width", Icon: Rows3 },
     { name: "Stack", dimension: "Height", Icon: Layers },
@@ -56,8 +55,9 @@ export function StyleInspector(props: {
   const tab =
     "h-10 flex-none gap-1.5 rounded-none border-b-2 border-transparent px-0 py-0 font-mono text-xs data-[state=active]:border-neutral-900 data-[state=active]:bg-transparent data-[state=active]:font-semibold data-[state=active]:shadow-none dark:data-[state=active]:bg-transparent";
   const label = "text-xs font-normal text-black";
-  const field = "h-7 rounded-[9px] border-0 bg-neutral-100 shadow-none dark:bg-neutral-100";
-  const fieldInput = "h-7 px-2 py-0 text-xs leading-4 md:text-xs";
+  const field =
+    "h-(--spacing-form-input) rounded-(--radius-form-input) border-0 bg-form-input shadow-none dark:bg-form-input";
+  const fieldInput = "h-(--spacing-form-input) px-2 py-0 text-xs leading-4 md:text-xs";
   const numberInput =
     "[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
   const iconButton =

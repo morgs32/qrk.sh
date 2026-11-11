@@ -176,7 +176,7 @@ export function GooglePlaceLookup(props: { value: string; onChange: (value: stri
           aria-expanded={isOpen}
           aria-label="googlePlaceId"
           autoComplete="off"
-          className="h-9 pl-8 pr-8"
+          className="pl-8 pr-8"
           onChange={(event) => {
             activeSuggestions.current?.abort();
             activeSuggestions.current = null;

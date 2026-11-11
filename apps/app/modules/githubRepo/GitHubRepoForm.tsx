@@ -101,7 +101,7 @@ export function GitHubRepoForm(props: {
         }
       }}
     >
-      <label className="font-medium" htmlFor={inputId}>
+      <label className="form-input-label" htmlFor={inputId}>
         GitHub repository URL
       </label>
       <Input

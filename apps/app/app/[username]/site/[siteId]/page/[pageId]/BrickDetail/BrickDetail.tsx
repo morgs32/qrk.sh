@@ -13,6 +13,7 @@ import { makeIdSchema, stageAggregateSessionCommand } from "@zerospin/sdk/browse
 import { useLiveQuery, useSession } from "@zerospin/react";
 import { Schema } from "effect";
 import { useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 import { useValidatedParams } from "@/hooks/useValidatedParams";
 import { BrickWrapper } from "../../../../../../../modules/components/brick/BrickWrapper";
@@ -43,6 +44,7 @@ export function BrickDetail() {
   const router = useRouter();
   const location = useLocation();
   const [editorEpoch, setEditorEpoch] = useState(0);
+  const [headerActions, setHeaderActions] = useState<HTMLElement | null>(null);
   const navigationPending = useRef(false);
   const currentPlacementId = useRef<string | null>(null);
   const brickId = isBrickId(params.brickId) ? params.brickId : null;
@@ -77,6 +79,11 @@ export function BrickDetail() {
   const brickRow = brickQuery.data;
   const placement = placementQuery.data;
   const placementId = placement?.id ?? null;
+  useLayoutEffect(() => {
+    const target = document.getElementById("brick-editor-header-actions");
+    if (target === null) throw new Error("Missing Brick editor header actions");
+    setHeaderActions(target);
+  }, []);
   useLayoutEffect(() => {
     navigationPending.current = false;
     currentPlacementId.current = placementId;
@@ -117,16 +124,20 @@ export function BrickDetail() {
       )(rawSpec))
       ? rawSpec
       : undefined;
+  const unavailable =
+    brick === undefined ||
+    BrickComponent === undefined ||
+    brickRow === undefined ||
+    placement === undefined ||
+    entry === undefined ||
+    view === undefined ||
+    spec === undefined;
+  if (!unavailable && brick.hasInlineEditor) return null;
+
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
       <div className="min-h-0 flex-1 overflow-y-auto pb-6">
-        {!brick ||
-        !BrickComponent ||
-        brickRow === undefined ||
-        placement === undefined ||
-        entry === undefined ||
-        view === undefined ||
-        spec === undefined ? (
+        {unavailable ? (
           <div className="px-6 pt-6">
             <h1 className="mb-2 mt-8 text-4xl tracking-tight">Brick not found</h1>
             <p className="text-muted-foreground">
@@ -140,6 +151,9 @@ export function BrickDetail() {
                 <Form
                   key={`${placement.id}:${editorEpoch}`}
                   state={formState}
+                  renderActions={(actions) =>
+                    headerActions === null ? null : createPortal(actions, headerActions)
+                  }
                   onSave={(state) => {
                     if (navigationPending.current || currentPlacementId.current !== placement.id) {
                       throw new DOMException("Brick editor navigation started", "AbortError");
@@ -175,6 +189,7 @@ export function BrickDetail() {
                     className={site.cardStyle ? "brick-surface-card" : undefined}
                   >
                     <BrickComponent
+                      mode="view"
                       variantId={placement.variantId}
                       state={brickRow.state}
                       spec={spec}

@@ -168,6 +168,9 @@ export function DrawerHeader() {
       <div className="ml-auto flex shrink-0 items-center gap-3">
         {isSiteSettings ? <div id="site-settings-header-actions" /> : null}
         {isPageSettings ? <div id="page-settings-header-actions" /> : null}
+        {params.brickId !== undefined ? (
+          <div id="brick-editor-header-actions" className="empty:hidden" />
+        ) : null}
         {canPublishPage || canPublishUpdates ? (
           <Button
             type="button"

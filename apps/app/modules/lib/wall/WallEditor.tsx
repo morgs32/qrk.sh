@@ -33,6 +33,7 @@ import {
   useRef,
   useState,
   type CSSProperties,
+  type ReactNode,
 } from "react";
 import { brickV2 } from "@qrk.sh/zerospin/src/aggregates/user/models/brick/BrickV2";
 import { wallV3 } from "@qrk.sh/zerospin/src/aggregates/user/models/wall/WallV3";
@@ -77,8 +78,10 @@ export function WallEditor(props: {
   selectedStackId?: string | null;
   onEditBrick?: (brickId: string) => void;
   onEditStack?: (stackId: string) => void;
+  renderBrickDrawer?: (brickId: string, content: ReactNode) => ReactNode;
 }) {
-  const { wallId, selectedBrickId, selectedStackId, onEditBrick, onEditStack } = props;
+  const { wallId, selectedBrickId, selectedStackId, onEditBrick, onEditStack, renderBrickDrawer } =
+    props;
   const wallRef = useRef<HTMLDivElement>(null);
   const moveIndicatorRef = useRef<HTMLDivElement>(null);
   const shadowTargetRef = useRef<typeof wallInsertionTargetSchema.Type | null>(null);
@@ -698,6 +701,9 @@ export function WallEditor(props: {
                       container.style.color = appearance.color;
                       const copy = surface.cloneNode(true);
                       if (!(copy instanceof HTMLElement)) throw new Error("Missing Brick preview");
+                      if (copy.hasAttribute("data-wall-inline-editor")) {
+                        copy.querySelector(".brick-content")?.replaceChildren();
+                      }
                       copy.style.width = `${rect.width}px`;
                       copy.style.height = `${rect.height}px`;
                       container.append(copy);
@@ -1136,6 +1142,8 @@ export function WallEditor(props: {
                                       const brick = placement.brick;
                                       const module = modulesHash[brick.moduleId];
                                       const Component = module.component;
+                                      const inStudio =
+                                        onEditBrick !== undefined && renderBrickDrawer !== undefined;
                                       return (
                                         <Fragment key={placement.id}>
                                           {dropTarget?.kind === "row" &&
@@ -1157,6 +1165,11 @@ export function WallEditor(props: {
                                                 isNonEmptySpec(placement.spec) ? (
                                                   <BrickWrapper
                                                     borderWidth={brick.borderWidth}
+                                                    data-wall-inline-editor={
+                                                      inStudio && module.hasInlineEditor
+                                                        ? ""
+                                                        : undefined
+                                                    }
                                                     className={
                                                       wall.page.site.cardStyle
                                                         ? "brick-surface-card"
@@ -1164,6 +1177,14 @@ export function WallEditor(props: {
                                                     }
                                                   >
                                                     <Component
+                                                      {...(inStudio
+                                                        ? {
+                                                            mode: "studio",
+                                                            onFocus: () => onEditBrick(brick.id),
+                                                            renderDrawer: (content) =>
+                                                              renderBrickDrawer(brick.id, content),
+                                                          }
+                                                        : { mode: "view" })}
                                                       state={brick.state}
                                                       variantId={placement.variantId}
                                                       spec={

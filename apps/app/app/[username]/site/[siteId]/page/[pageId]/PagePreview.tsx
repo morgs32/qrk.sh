@@ -6,6 +6,8 @@ import { pageV1 } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV1"
 import { siteV1 } from "@qrk.sh/zerospin/src/aggregates/user/models/site/SiteV1";
 import { useLiveQuery, useSession } from "@zerospin/react";
 import { Schema } from "effect";
+import { useLayoutEffect, useState } from "react";
+import { createPortal } from "react-dom";
 
 import { BREAKPOINTS, PREVIEW_BORDER_WIDTH } from "../../../../../../modules/lib/breakpoints";
 import { BrowserChrome } from "../../../../../../modules/lib/BrowserChrome";
@@ -18,6 +20,14 @@ export function PagePreview(props: { breakpoint: (typeof BREAKPOINTS)[number] })
   const { breakpoint } = props;
   const navigate = useNavigate();
   const { brickId: selectedBrickId, stackId: selectedStackId } = useParams({ strict: false });
+  const [brickDrawer, setBrickDrawer] = useState<HTMLElement | null>(null);
+  useLayoutEffect(() => {
+    setBrickDrawer(
+      selectedBrickId === undefined
+        ? null
+        : document.getElementById(`brick-editor-drawer-${selectedBrickId}`),
+    );
+  }, [selectedBrickId]);
   const session = useSession(userSessionDefinition);
   const params = useValidatedParams(
     Schema.Struct({
@@ -61,6 +71,11 @@ export function PagePreview(props: { breakpoint: (typeof BREAKPOINTS)[number] })
         wallId={wall.id}
         selectedBrickId={selectedBrickId}
         selectedStackId={selectedStackId}
+        renderBrickDrawer={(brickId, content) =>
+          brickDrawer?.id === `brick-editor-drawer-${brickId}` && brickId === selectedBrickId
+            ? createPortal(content, brickDrawer)
+            : null
+        }
         onEditStack={(stackId) => {
           if (selectedStackId === stackId) return;
           void navigate({
@@ -74,6 +89,11 @@ export function PagePreview(props: { breakpoint: (typeof BREAKPOINTS)[number] })
           });
         }}
         onEditBrick={(brickId) => {
+          if (
+            selectedBrickId === brickId ||
+            document.activeElement?.hasAttribute("data-drawer-restoring-focus")
+          )
+            return;
           void navigate({
             to: "/$username/site/$siteId/page/$pageId/brick/$brickId",
             params: { ...params, brickId },

@@ -48,12 +48,17 @@ login, signup, account, and password flows retain autofill. Private Meowdown pop
 fields, including link editing and code-language search, remain unchanged. The
 application's place and icon search suggestions remain available.
 
-All ten modules own their form. Shared forms receive state, synchronous
-`onSave(state): IResult`, and `onCancel`. They receive no session or Brick identity.
-App stages `updateBrick` and renders saved query state, including optimism and
-rejection rollback. Storybook uses the same forms with local example state.
-Article, Image, and Swatch retain their existing save behavior; image upload
-remains a separate cancellable browser prerequisite. Null forms start blank.
+Module views take `mode: "studio" | "view"`. Studio can render a module-owned
+inline editor in the Placement and let that same editor render drawer controls
+from its draft. Read-only hosts use view mode. The selected Brick’s drawer
+hosts the other modules’ forms.
+
+Manual forms receive state, synchronous `onSave(state): IResult`, `onCancel`,
+and `renderActions`. App renders the module’s Save and Cancel buttons in the
+drawer header. Save submits the native form by ID, preserving validation and
+keyboard submission. App stages `updateBrick` and renders saved query state,
+including optimism and rejection rollback. Storybook supplies local action
+placement and example state. Null forms start blank.
 
 Instagram, GitHub Profile/Activity/Repo, Figma Thumbnail, Link and Map Place
 normalize their draft input and fetch through the existing same-origin `/rpc`
@@ -665,12 +670,12 @@ automatic correction after a resize, discard the old draft and abort its upload.
 Completed R2 objects remain stored.
 Uploaded file bytes remain API-owned and are not included in browser session storage.
 
-## Article editing in the brick drawer
+## Article editing in Studio
 
 The Markdown module uses **Article** and the `article` module ID.
 Article titles and subtitles use the platform system sans-serif font (San
 Francisco on macOS). Body text uses Spectral at 19px with 1.6 line spacing in
-brick previews and the drawer editor, loaded through the module's stylesheet.
+read-only Bricks and the Studio editor, loaded through the module’s stylesheet.
 Code blocks retain their monospace font.
 Its catalog example starts with “Actually good advice,” including
 the introductory paragraphs and numbered criteria. This is a hard rename without
@@ -678,30 +683,27 @@ legacy aliases or data migration; old `text` bricks,
 `TextBrick` specs, and Text command history may no longer load.
 
 Article state stores required `title` and `subtitle` strings separately from the
-nullable Markdown body `content`. The module form uses plain text title/subtitle
-inputs in a centered writing column. Meowdown runs in Hybrid (`focus`) mode,
+nullable Markdown body `content`. The editor uses plain text title and subtitle
+inputs above the body. Both strings can be empty. Meowdown runs in Hybrid (`focus`) mode,
 revealing Markdown syntax near the cursor. Native shortcuts, slash menus, link
 controls, and block handles replace the formatting toolbar; there is no mode switcher.
 Workspace overrides keep `prosemirror-model`, `prosemirror-transform`, and
 `prosemirror-view` on one version each. Editor plugins share node and decoration
 runtime identities; duplicate versions can fail decoration rendering and prevent
 the ProseKit editor from mounting on a clean install.
-Article content has no horizontal padding. Read-only documents use the shared
+The editor and read-only documents use the shared
 `qrk-responsive-insets` class from `bricks.css`: `--qrk-inset-inline` supplies
 16px outer gutters and `--qrk-inset-block` supplies 16px vertical padding.
 When both the document viewport and nearest query container reach 720px, those
 values become 30px and 32px respectively.
-The drawer retains its separate viewport-based insets and existing 660px
-desktop text measure.
 Titles use 32px/36px bold text; subtitles use 18px/24px muted text, with a 12px
-title-to-subtitle gap and 24px before the body. The drawer retains its smaller
-mobile title. These fonts and spacing follow the
+title-to-subtitle gap and 24px before the body. These fonts and spacing follow the
 [Experimental History article](https://www.experimental-history.com/p/the-strangest-idea-in-the-world).
 The body supports Meowdown's native Markdown headings, lists, tasks, quotes,
 code, tables, links, images, and inline formatting. Meowdown's native
 `margin-inline-start: 1lh` reserves the list marker gutter in previews and the
 editor; the shared layer order gives it priority over Tailwind Preflight.
-Underline, colored highlights, and text alignment are not retained. Save decodes the complete state against the module schema. This is a hard schema change without migration or fallback:
+Underline, colored highlights, and text alignment are not retained. The earlier Markdown schema cutover used no migration or fallback:
 old Tiptap Article state, specs, and command history may no longer load. Historical schema cutovers used explicitly approved fresh affected storage;
 retiring the standalone application does not itself authorize further deletion. There is
 no JSON converter or compatibility reader.
@@ -710,27 +712,23 @@ it” as its subtitle. Its body opens with the introductory paragraph, followed 
 all four numbered criteria and the closing paragraph. Generated `ArticleBrick`
 specs bind `/title`, `/subtitle`, and `/content` separately.
 
-Article bricks and previews render their title and subtitle above a client-mounted
-Meowdown MarkdownView in Hide mode. They mount no editor. Links open in a new tab,
-saved image dimensions are retained, and task checkboxes are disabled. Raw HTML
-remains literal Markdown content; arbitrary Markdown round trips can normalize
-source. App's Brick drawer and Storybook's configuration example reuse `ArticleForm`.
-It starts null state from blank title/subtitle/content drafts, owns its Save/Cancel
-controls, and validates Markdown strings plus complete state before the callback.
-Failed saves retain the draft and show an error. Unsaved edits survive session
-echoes; clean forms follow saved props. Cancel remounts the editor to discard
-Markdown edits and canceled undo history. Leaving the Brick discards unsaved
-drafts. Changing the URL breakpoint selects a different Placement and remounts
-the form, discarding that draft and invalidating pending submissions.
+Read-only Articles render their title and subtitle above a client-mounted
+Meowdown MarkdownView in Hide mode. Links open in a new tab, saved image
+dimensions are retained, and task checkboxes are disabled. Raw HTML remains
+literal Markdown content. Markdown round trips can normalize source.
+
+Studio mounts one `ArticleEditor` at the active Placement. An unconfigured Brick
+starts with blank fields. Focusing the Article opens the Brick drawer for
+management actions. Opening and closing the drawer retains the Article draft
+and editor history. Phase 1 keeps Article changes in the mounted editor’s draft.
+Autosave belongs to Phase 2.
 
 Native Meowdown controls retain formatting, selection, undo/redo,
 and image resizing. Drag/drop is blocked and block drag handles are disabled;
 table menus remain usable. Resizing writes width/height into a trailing Markdown
 comment.
-Portaled menus appear above the drawer; their link form cannot submit Article.
-Escape first dismisses an editor control or selection, then closes the drawer.
-`ArticleEditorControl` belongs to the editable module form; read-only previews
-mount no editor.
+Portaled menus appear above the drawer. Escape first dismisses an editor
+control or selection, then closes the drawer.
 
 Article module rendering retains its white shell and clips overflowing content;
 the editor surface does not paint the background. Content changes, image loads,
@@ -738,13 +736,12 @@ and width changes do not write Placement geometry; Rows use natural content heig
 
 Article uploads remain disabled: Meowdown receives no file-persistence handler,
 so it exposes no attachment picker or upload slash command. HTTP(S) images display
-and can be resized in the drawer. Automatic YouTube/X paste conversion and provider
+and can be resized in Studio. Automatic YouTube/X paste conversion and provider
 resolution are disabled in both editor and viewer; ordinary URL pastes remain links.
-Explicit media syntax can display native placeholders. `ArticleForm` owns drafts
-and Save/Cancel. Image's upload environment does not enable Article uploads; Image
-and Site Settings retain their endpoints. App's initialized session owns saved
-durability; Storybook example state lasts only for its mounted story. Consumers load `apps/app/modules/article/article-editor.css`
-alongside `bricks.css` for editor and portaled-control styles.
+Explicit media syntax can display native placeholders. Storybook exercises the
+same Studio renderer with local examples. Consumers load
+`apps/app/modules/article/article-editor.css` alongside `bricks.css` for editor and
+portaled-control styles.
 
 ## Wall publication snapshots
 

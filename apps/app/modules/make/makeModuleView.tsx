@@ -66,7 +66,6 @@ export function makeModuleView<
             state: IInferDecodedRow<MODULE["stateShape"]>,
           ) => IResult<unknown, { message: string }>;
           onCancel: () => void;
-          renderActions: (actions: ReactNode) => ReactNode;
         }) => ReactNode;
         inlineEditor?: never;
       }
@@ -140,19 +139,11 @@ export function makeModuleView<
     state: unknown;
     onSave: (state: unknown) => IResult<unknown, { message: string }>;
     onCancel: () => void;
-    renderActions: (actions: ReactNode) => ReactNode;
   }) {
-    const { state, onSave, onCancel, renderActions } = props;
+    const { state, onSave, onCancel } = props;
     if (EditorForm === undefined) return null;
     const decoded = state === null ? null : decodeState(state, { onExcessProperty: "ignore" });
-    return (
-      <EditorForm
-        state={decoded}
-        onSave={onSave}
-        onCancel={onCancel}
-        renderActions={renderActions}
-      />
-    );
+    return <EditorForm state={decoded} onSave={onSave} onCancel={onCancel} />;
   }
 
   function Brick(props: Parameters<IModule<string>["component"]>[0]) {

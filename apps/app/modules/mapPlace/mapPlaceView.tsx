@@ -11,15 +11,8 @@ export const mapPlaceView = makeModuleView(mapPlaceV1, {
   defaultState: mapPlacePreviewState,
   LineIcon: MapPlaceLineIcon,
   form(props) {
-    const { state, onSave, onCancel, renderActions } = props;
-    return (
-      <MapPlaceForm
-        state={state}
-        onSave={onSave}
-        onCancel={onCancel}
-        renderActions={renderActions}
-      />
-    );
+    const { state, onSave, onCancel } = props;
+    return <MapPlaceForm state={state} onSave={onSave} onCancel={onCancel} />;
   },
   variants: {
     default: {

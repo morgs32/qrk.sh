@@ -53,12 +53,11 @@ inline editor in the Placement and let that same editor render drawer controls
 from its draft. Read-only hosts use view mode. The selected Brick’s drawer
 hosts the other modules’ forms.
 
-Manual forms receive state, synchronous `onSave(state): IResult`, `onCancel`,
-and `renderActions`. App renders the module’s Save and Cancel buttons in the
-drawer header. Save submits the native form by ID, preserving validation and
-keyboard submission. App stages `updateBrick` and renders saved query state,
-including optimism and rejection rollback. Storybook supplies local action
-placement and example state. Null forms start blank.
+Manual forms receive state, synchronous `onSave(state): IResult`, and
+`onCancel`. Each form renders its own Save and Cancel buttons. Save submits the
+native form, preserving validation and keyboard submission. App stages
+`updateBrick` and renders saved query state, including optimism and rejection
+rollback. Storybook supplies example state. Null forms start blank.
 
 Instagram, GitHub Profile/Activity/Repo, Figma Thumbnail, Link and Map Place
 normalize their draft input and fetch through the existing same-origin `/rpc`

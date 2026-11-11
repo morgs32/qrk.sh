@@ -2,7 +2,7 @@
 
 import type { IResult } from "@zerospin/error";
 
-import { useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { useId, useLayoutEffect, useRef, useState } from "react";
 import { Schema } from "effect";
 import { makeEffectSchema } from "@zerospin/shapes";
 import { useSWRConfig } from "swr";
@@ -17,9 +17,8 @@ export function ImageForm(props: {
   state: { imageUrl: string; title: string } | null;
   onSave: (state: { imageUrl: string; title: string }) => IResult<unknown, { message: string }>;
   onCancel: () => void;
-  renderActions: (actions: ReactNode) => ReactNode;
 }) {
-  const { state, onSave, onCancel, renderActions } = props;
+  const { state, onSave, onCancel } = props;
   const { uploadImage } = useSWRConfig();
   const { trigger, isMutating, error, reset } = useSWRMutation(
     "image-upload",
@@ -38,7 +37,6 @@ export function ImageForm(props: {
   const isDirty = state === null || hasUnsavedChanges;
   useWarnBeforeUnload(hasUnsavedChanges || isBusy);
   const inputId = useId();
-  const formId = `${inputId}-form`;
   const fileInput = useRef<HTMLInputElement>(null);
   const activeUpload = useRef<AbortController | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
@@ -93,7 +91,6 @@ export function ImageForm(props: {
 
   return (
     <form
-      id={formId}
       autoComplete="off"
       className="flex w-full flex-col gap-6"
       aria-busy={isBusy}
@@ -187,27 +184,25 @@ export function ImageForm(props: {
           {errorMessage}
         </p>
       ) : null}
-      {renderActions(
-        <div className="flex flex-wrap gap-2">
-          <Button type="submit" form={formId} disabled={!isDirty || isBusy}>
-            Save
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => {
-              activeUpload.current?.abort();
-              activeUpload.current = null;
-              reset();
-              setFormError(null);
-              setDraft(null);
-              onCancel();
-            }}
-          >
-            Cancel
-          </Button>
-        </div>,
-      )}
+      <div className="flex flex-wrap gap-2">
+        <Button type="submit" disabled={!isDirty || isBusy}>
+          Save
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => {
+            activeUpload.current?.abort();
+            activeUpload.current = null;
+            reset();
+            setFormError(null);
+            setDraft(null);
+            onCancel();
+          }}
+        >
+          Cancel
+        </Button>
+      </div>
     </form>
   );
 }

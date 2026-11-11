@@ -11,8 +11,7 @@ import { ClerkOfflineError } from "@clerk/react/errors";
 import { Schema } from "effect";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { isEqual } from "es-toolkit";
-import { useLayoutEffect, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import useSWR from "swr";
 
@@ -106,12 +105,6 @@ export function SiteSettings(props: {
     brickGap: site.brickGap,
     stickyNavbar: site.stickyNavbar,
   }));
-  const [headerActions, setHeaderActions] = useState<HTMLElement | null>(null);
-  useLayoutEffect(() => {
-    const target = document.getElementById("site-settings-header-actions");
-    if (target === null) throw new Error("Missing Site Settings header actions");
-    setHeaderActions(target);
-  }, []);
   const [saveError, setSaveError] = useState<string | null>(null);
   const isDirty = !isEqual(fields, {
     name: site.name,
@@ -179,7 +172,6 @@ export function SiteSettings(props: {
 
   return (
     <form
-      id="site-settings-form"
       autoComplete="off"
       className="w-full"
       onSubmit={(event) => {
@@ -475,30 +467,25 @@ export function SiteSettings(props: {
             {saveError}
           </p>
         )}
-        {headerActions === null
-          ? null
-          : createPortal(
-              <div className="flex items-center gap-2">
-                <Button type="submit" form="site-settings-form" disabled={!isDirty || isUploading}>
-                  Save
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => {
-                    void navigate({
-                      to: "/$username/site/$siteId/page/$pageId",
-                      params,
-                      search: { breakpoint: search.breakpoint },
-                      resetScroll: false,
-                    });
-                  }}
-                >
-                  Cancel
-                </Button>
-              </div>,
-              headerActions,
-            )}
+        <div className="col-span-2 flex items-center gap-2">
+          <Button type="submit" disabled={!isDirty || isUploading}>
+            Save
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => {
+              void navigate({
+                to: "/$username/site/$siteId/page/$pageId",
+                params,
+                search: { breakpoint: search.breakpoint },
+                resetScroll: false,
+              });
+            }}
+          >
+            Cancel
+          </Button>
+        </div>
 
         <div className="col-span-2 flex flex-col items-start gap-4">
           <div className="min-w-0">

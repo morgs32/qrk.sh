@@ -1,24 +1,192 @@
 "use client";
 
-import type { ReactNode } from "react";
-import { useParams } from "@tanstack/react-router";
-import { DrawerHeader } from "./DrawerHeader";
+import { useContext, type ReactNode } from "react";
+import { useMatches, useNavigate, useSearch } from "@tanstack/react-router";
+import { File, Globe, Plus, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useHotkey } from "@tanstack/react-hotkeys";
+import { Schema } from "effect";
+import { isEqual } from "es-toolkit";
+import { useLiveQuery, useSession } from "@zerospin/react";
+import { makeId, makeIdSchema, stageAggregateSessionCommand } from "@zerospin/sdk/browser";
+import { pageV1 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV1";
+import { siteV1 as Site } from "@qrk.sh/zerospin/src/aggregates/user/models/site/SiteV1";
+import { pageSnapshotV4 as PageSnapshot } from "@qrk.sh/zerospin/src/aggregates/user/models/pageSnapshot/PageSnapshotV4";
+import { makePageSnapshotV4 } from "@qrk.sh/zerospin/src/aggregates/user/snapshots/makePageSnapshotV4";
+import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
+import { useValidatedParams } from "@/hooks/useValidatedParams";
+import { BrickAutosaveContext } from "../BrickAutosaveContext";
+import { PublishSiteDialog } from "./PublishSiteDialog";
+
+const ParamsSchema = Schema.Struct({
+  username: Schema.String,
+  siteId: makeIdSchema(Site),
+  pageId: makeIdSchema(Page),
+  brickId: Schema.optional(Schema.String),
+});
 
 export default function DrawerLayout(props: { children: ReactNode }) {
   const { children } = props;
-  const { brickId } = useParams({ strict: false });
+  const params = useValidatedParams(ParamsSchema);
+  const { brickId } = params;
+  const autosave = useContext(BrickAutosaveContext);
+  if (autosave === null) throw new Error("Brick autosave requires the Page layout");
+  const { breakpoint } = useSearch({ from: "/$username/site/$siteId/page/$pageId" });
+  const routeId = useMatches({ select: (matches) => matches.at(-1)?.routeId });
+  const navigate = useNavigate();
+  const session = useSession(userSessionDefinition);
+  const { data: site } = useLiveQuery({
+    session,
+    key: params.siteId,
+    query: (db, id) => db.query.site.findFirst({ where: { id: { eq: id } } }),
+  });
+  const { data: page } = useLiveQuery({
+    session,
+    key: { pageId: params.pageId, siteId: params.siteId },
+    query: (db, { pageId, siteId }) =>
+      db.query.page.findFirst({
+        where: { id: { eq: pageId }, siteId: { eq: siteId } },
+        with: {
+          bricks: true,
+          walls: { with: { placements: true } },
+        },
+      }),
+  });
+  const { data: publishedSnapshot } = useLiveQuery({
+    session,
+    key: page?.publishedSnapshotId,
+    query: (db, id) =>
+      db.query.pageSnapshot.findFirst({ where: { id: { eq: id ?? "psn_missing" } } }),
+  });
+
+  const savedContent =
+    page === undefined
+      ? null
+      : makePageSnapshotV4({
+          page,
+          bricks: page.bricks,
+          walls: page.walls,
+          placements: page.walls.flatMap((wall) => wall.placements),
+        });
+  const canPublishPage = site?.isPublished === true && page?.isPublished === false;
+  const canPublishUpdates =
+    site?.isPublished === true &&
+    page?.isPublished === true &&
+    savedContent !== null &&
+    publishedSnapshot !== undefined &&
+    !isEqual(savedContent, publishedSnapshot.content);
+
+  const closeDrawer = () => {
+    void navigate({
+      to: "/$username/site/$siteId/page/$pageId",
+      params,
+      search: { breakpoint: breakpoint },
+      resetScroll: false,
+    });
+  };
+
+  useHotkey(
+    "Escape",
+    (event) => {
+      // Child overlays consume Escape before the drawer's bubbling listener.
+      if (event.defaultPrevented) return;
+      event.preventDefault();
+      closeDrawer();
+    },
+    { preventDefault: false, requireReset: true },
+  );
+
+  const tab =
+    routeId === "/$username/site/$siteId/page/$pageId/_drawer/page-settings"
+      ? "page-settings"
+      : routeId === "/$username/site/$siteId/page/$pageId/_drawer/site-settings"
+        ? "site-settings"
+        : "modules";
   return (
-    <div
-      className="flex h-full min-h-0 flex-col overflow-hidden bg-background"
+    <Tabs
+      value={tab}
+      activationMode="manual"
+      onValueChange={(value) => {
+        if (value === "modules" || value === "page-settings" || value === "site-settings") {
+          void navigate({
+            to: `/$username/site/$siteId/page/$pageId/${value}`,
+            params,
+            search: { breakpoint },
+            resetScroll: false,
+          });
+        }
+      }}
+      className="h-full min-h-0 gap-0 overflow-hidden bg-background"
       style={{ viewTransitionName: "app-drawer" }}
     >
-      <div className="h-12 shrink-0">
-        <DrawerHeader />
-      </div>
-      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-        {children}
+      <header className="flex shrink-0 items-center gap-2 border-b border-border px-2">
+        <div className="flex min-w-0 items-center gap-2 overflow-x-auto">
+          <TabsList variant="line" aria-label="Page controls">
+            <TabsTrigger
+              value="modules"
+              onClick={() => {
+                if (
+                  tab !== "modules" ||
+                  routeId === "/$username/site/$siteId/page/$pageId/_drawer/modules/"
+                )
+                  return;
+                void navigate({
+                  to: "/$username/site/$siteId/page/$pageId/modules",
+                  params,
+                  search: { breakpoint },
+                  resetScroll: false,
+                });
+              }}
+            >
+              <Plus aria-hidden />
+              Bricks
+            </TabsTrigger>
+            <TabsTrigger value="page-settings">
+              <File aria-hidden />
+              Page settings
+            </TabsTrigger>
+            <TabsTrigger value="site-settings">
+              <Globe aria-hidden />
+              Site settings
+            </TabsTrigger>
+          </TabsList>
+        </div>
+        <div className="ml-auto flex shrink-0 items-center gap-2">
+          {site?.isPublished === false ? <PublishSiteDialog siteId={params.siteId} /> : null}
+          {canPublishPage || canPublishUpdates ? (
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => {
+                if (!autosave.flushPageEditors()) return;
+                const snapshotId = session.runSync(makeId(PageSnapshot));
+                stageAggregateSessionCommand({
+                  session,
+                  contractName: "publishPage",
+                  payload: { pageId: params.pageId, snapshotId, preferredRowSizing: true },
+                });
+              }}
+            >
+              Publish
+            </Button>
+          ) : null}
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="cursor-pointer hover:bg-transparent hover:text-red-500 dark:hover:bg-transparent"
+            aria-label="Close drawer"
+            onClick={closeDrawer}
+          >
+            <X className="size-5" aria-hidden />
+          </Button>
+        </div>
+      </header>
+      <TabsContent value={tab} className="mt-0 flex min-h-0 flex-col overflow-y-auto">
         {brickId === undefined ? null : <div id={`brick-editor-drawer-${brickId}`} />}
-      </div>
-    </div>
+        {children}
+      </TabsContent>
+    </Tabs>
   );
 }

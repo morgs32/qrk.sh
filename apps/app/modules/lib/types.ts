@@ -25,7 +25,6 @@ export type IModule<MODULE extends string> = {
     state: unknown;
     onSave: (state: unknown) => IResult<unknown, { message: string }>;
     onCancel: () => void;
-    renderActions: (actions: ReactNode) => ReactNode;
   }) => ReactNode;
   def: IModuleBrickDef<MODULE>;
   /**

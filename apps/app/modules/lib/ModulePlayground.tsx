@@ -121,7 +121,6 @@ export function ModulePlayground(props: {
                                 return { _tag: "Success", success: undefined };
                               }}
                               onCancel={() => setFormRevision((revision) => revision + 1)}
-                              renderActions={(actions) => actions}
                             />
                           </div>
                         </details>

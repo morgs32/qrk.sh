@@ -33,6 +33,8 @@ export default meta;
 export const Catalog: StoryObj<typeof meta> = {
   render: function RenderCatalog() {
     const [imageUrl, setImageUrl] = useState("");
+    const [imageCrop, setImageCrop] =
+      useState<Parameters<typeof ImageUploadInput>[0]["crop"]>(null);
     const objectUrl = useRef<string>(null);
     const [fit, setFit] = useState("cover");
     const [align, setAlign] = useState("center");
@@ -121,10 +123,16 @@ export const Catalog: StoryObj<typeof meta> = {
           <ImageUploadInput
             label="Edit"
             imageUrl={imageUrl}
-            onSelect={(file) => {
+            crop={imageCrop}
+            getFrameAspectRatio={() => 4 / 3}
+            onApply={(source) => {
+              setImageUrl(source.imageUrl);
+              setImageCrop(source.crop);
+            }}
+            uploadImage={async (file) => {
               if (objectUrl.current !== null) URL.revokeObjectURL(objectUrl.current);
               objectUrl.current = URL.createObjectURL(file);
-              setImageUrl(objectUrl.current);
+              return objectUrl.current;
             }}
           />
         ),

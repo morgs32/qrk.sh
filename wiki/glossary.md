@@ -25,6 +25,7 @@
 | Row alignment | Left, Center, or Right placement of the Brick group within its Row. |
 | Row minimum height | A Row’s saved minimum surface height in pixels. Null uses automatic module height preferences. Module minimums and taller content can increase the shared height. A completed height resize saves the visible result; double-click or double-tap restores automatic height. |
 | Brick                   | Page-owned content configured through a module. Its content is shared by one Placement in each of the Page's four Walls. Null content means unconfigured.                                                                                                                              |
+| Image crop              | The focal point and zoom of an Image Brick’s original photo. Every Placement of that Brick frames the same photo in its own dimensions. |
 | Selected Brick          | A Brick whose Edit Brick panel is open in the workspace sidebar. An Article stays editable in its Placement, and focusing it leaves sidebar selection unchanged. |
 | Active                  | DOM focus, including keyboard focus, within the wall editor.                                                                                                                                                                                                                           |
 | Breakpoint Previews     | A Storybook view that compares a module's JSX sketch and JSON Render at the four Breakpoints using one example state and one active spec. |

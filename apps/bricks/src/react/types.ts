@@ -27,6 +27,8 @@ export type IModule<MODULE extends string> = {
   Form?: (props: {
     state: unknown;
     onSave: (state: unknown) => IResult<unknown, { message: string }>;
+    previewWidth?: number;
+    measureFrame?: (selector: string) => number | undefined;
     onCancel: () => void;
   }) => ReactNode;
   def: IModuleBrickDef<MODULE>;

@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { BrickStory } from "../../../.storybook/BrickStory";
-import { imageV1 } from "../definition/imageV1";
+import { imageV2 } from "../definition/imageV2";
 import { imageView } from "./imageView";
 import { MediaFooter } from "../../react/MediaFooter";
 import { imageCardView } from "./ImageCard";
@@ -15,7 +15,7 @@ const meta = {
     return (
       <BrickStory
         key={fixture}
-        definition={imageV1}
+        definition={imageV2}
         view={imageView}
         fixture={fixture}
         renderSketch={(state) => {
@@ -25,6 +25,7 @@ const meta = {
                 imagePosition="center"
                 imageUrl={state.imageUrl}
                 title={state.title}
+                crop={state.crop}
               />
               <MediaFooter heading={state.title} />
             </imageCardView.Component>

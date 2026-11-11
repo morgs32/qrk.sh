@@ -3,7 +3,7 @@ import { makeCatalogFromComponentMetadata } from "../../../definition/makeCatalo
 
 import { layoutRegistryComponents } from "../../../react/layoutRegistryComponents";
 import { imageCardView } from "../ImageCard";
-import { imageCoverView } from "../ImageCover";
+import { ImageCoverRegistry } from "../ImageCover";
 import { mediaFooterView } from "../MediaFooter";
 import { imageV1 } from "../../definition/imageV1";
 
@@ -13,7 +13,7 @@ export const { registry } = defineRegistry(
     components: {
       ...layoutRegistryComponents,
       ImageCard: imageCardView.RegistryComponent,
-      ImageCover: imageCoverView.RegistryComponent,
+      ImageCover: ImageCoverRegistry,
       MediaFooter: mediaFooterView.RegistryComponent,
     },
   },

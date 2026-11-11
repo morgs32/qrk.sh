@@ -16,6 +16,7 @@ import { useLayoutEffect, useRef, useState } from "react";
 
 import { useValidatedParams } from "@/hooks/useValidatedParams";
 import { BrickWrapper } from "@qrk.sh/bricks/react/BrickWrapper";
+import { StudioSidebar } from "@qrk.sh/bricks/react/StudioSidebar";
 import NotFound from "@/app/not-found";
 
 const ParamsSchema = Schema.Struct({
@@ -124,69 +125,78 @@ export function BrickDetail() {
     view === undefined ||
     spec === undefined;
 
-  return (
-    <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-      <div className="min-h-0 flex-1 overflow-y-auto pb-6">
-        {unavailable ? (
-          <div className="px-6 pt-6">
-            <h1 className="mb-2 mt-8 text-4xl tracking-tight">Brick not found</h1>
-            <p className="text-muted-foreground">
-              This brick is not available in this page's current session.
-            </p>
-          </div>
-        ) : brick.InlineEditor !== undefined ? null : (
-          <section>
-            {Form !== undefined ? (
-              <div className="mx-auto mt-8 w-full max-w-3xl px-6">
-                <Form
-                  key={`${placement.id}:${editorEpoch}`}
-                  state={formState}
-                  onSave={(state) => {
-                    if (navigationPending.current || currentPlacementId.current !== placement.id) {
-                      throw new DOMException("Brick editor navigation started", "AbortError");
-                    }
-                    return stageAggregateSessionCommand({
-                      session,
-                      contractName: "updateBrick",
-                      payload: {
-                        brickId: brickRow.id,
-                        moduleId: brickRow.moduleId,
-                        state,
-                      },
-                    });
-                  }}
-                  onCancel={() => {
-                    if (navigationPending.current || currentPlacementId.current !== placement.id)
-                      return;
-                    setEditorEpoch((epoch) => epoch + 1);
-                  }}
-                />
-              </div>
-            ) : (
-              <div className="mt-8 overflow-auto">
-                <div
-                  className="relative shrink-0"
-                  style={{
-                    width: Math.min(view.defaultWidth, entry.previewWidth),
-                    minWidth: view.minWidth,
-                  }}
-                >
-                  <BrickWrapper
-                    borderWidth={brickRow.borderWidth}
-                    className={site.cardStyle ? "brick-surface-card" : undefined}
-                  >
-                    <brick.Render
-                      variantId={placement.variantId}
-                      state={brickRow.state}
-                      spec={spec}
-                    />
-                  </BrickWrapper>
-                </div>
-              </div>
-            )}
-          </section>
-        )}
+  if (unavailable) {
+    return (
+      <StudioSidebar
+        embedded
+        label="Edit brick"
+        sections={[
+          {
+            title: "Brick not found",
+            content: (
+              <p className="text-muted-foreground">
+                This brick is not available in this page's current session.
+              </p>
+            ),
+          },
+        ]}
+      />
+    );
+  }
+
+  if (brick.InlineEditor !== undefined) return null;
+
+  const content =
+    Form !== undefined ? (
+      <Form
+        key={`${placement.id}:${editorEpoch}`}
+        state={formState}
+        previewWidth={entry.previewWidth}
+        measureFrame={(selector) => {
+          const frame = document
+            .querySelector(`[data-wall-placement-id="${CSS.escape(placement.id)}"]`)
+            ?.querySelector(selector);
+          if (frame === undefined || frame === null) return;
+          const { width, height } = frame.getBoundingClientRect();
+          return width > 0 && height > 0 ? width / height : undefined;
+        }}
+        onSave={(state) => {
+          if (navigationPending.current || currentPlacementId.current !== placement.id) {
+            throw new DOMException("Brick editor navigation started", "AbortError");
+          }
+          return stageAggregateSessionCommand({
+            session,
+            contractName: "updateBrick",
+            payload: {
+              brickId: brickRow.id,
+              moduleId: brickRow.moduleId,
+              state,
+            },
+          });
+        }}
+        onCancel={() => {
+          if (navigationPending.current || currentPlacementId.current !== placement.id) return;
+          setEditorEpoch((epoch) => epoch + 1);
+        }}
+      />
+    ) : (
+      <div className="min-w-0 overflow-auto">
+        <div
+          className="relative shrink-0"
+          style={{
+            width: Math.min(view.defaultWidth, entry.previewWidth),
+            minWidth: view.minWidth,
+          }}
+        >
+          <BrickWrapper
+            borderWidth={brickRow.borderWidth}
+            className={site.cardStyle ? "brick-surface-card" : undefined}
+          >
+            <brick.Render variantId={placement.variantId} state={brickRow.state} spec={spec} />
+          </BrickWrapper>
+        </div>
       </div>
-    </div>
-  );
+    );
+
+  return <StudioSidebar embedded label="Edit brick" sections={[{ title: brick.label, content }]} />;
 }

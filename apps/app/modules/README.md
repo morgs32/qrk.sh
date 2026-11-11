@@ -132,8 +132,9 @@ App Storybook also discovers the colocated Brick stories.
 
 Each **Modules / <module> / Breakpoint Previews** story compares the module's
 JSX sketch with JSON Render at sm, md, lg, and xl. All four widths use the same
-example state and active spec. **Configure** shows the module's form in the
-right sidebar and keeps its draft across tab switches. **Generate Spec** sends
+example state and active spec. The 320px StudioSidebar uses shadcn line tabs
+and is capped at half the preview width. **Configure** shows the module's form
+and keeps its draft across tab switches. **Generate Spec** sends
 a prompt through the API and previews the resulting spec. **Reset to default**
 restores the versioned default spec.
 **Unconfigured** displays null and blank forms/placeholders only for modules

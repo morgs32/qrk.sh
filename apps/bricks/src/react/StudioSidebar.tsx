@@ -1,15 +1,42 @@
 import { type ReactNode, useId } from "react";
 
-export function StudioSidebar(props: {
-  label: string;
-  sections: readonly { title: string; content: ReactNode }[];
-}) {
-  const { label, sections } = props;
+export function StudioSidebar(
+  props: { label: string } & (
+    | {
+        sections: readonly { title: string; content: ReactNode }[];
+        embedded?: boolean;
+        header?: never;
+        children?: never;
+      }
+    | { sections?: never; embedded?: never; header: ReactNode; children: ReactNode }
+  ),
+) {
+  const { label, sections, embedded = false, header, children } = props;
   const id = useId();
 
+  if (sections === undefined) {
+    return (
+      <aside
+        aria-label={label}
+        className="flex h-full min-h-0 w-[320px] max-w-[50%] min-w-0 shrink-0 flex-col border-l border-sidebar-border bg-sidebar text-sidebar-foreground"
+      >
+        <header className="shrink-0 overflow-x-auto border-b border-sidebar-border px-3">
+          {header}
+        </header>
+        <div className="min-h-0 flex-1 overflow-auto p-3">{children}</div>
+      </aside>
+    );
+  }
+
+  const Panel = embedded ? "section" : "aside";
+
   return (
-    <aside
-      className="flex w-[260px] max-w-full flex-col border-l border-sidebar-border bg-white"
+    <Panel
+      className={
+        embedded
+          ? "flex min-w-0 flex-col"
+          : "flex w-[260px] max-w-full flex-col border-l border-sidebar-border bg-white"
+      }
       aria-label={label}
     >
       {sections.map(({ title, content }, index) => (
@@ -23,6 +50,6 @@ export function StudioSidebar(props: {
           </section>
         </div>
       ))}
-    </aside>
+    </Panel>
   );
 }

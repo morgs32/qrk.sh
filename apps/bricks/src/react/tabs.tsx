@@ -5,12 +5,13 @@ import { Tabs as TabsPrimitive } from "radix-ui";
 
 import { cn } from "cn";
 
-function Tabs({ className, ...props }: React.ComponentProps<typeof TabsPrimitive.Root>) {
+function Tabs(props: React.ComponentProps<typeof TabsPrimitive.Root>) {
+  const { className, ...rootProps } = props;
   return (
     <TabsPrimitive.Root
       data-slot="tabs"
       className={cn("flex flex-col gap-2", className)}
-      {...props}
+      {...rootProps}
     />
   );
 }
@@ -33,7 +34,8 @@ function TabsList(
   );
 }
 
-function TabsTrigger({ className, ...props }: React.ComponentProps<typeof TabsPrimitive.Trigger>) {
+function TabsTrigger(props: React.ComponentProps<typeof TabsPrimitive.Trigger>) {
+  const { className, ...triggerProps } = props;
   return (
     <TabsPrimitive.Trigger
       data-slot="tabs-trigger"
@@ -42,17 +44,18 @@ function TabsTrigger({ className, ...props }: React.ComponentProps<typeof TabsPr
         "group-data-[variant=line]/tabs-list:relative group-data-[variant=line]/tabs-list:h-full group-data-[variant=line]/tabs-list:flex-none group-data-[variant=line]/tabs-list:rounded-none group-data-[variant=line]/tabs-list:after:absolute group-data-[variant=line]/tabs-list:after:inset-x-0 group-data-[variant=line]/tabs-list:after:bottom-0 group-data-[variant=line]/tabs-list:after:h-0.5 group-data-[variant=line]/tabs-list:data-[state=active]:bg-transparent group-data-[variant=line]/tabs-list:data-[state=active]:shadow-none group-data-[variant=line]/tabs-list:data-[state=active]:after:bg-current dark:group-data-[variant=line]/tabs-list:data-[state=active]:bg-transparent",
         className,
       )}
-      {...props}
+      {...triggerProps}
     />
   );
 }
 
-function TabsContent({ className, ...props }: React.ComponentProps<typeof TabsPrimitive.Content>) {
+function TabsContent(props: React.ComponentProps<typeof TabsPrimitive.Content>) {
+  const { className, ...contentProps } = props;
   return (
     <TabsPrimitive.Content
       data-slot="tabs-content"
       className={cn("mt-2 flex-1 outline-none", className)}
-      {...props}
+      {...contentProps}
     />
   );
 }

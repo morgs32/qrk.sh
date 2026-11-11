@@ -8,7 +8,8 @@ preview upward, based on the preview container's 720px threshold.
 The workspace uses a 320px right sidebar at Tailwind `lg` and wider. Below
 `lg`, the sidebar overlays the right edge at up to 75% of the viewport width.
 The exposed Wall remains interactive. Page controls opens Bricks, Page settings,
-and Site settings. Brick selection opens Edit brick. Inline Article focus opens
+and Site settings. Brick selection opens Edit brick, which uses the same 12px
+section padding as the Form Inputs catalog. Inline Article focus opens
 Edit brick at `lg` and wider. At narrower widths, inline focus leaves the current
 route and sidebar state alone.
 

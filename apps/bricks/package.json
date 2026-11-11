@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "exports": {
+    "./image/definition/v2": "./src/image/definition/imageV2.ts",
     "./link/definition": "./src/link/definition/linkV1.ts",
     "./link/react": "./src/link/react/LinkJsonRenderRegistry.tsx",
     "./styles.css": "./src/react/brickStyles.css",
@@ -21,6 +22,7 @@
     "./react/BrickWrapper": "./src/react/BrickWrapper.tsx",
     "./react/button": "./src/react/button.tsx",
     "./react/Input": "./src/react/Input.tsx",
+    "./react/StudioSidebar": "./src/react/StudioSidebar.tsx",
     "./react/useWarnBeforeUnload": "./src/react/useWarnBeforeUnload.ts",
     "./rpc": {
       "types": "./src/rpc/LibraryApi.d.ts"

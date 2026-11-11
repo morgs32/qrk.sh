@@ -62,6 +62,8 @@ export function makeModuleView<
           onSave: (
             state: IInferDecodedRow<MODULE["stateShape"]>,
           ) => IResult<unknown, { message: string }>;
+          previewWidth?: number;
+          measureFrame?: (selector: string) => number | undefined;
           onCancel: () => void;
         }) => ReactNode;
         inlineEditor?: never;
@@ -121,15 +123,19 @@ export function makeModuleView<
     };
   });
 
-  function Form(props: {
-    state: unknown;
-    onSave: (state: unknown) => IResult<unknown, { message: string }>;
-    onCancel: () => void;
-  }) {
-    const { state, onSave, onCancel } = props;
+  function Form(props: Parameters<NonNullable<IModule<string>["Form"]>>[0]) {
+    const { state, onSave, onCancel, previewWidth, measureFrame } = props;
     if (EditorForm === undefined) return null;
     const decoded = state === null ? null : decodeState(state, { onExcessProperty: "ignore" });
-    return <EditorForm state={decoded} onSave={onSave} onCancel={onCancel} />;
+    return (
+      <EditorForm
+        state={decoded}
+        onSave={onSave}
+        onCancel={onCancel}
+        previewWidth={previewWidth}
+        measureFrame={measureFrame}
+      />
+    );
   }
 
   function Render(props: Parameters<IModule<string>["Render"]>[0]) {

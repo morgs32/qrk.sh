@@ -1,7 +1,7 @@
 import { findFirst, findMany, upgradeAggregateContractRelease } from "@zerospin/sdk/browser";
 import { Effect, Result } from "effect";
 import { backendLibrary } from "../../../../modules/backendLibrary";
-import { canShareRow } from "../../../../modules/lib/canShareRow";
+import { canShareRow } from "../../layout/canShareRow";
 import { movePlacementToRowInLayout } from "../../layout/wallLayout";
 import { brickV2 as brick } from "../../models/brick/BrickV2";
 import { movePlacementToRowV1 } from "./MovePlacementToRowContractV1";

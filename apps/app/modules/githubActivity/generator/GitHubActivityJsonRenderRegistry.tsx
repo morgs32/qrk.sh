@@ -6,7 +6,7 @@ import { makeCatalogFromComponentMetadata } from "@qrk.sh/zerospin/src/modules/m
 import type { ReactNode } from "react";
 
 import { BrickShell } from "../../components/brick/BrickShell";
-import { layoutRegistryComponents } from "../../lib/jsonRender/layoutRegistryComponents";
+import { layoutRegistryComponents } from "../../jsonRender/layoutRegistryComponents";
 import { activityCalendarView } from "../ActivityCalendar";
 import { githubActivityV1 } from "@qrk.sh/zerospin/src/modules/githubActivity/githubActivityV1";
 

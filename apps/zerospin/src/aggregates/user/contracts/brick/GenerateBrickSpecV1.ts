@@ -22,7 +22,7 @@ import { primitives } from "@zerospin/shapes";
 
 import { Effect } from "effect";
 
-import { makePlacementId } from "../../../../modules/lib/makePlacementId";
+import { makePlacementId } from "../../layout/makePlacementId";
 
 import { generateBrickSpecExternalDefinitionV1 } from "./GenerateBrickSpecExternalDefinitionV1";
 

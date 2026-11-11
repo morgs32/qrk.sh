@@ -2,8 +2,8 @@
 
 import { useMatches, useNavigate, useSearch } from "@tanstack/react-router";
 
-import { BREAKPOINTS } from "../../../../../modules/lib/breakpoints";
-import { WallPreviewToolbar } from "../../../../../modules/lib/WallPreviewToolbar";
+import { BREAKPOINTS } from "../../../../../lib/breakpoints";
+import { WallPreviewToolbar } from "./WallPreviewToolbar";
 import { Schema } from "effect";
 import { motion, useReducedMotion } from "framer-motion";
 import { X } from "lucide-react";

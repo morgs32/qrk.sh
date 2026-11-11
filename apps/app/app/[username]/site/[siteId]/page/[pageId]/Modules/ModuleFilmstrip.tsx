@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef, useState } from "react";
-import { BREAKPOINTS } from "./breakpoints";
-import { modulesHash } from "./modulesHash";
+import { BREAKPOINTS } from "../../../../../../../lib/breakpoints";
+import { modulesHash } from "../../../../../../../modules/modulesHash";
 import { ModulePreview } from "./ModulePreview";
 
 export function ModuleFilmstrip(props: {

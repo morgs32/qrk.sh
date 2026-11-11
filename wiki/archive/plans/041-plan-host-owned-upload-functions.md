@@ -39,7 +39,7 @@
    ```
 
 3. This types both the provider and `useSWRConfig()` without casts, a custom configuration wrapper or a separate Image upload context. The accepted trade-off is one augmentation tied to SWR's exported configuration interface. No installed packages were changed.
-4. The registered module form contract remains `state`, `onSave` and `onCancel`. No Image-specific upload prop was added to shared module contracts, renderers or initializers. [Form contract](../../../apps/app/modules/lib/types.ts), [Image view](../../../apps/app/modules/image/imageView.tsx).
+4. The registered module form contract remains `state`, `onSave` and `onCancel`. No Image-specific upload prop was added to shared module contracts, renderers or initializers. [Form contract](../../../apps/app/modules/types.ts), [Image view](../../../apps/app/modules/image/imageView.tsx).
 
 ## Implemented form behavior
 
@@ -102,7 +102,7 @@
    });
    ```
 
-2. [ModulePlayground](../../../apps/app/modules/lib/ModulePlayground.tsx) retains anonymous `POST /image/upload`, sending only the file and forwarding the signal. Its unrelated specs memoization remains. Image stories still use this same playground and shared form.
+2. [ModulePlayground](../../../apps/app/.storybook/ModulePlayground/ModulePlayground.tsx) retains anonymous `POST /image/upload`, sending only the file and forwarding the signal. Its unrelated specs memoization remains. Image stories still use this same playground and shared form.
 3. Both hosts parse JSON as `unknown`, synchronously decode `{ key, url, contentType }` on success or `{ code, message }` on HTTP failure, and return the URL or reject with the decoded message. No shared HTTP adapter was introduced.
 4. [Site Settings](../../../apps/app/app/[username]/site/[siteId]/page/[pageId]/SiteSettings/SiteSettings.tsx) now calls fresh `getToken()` directly, preserving offline/signed-out toast feedback. Its Promise upload protocol, busy state and validation behavior are unchanged. It does not consume ImageForm's mutation or the optional upload configuration field. [getClerkToken](../../../apps/app/lib/getClerkToken.ts) remains unchanged for the existing Zerospin credential callback.
 5. Cancellation does not promise rollback of an object already stored by the server. Completed R2 objects, public asset URLs and GET behavior retain their existing lifetime. Uploaded bytes are not saved into Brick state or browser session backups.

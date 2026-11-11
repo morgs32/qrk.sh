@@ -13,7 +13,7 @@ import { makeEffectSchema, type IInferDecodedRow, type IShape } from "@zerospin/
 import { Schema } from "effect";
 import { mapValues } from "es-toolkit";
 import type { makeModuleVersion } from "@qrk.sh/zerospin/src/modules/make/makeModuleVersion";
-import type { IModule, IModuleBrickDef } from "../lib/types";
+import type { IModule, IModuleBrickDef } from "../types";
 
 function makeInitialState(state: unknown): Record<string, unknown> {
   if (state !== null && typeof state === "object" && !Array.isArray(state)) {

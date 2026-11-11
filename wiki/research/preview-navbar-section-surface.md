@@ -13,7 +13,7 @@ The current sticky outer section is transparent while its nested header owns
 the white surface and 30px horizontal inset. This is a split between border and
 surface ownership, not missing content spacing.
 [SiteHeader](/Users/morgs32/GitHub/qrk.sh/apps/app/app/[username]/site/[siteId]/SiteHeader.tsx:19),
-[shared section](/Users/morgs32/GitHub/qrk.sh/apps/app/modules/lib/PreviewSection.tsx:8).
+[shared section](/Users/morgs32/GitHub/qrk.sh/apps/app/components/PagePreview/PreviewSection.tsx:8).
 
 The colored content visible **above the simulated browser bar** is a separate
 top-gap exposure. Moving the navbar's background does not cover that space.
@@ -25,7 +25,7 @@ investigation; the source establishes the 32px gap, scroll ownership, and sticky
 bar offsets.
 [top-gap variable](/Users/morgs32/GitHub/qrk.sh/apps/app/modules/bricks.css:3),
 [scroll owner](/Users/morgs32/GitHub/qrk.sh/apps/app/app/[username]/site/[siteId]/page/[pageId]/layout.tsx:165),
-[browser bar](/Users/morgs32/GitHub/qrk.sh/apps/app/modules/lib/BrowserChrome.tsx:10).
+[browser bar](/Users/morgs32/GitHub/qrk.sh/apps/app/components/PagePreview/BrowserChrome.tsx:10).
 
 ## Current ownership
 
@@ -35,11 +35,11 @@ bar offsets.
   [composition](/Users/morgs32/GitHub/qrk.sh/apps/app/app/[username]/site/[siteId]/page/[pageId]/PagePreview.tsx:49).
 - `PreviewSection` supplies the common centered border-box width, translucent
   side borders, and query container. It supplies no background or padding.
-  [section definition](/Users/morgs32/GitHub/qrk.sh/apps/app/modules/lib/PreviewSection.tsx:8).
+  [section definition](/Users/morgs32/GitHub/qrk.sh/apps/app/components/PagePreview/PreviewSection.tsx:8).
 - BrowserChrome already has its own gray background, 12px horizontal padding,
   48px height, and sticky `top-0` position. Its address field has a separate
   translucent white surface.
-  [browser chrome](/Users/morgs32/GitHub/qrk.sh/apps/app/modules/lib/BrowserChrome.tsx:10).
+  [browser chrome](/Users/morgs32/GitHub/qrk.sh/apps/app/components/PagePreview/BrowserChrome.tsx:10).
 - SiteHeader's outer PreviewSection owns z-index 50 and optional sticky
   `top-12`. Its nested header owns the 64px height, bottom divider,
   `bg-background`, and responsive inline padding.
@@ -67,7 +67,7 @@ approximately y=5…32. Hit-testing at x=850, y=5 and y=20 included the check-ci
 image and its colored Swatch surface. BrowserChrome has `pointer-events-none`,
 so hit-testing alone does not prove that Brick layers paint over the bar itself.
 The observed exposure is in the space above it.
-[pointer behavior](/Users/morgs32/GitHub/qrk.sh/apps/app/modules/lib/BrowserChrome.tsx:12).
+[pointer behavior](/Users/morgs32/GitHub/qrk.sh/apps/app/components/PagePreview/BrowserChrome.tsx:12).
 
 ## Recommended bounded change
 
@@ -88,14 +88,14 @@ change requiring separate justification; it is unnecessary to make the navbar
 section opaque.
 [container query selection](https://www.w3.org/TR/css-contain-3/#container-rule),
 [responsive rule](/Users/morgs32/GitHub/qrk.sh/apps/app/modules/bricks.css:37),
-[fixed section box](/Users/morgs32/GitHub/qrk.sh/apps/app/modules/lib/PreviewSection.tsx:10).
+[fixed section box](/Users/morgs32/GitHub/qrk.sh/apps/app/components/PagePreview/PreviewSection.tsx:10).
 
 Treat the 32px top gap separately if the intent is to conceal scrolled page
 content above the browser bar. Its masking or scroll-layout owner is the preview
 host, not the navbar's content padding. Do not globally clip PreviewSection:
 its documented purpose includes leaving editor controls visible in the gutter.
 [host](/Users/morgs32/GitHub/qrk.sh/apps/app/app/[username]/site/[siteId]/page/[pageId]/layout.tsx:161),
-[section overflow intent](/Users/morgs32/GitHub/qrk.sh/apps/app/modules/lib/PreviewSection.tsx:4).
+[section overflow intent](/Users/morgs32/GitHub/qrk.sh/apps/app/components/PagePreview/PreviewSection.tsx:4).
 
 ## Verification limits
 
@@ -104,4 +104,4 @@ No temporary CSS override, automated test, or published-site verification was
 performed for this note. The same production SiteHeader is used by the Wall
 Editor Storybook story, so a future navbar change would affect both preview
 surfaces; the app preview remains the decisive route for the reported top gap.
-[story composition](/Users/morgs32/GitHub/qrk.sh/apps/app/components/WallEditor.stories.tsx:201).
+[story composition](/Users/morgs32/GitHub/qrk.sh/apps/app/components/WallEditor/WallEditor.stories.tsx:201).

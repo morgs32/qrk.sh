@@ -14,7 +14,7 @@ import type { wallV3 } from "@qrk.sh/zerospin/src/aggregates/user/models/wall/Wa
 import type { placementV2 } from "@qrk.sh/zerospin/src/aggregates/user/models/placement/PlacementV2";
 import type { rowIdSchema } from "@qrk.sh/zerospin/src/aggregates/user/layout/wallLayoutSchema";
 import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
-import { modulesHash } from "../modulesHash";
+import { modulesHash } from "../../modules/modulesHash";
 import type { makeWallLayoutView } from "./makeWallLayoutView";
 
 /** Own one pointer gesture; only its completed visible geometry becomes a command. */

@@ -25,7 +25,7 @@ the historical sections below. Scoped checks and browser verification passed; th
   active still means DOM focus. The portaled menu keeps its separate outer
   indication when focus leaves the Brick.
   [Shared paint](../../apps/app/modules/bricks.css),
-  [Placement/menu ownership](../../apps/app/modules/lib/wall/WallPlacement.tsx).
+  [Placement/menu ownership](../../apps/app/components/WallEditor/WallPlacement.tsx).
 - BrickAction is visible only on actual Brick hover or focus within, without
   selected/menu overrides or permanent coarse-pointer visibility. StackAction
   retains its distinct position, Stack activation scope, and existing
@@ -36,20 +36,20 @@ the historical sections below. Scoped checks and browser verification passed; th
   actions, or card shadow. The insertion shadow remains a **40%-opacity,
   borderless** content copy with no editor actions. These are deliberately distinct
   representations and keep their existing capture/drag lifecycle owners.
-  [Native capture](../../apps/app/modules/lib/ModulePreview.tsx),
-  [Insertion](../../apps/app/modules/lib/wall/WallEditor.tsx),
+  [Native capture](../../apps/app/app/[username]/site/[siteId]/page/[pageId]/Modules/ModulePreview.tsx),
+  [Insertion](../../apps/app/components/WallEditor/WallEditor.tsx),
   [Representation styling](../../apps/app/modules/bricks.css).
 - Placement and shadow cells share `flex: 0 1 auto`; inline preferred/minimum
   widths and half-gap padding remain explicit. Preserve the empty-Wall outer
   half-gap allowance that prevents padding from changing wrapping and height.
-  [Placement cell](../../apps/app/modules/lib/wall/WallPlacement.tsx),
-  [Shadow cell](../../apps/app/modules/lib/wall/WallEditor.tsx).
+  [Placement cell](../../apps/app/components/WallEditor/WallPlacement.tsx),
+  [Shadow cell](../../apps/app/components/WallEditor/WallEditor.tsx).
 - Remove the legacy hover-study gallery and mock stylesheet. Production-path
   stories identify the actual representations, expose valid fixture controls,
   and cover paint/action visibility as well as geometry and cancellation. No new
   rendering or testing framework is introduced. Source convergence incorporates
   the relevant blue styling without copying unrelated primary-checkout work.
-  [Wall Editor stories](../../apps/app/components/WallEditor.stories.tsx).
+  [Wall Editor stories](../../apps/app/components/WallEditor/WallEditor.stories.tsx).
 
 **Verification:** App TypeScript, the scoped Storybook build, targeted formatting,
 and diff checks pass. Browser checks cover 16 matched content-box comparisons

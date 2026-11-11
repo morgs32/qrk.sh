@@ -28,7 +28,7 @@ Its scoped providers address nested keyboard ownership: nested scopes take prece
 
 ## QRK application
 
-The current [Drawer](../../apps/app/modules/lib/Drawer.tsx) is a custom animated surface with `role="dialog"` and manual return-focus tracking. It has no Escape handler and allows interaction with the editor behind it. The application already has a Radix-backed [Dialog](../../apps/app/components/ui/dialog.tsx). Local source inspection establishes these facts; the drawer's ARIA role alone does not install primitive behavior.
+The current [Drawer](../../apps/app/components/Drawer/Drawer.tsx) is a custom animated surface with `role="dialog"` and manual return-focus tracking. It has no Escape handler and allows interaction with the editor behind it. The application already has a Radix-backed [Dialog](../../apps/app/components/ui/dialog.tsx). Local source inspection establishes these facts; the drawer's ARIA role alone does not install primitive behavior.
 
 For this one dismissal behavior, a new application-wide hotkey dependency is not necessary. Preserve the non-modal interaction and connect Escape to the same route transition as the existing Close control. If adopting a dialog primitive later, explicitly preserve non-modal operation and outside-interaction behavior rather than accepting modal defaults. This is a recommendation, not an approved implementation.
 

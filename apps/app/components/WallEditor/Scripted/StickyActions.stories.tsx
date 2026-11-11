@@ -1,7 +1,7 @@
 import type { StoryObj } from "@storybook/react-vite";
 import { expect, userEvent, waitFor, within } from "storybook/test";
 
-import wallEditorMeta from "../../WallEditor.stories";
+import wallEditorMeta from "../WallEditor.stories";
 
 const meta = {
   ...wallEditorMeta,

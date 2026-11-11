@@ -2,9 +2,9 @@ import type { Spec } from "@json-render/core";
 
 import { OrderedSection } from "@qrk.sh/web/library/OrderedDoc";
 
-import { BrickWrapper } from "../components/brick/BrickWrapper";
-import { BREAKPOINTS } from "./breakpoints";
-import { modulesHash } from "./modulesHash";
+import { BrickWrapper } from "../../modules/components/brick/BrickWrapper";
+import { BREAKPOINTS } from "../../lib/breakpoints";
+import { modulesHash } from "../../modules/modulesHash";
 
 export function BreakpointPreviewRow(props: {
   entry: (typeof BREAKPOINTS)[number];

@@ -38,7 +38,7 @@ Satori documents Node and Worker support, with manual layout WASM initialization
 
 ## QRK implication
 
-QRK has four canonical grid widths: **360, 720, 1080, and 1440px**, so a server calculation can target each breakpoint and chosen item width. Card style also changes grid gaps. This makes per-breakpoint precomputation feasible once typography and content dimensions are explicit. [Breakpoints](../../apps/app/modules/lib/breakpoints.ts#L2-L7), [wall geometry](../../apps/library/lib/BrickWall.tsx#L207-L211).
+QRK has four canonical grid widths: **360, 720, 1080, and 1440px**, so a server calculation can target each breakpoint and chosen item width. Card style also changes grid gaps. This makes per-breakpoint precomputation feasible once typography and content dimensions are explicit. [Breakpoints](../../apps/app/lib/breakpoints.ts#L2-L7), [wall geometry](../../apps/library/lib/BrickWall.tsx#L207-L211).
 
 At the 2026-10-19 research snapshot, Pretext **0.0.9 was installed** and used in `LinkCopy`, where browser-computed styles, dimensions, and font-loading events drove a font-size search within the available height; that integration did not choose grid height. [Plan 031](../archive/plans/031-plan-component-jsonrender-previews.md) subsequently removed that fitting and the unused dependency in favor of CSS wrapping. The Pretext findings above remain research rather than current QRK behavior. [0.0.9 canvas requirement](https://github.com/chenglou/pretext/blob/v0.0.9/src/measurement.ts#L30-L43).
 

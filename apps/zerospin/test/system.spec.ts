@@ -22,7 +22,7 @@ import { generateBrickSpecExternalDefinitionV2 } from '../src/aggregates/user/co
 import { publishPageV2 } from '../src/aggregates/user/contracts/publishPage/PublishPageV2';
 import { createSiteV1 } from '../src/aggregates/user/contracts/createSite/CreateSiteV1';
 import { updateSiteSettingsV1 } from '../src/aggregates/user/contracts/updateSiteSettings/UpdateSiteSettingsV1';
-import { makePlacementId } from '../src/modules/lib/makePlacementId';
+import { makePlacementId } from '../src/aggregates/user/layout/makePlacementId';
 import { swatchAndIconV1 } from '../src/modules/swatchAndIcon/swatchAndIconV1';
 
 vi.mock('cloudflare:workers', () => ({ env: { QRK_LIBRARY_API_URL: 'https://api.qrk.test/rpc' } }));

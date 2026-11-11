@@ -1,8 +1,8 @@
 import { GripVertical } from "lucide-react";
 import type { ReactNode } from "react";
 import { cn } from "cn";
-import { Button } from "../../components/ui/button";
-import { BrickAction } from "../../components/BrickAction";
+import { Button } from "../../modules/components/ui/button";
+import { BrickAction } from "../../modules/components/BrickAction";
 
 export function WallPlacement(props: {
   placement: {

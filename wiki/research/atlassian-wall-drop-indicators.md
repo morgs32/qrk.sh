@@ -15,7 +15,7 @@ both insertion seams already present in QRK.
 Keep drawer-to-Wall insertion shadows outside this change. Current saved-Brick
 moves draw custom blue lines, while drawer copies render a translucent Brick
 that opens insertion space. These are separate paths in
-[WallEditor](../../apps/app/modules/lib/wall/WallEditor.tsx#L637).
+[WallEditor](../../apps/app/components/WallEditor/WallEditor.tsx#L637).
 
 ## Component behavior
 
@@ -72,11 +72,11 @@ for this recommendation.
 
 1. Add the indicator dependency only to App using pnpm.
 2. Replace the two custom `data-wall-move-indicator` render branches in
-   [WallEditor](../../apps/app/modules/lib/wall/WallEditor.tsx#L681). Horizontal
+   [WallEditor](../../apps/app/components/WallEditor/WallEditor.tsx#L681). Horizontal
    feedback can use the existing Row/Stack edge directly. Preserve an outer
    `aria-hidden`, pointer-inert wrapper for existing test markers and layering.
 3. Vertical feedback currently stores a Row-relative `left` coordinate in
-   [onMoveDrag](../../apps/app/modules/lib/wall/WallEditor.tsx#L233). A zero-width,
+   [onMoveDrag](../../apps/app/components/WallEditor/WallEditor.tsx#L233). A zero-width,
    full-height absolute anchor at that coordinate can contain
    `<DropIndicator edge="left" gap="0px" />`. This is a proposed adaptation from
    the source geometry, not a tested recipe; no Placement-anchor state or hitbox
@@ -110,10 +110,10 @@ The move indicator now renders directly inside the Wall editor root, outside
 `PreviewSection`'s query container. Its pointer-transparent `z-70` wrapper sits
 above the Stack controls (`z-30`), navbar (`z-50`), and browser chrome (`z-60`)
 within the isolated preview frame. Brick content retains its existing layer.
-[Overlay and measurement](../../apps/app/modules/lib/wall/WallEditor.tsx),
+[Overlay and measurement](../../apps/app/components/WallEditor/WallEditor.tsx),
 [preview frame](../../apps/app/app/[username]/site/[siteId]/page/[pageId]/PagePreview.tsx),
 [navbar](../../apps/app/app/[username]/site/[siteId]/SiteHeader.tsx),
-[browser chrome](../../apps/app/modules/lib/BrowserChrome.tsx).
+[browser chrome](../../apps/app/components/PagePreview/BrowserChrome.tsx).
 
 Bounds come from the destination Row/Stack relative to the Wall root. Vertical
 seams retain the before-Placement anchor (or trailing edge), so resizing can
@@ -142,8 +142,8 @@ a 1px white core with a 2px blue shadow; its 8px terminal has an opaque white fi
 and 2px blue border. The overlay, anchors, bounds observers, and drag decisions
 are unchanged. The unused Atlassian React indicator dependency was removed;
 Pragmatic core and hitbox remain installed for drag handling.
-[Local renderer](../../apps/app/modules/lib/wall/WallDropIndicator.tsx),
-[local styling](../../apps/app/modules/lib/wall/WallDropIndicator.css).
+[Local renderer](../../apps/app/components/WallEditor/WallDropIndicator.tsx),
+[local styling](../../apps/app/components/WallEditor/WallDropIndicator.css).
 
 Local-renderer verification: App typecheck and Nx production build passed. All six
 move stories passed with the 1px white core, blue shadow, white terminal fill,

@@ -117,9 +117,9 @@ pnpm nx run @qrk.sh/app:build-storybook
 Open `http://127.0.0.1:10020`; `PORT` overrides the default. App Storybook
 uses its own Vite configuration and the App/module styles and fonts.
 Fixture previews require no persisted editor or API Worker; live actions require
-the existing API services. Stories live alongside their components in
-`modules/components/`, `modules/lib/`, and each module directory. The static build goes to
-`apps/app/storybook-static/`.
+the existing API services. Module stories live alongside their components, and
+the shared playground lives in `apps/app/.storybook/ModulePlayground/`. The
+static build goes to `apps/app/storybook-static/`.
 
 Each **Modules / <module> / Playground** story preserves the former module page's
 Module metadata, Generate spec and input, sm/md/lg/xl Component/JsonRender previews,

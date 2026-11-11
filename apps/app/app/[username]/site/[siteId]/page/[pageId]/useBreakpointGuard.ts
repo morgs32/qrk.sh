@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type RefCallback } from "react";
 import { useNavigate, useSearch } from "@tanstack/react-router";
-import { BREAKPOINTS, PREVIEW_BORDER_WIDTH } from "../../../../../../modules/lib/breakpoints";
+import { BREAKPOINTS, PREVIEW_BORDER_WIDTH } from "../../../../../../lib/breakpoints";
 
 /** Fit the selected Wall to the pane once its inline editors can close. */
 export function useBreakpointGuard(

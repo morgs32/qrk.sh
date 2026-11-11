@@ -4,7 +4,7 @@ import { Schema } from "effect";
 import { motion, useReducedMotion } from "framer-motion";
 import { useMemo } from "react";
 import { ArrowLeft, File, Globe, Plus, RectangleHorizontal } from "lucide-react";
-import { WallPreviewToolbar } from "../../../../../modules/lib/WallPreviewToolbar";
+import { WallPreviewToolbar } from "./WallPreviewToolbar";
 import { useSearch } from "@tanstack/react-router";
 import { makeIdSchema } from "@zerospin/sdk/browser";
 import { siteV1 as Site } from "@qrk.sh/zerospin/src/aggregates/user/models/site/SiteV1";

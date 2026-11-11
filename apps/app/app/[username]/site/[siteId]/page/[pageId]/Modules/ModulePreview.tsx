@@ -3,10 +3,10 @@ import { draggable } from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
 import { pointerOutsideOfPreview } from "@atlaskit/pragmatic-drag-and-drop/utils/pointer-outside-of-preview";
 import { setCustomNativeDragPreview } from "@atlaskit/pragmatic-drag-and-drop/utils/set-custom-native-drag-preview";
 
-import { BrickWrapper } from "../components/brick/BrickWrapper";
-import { BrickAction } from "../components/BrickAction";
-import { BREAKPOINTS } from "./breakpoints";
-import { modulesHash } from "./modulesHash";
+import { BrickWrapper } from "../../../../../../../modules/components/brick/BrickWrapper";
+import { BrickAction } from "../../../../../../../modules/components/BrickAction";
+import { BREAKPOINTS } from "../../../../../../../lib/breakpoints";
+import { modulesHash } from "../../../../../../../modules/modulesHash";
 
 export function ModulePreview(props: {
   brickModule: (typeof modulesHash)[keyof typeof modulesHash];

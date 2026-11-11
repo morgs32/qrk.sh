@@ -1,10 +1,10 @@
 import type { CSSProperties, ReactNode } from "react";
 
-import { BrickBody } from "../../components/brick/BrickBody";
-import { BrickFooter } from "../../components/brick/BrickFooter";
-import { BrickShell } from "../../components/brick/BrickShell";
-import { Column } from "../../components/Column";
-import { Row } from "../../components/Row";
+import { BrickBody } from "../components/brick/BrickBody";
+import { BrickFooter } from "../components/brick/BrickFooter";
+import { BrickShell } from "../components/brick/BrickShell";
+import { Column } from "../components/Column";
+import { Row } from "../components/Row";
 
 function gapFromProps(props: Record<string, unknown>): 2 | 4 {
   return props.gap === 4 ? 4 : 2;

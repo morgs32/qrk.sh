@@ -50,18 +50,18 @@ For a separator between two resizable regions, the WAI-ARIA Window Splitter patt
 Recommended keyboard behavior should use the same preview and final sizing command, with an explicit completion boundary for a key sequence instead of staging every repeated key event. Before implementation, settle preferred widths versus shares, minimum versus exact Row height, constrained-content behavior, and how neighboring Bricks absorb a divider move. Those choices affect rendering and the command payload; they do not require a general draft-Wall layer.
 
 [dependencies]: /Users/morgs32/GitHub/qrk.sh/apps/app/package.json:44
-[editor-state]: /Users/morgs32/GitHub/qrk.sh/apps/app/modules/lib/wall/WallEditor.tsx:63
-[editor-query]: /Users/morgs32/GitHub/qrk.sh/apps/app/modules/lib/wall/WallEditor.tsx:84
-[editor-drag]: /Users/morgs32/GitHub/qrk.sh/apps/app/modules/lib/wall/WallEditor.tsx:207
-[editor-drop]: /Users/morgs32/GitHub/qrk.sh/apps/app/modules/lib/wall/WallEditor.tsx:288
-[editor-add]: /Users/morgs32/GitHub/qrk.sh/apps/app/modules/lib/wall/WallEditor.tsx:346
-[row-render]: /Users/morgs32/GitHub/qrk.sh/apps/app/modules/lib/wall/WallEditor.tsx:743
-[stack-render]: /Users/morgs32/GitHub/qrk.sh/apps/app/modules/lib/wall/WallEditor.tsx:675
-[placement-sizing]: /Users/morgs32/GitHub/qrk.sh/apps/app/modules/lib/wall/WallPlacement.tsx:29
+[editor-state]: /Users/morgs32/GitHub/qrk.sh/apps/app/components/WallEditor/WallEditor.tsx:63
+[editor-query]: /Users/morgs32/GitHub/qrk.sh/apps/app/components/WallEditor/WallEditor.tsx:84
+[editor-drag]: /Users/morgs32/GitHub/qrk.sh/apps/app/components/WallEditor/WallEditor.tsx:207
+[editor-drop]: /Users/morgs32/GitHub/qrk.sh/apps/app/components/WallEditor/WallEditor.tsx:288
+[editor-add]: /Users/morgs32/GitHub/qrk.sh/apps/app/components/WallEditor/WallEditor.tsx:346
+[row-render]: /Users/morgs32/GitHub/qrk.sh/apps/app/components/WallEditor/WallEditor.tsx:743
+[stack-render]: /Users/morgs32/GitHub/qrk.sh/apps/app/components/WallEditor/WallEditor.tsx:675
+[placement-sizing]: /Users/morgs32/GitHub/qrk.sh/apps/app/components/WallEditor/WallPlacement.tsx:29
 [brick-css]: /Users/morgs32/GitHub/qrk.sh/apps/app/modules/bricks.css:96
 [variant-metadata]: /Users/morgs32/GitHub/qrk.sh/apps/zerospin/src/modules/make/makeModuleVersion.ts:69
 [height-gap]: /Users/morgs32/GitHub/qrk.sh/apps/app/modules/README.md:217
-[share-row]: /Users/morgs32/GitHub/qrk.sh/apps/zerospin/src/modules/lib/canShareRow.ts:1
+[share-row]: /Users/morgs32/GitHub/qrk.sh/apps/zerospin/src/aggregates/user/layout/canShareRow.ts:1
 [move-guard]: /Users/morgs32/GitHub/qrk.sh/apps/zerospin/src/aggregates/user/contracts/wall/MovePlacementToRowContractV2.ts:95
 [row-schema]: /Users/morgs32/GitHub/qrk.sh/apps/zerospin/src/aggregates/user/layout/wallLayoutSchema.ts:9
 [placement-schema]: /Users/morgs32/GitHub/qrk.sh/apps/zerospin/src/aggregates/user/models/placement/PlacementV1.ts:10

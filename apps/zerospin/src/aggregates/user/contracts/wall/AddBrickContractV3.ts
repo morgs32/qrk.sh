@@ -20,8 +20,8 @@ import { userV1 as user } from "../../models/user/UserV1";
 import { wallV1 as wall } from "../../models/wall/WallV1";
 import { placementV1 as placement } from "../../models/placement/PlacementV1";
 import { backendLibrary } from "../../../../modules/backendLibrary";
-import { makePlacementId } from "../../../../modules/lib/makePlacementId";
-import { canShareRow } from "../../../../modules/lib/canShareRow";
+import { makePlacementId } from "../../layout/makePlacementId";
+import { canShareRow } from "../../layout/canShareRow";
 import { insertPlacementInLayout } from "../../layout/wallLayout";
 import { wallInsertionTargetSchema } from "../../layout/wallTargetSchemas";
 

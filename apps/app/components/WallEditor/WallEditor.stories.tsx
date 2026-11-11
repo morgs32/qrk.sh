@@ -15,17 +15,17 @@ import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { Laptop, Monitor, MoveHorizontal, MoveVertical, Smartphone, Tablet } from "lucide-react";
 
-import { Drawer } from "../modules/lib/Drawer";
-import { ModuleFilmstrip } from "../modules/lib/ModuleFilmstrip";
-import { ModulePreview } from "../modules/lib/ModulePreview";
-import { SiteHeader } from "../app/[username]/site/[siteId]/SiteHeader";
-import { BrowserChrome } from "../modules/lib/BrowserChrome";
-import { WallEditor } from "../modules/lib/wall/WallEditor";
-import { Button } from "../modules/components/ui/button";
-import { BREAKPOINTS, PREVIEW_BORDER_WIDTH } from "../modules/lib/breakpoints";
-import { makePlacementId } from "@qrk.sh/zerospin/src/modules/lib/makePlacementId";
+import { Drawer } from "../Drawer/Drawer";
+import { ModuleFilmstrip } from "../../app/[username]/site/[siteId]/page/[pageId]/Modules/ModuleFilmstrip";
+import { ModulePreview } from "../../app/[username]/site/[siteId]/page/[pageId]/Modules/ModulePreview";
+import { SiteHeader } from "../../app/[username]/site/[siteId]/SiteHeader";
+import { BrowserChrome } from "../PagePreview/BrowserChrome";
+import { WallEditor } from "./WallEditor";
+import { Button } from "../../modules/components/ui/button";
+import { BREAKPOINTS, PREVIEW_BORDER_WIDTH } from "../../lib/breakpoints";
+import { makePlacementId } from "@qrk.sh/zerospin/src/aggregates/user/layout/makePlacementId";
 import { swatchAndIconV1 } from "@qrk.sh/zerospin/src/modules/swatchAndIcon/swatchAndIconV1";
-import { modulesHash } from "../modules/lib/modulesHash";
+import { modulesHash } from "../../modules/modulesHash";
 import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
 
 const { user, site, page, wall, brick, placement } = userSessionDefinition.models;

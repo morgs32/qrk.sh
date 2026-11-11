@@ -2,9 +2,9 @@ import { prefixId } from "@zerospin/sdk/browser";
 import type { StoryObj } from "@storybook/react-vite";
 import { expect, fireEvent, userEvent, waitFor, within } from "storybook/test";
 
-import { BREAKPOINTS } from "../../../modules/lib/breakpoints";
-import { modulesHash } from "../../../modules/lib/modulesHash";
-import wallEditorMeta from "../../WallEditor.stories";
+import { BREAKPOINTS } from "../../../lib/breakpoints";
+import { modulesHash } from "../../../modules/modulesHash";
+import wallEditorMeta from "../WallEditor.stories";
 
 const meta = {
   ...wallEditorMeta,

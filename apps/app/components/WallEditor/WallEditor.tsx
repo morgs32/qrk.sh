@@ -39,7 +39,7 @@ import { wallV3 } from "@qrk.sh/zerospin/src/aggregates/user/models/wall/WallV3"
 import { useLiveQuery, useSession } from "@zerospin/react";
 import { Result, Schema } from "effect";
 import { wallInsertionTargetSchema } from "@qrk.sh/zerospin/src/aggregates/user/layout/wallTargetSchemas";
-import { canShareRow } from "@qrk.sh/zerospin/src/modules/lib/canShareRow";
+import { canShareRow } from "@qrk.sh/zerospin/src/aggregates/user/layout/canShareRow";
 import {
   allocateRowWidths,
   allocateStackWidths,
@@ -47,12 +47,12 @@ import {
   wallBreakpointWidths,
 } from "@qrk.sh/zerospin/src/aggregates/user/layout/wallSizing";
 
-import { StackAction } from "../../components/StackAction";
-import { BrickWrapper } from "../../components/brick/BrickWrapper";
+import { StackAction } from "../../modules/components/StackAction";
+import { BrickWrapper } from "../../modules/components/brick/BrickWrapper";
 import { WallPlacement } from "./WallPlacement";
 import { WallDropIndicator } from "./WallDropIndicator";
-import { PreviewSection } from "../PreviewSection";
-import { modulesHash } from "../modulesHash";
+import { PreviewSection } from "../PagePreview/PreviewSection";
+import { modulesHash } from "../../modules/modulesHash";
 import { makeWallLayoutView } from "./makeWallLayoutView";
 import { useWallResize } from "./useWallResize";
 import { userSessionDefinition } from "@/zerospin/userSessionDefinition";

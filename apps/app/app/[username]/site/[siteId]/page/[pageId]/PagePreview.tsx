@@ -8,9 +8,9 @@ import { useLiveQuery, useSession } from "@zerospin/react";
 import { Schema } from "effect";
 import { useContext } from "react";
 
-import { BREAKPOINTS, PREVIEW_BORDER_WIDTH } from "../../../../../../modules/lib/breakpoints";
-import { BrowserChrome } from "../../../../../../modules/lib/BrowserChrome";
-import { WallEditor } from "../../../../../../modules/lib/wall/WallEditor";
+import { BREAKPOINTS, PREVIEW_BORDER_WIDTH } from "../../../../../../lib/breakpoints";
+import { BrowserChrome } from "../../../../../../components/PagePreview/BrowserChrome";
+import { WallEditor } from "../../../../../../components/WallEditor/WallEditor";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
 import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
 import { SiteHeader } from "../../SiteHeader";

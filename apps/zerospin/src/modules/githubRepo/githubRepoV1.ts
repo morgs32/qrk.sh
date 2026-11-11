@@ -10,7 +10,7 @@ import {
   brickShellComponentMetadata,
   columnComponentMetadata,
   rowComponentMetadata,
-} from "../lib/jsonRender/layoutComponentMetadata";
+} from "../jsonRender/layoutComponentMetadata";
 
 import { makeModuleVersion } from "../make/makeModuleVersion";
 

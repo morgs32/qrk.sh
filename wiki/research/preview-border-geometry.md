@@ -4,7 +4,7 @@ Researched 2026-10-28 against the current QRK source, live browser measurements 
 
 ## Original finding
 
-The widths agreed, but the visible left/right step came from mixing an **outside ring** on the browser bar with **inside borders** on the navbar, Wall, and footer. `PreviewSection` centered each section at the same authored width. `BrowserChrome` added `ring-1`, whereas the other sections added `border-x`. [PreviewSection](/Users/morgs32/GitHub/qrk.sh/apps/app/modules/lib/PreviewSection.tsx:5), [BrowserChrome](/Users/morgs32/GitHub/qrk.sh/apps/app/modules/lib/BrowserChrome.tsx:10), [navbar](/Users/morgs32/GitHub/qrk.sh/apps/app/app/[username]/site/[siteId]/SiteHeader.tsx:19), [Wall and footer](/Users/morgs32/GitHub/qrk.sh/apps/app/modules/lib/wall/WallEditor.tsx:367).
+The widths agreed, but the visible left/right step came from mixing an **outside ring** on the browser bar with **inside borders** on the navbar, Wall, and footer. `PreviewSection` centered each section at the same authored width. `BrowserChrome` added `ring-1`, whereas the other sections added `border-x`. [PreviewSection](/Users/morgs32/GitHub/qrk.sh/apps/app/components/PagePreview/PreviewSection.tsx:5), [BrowserChrome](/Users/morgs32/GitHub/qrk.sh/apps/app/components/PagePreview/BrowserChrome.tsx:10), [navbar](/Users/morgs32/GitHub/qrk.sh/apps/app/app/[username]/site/[siteId]/SiteHeader.tsx:19), [Wall and footer](/Users/morgs32/GitHub/qrk.sh/apps/app/components/WallEditor/WallEditor.tsx:367).
 
 At the measured 1708px viewport, all four section border boxes start at x=134 and are 1440px wide. The browser bar had zero side-border width and a 1px outer ring; its painted edge began at x=133. The other three had 1px side borders and painted within x=134…1574. Their client width was 1438px; the browser bar's was 1440px. All four used `box-sizing: border-box` and visible overflow. These are recorded live DOM/computed-style observations before the repair, not inferred from the screenshot alone.
 
@@ -17,14 +17,14 @@ outer border-box width. A nominal 720px preview must provide 720px before
 section-local padding, with 1px borders outside that area: 722px total. The same
 rule gives 362/722/1082/1442px total widths for the four nominal previews.
 Container-query thresholds stay unchanged; the repair must not make a nominal
-720px page become a 718px content/query area. [Breakpoint definitions and border allowance](/Users/morgs32/GitHub/qrk.sh/apps/app/modules/lib/breakpoints.ts:2),
+720px page become a 718px content/query area. [Breakpoint definitions and border allowance](/Users/morgs32/GitHub/qrk.sh/apps/app/lib/breakpoints.ts:2),
 [CSS container width](https://www.w3.org/TR/css-contain-3/#width),
 [CSS border-box sizing](https://www.w3.org/TR/css-sizing-3/#box-sizing).
 
 1. The existing `PreviewSection` solely owns shared real 1px zinc side borders.
    Its border-box width is the nominal content width plus
    `2 * PREVIEW_BORDER_WIDTH`, where `PREVIEW_BORDER_WIDTH` is the 1px constant
-   exported by `modules/lib/breakpoints.ts`. PagePreview and the story expose
+   exported by `apps/app/lib/breakpoints.ts`. PagePreview and the story expose
    it through `--wall-preview-border-width`. It remains one
    centered element, without max-width clamping or clipping. Its callers no
    longer repeat side-border declarations.
@@ -49,7 +49,7 @@ Container-query thresholds stay unchanged; the repair must not make a nominal
 5. Storybook uses the same exact content-plus-borders sizing. Its frame minimum
    width is the selected nominal width plus both borders, so its existing scroll
    owner scrolls oversized selections horizontally rather than shrinking them.
-   Labels remain nominal widths. [Story frame](/Users/morgs32/GitHub/qrk.sh/apps/app/components/WallEditor.stories.tsx:199).
+   Labels remain nominal widths. [Story frame](/Users/morgs32/GitHub/qrk.sh/apps/app/components/WallEditor/WallEditor.stories.tsx:199).
 6. Module catalog/detail previews retain their nominal content-width caps.
    No new responsive thresholds, fitting helper, state owner, wrapper, or type
    is needed.
@@ -60,8 +60,8 @@ behavior. A zero-layout per-section overlay was also considered; uniform real
 borders plus explicit border allowance provide exact content widths without
 pseudo-element paint-layer machinery. Do not use `box-content` indiscriminately:
 Chrome/footer padding would then expand their outer width beyond the common
-border allowance. [Existing section](/Users/morgs32/GitHub/qrk.sh/apps/app/modules/lib/PreviewSection.tsx:5),
-[Chrome padding](/Users/morgs32/GitHub/qrk.sh/apps/app/modules/lib/BrowserChrome.tsx:12).
+border allowance. [Existing section](/Users/morgs32/GitHub/qrk.sh/apps/app/components/PagePreview/PreviewSection.tsx:5),
+[Chrome padding](/Users/morgs32/GitHub/qrk.sh/apps/app/components/PagePreview/BrowserChrome.tsx:12).
 
 ## Verification results
 

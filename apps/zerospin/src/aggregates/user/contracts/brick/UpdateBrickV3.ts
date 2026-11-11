@@ -22,7 +22,7 @@ import { makeEffectSchema, primitives } from "@zerospin/shapes";
 
 import { Effect, Schema } from "effect";
 
-import { makePlacementId } from "../../../../modules/lib/makePlacementId";
+import { makePlacementId } from "../../layout/makePlacementId";
 
 const breakpoints: Array<"sm" | "md" | "lg" | "xl"> = ["sm", "md", "lg", "xl"];
 

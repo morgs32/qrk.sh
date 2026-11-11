@@ -4,7 +4,7 @@ import type { IInferModelRow } from "@zerospin/core/models/types";
 import { useLiveQuery, useSession } from "@zerospin/react";
 import { siteV1 } from "@qrk.sh/zerospin/src/aggregates/user/models/site/SiteV1";
 import { cn } from "cn";
-import { PreviewSection } from "../../../../modules/lib/PreviewSection";
+import { PreviewSection } from "../../../../components/PagePreview/PreviewSection";
 import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
 
 export function SiteHeader(props: { siteId: IInferModelRow<typeof siteV1>["id"] }) {

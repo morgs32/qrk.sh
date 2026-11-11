@@ -4,7 +4,7 @@ import { useState } from "react";
 import { ToolbarButton } from "@/app/[username]/site/[siteId]/Toolbars/ToolbarButton";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
-import { BREAKPOINTS } from "./breakpoints";
+import { BREAKPOINTS } from "../../../../../lib/breakpoints";
 import { WallPreviewToolbar } from "./WallPreviewToolbar";
 
 const meta = {

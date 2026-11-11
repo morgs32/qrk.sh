@@ -51,7 +51,7 @@ Page layout
   counterpart. Leaving the named chrome mounted for the shell's exit could
   create a second snapshot and bypass that animation. Unmounting it also
   unregisters Escape on the base Page. Retain the existing handling of
-  Escape events consumed by child overlays. [Drawer shell](../../apps/app/modules/lib/Drawer.tsx),
+  Escape events consumed by child overlays. [Drawer shell](../../apps/app/components/Drawer/Drawer.tsx),
   [QRK exit styles](../../apps/app/app/globals.css#L243),
   [CSS view-transition exit snapshots](https://drafts.csswg.org/css-view-transitions-1/#view-transition-old-pseudo),
   [TanStack Hotkeys](https://tanstack.com/hotkeys/latest/docs/framework/react/guides/hotkeys).
@@ -62,7 +62,7 @@ Page layout
   drawer with an ID derived from the selected Brick. Keep that target
   contract and preserve physical DOM containment checks in the preview
   handler, since portal clicks still bubble through the React tree.
-  [Drawer focus handling](../../apps/app/modules/lib/Drawer.tsx),
+  [Drawer focus handling](../../apps/app/components/Drawer/Drawer.tsx),
   [PagePreview](../../apps/app/app/%5Busername%5D/site/%5BsiteId%5D/page/%5BpageId%5D/PagePreview.tsx),
   [React portal behavior](https://react.dev/reference/react-dom/createPortal#caveats).
 - **Editor state.** Keep Page and Wall identity keyed by their existing
@@ -112,12 +112,12 @@ Page layout
   route-exit snapshot and focus restoration guard. Evaluate this when
   replacing the shell itself is the goal. [Base UI Drawer usage guidelines](https://base-ui.com/react/components/drawer#usage-guidelines),
   [Base UI Dialog API](https://base-ui.com/react/components/dialog#root),
-  [QRK Drawer](../../apps/app/modules/lib/Drawer.tsx).
+  [QRK Drawer](../../apps/app/components/Drawer/Drawer.tsx).
 - **Simplify the shell's layout sizing.** A later sizing change could give
   the shell, preview height token, and exit keyframes one shared value. The
   named exit snapshot lives outside the viewport element's CSS scope, so
   its height source must also be visible to the view-transition pseudo
   elements. [Preview size CSS](../../apps/app/modules/bricks.css#L15),
-  [Drawer shell](../../apps/app/modules/lib/Drawer.tsx),
+  [Drawer shell](../../apps/app/components/Drawer/Drawer.tsx),
   [QRK exit styles](../../apps/app/app/globals.css#L243),
   [CSS view-transition tree](https://drafts.csswg.org/css-view-transitions-1/#view-transition-pseudos).

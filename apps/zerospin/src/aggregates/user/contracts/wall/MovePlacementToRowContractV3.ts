@@ -5,7 +5,7 @@ import { placementV2 as placement } from "../../models/placement/PlacementV2";
 import { movePlacementToRowV2 } from "./MovePlacementToRowContractV2";
 import { movePlacementToRowInLayout } from "../../layout/wallLayoutV2";
 import { backendLibrary } from "../../../../modules/backendLibrary";
-import { canShareRow } from "../../../../modules/lib/canShareRow";
+import { canShareRow } from "../../layout/canShareRow";
 
 export const movePlacementToRowV3 = upgradeAggregateContractRelease(movePlacementToRowV2, {
   version: 3,

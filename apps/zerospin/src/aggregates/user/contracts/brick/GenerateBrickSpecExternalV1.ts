@@ -5,7 +5,7 @@ import { Effect, Schema } from "effect";
 
 import { backendLibrary as library } from "../../../../modules/backendLibrary";
 import { makeModuleSpecDocumentSchema } from "../../../../modules/make/makeModuleSpecDocumentSchema";
-import { makePlacementId } from "../../../../modules/lib/makePlacementId";
+import { makePlacementId } from "../../layout/makePlacementId";
 import { brickV1 as brick } from "../../models/brick/BrickV1";
 import { placementV1 as placement } from "../../models/placement/PlacementV1";
 import { wallV1 as wall } from "../../models/wall/WallV1";

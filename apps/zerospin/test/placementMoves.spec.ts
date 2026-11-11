@@ -14,7 +14,7 @@ import { movePlacementToRowV1 } from "../src/aggregates/user/contracts/wall/Move
 import { movePlacementToRowV2 } from "../src/aggregates/user/contracts/wall/MovePlacementToRowContractV2";
 import { movePlacementToRowV3 } from "../src/aggregates/user/contracts/wall/MovePlacementToRowContractV3";
 import { swatchAndIconPreviewState } from "../src/modules/swatchAndIcon/swatchAndIconPreviewState";
-import { makePlacementId } from "../src/modules/lib/makePlacementId";
+import { makePlacementId } from "../src/aggregates/user/layout/makePlacementId";
 import { system } from "../src/system";
 import { wallLayoutSchemaV2 } from "../src/aggregates/user/layout/wallLayoutSchemaV2";
 import {

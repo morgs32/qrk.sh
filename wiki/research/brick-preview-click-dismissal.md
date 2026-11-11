@@ -70,7 +70,7 @@ spec assigns the click to that captured target. [W3C click dispatch rules](https
   and a migration of QRK's existing drawer focus and animation lifecycle.
   [Base UI Drawer API](https://base-ui.com/react/components/drawer#root),
   [App dependencies](../../apps/app/package.json),
-  [QRK Drawer](../../apps/app/modules/lib/Drawer.tsx).
+  [QRK Drawer](../../apps/app/components/Drawer/Drawer.tsx).
 - **React Aria `useInteractOutside`** tracks the press origin and then checks
   the completed click. Its pointer-capable implementation uses capture
   listeners on the element's owner document and checks containment against
@@ -91,8 +91,8 @@ interactive descendants. Preserve the existing Brick click conventions
 for modified clicks, `defaultPrevented`, and text selection. Check the
 press origin as well as the click target so a click retargeted to an empty
 ancestor cannot dismiss after a press on a Brick or control. The
-drawer and floating toolbar sit outside this boundary. [WallPlacement](../../apps/app/modules/lib/wall/WallPlacement.tsx),
-[WallEditor](../../apps/app/modules/lib/wall/WallEditor.tsx),
+drawer and floating toolbar sit outside this boundary. [WallPlacement](../../apps/app/components/WallEditor/WallPlacement.tsx),
+[WallEditor](../../apps/app/components/WallEditor/WallEditor.tsx),
 [Page layout](../../apps/app/app/%5Busername%5D/site/%5BsiteId%5D/page/%5BpageId%5D/layout.tsx),
 [drawer close](../../apps/app/app/%5Busername%5D/site/%5BsiteId%5D/page/%5BpageId%5D/%28drawer%29/layout.tsx),
 [W3C click dispatch rules](https://www.w3.org/TR/pointerevents3/#event-dispatch).

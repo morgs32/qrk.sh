@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { ModulePlayground } from "../lib/ModulePlayground";
+import { ModulePlayground } from "../../.storybook/ModulePlayground/ModulePlayground";
 
 const meta = {
   title: "Modules/GitHub Activity",

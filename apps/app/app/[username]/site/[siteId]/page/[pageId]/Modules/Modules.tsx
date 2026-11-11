@@ -5,8 +5,8 @@ import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
 import { useLiveQuery, useSession } from "@zerospin/react";
 import { useSearch } from "@tanstack/react-router";
 
-import { ModuleFilmstrip } from "../../../../../../../modules/lib/ModuleFilmstrip";
-import { BREAKPOINTS } from "../../../../../../../modules/lib/breakpoints";
+import { ModuleFilmstrip } from "./ModuleFilmstrip";
+import { BREAKPOINTS } from "../../../../../../../lib/breakpoints";
 import { pageV1 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV1";
 import { siteV1 as Site } from "@qrk.sh/zerospin/src/aggregates/user/models/site/SiteV1";
 import { Schema } from "effect";

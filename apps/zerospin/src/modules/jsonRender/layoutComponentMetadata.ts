@@ -1,6 +1,6 @@
 import { primitives } from "@zerospin/shapes";
 
-import { defineComponentMetadata } from "../../make/defineComponentMetadata";
+import { defineComponentMetadata } from "../make/defineComponentMetadata";
 
 const justifyContent = primitives.enum({
   values: ["flex-start", "flex-end", "center", "space-between", "space-around", "space-evenly"],

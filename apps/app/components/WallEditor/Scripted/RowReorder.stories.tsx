@@ -1,11 +1,11 @@
-import { makePlacementId } from "@qrk.sh/zerospin/src/modules/lib/makePlacementId";
+import { makePlacementId } from "@qrk.sh/zerospin/src/aggregates/user/layout/makePlacementId";
 import { prefixId } from "@zerospin/sdk/browser";
 import type { StoryObj } from "@storybook/react-vite";
 import { expect, fireEvent, userEvent, waitFor, within } from "storybook/test";
 
 import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
-import { BREAKPOINTS } from "../../../modules/lib/breakpoints";
-import wallEditorMeta from "../../WallEditor.stories";
+import { BREAKPOINTS } from "../../../lib/breakpoints";
+import wallEditorMeta from "../WallEditor.stories";
 
 const { brick } = userSessionDefinition.models;
 

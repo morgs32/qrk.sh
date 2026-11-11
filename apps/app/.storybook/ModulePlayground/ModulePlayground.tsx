@@ -8,13 +8,13 @@ import { useId, useMemo, useState } from "react";
 import { collapseAllNested, defaultStyles, JsonView } from "react-json-view-lite";
 import { SWRConfig } from "swr";
 
-import { Button } from "../components/ui/button";
+import { Button } from "../../modules/components/ui/button";
 import { Input } from "@/components/FormInputs/Input";
 import type { LibraryApi } from "@qrk.sh/api/modules/LibraryApi.public";
 import type { IScrapeError } from "@qrk.sh/api/modules/types";
 import { BreakpointPreviewRow } from "./BreakpointPreviewRow";
-import { BREAKPOINTS } from "./breakpoints";
-import { modulesHash } from "./modulesHash";
+import { BREAKPOINTS } from "../../lib/breakpoints";
+import { modulesHash } from "../../modules/modulesHash";
 
 /** A module's example edits and generated specs live only in this mounted story. */
 export function ModulePlayground(props: {

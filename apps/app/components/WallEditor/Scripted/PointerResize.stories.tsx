@@ -3,8 +3,8 @@ import type { StoryObj } from "@storybook/react-vite";
 import { expect, fireEvent, spyOn, userEvent, waitFor, within } from "storybook/test";
 
 import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
-import { BREAKPOINTS } from "../../../modules/lib/breakpoints";
-import wallEditorMeta from "../../WallEditor.stories";
+import { BREAKPOINTS } from "../../../lib/breakpoints";
+import wallEditorMeta from "../WallEditor.stories";
 
 const { wall } = userSessionDefinition.models;
 

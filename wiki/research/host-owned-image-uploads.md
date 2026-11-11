@@ -17,7 +17,7 @@ initializer capability. No verification was run for this follow-up.
 
 ## Ownership and configuration
 
-App's PageLayout owns authenticated `/upload`, fresh Clerk-token acquisition, the current `siteId`, multipart construction and decoding the untrusted response. Storybook's ModulePlayground owns anonymous `/image/upload` with no token or site field. Each implements an ordinary async function and supplies it through `SWRConfig`; neither needs a Zerospin session. [App host](../../apps/app/app/[username]/site/[siteId]/page/[pageId]/layout.tsx), [Storybook host](../../apps/app/modules/lib/ModulePlayground.tsx).
+App's PageLayout owns authenticated `/upload`, fresh Clerk-token acquisition, the current `siteId`, multipart construction and decoding the untrusted response. Storybook's ModulePlayground owns anonymous `/image/upload` with no token or site field. Each implements an ordinary async function and supplies it through `SWRConfig`; neither needs a Zerospin session. [App host](../../apps/app/app/[username]/site/[siteId]/page/[pageId]/layout.tsx), [Storybook host](../../apps/app/.storybook/ModulePlayground/ModulePlayground.tsx).
 
 ```tsx
 // 1. The host owns HTTP and returns the uploaded URL.
@@ -36,7 +36,7 @@ uploadImage?: (file: File, options: { signal: AbortSignal }) => Promise<string>;
 
 `ImageUploadSWR.d.ts` augments `PublicConfiguration` through the installed SWR's exported `swr/_internal` entrypoint, preserving its upstream generic declaration. This types both `SWRConfig` and `useSWRConfig()` without casts, wrapper hooks or a separate Image upload context. The accepted trade-off is coupling this type-only extension to that exported configuration interface. No dependency upgrade or installed-package edit is involved. [Augmentation](../../apps/app/modules/image/ImageUploadSWR.d.ts).
 
-The shared registered-form contract remains `state`, `onSave` and `onCancel`; no Image-specific prop travels through the module registry. A missing uploader hides file selection/drop UI while keeping manual Image URL entry and Save available. [ImageForm](../../apps/app/modules/image/ImageForm.tsx), [Form contract](../../apps/app/modules/lib/types.ts).
+The shared registered-form contract remains `state`, `onSave` and `onCancel`; no Image-specific prop travels through the module registry. A missing uploader hides file selection/drop UI while keeping manual Image URL entry and Save available. [ImageForm](../../apps/app/modules/image/ImageForm.tsx), [Form contract](../../apps/app/modules/types.ts).
 
 ## Form-local mutation
 

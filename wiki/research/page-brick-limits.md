@@ -43,7 +43,7 @@ rejects a matching count greater than or equal to the module maximum with
 the same metadata to show the limit and disable dragging; the wall refuses
 excess drops. UI feedback supplements contract enforcement.
 [Add contract](../../apps/library/libraryModule/contracts/addBrick/AddBrickContractV1.ts),
-[Catalog preview](../../apps/app/modules/lib/ModulePreview.tsx),
+[Catalog preview](../../apps/app/app/[username]/site/[siteId]/page/[pageId]/Modules/ModulePreview.tsx),
 [Wall](../../apps/library/lib/BrickWall.tsx).
 
 ## Primary-source comparisons

@@ -10,7 +10,7 @@ The investigation itself changed no application code or persisted content.
 The screenshot was taken while Wall content passed underneath the sticky site
 navbar. The current frame uses a 1440px authored page-content width with 1px
 side borders: its outer box begins at x=133 and is 1442px wide; its content
-begins at x=134. [Shared section geometry](/Users/morgs32/GitHub/qrk.sh/apps/app/modules/lib/PreviewSection.tsx:8).
+begins at x=134. [Shared section geometry](/Users/morgs32/GitHub/qrk.sh/apps/app/components/PagePreview/PreviewSection.tsx:8).
 
 At scrollTop=34, the sticky navbar spans y=80…144. The first Wall Brick spans
 y=110…174 and therefore overlaps the navbar's vertical range from y=110…144.
@@ -26,9 +26,9 @@ begin at x=132; the Placement's 2px padding puts the actual Brick content back
 at x=134 with width 1440px. The -0.5px Row margin and +0.5px padding cancel too.
 The measured Brick edge is therefore correctly flush with the page-content
 edge; the gap compensation is not evidence of a four- or two-pixel layout
-error. [Outer gap compensation](/Users/morgs32/GitHub/qrk.sh/apps/app/modules/lib/wall/WallEditor.tsx:371),
-[Row compensation](/Users/morgs32/GitHub/qrk.sh/apps/app/modules/lib/wall/WallEditor.tsx:391),
-[Placement inset](/Users/morgs32/GitHub/qrk.sh/apps/app/modules/lib/wall/WallPlacement.tsx:19).
+error. [Outer gap compensation](/Users/morgs32/GitHub/qrk.sh/apps/app/components/WallEditor/WallEditor.tsx:371),
+[Row compensation](/Users/morgs32/GitHub/qrk.sh/apps/app/components/WallEditor/WallEditor.tsx:391),
+[Placement inset](/Users/morgs32/GitHub/qrk.sh/apps/app/components/WallEditor/WallPlacement.tsx:19).
 
 SwatchAndIcon's color surface is a full-width flex box with its authored color
 as background; it adds no border or edge offset. StackAction is an absolute
@@ -68,8 +68,8 @@ background ownership. The application now uses solid `border-zinc-300` on
 `PreviewSection`'s shared side borders. `BrowserChrome` uses the same solid
 zinc-300 on its own top and bottom edges, replacing the previous top 50%-opacity
 zinc and bottom 70%-opacity zinc. No background was moved; the navbar's nested
-header retains `bg-background`. [Shared sides](/Users/morgs32/GitHub/qrk.sh/apps/app/modules/lib/PreviewSection.tsx:10),
-[browser edges](/Users/morgs32/GitHub/qrk.sh/apps/app/modules/lib/BrowserChrome.tsx:12),
+header retains `bg-background`. [Shared sides](/Users/morgs32/GitHub/qrk.sh/apps/app/components/PagePreview/PreviewSection.tsx:10),
+[browser edges](/Users/morgs32/GitHub/qrk.sh/apps/app/components/PagePreview/BrowserChrome.tsx:12),
 [navbar background](/Users/morgs32/GitHub/qrk.sh/apps/app/app/[username]/site/[siteId]/SiteHeader.tsx:19).
 
 Opaque border paint removes the dependency on whichever Wall color passes

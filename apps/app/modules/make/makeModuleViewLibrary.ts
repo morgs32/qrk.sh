@@ -1,4 +1,4 @@
-import type { IModule } from "../lib/types";
+import type { IModule } from "../types";
 
 /** Attach view modules onto a backend map. Every backend key must be present. */
 export function makeModuleViewLibrary<

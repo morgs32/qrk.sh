@@ -16,8 +16,8 @@ rule](/Users/morgs32/GitHub/qrk.sh/apps/app/modules/bricks.css:117).
 This is a recommendation for these requirements, not a universal CSS rule.
 The current source supplies a common decoration to the drawer template and the
 Wall content, while keeping the rendered module and drop hitbox separate.
-[Drawer template](/Users/morgs32/GitHub/qrk.sh/apps/app/modules/lib/ModulePreview.tsx:75),
-[Wall content and hitbox](/Users/morgs32/GitHub/qrk.sh/apps/app/modules/lib/wall/WallPlacement.tsx:21).
+[Drawer template](/Users/morgs32/GitHub/qrk.sh/apps/app/app/[username]/site/[siteId]/page/[pageId]/Modules/ModulePreview.tsx:75),
+[Wall content and hitbox](/Users/morgs32/GitHub/qrk.sh/apps/app/components/WallEditor/WallPlacement.tsx:21).
 
 ## Exact treatment
 
@@ -57,7 +57,7 @@ below its normal content. The separate transparent overlay sits above module
 content and lets that content remain visible through the halo. Moving the same
 paint onto an existing overlay therefore serves an actual paint-order need,
 not a hypothetical abstraction. [CSS shadow layering](https://www.w3.org/TR/css-backgrounds-3/#shadow-layers),
-[Wall content layering](/Users/morgs32/GitHub/qrk.sh/apps/app/modules/lib/wall/WallPlacement.tsx:31).
+[Wall content layering](/Users/morgs32/GitHub/qrk.sh/apps/app/components/WallEditor/WallPlacement.tsx:31).
 
 Shadows do not change layout or expand scrollable overflow. Their outer pixels
 can still be clipped by a clipping ancestor; using shadows does not remove that
@@ -85,7 +85,7 @@ used for browser keyboard-focus indication. The outer Brick content decoration
 can be shared by hover and `:focus-within`, while inner control focus outlines
 remain intact. Do not remove those control outlines to free that property.
 [CSS outlines](https://www.w3.org/TR/css-ui-4/#outline),
-[Existing focus/open-menu treatment](/Users/morgs32/GitHub/qrk.sh/apps/app/modules/lib/wall/WallPlacement.tsx:25).
+[Existing focus/open-menu treatment](/Users/morgs32/GitHub/qrk.sh/apps/app/components/WallEditor/WallPlacement.tsx:25).
 
 ## Bounded target
 

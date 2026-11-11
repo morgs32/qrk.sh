@@ -730,8 +730,14 @@ flush. App flushes before leaving the Page, replacing its breakpoint Wall,
 moving the Placement, or publishing. The editor also attempts a flush when the
 tab becomes hidden. Saves use the existing `updateBrick` command for content
 shared across breakpoints. A successful stage updates the local session, which
-owns delivery and reconciliation. Save-error controls and recovery on navigation
-belong to Phase 3.
+owns delivery and reconciliation.
+
+A local save refusal keeps the draft visible and pauses autosave. **Retry**
+stages the latest draft. **Discard changes** restores the last accepted title,
+subtitle, and body and clears the discarded editor history. If a flush fails
+while leaving the Page or changing breakpoints, either action can resume the
+paused transition. A failed publication flush stops that attempt. Later
+admission and execution failures use App’s existing session error path.
 
 Native Meowdown controls retain formatting, selection, undo/redo,
 and image resizing. Drag/drop is blocked and block drag handles are disabled;

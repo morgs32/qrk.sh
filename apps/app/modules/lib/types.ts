@@ -41,7 +41,7 @@ export type IModule<MODULE extends string> = {
             onFocus: () => void;
             renderDrawer: (content: ReactNode) => ReactNode;
             onSave: (state: unknown) => IResult<unknown, { message: string }>;
-            registerFlush: (flush: () => boolean) => () => void;
+            registerFlush: (flush: (onRecover?: () => void) => boolean) => () => void;
           }
       ),
     ): ReactNode;

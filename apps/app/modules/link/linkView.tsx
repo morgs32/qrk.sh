@@ -13,8 +13,10 @@ export const linkView = makeModuleView(linkV1, {
   defaultState: linkPreviewState,
   LineIcon: LinkLineIcon,
   form(props) {
-    const { state, onSave, onCancel } = props;
-    return <LinkForm state={state} onSave={onSave} onCancel={onCancel} />;
+    const { state, onSave, onCancel, renderActions } = props;
+    return (
+      <LinkForm state={state} onSave={onSave} onCancel={onCancel} renderActions={renderActions} />
+    );
   },
   variants: {
     default: {

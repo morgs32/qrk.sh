@@ -7,7 +7,7 @@ import { makeEffectSchema, type IInferDecodedRow } from "@zerospin/shapes";
 import { newSyncRpcSession } from "@zerospin/core/utils/getApi/newSyncRpcSession/newSyncRpcSession";
 import { Schema } from "effect";
 import type { LibraryApi } from "@qrk.sh/api/modules/LibraryApi.public";
-import { useLayoutEffect, useRef, useState } from "react";
+import { useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 
 import { Button } from "../components/ui/button";
 import { GooglePlaceLookup } from "./GooglePlaceLookup";
@@ -20,8 +20,10 @@ export function MapPlaceForm(props: {
     state: IInferDecodedRow<typeof mapPlaceV1.stateShape>,
   ) => IResult<unknown, { message: string }>;
   onCancel: () => void;
+  renderActions: (actions: ReactNode) => ReactNode;
 }) {
-  const { state, onSave, onCancel } = props;
+  const { state, onSave, onCancel, renderActions } = props;
+  const formId = useId();
   const [googlePlaceIdDraft, setGooglePlaceId] = useState<string | null>(null);
   const googlePlaceId = googlePlaceIdDraft ?? state?.payload.googlePlaceId ?? "";
   const [lookupRevision, setLookupRevision] = useState(0);
@@ -45,6 +47,7 @@ export function MapPlaceForm(props: {
 
   return (
     <form
+      id={formId}
       autoComplete="off"
       className="mx-auto flex w-full max-w-md flex-col gap-2 p-4"
       onSubmit={async (event) => {
@@ -126,27 +129,29 @@ export function MapPlaceForm(props: {
           {saveError}
         </p>
       ) : null}
-      <div className="flex justify-end gap-2">
-        <Button
-          onClick={() => {
-            const submission = activeSubmission.current;
-            activeSubmission.current = null;
-            submission?.abort();
-            setIsSaving(false);
-            setSaveError(undefined);
-            setGooglePlaceId(null);
-            setLookupRevision((revision) => revision + 1);
-            onCancel();
-          }}
-          type="button"
-          variant="outline"
-        >
-          Cancel
-        </Button>
-        <Button disabled={!canSave || isSaving} type="submit">
-          Save
-        </Button>
-      </div>
+      {renderActions(
+        <div className="flex justify-end gap-2">
+          <Button
+            onClick={() => {
+              const submission = activeSubmission.current;
+              activeSubmission.current = null;
+              submission?.abort();
+              setIsSaving(false);
+              setSaveError(undefined);
+              setGooglePlaceId(null);
+              setLookupRevision((revision) => revision + 1);
+              onCancel();
+            }}
+            type="button"
+            variant="outline"
+          >
+            Cancel
+          </Button>
+          <Button disabled={!canSave || isSaving} type="submit" form={formId}>
+            Save
+          </Button>
+        </div>,
+      )}
     </form>
   );
 }

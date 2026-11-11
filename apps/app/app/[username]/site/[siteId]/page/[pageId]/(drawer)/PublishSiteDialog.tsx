@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useContext, useState } from "react";
 import { toast } from "sonner";
 import { useLiveQuery, useSession } from "@zerospin/react";
 import { makeId, stageAggregateSessionCommand } from "@zerospin/sdk/browser";
@@ -20,9 +20,12 @@ import {
 } from "@/components/ui/dialog";
 import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
 import { useWarnBeforeUnload } from "@/lib/useWarnBeforeUnload";
+import { BrickAutosaveContext } from "../BrickAutosaveContext";
 
 export function PublishSiteDialog(props: { siteId: `sit_${string}` }) {
   const { siteId } = props;
+  const autosave = useContext(BrickAutosaveContext);
+  if (autosave === null) throw new Error("Brick autosave requires the Page layout");
   const session = useSession(userSessionDefinition);
   const [open, setOpen] = useState(false);
   const [selectedPageIds, setSelectedPageIds] = useState<Array<`pag_${string}`>>([]);
@@ -122,6 +125,7 @@ export function PublishSiteDialog(props: { siteId: `sit_${string}` }) {
               toast.error("The site must have exactly one root page before publishing");
               return;
             }
+            if (!autosave.flushPageEditors()) return;
             const result = stageAggregateSessionCommand({
               session,
               contractName: "publishSite",

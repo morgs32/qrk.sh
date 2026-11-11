@@ -2,7 +2,7 @@
 
 import { useCallback, useLayoutEffect, useRef, type ReactNode, type RefCallback } from "react";
 import { useReducedMotion } from "framer-motion";
-import { useMatches } from "@tanstack/react-router";
+import { useBlocker, useMatches, type ShouldBlockFn } from "@tanstack/react-router";
 import { useAuth } from "@clerk/react";
 import { ClerkOfflineError } from "@clerk/react/errors";
 import { useLiveQuery, useSession } from "@zerospin/react";
@@ -13,6 +13,7 @@ import { siteV1 as Site } from "@qrk.sh/zerospin/src/aggregates/user/models/site
 import { pageV1 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV1";
 import { Drawer } from "../../../../../../modules/lib/Drawer";
 import { Toolbars } from "../../Toolbars/Toolbars";
+import { BrickAutosaveContext } from "./BrickAutosaveContext";
 import { ValidBreakpoint } from "./ValidBreakpoint";
 import { useBreakpointGuard } from "./useBreakpointGuard";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
@@ -28,6 +29,86 @@ const ParamsSchema = Schema.Struct({
 export default function PageLayout(props: { children: ReactNode }) {
   const { children } = props;
   const params = useValidatedParams(ParamsSchema);
+  const { username, siteId, pageId } = params;
+  const brickFlushes = useRef(new Map<string, (onRecover?: () => void) => boolean>());
+  const pendingFlushes = useRef(new Map<() => boolean, Set<() => void>>());
+  const pendingNavigation = useRef<((block: boolean) => void) | null>(null);
+  const registerBrickFlush = useCallback(
+    (brickId: string, flush: (onRecover?: () => void) => boolean) => {
+      const registered = brickFlushes.current;
+      registered.set(brickId, flush);
+      return () => {
+        if (registered.get(brickId) !== flush) return;
+        registered.delete(brickId);
+        const finishNavigation = pendingNavigation.current;
+        queueMicrotask(() => {
+          // A Wall rerender can refresh the registration without removing the editor.
+          if (registered.get(brickId) === flush) return;
+          const recoveries = pendingFlushes.current.get(flush);
+          if (recoveries === undefined) return;
+          finishNavigation?.(true);
+          for (const recover of recoveries) recover();
+        });
+      };
+    },
+    [],
+  );
+  const flushBrick = useCallback(
+    (brickId: string) => brickFlushes.current.get(brickId)?.() ?? true,
+    [],
+  );
+  const flushPageEditors = useCallback((onRecover?: () => void) => {
+    let pending = 0;
+    for (const flush of [...brickFlushes.current.values()]) {
+      if (onRecover === undefined) {
+        if (!flush()) pending += 1;
+        continue;
+      }
+      const recover = () => {
+        const recoveries = pendingFlushes.current.get(flush);
+        if (!recoveries?.delete(recover)) return;
+        if (recoveries.size === 0) pendingFlushes.current.delete(flush);
+        pending -= 1;
+        if (pending === 0) onRecover();
+      };
+      if (flush(recover)) continue;
+      pending += 1;
+      const recoveries = pendingFlushes.current.get(flush) ?? new Set<() => void>();
+      recoveries.add(recover);
+      pendingFlushes.current.set(flush, recoveries);
+    }
+    return pending === 0;
+  }, []);
+  const shouldBlockNavigation = useCallback<ShouldBlockFn>(
+    ({ current, next }) => {
+      if (brickFlushes.current.size === 0) return false;
+      const staysOnPage =
+        "username" in next.params &&
+        next.params.username === username &&
+        "siteId" in next.params &&
+        next.params.siteId === siteId &&
+        "pageId" in next.params &&
+        next.params.pageId === pageId;
+      const previousBreakpoint =
+        "breakpoint" in current.search ? current.search.breakpoint : undefined;
+      const nextBreakpoint = "breakpoint" in next.search ? next.search.breakpoint : undefined;
+      if (staysOnPage && previousBreakpoint === nextBreakpoint) return false;
+
+      pendingNavigation.current?.(true);
+      return new Promise<boolean>((resolve) => {
+        const finish = (block: boolean) => {
+          if (pendingNavigation.current !== finish) return;
+          pendingNavigation.current = null;
+          resolve(block);
+        };
+        pendingNavigation.current = finish;
+        if (flushPageEditors(() => finish(false))) finish(false);
+      });
+    },
+    [flushPageEditors, pageId, siteId, username],
+  );
+  useBlocker({ shouldBlockFn: shouldBlockNavigation, enableBeforeUnload: false });
+  useLayoutEffect(() => () => pendingNavigation.current?.(true), [pageId, siteId, username]);
   const drawerOpen = useMatches({
     select: (matches) =>
       matches.some((match) => match.routeId === "/$username/site/$siteId/page/$pageId/_drawer"),
@@ -36,7 +117,7 @@ export default function PageLayout(props: { children: ReactNode }) {
   const editorScroll = useRef<HTMLDivElement>(null);
   const { getToken } = useAuth();
   const session = useSession(userSessionDefinition);
-  const { breakpoint, previewRef } = useBreakpointGuard();
+  const { breakpoint, previewRef, retainingPreview } = useBreakpointGuard(flushPageEditors);
   const scrollRef = useCallback<RefCallback<HTMLDivElement>>(
     (element) => {
       editorScroll.current = element;
@@ -140,43 +221,49 @@ export default function PageLayout(props: { children: ReactNode }) {
 
   return (
     <SWRConfig value={{ uploadImage }}>
-      <div
-        className="wall-preview-viewport relative flex h-full min-h-0 min-w-0 flex-col overflow-hidden"
-        data-drawer-open={drawerOpen}
-      >
-        <title>
-          {pageTitle === "" ? `[Editing] ${siteName}` : `[Editing] ${siteName} - ${pageTitle}`}
-        </title>
+      <BrickAutosaveContext value={{ registerBrickFlush, flushBrick, flushPageEditors }}>
         <div
-          ref={scrollRef}
-          className="relative min-h-0 min-w-0 shrink-0 overflow-x-hidden overflow-y-auto pt-[var(--wall-preview-top-gap)] pb-[var(--wall-preview-bottom-gap)]"
-          style={{ height: "calc(100% - var(--wall-preview-drawer-height))" }}
+          className="wall-preview-viewport relative flex h-full min-h-0 min-w-0 flex-col overflow-hidden"
+          data-drawer-open={drawerOpen}
         >
-          <ValidBreakpoint />
+          <title>
+            {pageTitle === "" ? `[Editing] ${siteName}` : `[Editing] ${siteName} - ${pageTitle}`}
+          </title>
+          <div
+            ref={scrollRef}
+            className="relative min-h-0 min-w-0 shrink-0 overflow-y-auto pt-[var(--wall-preview-top-gap)] pb-[var(--wall-preview-bottom-gap)]"
+            style={{
+              height: "calc(100% - var(--wall-preview-drawer-height))",
+              overflowX: retainingPreview ? "auto" : "hidden",
+            }}
+          >
+            <ValidBreakpoint />
+          </div>
+          <div
+            className="pointer-events-none fixed inset-x-0 z-80 flex justify-center px-2"
+            style={{
+              bottom: drawerOpen
+                ? "calc(25dvh + var(--wall-preview-toolbar-gap))"
+                : "var(--wall-preview-toolbar-gap)",
+              transition: reducedMotion ? "none" : "bottom 300ms cubic-bezier(0, 0, 0.2, 1)",
+            }}
+          >
+            <Toolbars />
+          </div>
+          <Drawer
+            side="bottom"
+            open={drawerOpen}
+            animated={
+              drawerOpen ||
+              (typeof document !== "undefined" &&
+                typeof document.startViewTransition === "function")
+            }
+            aria-label="Workspace drawer"
+          >
+            {breakpoint === undefined ? null : children}
+          </Drawer>
         </div>
-        <div
-          className="pointer-events-none fixed inset-x-0 z-80 flex justify-center px-2"
-          style={{
-            bottom: drawerOpen
-              ? "calc(25dvh + var(--wall-preview-toolbar-gap))"
-              : "var(--wall-preview-toolbar-gap)",
-            transition: reducedMotion ? "none" : "bottom 300ms cubic-bezier(0, 0, 0.2, 1)",
-          }}
-        >
-          <Toolbars />
-        </div>
-        <Drawer
-          side="bottom"
-          open={drawerOpen}
-          animated={
-            drawerOpen ||
-            (typeof document !== "undefined" && typeof document.startViewTransition === "function")
-          }
-          aria-label="Workspace drawer"
-        >
-          {breakpoint === undefined ? null : children}
-        </Drawer>
-      </div>
+      </BrickAutosaveContext>
     </SWRConfig>
   );
 }

@@ -19,10 +19,13 @@ export type IModule<MODULE extends string> = {
   /** Maximum bricks of this module per page, including hidden and unconfigured bricks. */
   maxPerPage?: number;
   hasPlaceholder: boolean;
+  /** Studio mounts the module editor in its Placement and gives it access to the drawer. */
+  hasInlineEditor: boolean;
   Form?: (props: {
     state: unknown;
     onSave: (state: unknown) => IResult<unknown, { message: string }>;
     onCancel: () => void;
+    renderActions: (actions: ReactNode) => ReactNode;
   }) => ReactNode;
   def: IModuleBrickDef<MODULE>;
   /**
@@ -30,7 +33,18 @@ export type IModule<MODULE extends string> = {
    * state contract ignore the prop.
    */
   component: {
-    bivarianceHack(props: { state?: unknown; spec: Spec; variantId: "default" }): ReactNode;
+    bivarianceHack(
+      props: { state?: unknown; spec: Spec; variantId: "default" } & (
+        | { mode: "view" }
+        | {
+            mode: "studio";
+            onFocus: () => void;
+            renderDrawer: (content: ReactNode) => ReactNode;
+            onSave: (state: unknown) => IResult<unknown, { message: string }>;
+            registerFlush: (flush: (onRecover?: () => void) => boolean) => () => void;
+          }
+      ),
+    ): ReactNode;
   }["bivarianceHack"];
   variants: {
     default: ReturnType<typeof makeModuleVersion>["variants"]["default"] & {

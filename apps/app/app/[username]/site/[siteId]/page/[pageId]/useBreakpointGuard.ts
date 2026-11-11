@@ -1,12 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useRef, type RefCallback } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type RefCallback } from "react";
 import { useNavigate, useParams, useSearch } from "@tanstack/react-router";
 import { BREAKPOINTS, PREVIEW_BORDER_WIDTH } from "../../../../../../modules/lib/breakpoints";
 import { useEditorViewportStore } from "@/stores/useEditorViewportStore";
 
 /** Measure this preview and keep its URL breakpoint within the available width. */
-export function useBreakpointGuard() {
+export function useBreakpointGuard(flushPageEditors: (onRecover?: () => void) => boolean) {
   const params = useParams({ from: "/$username/site/$siteId/page/$pageId" });
   const { stackId } = useParams({ strict: false });
   const { breakpoint: requestedBreakpoint } = useSearch({
@@ -14,29 +14,60 @@ export function useBreakpointGuard() {
   });
   const navigate = useNavigate();
   const availableWidth = useEditorViewportStore((state) => state.availableWidth);
+  const [retainingPreview, setRetainingPreview] = useState(false);
   const hasCurrentMeasurement = useRef(false);
   const breakpoint = BREAKPOINTS.find((entry) => entry.id === requestedBreakpoint);
-  const previewRef = useCallback<RefCallback<HTMLElement>>((element) => {
-    if (element === null) return;
-    let attached = true;
-    const measure = () => {
-      if (!attached) return;
-      hasCurrentMeasurement.current = true;
-      // Exclude the scrollbar and reserve both frame borders.
-      useEditorViewportStore
-        .getState()
-        .setAvailableWidth(Math.max(0, element.clientWidth - 2 * PREVIEW_BORDER_WIDTH));
-    };
-    measure();
-    const observer = new ResizeObserver(measure);
-    observer.observe(element);
-    return () => {
-      attached = false;
-      observer.disconnect();
-      hasCurrentMeasurement.current = false;
-      useEditorViewportStore.getState().setAvailableWidth(null);
-    };
-  }, []);
+  const previewWidth = useRef(breakpoint?.previewWidth);
+  useLayoutEffect(() => {
+    previewWidth.current = breakpoint?.previewWidth;
+  }, [breakpoint]);
+  const previewRef = useCallback<RefCallback<HTMLElement>>(
+    (element) => {
+      if (element === null) return;
+      let attached = true;
+      let waitingForRecovery = false;
+      const measure = () => {
+        if (!attached) return;
+        hasCurrentMeasurement.current = true;
+        // Exclude the scrollbar and reserve both frame borders.
+        const width = Math.max(0, element.clientWidth - 2 * PREVIEW_BORDER_WIDTH);
+        const { availableWidth, setAvailableWidth } = useEditorViewportStore.getState();
+        const currentPreviewWidth = previewWidth.current;
+        // The Wall unmounts as soon as its breakpoint stops fitting.
+        if (
+          currentPreviewWidth !== undefined &&
+          availableWidth !== null &&
+          availableWidth >= currentPreviewWidth &&
+          width < currentPreviewWidth
+        ) {
+          if (!waitingForRecovery) {
+            waitingForRecovery = !flushPageEditors(() => {
+              waitingForRecovery = false;
+              if (!attached) return;
+              setRetainingPreview(false);
+              setAvailableWidth(Math.max(0, element.clientWidth - 2 * PREVIEW_BORDER_WIDTH));
+            });
+          }
+          if (waitingForRecovery) {
+            setRetainingPreview(true);
+            return;
+          }
+        }
+        setRetainingPreview(false);
+        setAvailableWidth(width);
+      };
+      measure();
+      const observer = new ResizeObserver(measure);
+      observer.observe(element);
+      return () => {
+        attached = false;
+        observer.disconnect();
+        hasCurrentMeasurement.current = false;
+        useEditorViewportStore.getState().setAvailableWidth(null);
+      };
+    },
+    [flushPageEditors],
+  );
 
   useEffect(() => {
     if (!hasCurrentMeasurement.current) return;
@@ -68,5 +99,5 @@ export function useBreakpointGuard() {
     });
   }, [availableWidth, requestedBreakpoint, breakpoint, navigate, params, stackId]);
 
-  return { breakpoint, previewRef };
+  return { breakpoint, previewRef, retainingPreview };
 }

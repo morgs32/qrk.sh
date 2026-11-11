@@ -7,6 +7,7 @@ import { Result, Schema } from "effect";
 import { isEqual } from "es-toolkit";
 import { ArrowLeft, FileText, Globe, Layers, X } from "lucide-react";
 import { useLiveQuery, useSession } from "@zerospin/react";
+import { useContext } from "react";
 import { makeIdSchema, makeId, stageAggregateSessionCommand } from "@zerospin/sdk/browser";
 import { modulesHash } from "../../../../../../../modules/lib/modulesHash";
 import { brickV2 } from "@qrk.sh/zerospin/src/aggregates/user/models/brick/BrickV2";
@@ -18,6 +19,7 @@ import { makePageSnapshotV4 } from "@qrk.sh/zerospin/src/aggregates/user/snapsho
 import { Button } from "@/components/ui/button";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
 import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
+import { BrickAutosaveContext } from "../BrickAutosaveContext";
 
 const ParamsSchema = Schema.Struct({
   username: Schema.String,
@@ -27,6 +29,8 @@ const ParamsSchema = Schema.Struct({
 });
 
 export function DrawerHeader() {
+  const autosave = useContext(BrickAutosaveContext);
+  if (autosave === null) throw new Error("Brick autosave requires the Page layout");
   const params = useValidatedParams(ParamsSchema);
   const routeId = useMatches({ select: (matches) => matches.at(-1)?.routeId });
   const navigate = useNavigate();
@@ -168,11 +172,15 @@ export function DrawerHeader() {
       <div className="ml-auto flex shrink-0 items-center gap-3">
         {isSiteSettings ? <div id="site-settings-header-actions" /> : null}
         {isPageSettings ? <div id="page-settings-header-actions" /> : null}
+        {params.brickId !== undefined ? (
+          <div id="brick-editor-header-actions" className="empty:hidden" />
+        ) : null}
         {canPublishPage || canPublishUpdates ? (
           <Button
             type="button"
             size="sm"
             onClick={() => {
+              if (!autosave.flushPageEditors()) return;
               const snapshotId = session.runSync(makeId(PageSnapshot));
               stageAggregateSessionCommand({
                 session,

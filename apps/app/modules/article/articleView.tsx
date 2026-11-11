@@ -4,13 +4,13 @@ import { makeModuleView } from "../make/makeModuleView";
 import { registry } from "./generator/ArticleJsonRenderRegistry";
 import { articleV1 } from "@qrk.sh/zerospin/src/modules/article/articleV1";
 import { articleBrickContentView } from "./ArticleBrickContent";
-import { ArticleForm } from "./ArticleForm";
+import { ArticleEditor } from "./ArticleEditor";
 import { ArticleLineIcon } from "./ArticleLineIcon";
 
 export const articleView = makeModuleView(articleV1, {
   defaultState: articlePreviewState,
   LineIcon: ArticleLineIcon,
-  form: ArticleForm,
+  inlineEditor: ArticleEditor,
   variants: {
     default: {
       placeholder: ArticlePlaceholder,

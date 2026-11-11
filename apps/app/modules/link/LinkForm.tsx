@@ -7,7 +7,7 @@ import { makeEffectSchema, type IInferDecodedRow } from "@zerospin/shapes";
 import { newSyncRpcSession } from "@zerospin/core/utils/getApi/newSyncRpcSession/newSyncRpcSession";
 import { Schema } from "effect";
 import type { LibraryApi } from "@qrk.sh/api/modules/LibraryApi.public";
-import { useLayoutEffect, useId, useRef, useState } from "react";
+import { useLayoutEffect, useId, useRef, useState, type ReactNode } from "react";
 
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -20,9 +20,11 @@ export function LinkForm(props: {
     state: IInferDecodedRow<typeof linkV1.stateShape>,
   ) => IResult<unknown, { message: string }>;
   onCancel: () => void;
+  renderActions: (actions: ReactNode) => ReactNode;
 }) {
-  const { state, onSave, onCancel } = props;
+  const { state, onSave, onCancel, renderActions } = props;
   const inputId = useId();
+  const formId = `${inputId}-form`;
   const feedbackId = `${inputId}-feedback`;
   const saveErrorId = `${inputId}-save-error`;
   const [urlDraft, setUrl] = useState<string | null>(null);
@@ -50,6 +52,7 @@ export function LinkForm(props: {
 
   return (
     <form
+      id={formId}
       autoComplete="off"
       className="mx-auto flex w-full max-w-md flex-col gap-2 p-4"
       noValidate
@@ -144,26 +147,28 @@ export function LinkForm(props: {
           {saveError}
         </p>
       ) : null}
-      <div className="flex justify-end gap-2">
-        <Button
-          onClick={() => {
-            const submission = activeSubmission.current;
-            activeSubmission.current = null;
-            submission?.abort();
-            setIsSaving(false);
-            setSaveError(undefined);
-            setUrl(null);
-            onCancel();
-          }}
-          type="button"
-          variant="outline"
-        >
-          Cancel
-        </Button>
-        <Button disabled={!canSave || isSaving} type="submit">
-          Save
-        </Button>
-      </div>
+      {renderActions(
+        <div className="flex justify-end gap-2">
+          <Button
+            onClick={() => {
+              const submission = activeSubmission.current;
+              activeSubmission.current = null;
+              submission?.abort();
+              setIsSaving(false);
+              setSaveError(undefined);
+              setUrl(null);
+              onCancel();
+            }}
+            type="button"
+            variant="outline"
+          >
+            Cancel
+          </Button>
+          <Button disabled={!canSave || isSaving} type="submit" form={formId}>
+            Save
+          </Button>
+        </div>,
+      )}
     </form>
   );
 }

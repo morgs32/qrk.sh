@@ -13,7 +13,7 @@ import { makeEffectSchema, type IInferDecodedRow, type IShape } from "@zerospin/
 import { Schema } from "effect";
 import { mapValues } from "es-toolkit";
 import type { makeModuleVersion } from "@qrk.sh/zerospin/src/modules/make/makeModuleVersion";
-import type { IModuleBrickDef } from "../lib/types";
+import type { IModule, IModuleBrickDef } from "../lib/types";
 
 function makeInitialState(state: unknown): Record<string, unknown> {
   if (state !== null && typeof state === "object" && !Array.isArray(state)) {
@@ -43,13 +43,6 @@ export function makeModuleView<
   view: {
     defaultState: IInferDecodedRow<MODULE["stateShape"]>;
     LineIcon: ComponentType<SVGProps<SVGSVGElement>>;
-    form?: (props: {
-      state: IInferDecodedRow<MODULE["stateShape"]> | null;
-      onSave: (
-        state: IInferDecodedRow<MODULE["stateShape"]>,
-      ) => IResult<unknown, { message: string }>;
-      onCancel: () => void;
-    }) => ReactNode;
     variants: {
       default: {
         component: (props: { state: IInferDecodedRow<MODULE["stateShape"]> }) => ReactNode;
@@ -65,7 +58,31 @@ export function makeModuleView<
         };
       };
     };
-  },
+  } & (
+    | {
+        form?: (props: {
+          state: IInferDecodedRow<MODULE["stateShape"]> | null;
+          onSave: (
+            state: IInferDecodedRow<MODULE["stateShape"]>,
+          ) => IResult<unknown, { message: string }>;
+          onCancel: () => void;
+          renderActions: (actions: ReactNode) => ReactNode;
+        }) => ReactNode;
+        inlineEditor?: never;
+      }
+    | {
+        form?: never;
+        inlineEditor: (props: {
+          state: IInferDecodedRow<MODULE["stateShape"]> | null;
+          onFocus: () => void;
+          renderDrawer: (content: ReactNode) => ReactNode;
+          onSave: (
+            state: IInferDecodedRow<MODULE["stateShape"]>,
+          ) => IResult<unknown, { message: string }>;
+          registerFlush: (flush: (onRecover?: () => void) => boolean) => () => void;
+        }) => ReactNode;
+      }
+  ),
 ) {
   const { defaultSpec, ...moduleFields } = module;
   const decodeState = Schema.decodeUnknownSync(
@@ -73,9 +90,8 @@ export function makeModuleView<
   );
   const defaultState = decodeState(view.defaultState, { onExcessProperty: "ignore" });
   const def: IModuleBrickDef<MODULE["id"]> = { moduleId: module.id, state: defaultState };
-  const decodeFormState = Schema.decodeUnknownSync(
-    Schema.toType(makeEffectSchema<MODULE["stateShape"]>(module.stateShape)),
-  );
+  const EditorForm = view.form;
+  const InlineEditor = view.inlineEditor;
   const variants = mapValues(view.variants, (variant, variantId) => {
     if (module.hasPlaceholder !== (variant.placeholder !== undefined)) {
       throw new Error(
@@ -124,15 +140,36 @@ export function makeModuleView<
     state: unknown;
     onSave: (state: unknown) => IResult<unknown, { message: string }>;
     onCancel: () => void;
+    renderActions: (actions: ReactNode) => ReactNode;
   }) {
-    const { state, onSave, onCancel } = props;
-    if (view.form === undefined) return null;
-    const decoded = state === null ? null : decodeFormState(state, { onExcessProperty: "ignore" });
-    return view.form({ state: decoded, onSave, onCancel });
+    const { state, onSave, onCancel, renderActions } = props;
+    if (EditorForm === undefined) return null;
+    const decoded = state === null ? null : decodeState(state, { onExcessProperty: "ignore" });
+    return (
+      <EditorForm
+        state={decoded}
+        onSave={onSave}
+        onCancel={onCancel}
+        renderActions={renderActions}
+      />
+    );
   }
 
-  function Brick(props: { state?: unknown; variantId: "default"; spec: Spec }) {
-    const { state, variantId, spec } = props;
+  function Brick(props: Parameters<IModule<string>["component"]>[0]) {
+    const { state, variantId, spec, ...surface } = props;
+    if (surface.mode === "studio" && InlineEditor !== undefined) {
+      const { onFocus, renderDrawer, onSave, registerFlush } = surface;
+      const decoded = state === null ? null : decodeState(state, { onExcessProperty: "ignore" });
+      return (
+        <InlineEditor
+          state={decoded}
+          onFocus={onFocus}
+          renderDrawer={renderDrawer}
+          onSave={onSave}
+          registerFlush={registerFlush}
+        />
+      );
+    }
     const variant = variants[variantId];
     const Placeholder = variant.placeholder;
     if (state === null) {
@@ -164,7 +201,8 @@ export function makeModuleView<
     defaultState,
     def,
     variants,
-    ...(view.form === undefined ? {} : { Form }),
+    ...(EditorForm === undefined ? {} : { Form }),
+    hasInlineEditor: InlineEditor !== undefined,
     component: Brick,
   };
 }

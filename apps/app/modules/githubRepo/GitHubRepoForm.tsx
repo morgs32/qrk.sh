@@ -7,7 +7,7 @@ import { makeEffectSchema, type IInferDecodedRow } from "@zerospin/shapes";
 import { newSyncRpcSession } from "@zerospin/core/utils/getApi/newSyncRpcSession/newSyncRpcSession";
 import { Schema } from "effect";
 import type { LibraryApi } from "@qrk.sh/api/modules/LibraryApi.public";
-import { useLayoutEffect, useId, useRef, useState } from "react";
+import { useLayoutEffect, useId, useRef, useState, type ReactNode } from "react";
 
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -20,9 +20,11 @@ export function GitHubRepoForm(props: {
     state: IInferDecodedRow<typeof githubRepoV1.stateShape>,
   ) => IResult<unknown, { message: string }>;
   onCancel: () => void;
+  renderActions: (actions: ReactNode) => ReactNode;
 }) {
-  const { state, onSave, onCancel } = props;
+  const { state, onSave, onCancel, renderActions } = props;
   const inputId = useId();
+  const formId = `${inputId}-form`;
   const feedbackId = `${inputId}-feedback`;
   const [repositoryDraft, setRepository] = useState<string | null>(null);
   const repository = repositoryDraft ?? state?.payload.url ?? "";
@@ -45,6 +47,7 @@ export function GitHubRepoForm(props: {
 
   return (
     <form
+      id={formId}
       autoComplete="off"
       className="mx-auto flex max-w-md flex-col gap-2 p-4"
       onSubmit={async (event) => {
@@ -131,26 +134,28 @@ export function GitHubRepoForm(props: {
           {saveError}
         </p>
       ) : null}
-      <div className="flex self-end gap-2">
-        <Button
-          onClick={() => {
-            const submission = activeSubmission.current;
-            activeSubmission.current = null;
-            submission?.abort();
-            setIsSaving(false);
-            setRepository(null);
-            setSaveError(undefined);
-            onCancel();
-          }}
-          type="button"
-          variant="outline"
-        >
-          Cancel
-        </Button>
-        <Button disabled={!canSave || isSaving} type="submit">
-          Save
-        </Button>
-      </div>
+      {renderActions(
+        <div className="flex self-end gap-2">
+          <Button
+            onClick={() => {
+              const submission = activeSubmission.current;
+              activeSubmission.current = null;
+              submission?.abort();
+              setIsSaving(false);
+              setRepository(null);
+              setSaveError(undefined);
+              onCancel();
+            }}
+            type="button"
+            variant="outline"
+          >
+            Cancel
+          </Button>
+          <Button disabled={!canSave || isSaving} type="submit" form={formId}>
+            Save
+          </Button>
+        </div>,
+      )}
     </form>
   );
 }

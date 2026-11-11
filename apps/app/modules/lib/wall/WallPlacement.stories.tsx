@@ -39,7 +39,8 @@ const placement = {
 };
 
 const meta = {
-  title: "App/Studio/Wall Placement",
+  title: "Studio/Wall Placement",
+  id: "app-studio-wall-placement",
   component: WallPlacement,
   args: {
     placement,

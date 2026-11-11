@@ -42,7 +42,8 @@ files are retained, and Nx discovers no Library project or dependency cycle.
 Module Forms and their lookup controls use the shared controls in
 [`components/FormInputs`](../components/FormInputs). Use `Input` for text, URL,
 search, and file fields and `ColorInput` for a hex field with a color picker.
-The Style Inspector Sidebar story shows these controls under Styles. Use the
+The Storybook [Form Inputs catalog](https://app-storybook.qrk.localhost/?path=/story/components-form-inputs--catalog)
+shows these controls under **Components → Form Inputs**. Use the
 `form-input-label` utility for visible field labels. The shared field tokens in
 `app/globals.css` also style the Style Inspector inputs.
 

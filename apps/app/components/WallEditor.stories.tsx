@@ -653,7 +653,8 @@ function WallEditorStory(props: {
 }
 
 const meta = {
-  title: "App/Studio/Wall Editor",
+  title: "Studio/Wall Editor",
+  id: "app-studio-wall-editor",
   parameters: { layout: "fullscreen" },
   args: {
     emptyWall: false,

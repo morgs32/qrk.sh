@@ -46,6 +46,8 @@ const ledgerNodes: readonly ISiteTreeNode[] = [
 ];
 
 const meta = {
+  title: "Studio/Site Tree",
+  id: "sitetree",
   component: SiteTree,
   args: {
     nodes: ledgerNodes,

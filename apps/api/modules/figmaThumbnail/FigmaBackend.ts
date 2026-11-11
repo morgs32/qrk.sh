@@ -4,11 +4,11 @@ import { drizzle } from "drizzle-orm/durable-sqlite";
 import { migrate } from "drizzle-orm/durable-sqlite/migrator";
 import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { Effect } from "effect";
+import type { IFigmaFilePreviewPayload, IRpcEither } from "@qrk.sh/bricks/rpc/types";
 
 import { encodeRpc } from "../encodeRpc";
 import { ScrapeError } from "../ScrapeError";
 import { scrapeFigma } from "./scrapeFigma";
-import type { IFigmaFilePreviewPayload, IRpcEither } from "../types";
 
 const CACHE_TTL_MS = 60 * 60 * 1_000;
 

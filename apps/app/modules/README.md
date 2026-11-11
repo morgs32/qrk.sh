@@ -1,30 +1,28 @@
 # Modules
 
-App owns module forms, renderers, React generator registries, previews, playgrounds,
-and module stories in this directory. Shared versions, schemas, default specs,
-component declarations, normalization, and model factories live in
-[`apps/zerospin/src/modules`](../../zerospin/src/modules). API owns provider
-operations and browser RPC declarations. There is no Library package.
+[`@qrk.sh/bricks`](../../bricks/package.json) owns all Brick definitions, React
+registries, forms, stories, and shared rendering code. App registers the views
+in `modulesHash` and supplies the Link lookup callback in
+[`linkView`](./link/linkView.tsx). API owns provider operations. Client declarations
+come from the type-only `@qrk.sh/bricks/rpc` export.
 
 ## Development and configuration
 
-Run `pnpm nx run @qrk.sh/app:storybook` from the repository root and open
-`http://127.0.0.1:10020` (`PORT` overrides it). Root `pnpm dev` starts Web, App,
-API, and Zerospin without Storybook.
+Run root `pnpm dev` and open [Bricks Storybook](https://bricks.qrk.localhost/).
+`pnpm nx run @qrk.sh/app:storybook` starts the separate App Storybook.
 
-Public/local Storybook settings live in `apps/app/.env.local`:
+Bricks Storybook reads local settings from `apps/bricks/.env.local`:
 
-1. `PUBLIC_MAPBOX_TOKEN` configures Map Place previews.
+1. `PUBLIC_MAPBOX_TOKEN` configures Map Place previews and falls back to the App setting.
 2. `API_WORKER_ORIGIN` overrides the server-side API proxy destination, defaulting
    to `http://127.0.0.1:8787`.
 
-App's `.storybook/main.ts` installs `/rpc`, `/upload`, `/image/upload`, and `/assets`
-proxies through `viteFinal`. Its Vite Storybook configuration supplies Mapbox;
-its preview imports the existing App and module article styles. Provider secrets
+Both Storybooks install `/rpc`, `/upload`, `/image/upload`, and `/assets` proxies
+and load the shared Brick styles. Provider secrets
 stay in `apps/api/.env.local`. API preserves `/assets/library/*` URLs and R2 data.
 No browser or backend storage is reset by the package move.
 
-## Package move verification
+## Previous Library move verification
 
 Verified on 2026-10-21: App and API builds and the consolidated App Storybook
 build pass. Chrome checks covered Link configuration, Article rendering/editing
@@ -39,13 +37,13 @@ files are retained, and Nx discovers no Library project or dependency cycle.
 
 ## Brick forms
 
-Module Forms and their lookup controls use the shared controls in
-[`components/FormInputs`](../components/FormInputs). Use `Input` for text, URL,
+Module forms and their lookup controls use the shared controls in
+[`@qrk.sh/bricks/react`](../../bricks/src/react). Use `Input` for text, URL,
 search, and file fields and `ColorInput` for a hex field with a color picker.
 The Storybook [Form Inputs catalog](https://app-storybook.qrk.localhost/?path=/story/components-form-inputs--catalog)
 shows these controls under **Components → Form Inputs**. Use the
 `form-input-label` utility for visible field labels. The shared field tokens in
-`app/globals.css` also style the Style Inspector inputs.
+`@qrk.sh/bricks/styles.css` also style the Style Inspector inputs.
 
 QRK-owned forms set `autoComplete="off"`. The shared Input and native article
 title/subtitle, hex color, and State JSON fields also set `autoComplete="off"`
@@ -110,22 +108,22 @@ saved color stand alone at a minimum height of 64px.
 ## Storybook
 
 ```sh
-pnpm nx run @qrk.sh/app:storybook
-pnpm nx run @qrk.sh/app:build-storybook
+PORTLESS_PORT=443 PORTLESS_HTTPS=1 PORTLESS_WILDCARD=1 pnpm --dir apps/bricks dev
+pnpm nx run @qrk.sh/bricks:build-storybook
 ```
 
-Open `http://127.0.0.1:10020`; `PORT` overrides the default. App Storybook
-uses its own Vite configuration and the App/module styles and fonts.
-Fixture previews require no persisted editor or API Worker; live actions require
-the existing API services. Module stories live alongside their components and
-use the shared [Breakpoint Previews](../.storybook/BrickBreakpointPreviews.tsx)
-view. The static build goes to `apps/app/storybook-static/`.
+Open [Bricks Storybook](https://bricks.qrk.localhost/).
+Fixture previews run locally in the story. Live actions use the existing API
+services. Stories live alongside their modules and use the shared
+[`BrickStory`](../../bricks/.storybook/BrickStory.tsx) component.
+App Storybook also discovers the colocated Brick stories.
 
 Each **Modules / <module> / Breakpoint Previews** story compares the module's
 JSX sketch with JSON Render at sm, md, lg, and xl. All four widths use the same
 example state and active spec. **Configure** shows the module's form in the
-bottom drawer. **Generate Spec** sends a prompt through the API and previews
-the resulting spec. **Reset to default** restores the versioned default spec.
+right sidebar and keeps its draft across tab switches. **Generate Spec** sends
+a prompt through the API and previews the resulting spec. **Reset to default**
+restores the versioned default spec.
 **Unconfigured** displays null and blank forms/placeholders only for modules
 declaring `hasPlaceholder: true`. Swatch and Icon always has configured state.
 Provider Save calls the same RPC operations as App and updates only this
@@ -152,10 +150,11 @@ system. See [Brick dimension stories](#brick-dimension-stories).
 
 ## Public exports and shared UI
 
-App imports its UI directly from defining files under `modules/`. App and API
-import shared definitions using `@qrk.sh/zerospin/src/modules/...`; Zerospin's own
-contracts use relative imports. There are no package barrels or compatibility exports.
-Canonical persisted models/contracts remain under `apps/zerospin/src/aggregates/user/`.
+Hosts compile the Bricks source through explicit exports. Use
+`@qrk.sh/bricks/link/definition` for `linkV1` and `@qrk.sh/bricks/link/react` for
+`linkReactRegistry`. The import check enforces the export map, keeps React runtime
+out of the definition graph, and rejects imports from Bricks into hosts.
+Persisted models and contracts live under `apps/zerospin/src/aggregates/user/`.
 
 Consumers bundle Meowdown and React themselves and share no editor instances.
 Import Article's stylesheet alongside `bricks.css`, retaining its font imports.
@@ -210,10 +209,10 @@ survives cloning the surface.
 
 Every shared `makeModuleVersion` declaration owns one flat `variants.default`
 sizing record with `defaultWidth`, `minWidth`, `defaultHeight`, and optional
-`minHeight`. `makeModuleView` attaches the authored component, placeholder, and
-optional generator to those shared values without repeating sizing. There are no
-breakpoint overrides inside a variant. `LineIcon` and the content form remain module-level. Catalog,
-Storybook, and App catalog previews select the default variant and cap its
+`minHeight`. `makeModuleView` attaches the React registry and placeholder to
+those shared values and gets the default spec from the versioned definition.
+`LineIcon` and the content form are module-level. Storybook and App catalog
+previews select the default variant and cap its
 preferred width at the chosen breakpoint's canonical width. Browser frames
 retain their canonical widths.
 The minimum is 320px for every module except Swatch and Icon at 160px, and is
@@ -295,9 +294,8 @@ only in consumers of its example file.
 
 `makeModuleView` infers authored callback props from the state shape and decodes
 incoming state before rendering, discarding undeclared fields.
-Its authored wrappers are created once per variant and reused by module rendering
-and previews. Each variant can attach a json-render `generator`
-(`registry` + `defaultSpec`), exposed as the resolved variant's `registry` and `spec`.
+Its resolved variant exposes the JSON Render `registry` and default `spec`
+used in both production and Storybook.
 
 Every module view supplies a required `LineIcon`, exposed on its `modulesHash`
 entry. Each module owns its SVG component, sourced from
@@ -683,7 +681,7 @@ drafts, Save gating, and cancellation. Fields and Save stay disabled during
 upload. Cancel resets mutation state and separately aborts the request; leaving
 the brick also aborts it. Current-request guards suppress late results because
 SWR reset does not cancel transport. App's PageLayout owns the authenticated
-uploader. Storybook's Breakpoint Previews owns its anonymous uploader. BrickDetail
+uploader. `BrickStory` owns Storybook's anonymous uploader. BrickDetail
 keys the form by its URL-selected Placement, so breakpoint changes, including
 automatic correction after a resize, discard the old draft and abort its upload.
 Completed R2 objects remain stored.
@@ -702,8 +700,8 @@ legacy aliases or data migration; old `text` bricks,
 `TextBrick` specs, and Text command history may no longer load.
 
 Article state stores required `title` and `subtitle` strings separately from the
-nullable Markdown body `content`. The editor uses plain text title and subtitle
-inputs above the body. Both strings can be empty. Meowdown runs in Hybrid (`focus`) mode,
+nullable Markdown body `content`. The plain text title and subtitle fields wrap
+and grow with their content. Both strings can be empty. Meowdown runs in Hybrid (`focus`) mode,
 revealing Markdown syntax near the cursor. Native shortcuts, slash menus, link
 controls, and block handles replace the formatting toolbar; there is no mode switcher.
 Workspace overrides keep `prosemirror-model`, `prosemirror-transform`, and
@@ -780,7 +778,7 @@ and can be resized in Studio. Automatic YouTube/X paste conversion and provider
 resolution are disabled in both editor and viewer; ordinary URL pastes remain links.
 Explicit media syntax can display native placeholders. Storybook exercises the
 same Studio renderer with local examples. Consumers load
-`apps/app/modules/article/article-editor.css` alongside `bricks.css` for editor and
+`@qrk.sh/bricks/article/editor.css` alongside the Wall styles for editor and
 portaled-control styles.
 
 ## Wall publication snapshots

@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
-import { useWarnBeforeUnload } from "@/lib/useWarnBeforeUnload";
+import { useWarnBeforeUnload } from "@qrk.sh/bricks/react/useWarnBeforeUnload";
 
 const ParamsSchema = Schema.Struct({
   username: Schema.String,

@@ -4,7 +4,7 @@ import { makeQueryDbVersion, NanoIdFactory } from "@zerospin/sdk";
 import { makeSystemHarness } from "@zerospin/sdk/testing";
 import { Effect } from "effect";
 
-import { swatchAndIconPreviewState } from "../src/modules/swatchAndIcon/swatchAndIconPreviewState";
+import { swatchAndIconPreviewState } from "@qrk.sh/bricks/swatchAndIcon/definition/swatchAndIconPreviewState";
 import { system } from "../src/system";
 
 it.effect("renames only the owning Wall's Stack and rejects blank or mismatched targets", () =>

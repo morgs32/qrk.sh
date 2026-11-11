@@ -5,7 +5,7 @@ import type {
   IGitHubScrapePayload,
   IInstagramScrapePayload,
   ILinkPreview,
-} from "./types";
+} from "@qrk.sh/bricks/rpc/types";
 
 export const InstagramPayloadSchema = Schema.Struct({
   username: Schema.NonEmptyString,

@@ -12,8 +12,8 @@ export function Toolbars() {
   const route = useMatches({ select: (matches) => matches.at(-1)?.routeId });
   const toolbar =
     route === "/$username/site/$siteId/page/$pageId/breakpoints" ||
-    route === "/$username/site/$siteId/page/$pageId/_drawer/modules/" ||
-    route === "/$username/site/$siteId/page/$pageId/_drawer/brick/$brickId" ? (
+    route === "/$username/site/$siteId/page/$pageId/_sidebar/modules/" ||
+    route === "/$username/site/$siteId/page/$pageId/_sidebar/brick/$brickId" ? (
       <BreakpointsToolbar key="Breakpoints" />
     ) : route === "/$username/site/$siteId/page/$pageId/" ? (
       <SiteToolbar key="Site" />

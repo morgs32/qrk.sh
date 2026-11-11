@@ -1,4 +1,4 @@
-import { swatchAndIconPreviewState } from "../src/modules/swatchAndIcon/swatchAndIconPreviewState";
+import { swatchAndIconPreviewState } from "@qrk.sh/bricks/swatchAndIcon/definition/swatchAndIconPreviewState";
 import { expect, it } from '@effect/vitest';
 import * as sdk from '@zerospin/sdk';
 import { applyOperationTx } from '@zerospin/core/contracts/applyOperationTx';
@@ -23,7 +23,7 @@ import { publishPageV2 } from '../src/aggregates/user/contracts/publishPage/Publ
 import { createSiteV1 } from '../src/aggregates/user/contracts/createSite/CreateSiteV1';
 import { updateSiteSettingsV1 } from '../src/aggregates/user/contracts/updateSiteSettings/UpdateSiteSettingsV1';
 import { makePlacementId } from '../src/aggregates/user/layout/makePlacementId';
-import { swatchAndIconV1 } from '../src/modules/swatchAndIcon/swatchAndIconV1';
+import { swatchAndIconV1 } from '@qrk.sh/bricks/swatchAndIcon/definition';
 
 vi.mock('cloudflare:workers', () => ({ env: { QRK_LIBRARY_API_URL: 'https://api.qrk.test/rpc' } }));
 

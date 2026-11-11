@@ -5,7 +5,7 @@ editor already paints it on an absolutely positioned `::after`, with a 1px
 blue stroke and inner and outer halos. The Brick's authored border is painted
 separately inside `BrickWrapper`, so the interaction overlay's host has no
 layout border. [Shared outline CSS](../../apps/app/modules/bricks.css),
-[BrickWrapper](../../apps/app/modules/components/brick/BrickWrapper.tsx).
+[BrickWrapper](../../apps/bricks/src/react/BrickWrapper.tsx).
 
 ## Center the existing border
 

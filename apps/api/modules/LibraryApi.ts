@@ -1,5 +1,11 @@
 import { RpcTarget } from "capnweb";
 import type { Spec } from "@json-render/core";
+import type {
+  IGitHubRepoPayload,
+  IGitHubScrapePayload,
+  IInstagramScrapePayload,
+  IRpcEither,
+} from "@qrk.sh/bricks/rpc/types";
 import { Layer, ManagedRuntime } from "effect";
 
 import { encodeRpc } from "./encodeRpc";
@@ -8,12 +14,6 @@ import { getGitHubProfile } from "./githubProfile/getGitHubProfile";
 import { getGitHubRepo } from "./githubRepo/getGitHubRepo";
 import { getInstagramProfile } from "./instagram/getInstagramProfile";
 import { searchIcons } from "./swatchAndIcon/searchIcons";
-import type {
-  IGitHubRepoPayload,
-  IGitHubScrapePayload,
-  IInstagramScrapePayload,
-  IRpcEither,
-} from "./types";
 
 const GLOBAL_BACKEND_NAME = "global";
 const managedRuntime = ManagedRuntime.make(Layer.empty);

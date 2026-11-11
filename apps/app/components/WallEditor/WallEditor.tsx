@@ -49,7 +49,7 @@ import {
 } from "@qrk.sh/zerospin/src/aggregates/user/layout/wallSizing";
 
 import { StackAction } from "../../modules/components/StackAction";
-import { BrickWrapper } from "../../modules/components/brick/BrickWrapper";
+import { BrickWrapper } from "@qrk.sh/bricks/react/BrickWrapper";
 import { WallPlacement } from "./WallPlacement";
 import { WallDropIndicator } from "./WallDropIndicator";
 import { PreviewSection } from "../PagePreview/PreviewSection";
@@ -59,8 +59,8 @@ import { useWallResize } from "./useWallResize";
 import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
 import { Button } from "@/components/ui/button";
 
-const DrawerBrickData = Schema.Struct({
-  type: Schema.Literal("drawer-brick"),
+const CatalogBrickData = Schema.Struct({
+  type: Schema.Literal("catalog-brick"),
   moduleId: brickV2.attributesSchema.fields.moduleId,
   state: Schema.Unknown,
 });
@@ -76,7 +76,7 @@ const WallPlacementData = Schema.Struct({
 export function WallEditor(props: {
   wallId: IInferModelRow<typeof wallV3>["id"];
   selectedBrickId?: string | null;
-  onEditBrick: (brickId: string) => void;
+  onEditBrick: (brickId: string, source?: "inline-focus") => void;
   onBrickDeleted: (brickId: string) => void;
   registerBrickFlush: (brickId: string, flush: (onRecover?: () => void) => boolean) => () => void;
   flushBrick: (brickId: string) => boolean;
@@ -208,14 +208,14 @@ export function WallEditor(props: {
       const surface = shadowSource.element.querySelector<HTMLElement>(".brick-hover-surface");
       const content = element.firstElementChild;
       if (surface === null || !(content instanceof HTMLElement))
-        throw new Error("Missing drawer Brick shadow surface");
+        throw new Error("Missing catalog Brick shadow surface");
       content.replaceChildren(surface.cloneNode(true));
       return dropTargetForElements({
         element,
         canDrop: ({ source }) => {
           if (
             shadowTargetRef.current === null ||
-            !Schema.is(DrawerBrickData)(source.data) ||
+            !Schema.is(CatalogBrickData)(source.data) ||
             source.data.moduleId !== shadowSource.moduleId
           )
             return false;
@@ -377,7 +377,7 @@ export function WallEditor(props: {
       const { source, location } = props;
       const innermost = location.current.dropTargets[0];
       const target = Schema.decodeUnknownResult(wallInsertionTargetSchema)(innermost?.data);
-      const data = Schema.decodeUnknownResult(DrawerBrickData)(source.data);
+      const data = Schema.decodeUnknownResult(CatalogBrickData)(source.data);
       if (Result.isFailure(target) || Result.isFailure(data) || target.success.wallId !== wall.id) {
         setDropFeedback(null);
         return;
@@ -476,9 +476,9 @@ export function WallEditor(props: {
         },
       }),
       monitorForElements({
-        canMonitor: ({ source }) => Schema.is(DrawerBrickData)(source.data),
+        canMonitor: ({ source }) => Schema.is(CatalogBrickData)(source.data),
         onDragStart: ({ source }) => {
-          if (!Schema.is(DrawerBrickData)(source.data)) return;
+          if (!Schema.is(CatalogBrickData)(source.data)) return;
           setNativeDragActive(true);
           shadowRowHeights.current.clear();
           element.querySelectorAll<HTMLElement>("[data-wall-row-id]").forEach((rowElement) => {
@@ -493,7 +493,7 @@ export function WallEditor(props: {
           setDropFeedback(null);
           setShadowSource(null);
           shadowRowHeights.current.clear();
-          const data = Schema.decodeUnknownResult(DrawerBrickData)(source.data);
+          const data = Schema.decodeUnknownResult(CatalogBrickData)(source.data);
           const target = Schema.decodeUnknownResult(wallInsertionTargetSchema)(
             location.current.dropTargets[0]?.data,
           );
@@ -527,7 +527,7 @@ export function WallEditor(props: {
         dropTargetForElements({
           element,
           canDrop: ({ source }) => {
-            if (!Schema.is(DrawerBrickData)(source.data)) return false;
+            if (!Schema.is(CatalogBrickData)(source.data)) return false;
             const module = modulesHash[source.data.moduleId];
             return (
               module.maxPerPage === undefined ||
@@ -555,7 +555,7 @@ export function WallEditor(props: {
                   source.data.wallId === wall.id &&
                   wall.placements.some((placement) => placement.id === source.data.placementId)
                 );
-              if (!Schema.is(DrawerBrickData)(source.data)) return false;
+              if (!Schema.is(CatalogBrickData)(source.data)) return false;
               const module = modulesHash[source.data.moduleId];
               return (
                 module.maxPerPage === undefined ||
@@ -590,7 +590,7 @@ export function WallEditor(props: {
                     source.data.wallId === wall.id &&
                     wall.placements.some((placement) => placement.id === source.data.placementId)
                   );
-                if (!Schema.is(DrawerBrickData)(source.data)) return false;
+                if (!Schema.is(CatalogBrickData)(source.data)) return false;
                 const module = modulesHash[source.data.moduleId];
                 return (
                   module.maxPerPage === undefined ||
@@ -645,7 +645,7 @@ export function WallEditor(props: {
                     beforePlacementId: before?.id ?? null,
                   };
                 }
-                const data = Schema.decodeUnknownSync(DrawerBrickData)(source.data);
+                const data = Schema.decodeUnknownSync(CatalogBrickData)(source.data);
                 const canCombine = canShareRow({
                   incomingVariant: modulesHash[data.moduleId].variants.default,
                   existingVariants,
@@ -733,7 +733,7 @@ export function WallEditor(props: {
               dropTargetForElements({
                 element: placementElement,
                 canDrop: ({ source, input }) => {
-                  if (!Schema.is(DrawerBrickData)(source.data)) return false;
+                  if (!Schema.is(CatalogBrickData)(source.data)) return false;
                   const module = modulesHash[source.data.moduleId];
                   if (
                     module.maxPerPage !== undefined &&
@@ -1144,7 +1144,7 @@ export function WallEditor(props: {
                                                   {canEditInline ? (
                                                     <InlineEditor
                                                       state={brick.state}
-                                                      onFocus={() => onEditBrick(brick.id)}
+                                                      onFocus={() => onEditBrick(brick.id, "inline-focus")}
                                                       onSave={(state) =>
                                                         stageAggregateSessionCommand({
                                                           session,

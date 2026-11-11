@@ -5,7 +5,7 @@ import {
   wallBreakpointWidths,
 } from "@qrk.sh/zerospin/src/aggregates/user/layout/wallSizing";
 import type { PageSnapshotSchemaV4 } from "@qrk.sh/zerospin/src/aggregates/user/snapshots/pageSnapshotSchemaV4";
-import { backendLibrary } from "@qrk.sh/zerospin/src/modules/backendLibrary";
+import { backendLibrary } from "@qrk.sh/bricks/definition/backendLibrary";
 import type { ReactNode } from "react";
 
 export function WallViewer(props: {

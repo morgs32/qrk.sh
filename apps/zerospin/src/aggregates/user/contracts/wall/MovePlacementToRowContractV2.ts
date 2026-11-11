@@ -1,6 +1,6 @@
 import { findFirst, findMany, upgradeAggregateContractRelease } from "@zerospin/sdk/browser";
 import { Effect, Result } from "effect";
-import { backendLibrary } from "../../../../modules/backendLibrary";
+import { backendLibrary } from "@qrk.sh/bricks/definition/backendLibrary";
 import { canShareRow } from "../../layout/canShareRow";
 import { movePlacementToRowInLayout } from "../../layout/wallLayout";
 import { brickV2 as brick } from "../../models/brick/BrickV2";

@@ -16,6 +16,7 @@
     "@clerk/backend": "^3.8.5",
     "@json-render/core": "^0.20.0",
     "@json-render/react": "^0.20.0",
+    "@qrk.sh/bricks": "workspace:*",
     "@remix-run/route-pattern": "^0.22.1",
     "@zerospin/core": "43.1.2",
     "@zerospin/error": "43.1.2",
@@ -43,6 +44,11 @@
     "targets": {
       "dev": {
         "continuous": true
+      },
+      "test": {
+        "dependsOn": [
+          "^check-imports"
+        ]
       }
     }
   },

@@ -1,4 +1,4 @@
-import { swatchAndIconPreviewState } from "@qrk.sh/zerospin/src/modules/swatchAndIcon/swatchAndIconPreviewState";
+import { swatchAndIconPreviewState } from "@qrk.sh/bricks/swatchAndIcon/definition/swatchAndIconPreviewState";
 import {
   SessionProvider,
   SessionReady,
@@ -13,18 +13,18 @@ import { makeShapeCodecs } from "@zerospin/shapes";
 import { Schema } from "effect";
 import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { Laptop, Monitor, MoveHorizontal, MoveVertical, Smartphone, Tablet } from "lucide-react";
+import { Laptop, Monitor, MoveVertical, Smartphone, Tablet } from "lucide-react";
 
-import { Drawer } from "../Drawer/Drawer";
+import { WorkspaceSidebar } from "../../app/[username]/site/[siteId]/page/[pageId]/WorkspaceSidebar";
 import { ModuleFilmstrip } from "../../app/[username]/site/[siteId]/page/[pageId]/Modules/ModuleFilmstrip";
 import { ModulePreview } from "../../app/[username]/site/[siteId]/page/[pageId]/Modules/ModulePreview";
 import { SiteHeader } from "../../app/[username]/site/[siteId]/SiteHeader";
 import { BrowserChrome } from "../PagePreview/BrowserChrome";
 import { WallEditor } from "./WallEditor";
-import { Button } from "../../modules/components/ui/button";
+import { Button } from "@qrk.sh/bricks/react/button";
 import { BREAKPOINTS, PREVIEW_BORDER_WIDTH } from "../../lib/breakpoints";
 import { makePlacementId } from "@qrk.sh/zerospin/src/aggregates/user/layout/makePlacementId";
-import { swatchAndIconV1 } from "@qrk.sh/zerospin/src/modules/swatchAndIcon/swatchAndIconV1";
+import { swatchAndIconV1 } from "@qrk.sh/bricks/swatchAndIcon/definition";
 import { modulesHash } from "../../modules/modulesHash";
 import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
 
@@ -424,7 +424,6 @@ function WallEditorStory(props: {
   stickyNavbar: boolean;
   borderWidth: number;
   cardStyle: boolean;
-  verticalAtLg: boolean;
   fixture: "default" | "swatch-and-icon" | "article";
   selected: boolean;
   shadowFixture: boolean;
@@ -438,7 +437,6 @@ function WallEditorStory(props: {
     stickyNavbar,
     borderWidth,
     cardStyle,
-    verticalAtLg,
     fixture,
     selected,
     shadowFixture,
@@ -567,7 +565,7 @@ function WallEditorStory(props: {
               })}
             </div>
           </header>
-          <div className={`flex min-h-0 flex-1 flex-col ${verticalAtLg ? "lg:flex-row" : ""}`}>
+          <div className="relative isolate flex min-h-0 flex-1 overflow-hidden">
             <main className="min-h-0 min-w-0 flex-1 overflow-auto px-8 py-6">
               {resizeFixture ? (
                 <>
@@ -624,61 +622,37 @@ function WallEditorStory(props: {
                 </div>
               </div>
             </main>
-            <div
-              className={`h-[280px] min-w-0 shrink-0 ${verticalAtLg ? "lg:h-full lg:w-[420px]" : ""}`}
-            >
-              <Drawer
-                side="bottom"
-                layoutMode="flow"
-                animated={false}
-                aria-label="Bricks drawer"
-                className={verticalAtLg ? "lg:border-t-0 lg:border-l" : undefined}
-              >
-                <header className="flex h-12 shrink-0 items-center justify-between gap-4 border-b border-zinc-200 bg-white px-6">
-                  <div className="flex items-baseline gap-3">
-                    <p className="text-xs text-zinc-500">
-                      {fixture === "default"
-                        ? "Drag a brick onto your page"
-                        : `Source preview — ${modulesHash[fixture].label}`}
-                    </p>
-                  </div>
-                  <span className="flex items-center gap-2 text-xs text-zinc-400">
-                    <MoveHorizontal
-                      className={`size-3.5 ${verticalAtLg ? "lg:hidden" : ""}`}
-                      aria-hidden="true"
-                    />
-                    {verticalAtLg ? (
-                      <MoveVertical className="hidden size-3.5 lg:block" aria-hidden="true" />
-                    ) : null}
-                    Scroll to browse
-                  </span>
-                </header>
-                <div className="min-h-0 flex-1">
-                  {fixture === "default" ? (
-                    <ModuleFilmstrip
-                      verticalAtLg={verticalAtLg}
-                      breakpoint={breakpoint.id}
-                      cardStyle={cardStyle}
-                    />
-                  ) : (
-                    <ModulePreview
-                      brickModule={modulesHash[fixture]}
-                      breakpoint={breakpoint.id}
-                      cardStyle={cardStyle}
-                      moduleAction={() => (
-                        <Button
-                          type="button"
-                          aria-label="Preview brick action"
-                          onClick={() => setSelectedBrickId(null)}
-                        >
-                          Clear selection
-                        </Button>
-                      )}
-                    />
-                  )}
+            <WorkspaceSidebar
+              controls={
+                <div className="flex min-h-8 w-full items-center justify-between gap-2 text-xs">
+                  <p className="text-zinc-500">
+                    {fixture === "default"
+                      ? "Drag a brick onto your page"
+                      : `Source preview — ${modulesHash[fixture].label}`}
+                  </p>
+                  <MoveVertical className="size-3.5 shrink-0 text-zinc-400" aria-hidden="true" />
                 </div>
-              </Drawer>
-            </div>
+              }
+            >
+              {fixture === "default" ? (
+                <ModuleFilmstrip breakpoint={breakpoint.id} cardStyle={cardStyle} />
+              ) : (
+                <ModulePreview
+                  brickModule={modulesHash[fixture]}
+                  breakpoint={breakpoint.id}
+                  cardStyle={cardStyle}
+                  moduleAction={() => (
+                    <Button
+                      type="button"
+                      aria-label="Preview brick action"
+                      onClick={() => setSelectedBrickId(null)}
+                    >
+                      Clear selection
+                    </Button>
+                  )}
+                />
+              )}
+            </WorkspaceSidebar>
           </div>
         </div>
       </SessionReady>
@@ -696,7 +670,6 @@ const meta = {
     stickyNavbar: true,
     borderWidth: 0,
     cardStyle: false,
-    verticalAtLg: false,
     fixture: "default",
     selected: false,
   },
@@ -715,7 +688,6 @@ const meta = {
       stickyNavbar: boolean;
       borderWidth: number;
       cardStyle: boolean;
-      verticalAtLg: boolean;
       fixture: "default" | "swatch-and-icon" | "article";
       selected: boolean;
     },
@@ -727,7 +699,6 @@ const meta = {
       stickyNavbar,
       borderWidth,
       cardStyle,
-      verticalAtLg,
       fixture,
       selected,
     } = props;
@@ -745,7 +716,6 @@ const meta = {
         stickyNavbar={stickyNavbar}
         borderWidth={borderWidth}
         cardStyle={cardStyle}
-        verticalAtLg={verticalAtLg}
         fixture={fixture}
         selected={selected}
         shadowFixture={shadowFixture}
@@ -761,7 +731,6 @@ const meta = {
   stickyNavbar: boolean;
   borderWidth: number;
   cardStyle: boolean;
-  verticalAtLg: boolean;
   fixture: "default" | "swatch-and-icon" | "article";
   selected: boolean;
 }>;
@@ -773,17 +742,4 @@ export const EmptyWall: StoryObj<typeof meta> = { args: { emptyWall: true } };
 /** No capture stubs or synthetic play: use this fixture for native mouse, pen, and touch input. */
 export const PointerResizeNative: StoryObj<typeof meta> = {
   args: { brickGap: 12, cardStyle: true },
-};
-
-/** Storybook-only experiment: a 420px right catalog at lg, and the existing bottom drawer below. */
-export const VerticalDrawer: StoryObj<typeof meta> = {
-  args: { verticalAtLg: true },
-  parameters: {
-    docs: {
-      description: {
-        story:
-          "At viewport widths of 1024px and above, the catalog occupies a 420px right column with one vertical scroll area. Below that width it uses the existing 280px bottom drawer. Placement follows the viewport, independently of the selected page-preview breakpoint. Use emptyWall to try dragging into an empty page.",
-      },
-    },
-  },
 };

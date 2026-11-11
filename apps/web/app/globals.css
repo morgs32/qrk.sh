@@ -1,4 +1,7 @@
 @import "tailwindcss";
+@import "@qrk.sh/bricks/styles.css";
+
+@source "../../bricks/src/**/*.{ts,tsx}";
 
 @custom-variant dark (&:is(.dark *));
 

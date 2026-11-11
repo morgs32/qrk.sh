@@ -36,13 +36,13 @@ export const PreviewBrick: StoryObj<typeof meta> = {
       () =>
         expect(
           canvasElement.querySelector(
-            `[data-drawer-module-id="${args.fixture}"][draggable="true"]`,
+            `[data-catalog-module-id="${args.fixture}"][draggable="true"]`,
           ),
         ).not.toBeNull(),
       { timeout: 10000 },
     );
     const source = canvasElement.querySelector<HTMLElement>(
-      `[data-drawer-module-id="${args.fixture}"]`,
+      `[data-catalog-module-id="${args.fixture}"]`,
     );
     const placed = canvasElement.querySelector<HTMLElement>(
       "[data-wall-placement-id] .brick-hover-surface",

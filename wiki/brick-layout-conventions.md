@@ -309,18 +309,17 @@ historical implementation is recorded in
 
 ## Shared modules and Storybook
 
-App owns module forms, renderers, React generators, components, CSS, and stories
-under `apps/app/modules`. Zerospin owns shared module definitions, schemas,
-catalogs, and model factories under `apps/zerospin/src/modules`. The Library
-package is removed; API owns provider operations and browser RPC declarations. App's Bricks catalog and Brick
-forms remain production routes. Shared visual forms use supplied submission
-callbacks; App stages commands and Storybook edits local examples. Module-owned
-normalization/provider logic stays in its module; session orchestration belongs
-to App and survives form unmount until the session ends.
+The private `@qrk.sh/bricks` workspace package in `apps/bricks` owns all Brick
+definitions, React views, forms, and stories. Hosts compile the exports they
+consume. Link's versioned definition and its React registry have separate
+exports. App's `linkView` binds the lookup callback to its RPC session.
+The form owns validation and saves through the generic Brick editor callback.
+API executes provider operations and shares their client declarations with
+Storybook through Bricks' type-only RPC entry.
 
 Each module's **Breakpoint Previews** story compares its JSX sketch with JSON
-Render at sm, md, lg, and xl using one example state and one spec. The bottom
-drawer shows the module form under **Configure** and prompt-based generation
+Render at sm, md, lg, and xl using one example state and one spec. The right
+sidebar shows the module form under **Configure** and prompt-based generation
 under **Generate Spec**. Story state and generated specs live in the mounted
 story. Generation uses the existing API Worker and its server-held credential.
 Fixture previews need no persisted user session. Lookup and upload controls

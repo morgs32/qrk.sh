@@ -1,15 +1,15 @@
-import { backendLibrary, type IBackendLibrary } from "@qrk.sh/zerospin/src/modules/backendLibrary";
+import { backendLibrary, type IBackendLibrary } from "@qrk.sh/bricks/definition/backendLibrary";
 import { makeModuleViewLibrary } from "./make/makeModuleViewLibrary";
-import { figmaThumbnailView } from "./figmaThumbnail/figmaThumbnailView";
-import { githubActivityView } from "./githubActivity/githubActivityView";
-import { githubProfileView } from "./githubProfile/githubProfileView";
-import { githubRepoView } from "./githubRepo/githubRepoView";
-import { imageView } from "./image/imageView";
-import { instagramView } from "./instagram/instagramView";
+import { figmaThumbnailView } from "@qrk.sh/bricks/figmaThumbnail/view";
+import { githubActivityView } from "@qrk.sh/bricks/githubActivity/view";
+import { githubProfileView } from "@qrk.sh/bricks/githubProfile/view";
+import { githubRepoView } from "@qrk.sh/bricks/githubRepo/view";
+import { imageView } from "@qrk.sh/bricks/image/view";
+import { instagramView } from "@qrk.sh/bricks/instagram/view";
 import { linkView } from "./link/linkView";
-import { mapPlaceView } from "./mapPlace/mapPlaceView";
-import { swatchAndIconView } from "./swatchAndIcon/swatchAndIconView";
-import { articleView } from "./article/articleView";
+import { mapPlaceView } from "@qrk.sh/bricks/mapPlace/view";
+import { swatchAndIconView } from "@qrk.sh/bricks/swatchAndIcon/view";
+import { articleView } from "@qrk.sh/bricks/article/view";
 
 export const modulesHash = makeModuleViewLibrary<IBackendLibrary>(backendLibrary, {
   "swatch-and-icon": swatchAndIconView,

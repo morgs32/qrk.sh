@@ -1,0 +1,154 @@
+# 061 — Sidebar-only Studio workspace
+
+**Status:** Ready for implementation.
+
+Studio currently switches between a right sidebar and a bottom drawer for the
+same routes. Use one workspace sidebar across viewport sizes. Below Tailwind
+`lg`, position it over the right edge of the Wall and leave the exposed Wall
+interactive. This supersedes the responsive shell decision in
+[Plan 056](../archive/plans/056-plan-responsive-workspace-sidebar.md).
+
+## Behavior
+
+1. At `lg` and wider, keep the existing 320 px in-flow sidebar. Below `lg`,
+   use a right overlay with width `min(320px, 75vw)`, starting below the App
+   header and filling the available workspace height. The overlay has a left
+   border and shadow. The Wall can scroll and receive pointer and keyboard
+   input in the exposed area. Its preview stays at the selected authored width.
+2. Use the compact **Page controls** select and **Close sidebar** button at
+   every viewport size. Bricks, Page settings, Site settings, and Edit brick
+   retain their existing URLs and route state. The sidebar body is a single
+   vertical scroll area. Settings use the actual sidebar container width.
+3. At desktop widths, focusing an inline Article field opens Brick Details as
+   it does today. Below `lg`, inline focus leaves the current sidebar state
+   and route alone. Explicit Brick selection and an accepted catalog drop open
+   Brick Details at any width.
+4. Preserve Close, Escape, and the current background-click behavior for Brick
+   Details. Menus, dialogs, and text selection get the first chance to consume
+   Escape. Keep breakpoint controls accessible while the overlay is open.
+   Resizing across `lg` preserves the sidebar body, its draft, the Wall, and
+   the selected breakpoint.
+
+## Implementation
+
+1. In PageLayout, render the routed outlet directly inside the existing
+   WorkspaceSidebar when a sidebar route is matched. Pass children through
+   the existing controls component and render the same aside in the same
+   React position at every width. Use CSS for in-flow versus absolute
+   positioning within the workspace under the header. Remove the moved portal
+   target, body refs, and bottom Drawer branch. Retain the workspace container
+   on the sidebar body for settings reflow.
+
+   ```tsx
+   // The route chooses whether the sidebar exists.
+   // CSS positions this same subtree on either side of lg.
+   {sidebarOpen && (
+     <WorkspacePanelControls isSitePublished={site.isPublished} onClose={closePanel}>
+       {children}
+     </WorkspacePanelControls>
+   )}
+   ```
+
+2. Rename the pathless `_drawer` group to `_sidebar` and the matching App
+   source group to `(sidebar)`. Update route-ID checks in the page layout,
+   controls, and toolbar. Regenerate TanStack's route tree with the existing
+   build. The pathless group changes internal route IDs while the public
+   paths keep the same segments. Replace the controls' desktop/mobile branch
+   with the existing select header. Leave page publishing in its current
+   owners.
+3. Use the full workspace height for the preview scrollport and anchor the
+   toolbar to its normal bottom gap. Remove the 25dvh reservation, bottom
+   offset transition, drawer attributes, and drawer snapshot animation.
+   While the overlay is open, layer the toolbar over the sidebar at the
+   existing bottom anchor, with pointer events limited to toolbar controls.
+   Reserve enough space at the bottom of the overlay body to scroll its last
+   control above the toolbar. Keep the global router transition policy and
+   existing preview scroll anchoring.
+4. Keep Brick Details navigation in PagePreview. Distinguish an inline field
+   focus from an explicit edit with an optional second argument
+   `source?: "inline-focus"` on WallEditor's existing `onEditBrick` callback.
+   WallEditor supplies it only from the module's existing `onFocus` callback.
+   PagePreview checks `matchMedia("(min-width: 64rem)").matches` at that event
+   and skips navigation for inline focus below `lg`. Delete the now-unused
+   viewport hook and the drawer-specific focus marker. Keep the current
+   inline-field blur on Escape. Preserve keyboard focus on sidebar close by
+   returning it to the opening control when still connected. If the opener
+   disappeared or was an inline field that would reopen Brick Details, focus
+   the Wall instead. Use `preventScroll` and leave focus alone when it is
+   already outside the sidebar.
+   The module contracts and module props stay as they are.
+
+   ```tsx
+   // WallEditor forwards the existing module focus event as a Studio intent.
+   onFocus={() => onEditBrick(brick.id, "inline-focus")}
+
+   // PagePreview owns the responsive navigation decision.
+   if (source === "inline-focus" && !window.matchMedia("(min-width: 64rem)").matches) {
+     return;
+   }
+   ```
+
+5. Make the Bricks catalog a vertical list at every width. Remove
+   `verticalAtLg` and the horizontal drawer styles from ModuleFilmstrip and
+   ModulePreview. Measure the actual padded catalog column with the existing
+   observer and preserve thumbnail sizing and the native drag preview.
+   Rename the browser-local `drawer-brick` payload discriminator and
+   `data-drawer-module-id` to `catalog-brick` and `data-catalog-module-id`
+   together in the source, Wall consumers, and scripted stories. Keep the
+   authored drop sizing and existing command payload.
+6. Replace the WallEditor Storybook bottom catalog with the same sidebar
+   layout, including the narrow overlay. Remove the VerticalDrawer
+   experiment and the App Drawer component and story after their final
+   callers are gone. Update App docs and the workspace layout research note.
+   Reconcile **Selected Brick** in the glossary and repository guidance
+   with the implemented sidebar terminology. The existing Wall-owned layout
+   ADR continues to govern persistence. This layout change requires no
+   migration.
+
+## Planned files
+
+`~` modifies, `→` moves, and `−` deletes. Braced names list siblings.
+
+```text
+qrk.sh/
+├── ~ AGENTS.md
+├── apps/app/
+│   ├── ~ {AGENTS.md, README.md, routeTree.gen.ts}
+│   ├── app/
+│   │   ├── ~ globals.css
+│   │   └── [username]/site/[siteId]/
+│   │       ├── Toolbars/~ Toolbars.tsx
+│   │       └── page/[pageId]/
+│   │           ├── ~ {layout.tsx, PagePreview.tsx, WorkspaceSidebar.tsx}
+│   │           ├── − useMatchMedia.ts
+│   │           ├── → (drawer)/ to (sidebar)/, including ~ layout.tsx
+│   │           └── Modules/~ {Modules.tsx, ModuleFilmstrip.tsx, ModulePreview.tsx}
+│   ├── components/
+│   │   ├── − Drawer/{Drawer.tsx, Drawer.stories.tsx}
+│   │   └── WallEditor/
+│   │       ├── ~ {WallEditor.tsx, WallEditor.stories.tsx}
+│   │       └── Scripted/~ {BrickPresentation, EqualHeightRows, InsertionShadow, StickyActions}.stories.tsx
+│   ├── modules/~ {bricks.css, README.md}
+│   └── routes/→ five pathless _drawer route files to _sidebar
+└── wiki/
+    ├── ~ glossary.md
+    └── research/~ preview-chrome-drawer-layout.md
+```
+
+## Verification
+
+1. Run App and Storybook builds through Nx and `git diff --check`. Verify the
+   generated public paths for all four sidebar routes and search the App for
+   leftover workspace drawer routes, CSS, selectors, and consumers.
+2. The user performs manual verification under the November 11 daily choice.
+   Open each sidebar route directly and through Page controls. At 1024 px,
+   confirm a 320 px in-flow sidebar. At 1023 px, confirm an overlay. At 375 px,
+   confirm a sidebar at most 281.25 px wide and an interactive exposed Wall.
+   Resize across the threshold with a form draft open, then verify the draft,
+   selected breakpoint, scroll position, and controls.
+3. Use a local test page to verify inline Article focus on both sides of
+   `lg`, explicit selection and catalog drop, Close and Escape, and
+   focus after sidebar dismissal. Confirm vertical catalog scrolling,
+   thumbnail fit, and a successful drag onto the exposed Wall with a
+   drag-capable pointer. Check the breakpoint toolbar can still be used while
+   the overlay is open. Record the user's result before archiving the plan.

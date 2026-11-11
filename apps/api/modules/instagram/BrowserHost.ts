@@ -1,10 +1,10 @@
 import puppeteer, { type Browser } from "@cloudflare/puppeteer";
 import { DurableObject } from "cloudflare:workers";
 import { Effect } from "effect";
+import type { IRpcEither } from "@qrk.sh/bricks/rpc/types";
 
 import { encodeRpc } from "../encodeRpc";
 import { scrapeInstagram } from "./scrapeInstagram";
-import type { IRpcEither } from "../types";
 
 export class BrowserHost extends DurableObject<Env> {
   #browser: Browser | undefined;

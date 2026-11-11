@@ -34,13 +34,13 @@ The optional field has one contract:
 uploadImage?: (file: File, options: { signal: AbortSignal }) => Promise<string>;
 ```
 
-`ImageUploadSWR.d.ts` augments `PublicConfiguration` through the installed SWR's exported `swr/_internal` entrypoint, preserving its upstream generic declaration. This types both `SWRConfig` and `useSWRConfig()` without casts, wrapper hooks or a separate Image upload context. The accepted trade-off is coupling this type-only extension to that exported configuration interface. No dependency upgrade or installed-package edit is involved. [Augmentation](../../apps/app/modules/image/ImageUploadSWR.d.ts).
+`ImageUploadSWR.d.ts` augments `PublicConfiguration` through the installed SWR's exported `swr/_internal` entrypoint, preserving its upstream generic declaration. This types both `SWRConfig` and `useSWRConfig()` without casts, wrapper hooks or a separate Image upload context. The accepted trade-off is coupling this type-only extension to that exported configuration interface. No dependency upgrade or installed-package edit is involved. [Augmentation](../../apps/bricks/src/image/react/ImageUploadSWR.d.ts).
 
-The shared registered-form contract remains `state`, `onSave` and `onCancel`; no Image-specific prop travels through the module registry. A missing uploader hides file selection/drop UI while keeping manual Image URL entry and Save available. [ImageForm](../../apps/app/modules/image/ImageForm.tsx), [Form contract](../../apps/app/modules/types.ts).
+The shared registered-form contract remains `state`, `onSave` and `onCancel`; no Image-specific prop travels through the module registry. A missing uploader hides file selection/drop UI while keeping manual Image URL entry and Save available. [ImageForm](../../apps/bricks/src/image/react/ImageForm.tsx), [Form contract](../../apps/bricks/src/react/types.ts#L26).
 
 ## Form-local mutation
 
-SWRConfig carries the function; ImageForm still explicitly supplies the mutation implementation. `useSWRMutation` starts only when a file-selection/drop handler calls `trigger`. Request pending/error state belongs to this hook, while file validation errors, save errors and unsaved drafts remain local form state. Revalidation and cache population are disabled because uploading is separate from persisting the Brick state. [SWR: mutation](https://swr.vercel.app/docs/mutation), [ImageForm](../../apps/app/modules/image/ImageForm.tsx).
+SWRConfig carries the function; ImageForm still explicitly supplies the mutation implementation. `useSWRMutation` starts only when a file-selection/drop handler calls `trigger`. Request pending/error state belongs to this hook, while file validation errors, save errors and unsaved drafts remain local form state. Revalidation and cache population are disabled because uploading is separate from persisting the Brick state. [SWR: mutation](https://swr.vercel.app/docs/mutation), [ImageForm](../../apps/bricks/src/image/react/ImageForm.tsx).
 
 ```tsx
 const { uploadImage } = useSWRConfig();
@@ -76,6 +76,6 @@ unmounts the previous form, discards its draft and aborts its upload. This repla
 the earlier retained-upload behavior across breakpoint changes. Settings forms
 remain keyed by Site/Page identity and are not reset by breakpoint selection.
 
-Upload begins in the interaction handler; no React effect installs or starts it. The existing component-lifetime cleanup remains responsible for aborting on unmount. Cancel separately aborts transport, invalidates the active request and resets SWR state. These lifecycle guards remain necessary even when a host ignores cancellation. [React: interaction-driven requests](https://react.dev/learn/you-might-not-need-an-effect), [Form lifecycle](../../apps/app/modules/image/ImageForm.tsx).
+Upload begins in the interaction handler; no React effect installs or starts it. The existing component-lifetime cleanup remains responsible for aborting on unmount. Cancel separately aborts transport, invalidates the active request and resets SWR state. These lifecycle guards remain necessary even when a host ignores cancellation. [React: interaction-driven requests](https://react.dev/learn/you-might-not-need-an-effect), [Form lifecycle](../../apps/bricks/src/image/react/ImageForm.tsx).
 
 App checks the signal after awaiting Clerk's non-abortable token acquisition and before starting HTTP. Both hosts pass the signal to `fetch` and retain their existing success/error schemas. A successful upload changes only the draft URL; Save validates the complete Image state and uses the existing callback/command path. Cancel discards the draft. Aborting cannot promise rollback of an object already stored by the server, so completed R2 objects and public asset GET behavior keep their existing lifetime. [App host](../../apps/app/app/[username]/site/[siteId]/page/[pageId]/layout.tsx), [Recorded upload ownership](studio-publishing-ownership.md#implemented-follow-up-host-owned-image-uploads).

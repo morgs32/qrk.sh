@@ -8,7 +8,7 @@ import { Effect, Result, Schema } from "effect";
 import { wallV2 as wall } from "../../models/wall/WallV2";
 import { placementV2 as placement } from "../../models/placement/PlacementV2";
 import { addBrickV3 } from "./AddBrickContractV3";
-import { backendLibrary } from "../../../../modules/backendLibrary";
+import { backendLibrary } from "@qrk.sh/bricks/definition/backendLibrary";
 import { makePlacementId } from "../../layout/makePlacementId";
 import { canShareRow } from "../../layout/canShareRow";
 import { insertPlacementInLayout } from "../../layout/wallLayoutV2";

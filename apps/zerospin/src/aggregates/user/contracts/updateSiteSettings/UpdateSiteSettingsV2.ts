@@ -7,7 +7,7 @@ import { wallV2 as wall } from "../../models/wall/WallV2";
 import { placementV2 as placement } from "../../models/placement/PlacementV2";
 import { brickV2 as brick } from "../../models/brick/BrickV2";
 import { siteV1 as site } from "../../models/site/SiteV1";
-import { backendLibrary } from "../../../../modules/backendLibrary";
+import { backendLibrary } from "@qrk.sh/bricks/definition/backendLibrary";
 import { measureWallFit, wallBreakpointWidths } from "../../layout/wallSizing";
 
 export const updateSiteSettingsV2 = upgradeAggregateContractRelease(updateSiteSettingsV1, {

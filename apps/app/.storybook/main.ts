@@ -17,7 +17,7 @@ const config: StorybookConfig = {
   stories: [
     "../components/**/*.stories.@(ts|tsx)",
     "../app/**/*.stories.@(ts|tsx)",
-    "../modules/**/*.stories.@(ts|tsx)",
+    "../../bricks/src/**/*.stories.@(ts|tsx)",
   ],
   addons: [getAbsolutePath("@storybook/addon-a11y"), getAbsolutePath("@storybook/addon-docs")],
   framework: {

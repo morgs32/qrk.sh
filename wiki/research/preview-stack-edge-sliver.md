@@ -32,7 +32,7 @@ error. [Outer gap compensation](/Users/morgs32/GitHub/qrk.sh/apps/app/components
 
 SwatchAndIcon's color surface is a full-width flex box with its authored color
 as background; it adds no border or edge offset. StackAction is an absolute
-label inset 1px from the Stack, not a white rule. [Swatch surface](/Users/morgs32/GitHub/qrk.sh/apps/app/modules/swatchAndIcon/SwatchAndIcon/components/SwatchAndIconColor.tsx:8),
+label inset 1px from the Stack, not a white rule. [Swatch surface](/Users/morgs32/GitHub/qrk.sh/apps/bricks/src/swatchAndIcon/react/SwatchAndIcon/components/SwatchAndIconColor.tsx:8),
 [Stack label](/Users/morgs32/GitHub/qrk.sh/apps/app/modules/components/StackAction.tsx:6).
 
 ## Confirmed cause: border compositing

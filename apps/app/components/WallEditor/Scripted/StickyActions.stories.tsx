@@ -36,7 +36,7 @@ export const CrossRowStickyActions: StoryObj<typeof meta> = {
     const tail = canvasElement.querySelector<HTMLElement>(
       '[data-wall-stack-id="stk_story-sm-empty"]',
     );
-    const previewActions = canvasElement.querySelector("[data-drawer-module-id] .brick-action");
+    const previewActions = canvasElement.querySelector("[data-catalog-module-id] .brick-action");
     const chrome = canvasElement.querySelector(".wall-preview-chrome");
     const navbar = canvasElement.querySelector(".wall-preview-frame header");
     if (

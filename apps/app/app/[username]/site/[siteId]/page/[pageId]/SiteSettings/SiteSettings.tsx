@@ -27,7 +27,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useUsername } from "@/hooks/useUsername";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
-import { useWarnBeforeUnload } from "@/lib/useWarnBeforeUnload";
+import { useWarnBeforeUnload } from "@qrk.sh/bricks/react/useWarnBeforeUnload";
 
 const ParamsSchema = Schema.Struct({
   username: Schema.String,

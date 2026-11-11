@@ -102,6 +102,9 @@ importers:
       '@json-render/core':
         specifier: ^0.20.0
         version: 0.20.0
+      '@qrk.sh/bricks':
+        specifier: workspace:*
+        version: link:../bricks
       '@qrk.sh/r2-assets':
         specifier: workspace:*
         version: link:../../packages/r2-assets
@@ -172,18 +175,9 @@ importers:
       '@json-render/core':
         specifier: ^0.20.0
         version: 0.20.0
-      '@json-render/react':
-        specifier: ^0.20.0
-        version: 0.20.0(react@19.2.7)
-      '@meowdown/core':
-        specifier: 0.72.1
-        version: 0.72.1(@lezer/common@1.5.3)(@shikijs/types@4.5.0)(@types/hast@3.0.5)(prosemirror-model@1.25.12)(prosemirror-state@1.4.4)(prosemirror-transform@1.12.2)(prosemirror-view@1.42.6)(typescript@6.0.2)(yjs@13.6.33)
-      '@meowdown/react':
-        specifier: 0.71.4
-        version: 0.71.4(@lezer/common@1.5.3)(@shikijs/types@4.5.0)(@types/hast@3.0.5)(@types/react@19.2.17)(date-fns@4.4.0)(prosemirror-model@1.25.12)(prosemirror-state@1.4.4)(prosemirror-transform@1.12.2)(prosemirror-view@1.42.6)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(typescript@6.0.2)(yjs@13.6.33)
-      '@qrk.sh/api':
+      '@qrk.sh/bricks':
         specifier: workspace:*
-        version: link:../api
+        version: link:../bricks
       '@qrk.sh/web':
         specifier: workspace:*
         version: link:../web
@@ -283,9 +277,6 @@ importers:
       lucide-react:
         specifier: ^1.7.0
         version: 1.24.0(react@19.2.7)
-      mapbox-gl:
-        specifier: ^3.26.0
-        version: 3.26.0
       qrcode:
         specifier: ^1.5.4
         version: 1.5.4
@@ -295,18 +286,12 @@ importers:
       react:
         specifier: 19.2.7
         version: 19.2.7
-      react-activity-calendar:
-        specifier: ^3.2.1
-        version: 3.2.1(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       react-colorful:
         specifier: ^5.8.1
         version: 5.8.1(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       react-dom:
         specifier: 19.2.7
         version: 19.2.7(react@19.2.7)
-      react-json-view-lite:
-        specifier: ^2.5.0
-        version: 2.5.0(react@19.2.7)
       sonner:
         specifier: ^2.0.8
         version: 2.0.8(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
@@ -341,9 +326,6 @@ importers:
       '@tailwindcss/vite':
         specifier: 4.2.2
         version: 4.2.2(@voidzero-dev/vite-plus-core@1.0.0(@types/node@25.9.5)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(terser@5.51.2)(typescript@6.0.2)(yaml@2.9.1))
-      '@types/mapbox-gl':
-        specifier: ^3.5.0
-        version: 3.5.0
       '@types/node':
         specifier: ^25.5.2
         version: 25.9.5
@@ -395,6 +377,127 @@ importers:
 
   apps/app-storybook: {}
 
+  apps/bricks:
+    dependencies:
+      '@json-render/core':
+        specifier: ^0.20.0
+        version: 0.20.0
+      '@json-render/react':
+        specifier: ^0.20.0
+        version: 0.20.0(react@19.2.7)
+      '@radix-ui/react-slot':
+        specifier: ^1.2.4
+        version: 1.5.0(@types/react@19.2.17)(react@19.2.7)
+      '@unpic/react':
+        specifier: 1.0.2
+        version: 1.0.2(next@16.3.4(@babel/core@7.29.7)(@opentelemetry/api@1.10.0)(@types/node@25.5.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass@1.104.1))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      '@zerospin/core':
+        specifier: 43.1.2
+        version: 43.1.2(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.10.0)(@types/react@19.2.17)(effect@4.0.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(solid-js@1.9.18)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      '@zerospin/error':
+        specifier: 43.1.2
+        version: 43.1.2(effect@4.0.2)
+      '@zerospin/shapes':
+        specifier: 43.1.2
+        version: 43.1.2(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.10.0)(effect@4.0.2)(sql.js@1.15.2)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      '@zerospin/zod':
+        specifier: 43.1.2
+        version: 43.1.2(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/api@1.10.0)(effect@4.0.2)(sql.js@1.15.2)(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
+      capnweb:
+        specifier: ^0.12.0
+        version: 0.12.0
+      class-variance-authority:
+        specifier: ^0.7.1
+        version: 0.7.1
+      cn:
+        specifier: ^0.3.0
+        version: 0.3.0
+      effect:
+        specifier: 4.0.2
+        version: 4.0.2
+      es-toolkit:
+        specifier: ^1.52.0
+        version: 1.53.1
+      radix-ui:
+        specifier: ^1.4.3
+        version: 1.4.3(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      react:
+        specifier: 19.2.7
+        version: 19.2.7
+      react-colorful:
+        specifier: ^5.8.1
+        version: 5.8.1(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      react-dom:
+        specifier: 19.2.7
+        version: 19.2.7(react@19.2.7)
+      react-json-view-lite:
+        specifier: ^2.5.0
+        version: 2.5.0(react@19.2.7)
+      swr:
+        specifier: ^2.3.3
+        version: 2.4.1(react@19.2.7)
+      '@meowdown/core':
+        specifier: 0.72.1
+        version: 0.72.1(@lezer/common@1.5.3)(@shikijs/types@4.5.0)(@types/hast@3.0.5)(prosemirror-model@1.25.12)(prosemirror-state@1.4.4)(prosemirror-transform@1.12.2)(prosemirror-view@1.42.6)(typescript@6.0.2)(yjs@13.6.33)
+      '@meowdown/react':
+        specifier: 0.71.4
+        version: 0.71.4(@lezer/common@1.5.3)(@shikijs/types@4.5.0)(@types/hast@3.0.5)(@types/react@19.2.17)(date-fns@4.4.0)(prosemirror-model@1.25.12)(prosemirror-state@1.4.4)(prosemirror-transform@1.12.2)(prosemirror-view@1.42.6)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(typescript@6.0.2)(yjs@13.6.33)
+      lucide-react:
+        specifier: ^1.7.0
+        version: 1.24.0(react@19.2.7)
+      mapbox-gl:
+        specifier: ^3.26.0
+        version: 3.26.0
+      react-activity-calendar:
+        specifier: ^3.2.1
+        version: 3.2.1(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+    devDependencies:
+      '@fontsource-variable/geist':
+        specifier: ^5.2.8
+        version: 5.3.0
+      '@storybook/addon-a11y':
+        specifier: ^10.6.0
+        version: 10.6.0(storybook@10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.10.0)(@types/node@25.5.2)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(terser@5.51.2)(typescript@6.0.2)(yaml@2.9.1)))
+      '@storybook/addon-docs':
+        specifier: ^10.6.0
+        version: 10.6.0(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(storybook@10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.10.0)(@types/node@25.5.2)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(terser@5.51.2)(typescript@6.0.2)(yaml@2.9.1)))
+      '@storybook/react-vite':
+        specifier: ^10.6.0
+        version: 10.6.0(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(@voidzero-dev/vite-plus-core@1.0.0(@types/node@25.5.2)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(terser@5.51.2)(typescript@6.0.2)(yaml@2.9.1))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(rollup@4.67.4)(storybook@10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.10.0)(@types/node@25.5.2)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(terser@5.51.2)(typescript@6.0.2)(yaml@2.9.1)))(typescript@6.0.2)
+      '@tailwindcss/vite':
+        specifier: 4.2.2
+        version: 4.2.2(@voidzero-dev/vite-plus-core@1.0.0(@types/node@25.5.2)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(terser@5.51.2)(typescript@6.0.2)(yaml@2.9.1))
+      '@types/mapbox-gl':
+        specifier: ^3.5.0
+        version: 3.5.0
+      '@types/node':
+        specifier: ^25.5.2
+        version: 25.5.2
+      '@types/react':
+        specifier: ^19.2.14
+        version: 19.2.17
+      '@types/react-dom':
+        specifier: ^19.2.3
+        version: 19.2.3(@types/react@19.2.17)
+      '@vitejs/plugin-react':
+        specifier: 6.0.3
+        version: 6.0.3(@rolldown/plugin-babel@0.2.4(@babel/core@7.29.7)(@babel/runtime@8.1.0)(@types/node@25.5.2)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(terser@5.51.2)(typescript@6.0.2)(yaml@2.9.1))(@voidzero-dev/vite-plus-core@1.0.0(@types/node@25.5.2)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(terser@5.51.2)(typescript@6.0.2)(yaml@2.9.1))
+      storybook:
+        specifier: ^10.6.0
+        version: 10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.10.0)(@types/node@25.5.2)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(terser@5.51.2)(typescript@6.0.2)(yaml@2.9.1))
+      tailwindcss:
+        specifier: 4.2.2
+        version: 4.2.2
+      typescript:
+        specifier: ^6.0.2
+        version: 6.0.2
+      vite:
+        specifier: npm:@voidzero-dev/vite-plus-core@1.0.0
+        version: '@voidzero-dev/vite-plus-core@1.0.0(@types/node@25.5.2)(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(terser@5.51.2)(typescript@6.0.2)(yaml@2.9.1)'
+      vite-plus:
+        specifier: 1.0.0
+        version: 1.0.0(@opentelemetry/api@1.10.0)(@types/node@25.5.2)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(terser@5.51.2)(typescript@6.0.2)(yaml@2.9.1)
+
   apps/scraper:
     dependencies:
       '@cloudflare/puppeteer':
@@ -431,6 +534,9 @@ importers:
       '@clerk/nextjs':
         specifier: ^7.1.0
         version: 7.1.0(next@16.3.4(@babel/core@7.29.7)(@opentelemetry/api@1.10.0)(@types/node@25.5.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass@1.104.1))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      '@qrk.sh/bricks':
+        specifier: workspace:*
+        version: link:../bricks
       '@qrk.sh/zerospin':
         specifier: workspace:*
         version: link:../zerospin
@@ -519,6 +625,9 @@ importers:
       '@json-render/react':
         specifier: ^0.20.0
         version: 0.20.0(react@19.2.7)
+      '@qrk.sh/bricks':
+        specifier: workspace:*
+        version: link:../bricks
       '@remix-run/route-pattern':
         specifier: ^0.22.1
         version: 0.22.1
@@ -14230,6 +14339,12 @@ snapshots:
 
   '@standard-schema/spec@1.1.0': {}
 
+  '@storybook/addon-a11y@10.6.0(storybook@10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.10.0)(@types/node@25.5.2)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(terser@5.51.2)(typescript@6.0.2)(yaml@2.9.1)))':
+    dependencies:
+      '@storybook/global': 5.0.0
+      axe-core: 4.13.0
+      storybook: 10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.10.0)(@types/node@25.5.2)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(terser@5.51.2)(typescript@6.0.2)(yaml@2.9.1))
+
   '@storybook/addon-a11y@10.6.0(storybook@10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.10.0)(@types/node@25.9.5)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(terser@5.51.2)(typescript@6.0.2)(yaml@2.9.1)))':
     dependencies:
       '@storybook/global': 5.0.0
@@ -15038,6 +15153,14 @@ snapshots:
   '@unpic/core@1.0.3':
     dependencies:
       unpic: 4.2.2
+
+  '@unpic/react@1.0.2(next@16.3.4(@babel/core@7.29.7)(@opentelemetry/api@1.10.0)(@types/node@25.5.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass@1.104.1))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)':
+    dependencies:
+      '@unpic/core': 1.0.3
+      react: 19.2.7
+      react-dom: 19.2.7(react@19.2.7)
+    optionalDependencies:
+      next: 16.3.4(@babel/core@7.29.7)(@opentelemetry/api@1.10.0)(@types/node@25.5.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass@1.104.1)
 
   '@unpic/react@1.0.2(next@16.3.4(@babel/core@7.29.7)(@opentelemetry/api@1.10.0)(@types/node@25.9.5)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass@1.104.1))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)':
     dependencies:

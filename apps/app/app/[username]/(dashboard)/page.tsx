@@ -34,7 +34,7 @@ import {
 import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
 import { startupTiming } from "@/lib/startupTiming";
-import { useWarnBeforeUnload } from "@/lib/useWarnBeforeUnload";
+import { useWarnBeforeUnload } from "@qrk.sh/bricks/react/useWarnBeforeUnload";
 
 const ParamsSchema = Schema.Struct({
   username: Schema.String,

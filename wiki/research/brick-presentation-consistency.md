@@ -17,8 +17,8 @@ the historical sections below. Scoped checks and browser verification passed; th
   rounding, content layout, and `@container`. Saved border paint stays at 18,
   interaction paint at 19, and BrickAction at 20. Keep the outer halo out of the
   clipped content layer. Add no new component, prop, type, or presentation factory.
-  [BrickWrapper](../../apps/app/modules/components/brick/BrickWrapper.tsx),
-  [Surface styling](../../apps/app/modules/bricks.css).
+  [BrickWrapper](../../apps/bricks/src/react/BrickWrapper.tsx),
+  [Card surface styling](../../apps/bricks/src/react/brickStyles.css#L51).
 - Share one blue content decoration across hover, DOM focus, and selection: a
   fully opaque 1px `rgb(31,155,252)` stroke, sharp 1px outer halo at 30% opacity,
   and sharp 1px inset halo at 15%. Selection still means an open Brick edit form;

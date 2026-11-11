@@ -45,7 +45,7 @@ export const ShadowBrick: StoryObj<typeof meta> = {
       () =>
         expect(
           canvasElement.querySelector(
-            `[data-drawer-module-id="${args.fixture}"][draggable="true"]`,
+            `[data-catalog-module-id="${args.fixture}"][draggable="true"]`,
           ),
         ).not.toBeNull(),
       { timeout: 10000 },
@@ -74,7 +74,7 @@ export const ShadowBrick: StoryObj<typeof meta> = {
         { timeout: 10000 },
       );
       const source = canvasElement.querySelector<HTMLElement>(
-        `[data-drawer-module-id="${args.fixture}"]`,
+        `[data-catalog-module-id="${args.fixture}"]`,
       );
       const row = canvasElement.querySelector<HTMLElement>("[data-wall-row-id]");
       const target = row ?? canvasElement.querySelector<HTMLElement>(".wall-editor");
@@ -236,13 +236,13 @@ export const ShadowStability: StoryObj<typeof meta> = {
       () =>
         expect(
           canvasElement.querySelector(
-            '[data-drawer-module-id="swatch-and-icon"][draggable="true"]',
+            '[data-catalog-module-id="swatch-and-icon"][draggable="true"]',
           ),
         ).not.toBeNull(),
       { timeout: 10000 },
     );
     const source = canvasElement.querySelector<HTMLElement>(
-      '[data-drawer-module-id="swatch-and-icon"]',
+      '[data-catalog-module-id="swatch-and-icon"]',
     );
     // The default fixture's final Row contains one Swatch.
     const row = Array.from(canvasElement.querySelectorAll<HTMLElement>("[data-wall-row-id]")).at(

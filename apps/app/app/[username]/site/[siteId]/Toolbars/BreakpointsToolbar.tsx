@@ -8,6 +8,8 @@ import { Schema } from "effect";
 import { motion, useReducedMotion } from "framer-motion";
 import { X } from "lucide-react";
 
+import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
 
 import { ToolbarButton } from "./ToolbarButton";
@@ -78,21 +80,29 @@ export function BreakpointsToolbar() {
         {isStandalone ? (
           <>
             <ToolbarSeparator />
-            <ToolbarButton
-              tooltip="Close"
-              aria-label="Close"
-              onClick={() =>
-                navigate({
-                  to: "/$username/site/$siteId/page/$pageId",
-                  params,
-                  search: { breakpoint: search.breakpoint },
-                  resetScroll: false,
-                })
-              }
-              className="h-7 px-2 hover:text-red-500"
-            >
-              <X className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
-            </ToolbarButton>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label="Close"
+                  onClick={() =>
+                    navigate({
+                      to: "/$username/site/$siteId/page/$pageId",
+                      params,
+                      search: { breakpoint: search.breakpoint },
+                      resetScroll: false,
+                    })
+                  }
+                >
+                  <X className="size-3.5" aria-hidden />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="top" sideOffset={8}>
+                Close
+              </TooltipContent>
+            </Tooltip>
           </>
         ) : null}
       </WallPreviewToolbar>

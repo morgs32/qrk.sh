@@ -3,12 +3,14 @@
 @import "@fontsource-variable/geist";
 @import "tailwindcss" source(none);
 @import "tw-animate-css";
+@import "@qrk.sh/bricks/styles.css";
 @import "../modules/bricks.css";
 
 @source "./**/*.{ts,tsx}";
 @source "../components/**/*.{ts,tsx}";
 @source "../../web/library/**/*.{ts,tsx}";
 @source "../modules/**/*.{ts,tsx}";
+@source "../../bricks/src/**/*.{ts,tsx}";
 @source "../routes/$username.site.$siteId.dev.page.$pageId.$breakpoint.tsx";
 
 @custom-variant dark (&:is(.dark *));
@@ -51,18 +53,6 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
-}
-
-@theme static {
-  --color-form-input: oklch(0.97 0 0);
-  --radius-form-input: 9px;
-  --spacing-form-input: 28px;
-}
-
-@utility form-input-label {
-  &:is(label, span) {
-    @apply font-mono text-[10px] leading-none font-normal tracking-wide text-black uppercase;
-  }
 }
 
 :root {
@@ -240,31 +230,12 @@ html body[data-scroll-locked] {
   opacity: 0.8;
 }
 
-/* Only drawer exit snapshots animate; the persistent shell uses CSS. */
 ::view-transition {
   pointer-events: none;
 }
 ::view-transition-old(root),
 ::view-transition-new(root) {
   animation: none;
-}
-::view-transition-group(app-drawer),
-::view-transition-old(app-drawer),
-::view-transition-new(app-drawer) {
-  animation: none;
-}
-/* An old snapshot has no new sibling only when the drawer route exits. */
-::view-transition-old(app-drawer):only-child {
-  animation: drawer-bottom-out 300ms cubic-bezier(0, 0, 0.2, 1) both;
-}
-@keyframes drawer-bottom-out {
-  from {
-    transform: translateY(0);
-  }
-  to {
-    /* Match the shell, including its border, rather than the inner content height. */
-    transform: translateY(25dvh);
-  }
 }
 @media (prefers-reduced-motion: reduce) {
   ::view-transition-group(*),

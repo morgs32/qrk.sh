@@ -2,7 +2,7 @@ import { Effect, Schema } from "effect";
 
 import { ScrapeError } from "../ScrapeError";
 import { FigmaFilePreviewPayloadSchema } from "../schemas";
-import type { IFigmaFilePreviewPayload } from "../types";
+import type { IFigmaFilePreviewPayload } from "@qrk.sh/bricks/rpc/types";
 
 export const parseFigmaFilePreviewPayload = Effect.fn("parseFigmaFilePreviewPayload")(
   function* (props: { payload: unknown; canonicalUrl: string }) {

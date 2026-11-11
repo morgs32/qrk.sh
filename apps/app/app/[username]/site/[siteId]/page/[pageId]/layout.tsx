@@ -4,12 +4,9 @@ import {
   useCallback,
   useLayoutEffect,
   useRef,
-  useState,
   type ReactNode,
   type RefCallback,
 } from "react";
-import { createPortal } from "react-dom";
-import { useReducedMotion } from "framer-motion";
 import { useBlocker, useMatches, useNavigate, type ShouldBlockFn } from "@tanstack/react-router";
 import { useAuth } from "@clerk/react";
 import { ClerkOfflineError } from "@clerk/react/errors";
@@ -20,15 +17,13 @@ import { SWRConfig } from "swr";
 import { siteV1 as Site } from "@qrk.sh/zerospin/src/aggregates/user/models/site/SiteV1";
 import { pageV1 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV1";
 import { PREVIEW_BORDER_WIDTH } from "../../../../../../lib/breakpoints";
-import { Drawer } from "../../../../../../components/Drawer/Drawer";
 import { Header } from "../../../../Header";
 import { Toolbars } from "../../Toolbars/Toolbars";
-import WorkspacePanelControls from "./(drawer)/layout";
+import WorkspacePanelControls from "./(sidebar)/layout";
 import { BrickAutosaveContext } from "./BrickAutosaveContext";
 import { PagePreview } from "./PagePreview";
 import { PublishSiteDialog } from "./PublishSiteDialog";
 import { useBreakpointGuard } from "./useBreakpointGuard";
-import { useMatchMedia } from "./useMatchMedia";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
 import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
 import NotFound from "@/app/not-found";
@@ -142,33 +137,14 @@ export default function PageLayout(props: { children: ReactNode }) {
   );
   useBlocker({ shouldBlockFn: shouldBlockNavigation, enableBeforeUnload: false });
   useLayoutEffect(() => () => pendingNavigation.current?.(true), [pageId, siteId, username]);
-  const panelOpen = useMatches({
+  const sidebarOpen = useMatches({
     select: (matches) =>
-      matches.some((match) => match.routeId === "/$username/site/$siteId/page/$pageId/_drawer"),
+      matches.some((match) => match.routeId === "/$username/site/$siteId/page/$pageId/_sidebar"),
   });
-  const isDesktop = useMatchMedia("(min-width: 64rem)");
-  const sidebarOpen = panelOpen && isDesktop;
-  const drawerOpen = panelOpen && !isDesktop;
-  const [panelBody] = useState(() => {
-    const body = document.createElement("div");
-    body.className = "@container/workspace flex min-h-0 min-w-0 flex-1 flex-col";
-    return body;
-  });
-  const attachPanelBody = useCallback<RefCallback<HTMLDivElement>>(
-    (slot) => {
-      if (slot === null) return;
-      slot.append(panelBody);
-      return () => {
-        if (panelBody.parentNode === slot) panelBody.remove();
-      };
-    },
-    [panelBody],
-  );
   const isBrickDetails = useMatches({
     select: (matches) =>
-      matches.at(-1)?.routeId === "/$username/site/$siteId/page/$pageId/_drawer/brick/$brickId",
+      matches.at(-1)?.routeId === "/$username/site/$siteId/page/$pageId/_sidebar/brick/$brickId",
   });
-  const reducedMotion = useReducedMotion();
   const editorScroll = useRef<HTMLDivElement>(null);
   const previewPress = useRef<number | null>(null);
   const { getToken } = useAuth();
@@ -291,14 +267,12 @@ export default function PageLayout(props: { children: ReactNode }) {
           <Header>
             {!site.isPublished && <PublishSiteDialog siteId={params.siteId} />}
           </Header>
-          <div className="isolate flex min-h-0 min-w-0 flex-1 overflow-hidden">
+          <div className="relative isolate flex min-h-0 min-w-0 flex-1 overflow-hidden">
             <title>
               {pageTitle === "" ? `[Editing] ${siteName}` : `[Editing] ${siteName} - ${pageTitle}`}
             </title>
             <div
               className="wall-preview-viewport relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
-              data-drawer-open={drawerOpen}
-              data-sidebar-open={sidebarOpen}
             >
               <div
                 ref={scrollRef}
@@ -350,10 +324,7 @@ export default function PageLayout(props: { children: ReactNode }) {
 
                   closePanel();
                 }}
-                className="wall-preview-scroll relative min-h-0 min-w-0 shrink-0 overflow-auto pt-[var(--wall-preview-top-gap)] pb-[var(--wall-preview-bottom-gap)]"
-                style={{
-                  height: "calc(100% - var(--wall-preview-drawer-height))",
-                }}
+                className="wall-preview-scroll relative h-full min-h-0 min-w-0 shrink-0 overflow-auto pt-[var(--wall-preview-top-gap)] pb-[var(--wall-preview-bottom-gap)]"
               >
                 <div
                   className="wall-preview-canvas grid min-h-full"
@@ -367,47 +338,18 @@ export default function PageLayout(props: { children: ReactNode }) {
                   )}
                 </div>
               </div>
-              <div
-                className="pointer-events-none absolute inset-x-0 z-80 flex justify-center px-2"
-                style={{
-                  bottom: "calc(var(--wall-preview-drawer-height) + var(--wall-preview-toolbar-gap))",
-                  transition: reducedMotion ? "none" : "bottom 300ms cubic-bezier(0, 0, 0.2, 1)",
-                }}
-              >
+              <div className="pointer-events-none absolute inset-x-0 bottom-(--wall-preview-toolbar-gap) z-80 flex justify-center px-2">
                 <Toolbars />
               </div>
             </div>
-            {isDesktop ? (
-              sidebarOpen && (
-                <WorkspacePanelControls
-                  sidebar
-                  bodyRef={attachPanelBody}
-                  isSitePublished={site.isPublished}
-                  onClose={closePanel}
-                />
-              )
-            ) : (
-              <Drawer
-                side="bottom"
-                open={drawerOpen}
-                animated={
-                  drawerOpen ||
-                  (typeof document !== "undefined" &&
-                    typeof document.startViewTransition === "function")
-                }
-                aria-label="Workspace drawer"
-              >
-                {drawerOpen && breakpoint !== undefined && (
-                  <WorkspacePanelControls
-                    sidebar={false}
-                    bodyRef={attachPanelBody}
-                    isSitePublished={site.isPublished}
-                    onClose={closePanel}
-                  />
-                )}
-              </Drawer>
-            )}
-            {breakpoint !== undefined && (panelOpen ? createPortal(children, panelBody) : children)}
+            {breakpoint !== undefined &&
+              (sidebarOpen ? (
+                <WorkspacePanelControls isSitePublished={site.isPublished} onClose={closePanel}>
+                  {children}
+                </WorkspacePanelControls>
+              ) : (
+                children
+              ))}
           </div>
         </div>
       </BrickAutosaveContext>

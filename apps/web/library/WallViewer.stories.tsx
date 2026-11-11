@@ -1,9 +1,26 @@
+import { linkV1 } from "@qrk.sh/bricks/link/definition";
+import { linkPreviewState } from "@qrk.sh/bricks/link/definition/linkPreviewState";
+import { LinkLineIcon } from "@qrk.sh/bricks/link/LinkLineIcon";
+import { LinkPlaceholder } from "@qrk.sh/bricks/link/LinkPlaceholder";
+import { linkReactRegistry } from "@qrk.sh/bricks/link/react";
+import { makeModuleView } from "@qrk.sh/bricks/react/makeModuleView";
 import type { PageSnapshotSchemaV4 } from "@qrk.sh/zerospin/src/aggregates/user/snapshots/pageSnapshotSchemaV4";
-import { articleV1 } from "@qrk.sh/zerospin/src/modules/article/articleV1";
-import { swatchAndIconPreviewState } from "@qrk.sh/zerospin/src/modules/swatchAndIcon/swatchAndIconPreviewState";
-import { swatchAndIconV1 } from "@qrk.sh/zerospin/src/modules/swatchAndIcon/swatchAndIconV1";
+import { articleV1 } from "@qrk.sh/bricks/article/definition";
+import { swatchAndIconV1 } from "@qrk.sh/bricks/swatchAndIcon/definition";
+import { swatchAndIconPreviewState } from "@qrk.sh/bricks/swatchAndIcon/definition/swatchAndIconPreviewState";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { WallViewer } from "./WallViewer";
+
+const linkView = makeModuleView(linkV1, {
+  defaultState: linkPreviewState,
+  LineIcon: LinkLineIcon,
+  variants: {
+    default: {
+      placeholder: LinkPlaceholder,
+      registry: linkReactRegistry,
+    },
+  },
+});
 
 const snapshot = {
   rowSizing: "preferred",
@@ -27,6 +44,12 @@ const snapshot = {
       id: "brk_field_notes",
       moduleId: "article",
       state: { title: "Field notes", subtitle: "", content: "A weekend away from the city." },
+      borderWidth: 1,
+    },
+    {
+      id: "brk_link",
+      moduleId: "link",
+      state: linkPreviewState,
       borderWidth: 1,
     },
   ],
@@ -91,6 +114,39 @@ const snapshot = {
                     },
                   ],
                 },
+                {
+                  id: "row_link",
+                  minHeight: null,
+                  preferredWidth: 520,
+                  alignment: "center",
+                  placements: [
+                    {
+                      id: "plc_link",
+                      brickId: "brk_link",
+                      widthWeight: 480,
+                      variantId: "default",
+                      spec: {
+                        root: "card",
+                        elements: {
+                          card: { type: "LinkCard", props: {}, children: ["copy", "hero"] },
+                          copy: {
+                            type: "LinkCopy",
+                            props: {
+                              url: { $state: "/data/url" },
+                              title: "A link saved on this Wall",
+                              siteName: { $state: "/data/siteName" },
+                              iconUrl: { $state: "/data/iconUrl" },
+                            },
+                          },
+                          hero: {
+                            type: "LinkHeroImage",
+                            props: { imageUrl: { $state: "/data/imageUrl" } },
+                          },
+                        },
+                      },
+                    },
+                  ],
+                },
               ],
             },
           ],
@@ -110,6 +166,11 @@ const meta = {
     brickGap: 16,
     renderBrick: (brick, placement) => {
       const { state } = brick;
+      if (brick.moduleId === "link") {
+        return (
+          <linkView.Render state={state} variantId={placement.variantId} spec={placement.spec} />
+        );
+      }
       if (typeof state !== "object" || state === null)
         throw new Error("Missing fixture Brick state");
       if ("title" in state && "content" in state) {

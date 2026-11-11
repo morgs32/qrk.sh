@@ -33,7 +33,7 @@ export const EqualHeightRows: StoryObj<typeof meta> = {
       () =>
         expect(
           canvasElement.querySelector(
-            '[data-drawer-module-id="figma-thumbnail"][draggable="true"]',
+            '[data-catalog-module-id="figma-thumbnail"][draggable="true"]',
           ),
         ).not.toBeNull(),
       { timeout: 10000 },
@@ -51,10 +51,10 @@ export const EqualHeightRows: StoryObj<typeof meta> = {
       const placed = row?.querySelector<HTMLElement>("[data-wall-placement-id]");
       const surface = placed?.querySelector<HTMLElement>(".brick-hover-surface");
       const tallSource = canvasElement.querySelector<HTMLElement>(
-        '[data-drawer-module-id="figma-thumbnail"]',
+        '[data-catalog-module-id="figma-thumbnail"]',
       );
       const shortSource = canvasElement.querySelector<HTMLElement>(
-        '[data-drawer-module-id="swatch-and-icon"]',
+        '[data-catalog-module-id="swatch-and-icon"]',
       );
       if (!row || !placed || !surface || !tallSource || !shortSource)
         throw new Error("Missing mixed-height Row fixture");

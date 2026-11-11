@@ -1,12 +1,10 @@
 import { buildUserPrompt, compileSpecStream, isNonEmptySpec, type Spec } from "@json-render/core";
-
-import { mapValues } from "es-toolkit";
-
-import { makeCatalogFromComponentMetadata } from "@qrk.sh/zerospin/src/modules/make/makeCatalogFromComponentMetadata";
-import { backendLibrary } from "@qrk.sh/zerospin/src/modules/backendLibrary";
-import { makeModuleSpecDocumentSchema } from "@qrk.sh/zerospin/src/modules/make/makeModuleSpecDocumentSchema";
+import { makeCatalogFromComponentMetadata } from "@qrk.sh/bricks/definition/makeCatalogFromComponentMetadata";
+import { makeModuleSpecDocumentSchema } from "@qrk.sh/bricks/definition/makeModuleSpecDocumentSchema";
+import type { IRpcEither } from "@qrk.sh/bricks/rpc/types";
+import { backendLibrary } from "@qrk.sh/bricks/definition/backendLibrary";
 import { Schema } from "effect";
-import type { IRpcEither } from "./types";
+import { mapValues } from "es-toolkit";
 
 const GENERATE_MODEL = "gpt-5.6-luna";
 const catalogs = mapValues(backendLibrary, (module) =>

@@ -1,0 +1,111 @@
+{
+  "name": "@qrk.sh/bricks",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./link/definition": "./src/link/definition/linkV1.ts",
+    "./link/react": "./src/link/react/LinkJsonRenderRegistry.tsx",
+    "./styles.css": "./src/react/brickStyles.css",
+    "./definition/makeCatalogFromComponentMetadata": "./src/definition/makeCatalogFromComponentMetadata.ts",
+    "./definition/makeModuleSpecDocumentSchema": "./src/definition/makeModuleSpecDocumentSchema.ts",
+    "./definition/placementSpecSchema": "./src/definition/placementSpecSchema.ts",
+    "./link/definition/linkPreviewState": "./src/link/definition/linkPreviewState.ts",
+    "./link/LinkForm": "./src/link/react/LinkForm.tsx",
+    "./link/LinkPlaceholder": "./src/link/react/LinkPlaceholder.tsx",
+    "./link/LinkLineIcon": "./src/link/react/LinkLineIcon.tsx",
+    "./react/makeModuleView": "./src/react/makeModuleView.tsx",
+    "./react/types": "./src/react/types.ts",
+    "./react/BrickWrapper": "./src/react/BrickWrapper.tsx",
+    "./react/button": "./src/react/button.tsx",
+    "./react/Input": "./src/react/Input.tsx",
+    "./react/useWarnBeforeUnload": "./src/react/useWarnBeforeUnload.ts",
+    "./rpc": {
+      "types": "./src/rpc/LibraryApi.d.ts"
+    },
+    "./rpc/types": {
+      "types": "./src/rpc/types.ts"
+    },
+    "./article/definition": "./src/article/definition/articleV1.ts",
+    "./article/view": "./src/article/react/articleView.tsx",
+    "./figmaThumbnail/view": "./src/figmaThumbnail/react/figmaThumbnailView.tsx",
+    "./githubActivity/view": "./src/githubActivity/react/githubActivityView.tsx",
+    "./githubProfile/view": "./src/githubProfile/react/githubProfileView.tsx",
+    "./githubRepo/view": "./src/githubRepo/react/githubRepoView.tsx",
+    "./image/view": "./src/image/react/imageView.tsx",
+    "./instagram/view": "./src/instagram/react/instagramView.tsx",
+    "./mapPlace/view": "./src/mapPlace/react/mapPlaceView.tsx",
+    "./swatchAndIcon/definition": "./src/swatchAndIcon/definition/swatchAndIconV1.ts",
+    "./swatchAndIcon/view": "./src/swatchAndIcon/react/swatchAndIconView.tsx",
+    "./definition/backendLibrary": "./src/definition/backendLibrary.ts",
+    "./swatchAndIcon/definition/swatchAndIconPreviewState": "./src/swatchAndIcon/definition/swatchAndIconPreviewState.ts",
+    "./article/editor.css": "./src/article/react/article-editor.css"
+  },
+  "scripts": {
+    "check-imports": "node scripts/check-imports.mjs",
+    "build-storybook": "storybook build",
+    "storybook": "storybook dev -p ${PORT:-10024} --host 127.0.0.1",
+    "dev": "portless",
+    "dev:app": "pnpm run storybook --ci"
+  },
+  "dependencies": {
+    "@json-render/core": "^0.20.0",
+    "@json-render/react": "^0.20.0",
+    "@meowdown/core": "0.72.1",
+    "@meowdown/react": "0.71.4",
+    "@radix-ui/react-slot": "^1.2.4",
+    "@unpic/react": "1.0.2",
+    "@zerospin/core": "43.1.2",
+    "@zerospin/error": "43.1.2",
+    "@zerospin/shapes": "43.1.2",
+    "@zerospin/zod": "43.1.2",
+    "capnweb": "^0.12.0",
+    "class-variance-authority": "^0.7.1",
+    "cn": "^0.3.0",
+    "effect": "4.0.2",
+    "es-toolkit": "^1.52.0",
+    "lucide-react": "^1.7.0",
+    "mapbox-gl": "^3.26.0",
+    "radix-ui": "^1.4.3",
+    "react": "19.2.7",
+    "react-activity-calendar": "^3.2.1",
+    "react-colorful": "^5.8.1",
+    "react-dom": "19.2.7",
+    "react-json-view-lite": "^2.5.0",
+    "swr": "^2.3.3"
+  },
+  "devDependencies": {
+    "@fontsource-variable/geist": "^5.2.8",
+    "@storybook/addon-a11y": "^10.6.0",
+    "@storybook/addon-docs": "^10.6.0",
+    "@storybook/react-vite": "^10.6.0",
+    "@tailwindcss/vite": "4.2.2",
+    "@types/mapbox-gl": "^3.5.0",
+    "@types/node": "^25.5.2",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "6.0.3",
+    "storybook": "^10.6.0",
+    "tailwindcss": "4.2.2",
+    "typescript": "^6.0.2",
+    "vite": "npm:@voidzero-dev/vite-plus-core@1.0.0",
+    "vite-plus": "1.0.0"
+  },
+  "nx": {
+    "targets": {
+      "build-storybook": {
+        "dependsOn": [
+          "check-imports"
+        ]
+      },
+      "check-imports": {
+        "cache": false
+      }
+    }
+  },
+  "portless": {
+    "name": "bricks.qrk",
+    "script": "dev:app",
+    "proxy": true
+  }
+}

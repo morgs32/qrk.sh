@@ -23,6 +23,7 @@
   },
   "dependencies": {
     "@clerk/nextjs": "^7.1.0",
+    "@qrk.sh/bricks": "workspace:*",
     "@qrk.sh/zerospin": "workspace:*",
     "@radix-ui/react-slot": "^1.2.4",
     "@vercel/analytics": "^2.0.1",
@@ -50,5 +51,19 @@
     "typescript": "^6.0.2",
     "vite": "npm:@voidzero-dev/vite-plus-core@1.0.0",
     "vite-plus": "1.0.0"
+  },
+  "nx": {
+    "targets": {
+      "build": {
+        "dependsOn": [
+          "^check-imports"
+        ]
+      },
+      "build-storybook": {
+        "dependsOn": [
+          "^check-imports"
+        ]
+      }
+    }
   }
 }

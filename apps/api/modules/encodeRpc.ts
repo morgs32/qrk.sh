@@ -1,6 +1,6 @@
 import { Effect, Result } from "effect";
 
-import type { IRpcEither } from "./types";
+import type { IRpcEither } from "@qrk.sh/bricks/rpc/types";
 import type { ScrapeError } from "./ScrapeError";
 
 export const encodeRpc = <RIGHT>(program: Effect.Effect<RIGHT, ScrapeError>) =>

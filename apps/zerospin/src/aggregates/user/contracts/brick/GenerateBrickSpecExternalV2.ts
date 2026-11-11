@@ -3,8 +3,8 @@ import { makeZerospinError } from "@zerospin/error";
 import { newHttpBatchRpcSession } from "capnweb";
 import { Effect, Schema } from "effect";
 
-import { backendLibrary as library } from "../../../../modules/backendLibrary";
-import { makeModuleSpecDocumentSchema } from "../../../../modules/make/makeModuleSpecDocumentSchema";
+import { backendLibrary as library } from "@qrk.sh/bricks/definition/backendLibrary";
+import { makeModuleSpecDocumentSchema } from "@qrk.sh/bricks/definition/makeModuleSpecDocumentSchema";
 import { makePlacementId } from "../../layout/makePlacementId";
 import { brickV2 as brick } from "../../models/brick/BrickV2";
 import { placementV1 as placement } from "../../models/placement/PlacementV1";

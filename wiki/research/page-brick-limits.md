@@ -8,9 +8,9 @@ Declare optional `maxPerPage` on the stable `defineModule` identity. Article
 sets `1`; Instagram sets `2`. Omitted means unlimited, and supplied values must
 be positive integers. The module owns its maximum; the shared Library contract
 owns generic enforcement. This policy applies everywhere the module is used.
-[Module identity](../../apps/zerospin/src/modules/make/defineModule.ts),
-[Article](../../apps/zerospin/src/modules/article/article.ts),
-[Instagram](../../apps/zerospin/src/modules/instagram/instagram.ts).
+[Module identity](../../apps/bricks/src/definition/defineModule.ts),
+[Article](../../apps/bricks/src/article/definition/article.ts),
+[Instagram](../../apps/bricks/src/instagram/definition/instagram.ts).
 
 ```ts
 // Add to Article's existing defineModule declaration.
@@ -23,8 +23,8 @@ maxPerPage: 2,
 `makeModuleVersion` explicitly reconstructs identity metadata, so it must preserve
 the maximum for both backend and view consumers. The limit belongs to the stable
 module ID rather than its state-schema or rendering version.
-[Module version factory](../../apps/zerospin/src/modules/make/makeModuleVersion.ts),
-[View factory](../../apps/app/modules/make/makeModuleView.tsx).
+[Module version factory](../../apps/bricks/src/definition/makeModuleVersion.ts),
+[View factory](../../apps/bricks/src/react/makeModuleView.tsx).
 
 ## Enforcement and counting
 

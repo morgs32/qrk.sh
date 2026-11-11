@@ -1,5 +1,3 @@
-@import "mapbox-gl/dist/mapbox-gl.css";
-
 :root {
   --brick-accent-rgb: 31 155 252;
   --wall-action-tag-height: 1.5rem;
@@ -13,15 +11,10 @@
 }
 
 .wall-preview-viewport {
-  --wall-preview-drawer-height: 0px;
   --wall-preview-top-gap: 32px;
   --wall-preview-toolbar-height: 38px;
   --wall-preview-toolbar-gap: 24px;
   --wall-preview-bottom-gap: 32px;
-}
-
-.wall-preview-viewport[data-drawer-open="true"] {
-  --wall-preview-drawer-height: 25dvh;
 }
 
 .wall-preview-frame {
@@ -52,67 +45,6 @@
 /* Match the canvas below the normal-flow footer. */
 .wall-preview-footer {
   box-shadow: 0 var(--wall-preview-bottom-gap, 24px) 0 var(--wall-preview-canvas-background, white);
-}
-
-.qrk-responsive-insets {
-  --qrk-inset-inline: 16px;
-  --qrk-inset-block: 16px;
-}
-
-@media (min-width: 720px) {
-  @container (min-width: 720px) {
-    .qrk-responsive-insets {
-      --qrk-inset-inline: 30px;
-      --qrk-inset-block: 32px;
-    }
-  }
-}
-
-.qrk-bricks {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.141 0.005 285.823);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.141 0.005 285.823);
-  --primary: oklch(0.21 0.006 285.885);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.967 0.001 286.375);
-  --secondary-foreground: oklch(0.21 0.006 285.885);
-  --muted: oklch(0.967 0.001 286.375);
-  --muted-foreground: oklch(0.552 0.016 285.938);
-  --accent: oklch(0.967 0.001 286.375);
-  --accent-foreground: oklch(0.21 0.006 285.885);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.92 0.004 286.32);
-  --input: oklch(0.92 0.004 286.32);
-  --ring: oklch(0.705 0.015 285.938);
-}
-
-.qrk-bricks.dark {
-  --background: oklch(0.141 0.005 285.823);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.21 0.006 285.885);
-  --card-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.92 0.004 286.32);
-  --primary-foreground: oklch(0.21 0.006 285.885);
-  --secondary: oklch(0.274 0.006 286.033);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.274 0.006 286.033);
-  --muted-foreground: oklch(0.705 0.015 285.067);
-  --accent: oklch(0.274 0.006 286.033);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.552 0.016 285.938);
-}
-
-.brick-hover-surface.brick-surface-card {
-  --brick-card-radius: 8px;
-  border-radius: var(--brick-card-radius);
-  background: white;
-  box-shadow:
-    0 8px 28px rgb(0 0 0 / 6%),
-    0 1px 6px rgb(0 0 0 / 4%);
 }
 
 /* Row cells use the resolved surface width plus their two half-gap insets. */
@@ -217,7 +149,7 @@
     z-index: 2;
   }
 
-  [data-drawer-module-id]:hover > .brick-hover-surface::after,
+  [data-catalog-module-id]:hover > .brick-hover-surface::after,
   .wall-placement:hover > .wall-placement-content > .brick-hover-surface::after,
   .wall-editor:not([data-wall-resize-disabled]) [data-wall-row-empty]:hover::after,
   [data-wall-stack-id]:is([data-wall-stack-empty]:hover, :has(> * > .stack-action:hover))::after {
@@ -227,7 +159,7 @@
 
 /* Selection persists while its edit form owns focus outside the Wall. */
 .wall-placement.is-selected > .wall-placement-content > .brick-hover-surface::after,
-[data-drawer-module-id]:focus-within > .brick-hover-surface::after,
+[data-catalog-module-id]:focus-within > .brick-hover-surface::after,
 .wall-placement:focus-within > .wall-placement-content > .brick-hover-surface::after {
   opacity: 1;
 }

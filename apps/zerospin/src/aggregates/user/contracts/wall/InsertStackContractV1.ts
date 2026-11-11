@@ -19,7 +19,7 @@ import { brickV2 as brick } from "../../models/brick/BrickV2";
 import { wall as wallIdentity } from "../../models/wall/wall";
 import { stackIdSchema } from "../../layout/wallLayoutSchema";
 import { measureWallFit, wallBreakpointWidths } from "../../layout/wallSizing";
-import { backendLibrary } from "../../../../modules/backendLibrary";
+import { backendLibrary } from "@qrk.sh/bricks/definition/backendLibrary";
 
 export const insertStackV1 = makeAggregateContractRelease(defineAggregateContract("insertStack"), {
   version: 1,

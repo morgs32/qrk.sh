@@ -59,7 +59,7 @@ Recommended keyboard behavior should use the same preview and final sizing comma
 [stack-render]: /Users/morgs32/GitHub/qrk.sh/apps/app/components/WallEditor/WallEditor.tsx:675
 [placement-sizing]: /Users/morgs32/GitHub/qrk.sh/apps/app/components/WallEditor/WallPlacement.tsx:29
 [brick-css]: /Users/morgs32/GitHub/qrk.sh/apps/app/modules/bricks.css:96
-[variant-metadata]: /Users/morgs32/GitHub/qrk.sh/apps/zerospin/src/modules/make/makeModuleVersion.ts:69
+[variant-metadata]: /Users/morgs32/GitHub/qrk.sh/apps/bricks/src/definition/makeModuleVersion.ts:69
 [height-gap]: /Users/morgs32/GitHub/qrk.sh/apps/app/modules/README.md:217
 [share-row]: /Users/morgs32/GitHub/qrk.sh/apps/zerospin/src/aggregates/user/layout/canShareRow.ts:1
 [move-guard]: /Users/morgs32/GitHub/qrk.sh/apps/zerospin/src/aggregates/user/contracts/wall/MovePlacementToRowContractV2.ts:95

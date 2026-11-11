@@ -76,10 +76,10 @@ export function PagePreview(props: { breakpoint: (typeof BREAKPOINTS)[number] })
             resetScroll: false,
           });
         }}
-        onEditBrick={(brickId) => {
+        onEditBrick={(brickId, source) => {
           if (
             selectedBrickId === brickId ||
-            document.activeElement?.hasAttribute("data-drawer-restoring-focus")
+            (source === "inline-focus" && !window.matchMedia("(min-width: 64rem)").matches)
           )
             return;
           void navigate({

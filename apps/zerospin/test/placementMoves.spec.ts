@@ -13,7 +13,7 @@ import * as TestClock from "effect/testing/TestClock";
 import { movePlacementToRowV1 } from "../src/aggregates/user/contracts/wall/MovePlacementToRowContractV1";
 import { movePlacementToRowV2 } from "../src/aggregates/user/contracts/wall/MovePlacementToRowContractV2";
 import { movePlacementToRowV3 } from "../src/aggregates/user/contracts/wall/MovePlacementToRowContractV3";
-import { swatchAndIconPreviewState } from "../src/modules/swatchAndIcon/swatchAndIconPreviewState";
+import { swatchAndIconPreviewState } from "@qrk.sh/bricks/swatchAndIcon/definition/swatchAndIconPreviewState";
 import { makePlacementId } from "../src/aggregates/user/layout/makePlacementId";
 import { system } from "../src/system";
 import { wallLayoutSchemaV2 } from "../src/aggregates/user/layout/wallLayoutSchemaV2";

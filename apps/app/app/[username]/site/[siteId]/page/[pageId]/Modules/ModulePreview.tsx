@@ -3,7 +3,7 @@ import { draggable } from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
 import { pointerOutsideOfPreview } from "@atlaskit/pragmatic-drag-and-drop/utils/pointer-outside-of-preview";
 import { setCustomNativeDragPreview } from "@atlaskit/pragmatic-drag-and-drop/utils/set-custom-native-drag-preview";
 
-import { BrickWrapper } from "../../../../../../../modules/components/brick/BrickWrapper";
+import { BrickWrapper } from "@qrk.sh/bricks/react/BrickWrapper";
 import { BrickAction } from "../../../../../../../modules/components/BrickAction";
 import { BREAKPOINTS } from "../../../../../../../lib/breakpoints";
 import { modulesHash } from "../../../../../../../modules/modulesHash";
@@ -12,7 +12,6 @@ export function ModulePreview(props: {
   brickModule: (typeof modulesHash)[keyof typeof modulesHash];
   breakpoint: (typeof BREAKPOINTS)[number]["id"];
   cardStyle: boolean;
-  verticalAtLg?: boolean;
   sidebarCardWidth?: number;
   moduleAction?: (state: unknown) => ReactNode;
 }) {
@@ -20,7 +19,6 @@ export function ModulePreview(props: {
     brickModule,
     breakpoint,
     cardStyle,
-    verticalAtLg = false,
     sidebarCardWidth,
     moduleAction,
   } = props;
@@ -44,7 +42,7 @@ export function ModulePreview(props: {
   }, [previewState]);
   useEffect(() => {
     const element = previewRef.current;
-    if (element === null) throw new Error("Missing drawer Brick preview");
+    if (element === null) throw new Error("Missing catalog Brick preview");
     const observer = new IntersectionObserver((entries) => {
       setIsVisible(entries.some((entry) => entry.isIntersecting));
     });
@@ -64,14 +62,14 @@ export function ModulePreview(props: {
   }, []);
   useEffect(() => {
     const element = previewRef.current;
-    if (element === null) throw new Error("Missing drawer Brick preview");
+    if (element === null) throw new Error("Missing catalog Brick preview");
     return draggable({
       element,
       getInitialData: () => {
         dragInProgress.current = true;
         setDragging(true);
         return {
-          type: "drawer-brick",
+          type: "catalog-brick",
           moduleId: brickModule.id,
           state: brickModule.hasPlaceholder ? null : structuredClone(committedState.current),
         };
@@ -110,11 +108,9 @@ export function ModulePreview(props: {
 
   return (
     <div
-      className={`brick-catalog-preview flex h-full min-h-0 w-max shrink-0 flex-col overflow-y-auto overscroll-y-contain border-r border-zinc-200 ${verticalAtLg ? "lg:h-auto lg:w-full lg:overflow-visible lg:border-r-0 lg:border-b lg:last:border-b-0" : ""}`}
+      className="brick-catalog-preview flex min-h-0 w-full shrink-0 flex-col border-b border-zinc-200 last:border-b-0"
     >
-      <header
-        className={`sticky top-0 z-10 flex shrink-0 items-baseline gap-3 border-b border-zinc-200 bg-white px-[var(--brick-catalog-inset)] py-2 text-zinc-950 ${verticalAtLg ? "lg:static" : ""}`}
-      >
+      <header className="flex shrink-0 items-baseline gap-3 border-b border-zinc-200 bg-white px-[var(--brick-catalog-inset)] py-2 text-zinc-950">
         <h2 className="m-0 font-normal">{brickModule.label}</h2>
         {maxPerPage !== undefined ? (
           <span className="text-xs text-zinc-500">Limit: {maxPerPage} per page.</span>
@@ -122,11 +118,11 @@ export function ModulePreview(props: {
       </header>
       <div
         data-brick-catalog-content=""
-        className={`px-[var(--brick-catalog-inset)] pb-16 pt-[var(--brick-catalog-inset)] ${verticalAtLg ? "lg:pb-8" : ""}`}
+        className="px-[var(--brick-catalog-inset)] pb-8 pt-[var(--brick-catalog-inset)]"
       >
         <div
           ref={previewRef}
-          data-drawer-module-id={brickModule.id}
+          data-catalog-module-id={brickModule.id}
           onMouseDownCapture={(event) => {
             // Let the template drag take priority over interactive preview gestures.
             event.stopPropagation();
@@ -139,7 +135,7 @@ export function ModulePreview(props: {
                 child.draggable = false;
               });
           }}
-          className={`group/brick relative z-0 shrink-0 cursor-grab ${verticalAtLg && sidebarCardWidth === undefined ? "lg:max-w-full" : ""} ${dragging ? "opacity-40" : ""}`}
+          className={`group/brick relative z-0 shrink-0 cursor-grab ${dragging ? "opacity-40" : ""}`}
           style={{
             width: previewWidth,
             minWidth: view.minWidth,

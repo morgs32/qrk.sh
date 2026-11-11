@@ -5,7 +5,7 @@ import { migrate } from "drizzle-orm/durable-sqlite/migrator";
 import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { Result, Schema } from "effect";
 
-import type { IGooglePlaceDetails, IGooglePlaceSuggestion, IRpcEither } from "../types";
+import type { IGooglePlaceDetails, IGooglePlaceSuggestion, IRpcEither } from "@qrk.sh/bricks/rpc/types";
 
 const CACHE_TTL_MS = 24 * 60 * 60 * 1_000;
 

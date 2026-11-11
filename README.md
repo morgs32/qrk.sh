@@ -47,7 +47,7 @@ The frontends have separate framework owners:
 
 - `apps/web` uses Next.js App Router at `qrk.sh` and owns the public homepage at `/` and the `/sign-in`, `/sign-up`, `/replace`, and `/ordered-outline` routes.
 - `apps/app` uses TanStack Start in SPA mode at `app.qrk.sh` and owns dashboards at `/:username` and site workspaces under `/:username/site`.
-- `apps/app/modules` owns module UI and playground stories. `apps/zerospin/src/modules` owns shared module definitions and schemas. The Library package is removed.
+- `apps/bricks` provides the `@qrk.sh/bricks` workspace package and runs the dedicated Brick Storybook.
 
 ## Editor model and ownership
 
@@ -57,10 +57,10 @@ Sections hold ordered Stacks, Stacks hold vertical Rows, and Rows hold side-by-s
 Placements. Each Placement references a shared Page-owned Brick. Layout changes
 belong to one Wall; Brick content is shared across widths.
 
-App owns module forms, renderers, React generators, and controlled wall components.
-Zerospin owns module versions, schemas, default specs, catalogs, and model factories.
-API owns provider operations and browser RPC declarations. App supplies the initialized
-user session and command callbacks; its consolidated Storybook supplies local fixtures.
+Bricks owns module definitions, schemas, default specs, forms, renderers, and
+stories. Zerospin owns persisted models and commands. API runs provider
+operations using the shared client declarations in Bricks. App owns the Wall
+editor and supplies the initialized user session and command callbacks.
 See [Modules](apps/app/modules/README.md) and [App](apps/app/README.md).
 
 ## Tech Stack
@@ -107,9 +107,9 @@ See [Modules](apps/app/modules/README.md) and [App](apps/app/README.md).
 3. Open [https://qrk.localhost/](https://qrk.localhost/).
 
 The root `portless.json` uses Portless's native monorepo discovery with the
-`dev:app` script. It starts Web, App, Admin, API, Zerospin, and App Storybook.
-Package-level `portless` metadata owns each hostname. The App Storybook package
-runs the existing Storybook script from `apps/app`. Portless selects an unused
+`dev:app` script. It starts Web, App, Admin, API, Zerospin, and Bricks Storybook.
+Package-level `portless` metadata owns the app hostnames. App Storybook starts
+separately and uses its existing Portless alias. Portless selects an unused
 internal frontend port. API and Zerospin keep ports 8787 and 8788. Nx development
 targets have no startup dependencies.
 
@@ -118,6 +118,7 @@ targets have no startup dependencies.
 | Web      | [qrk.localhost](https://qrk.localhost/)                   | 10000                |
 | App      | [app.qrk.localhost](https://app.qrk.localhost/)           | 10001                |
 | App Storybook | [app-storybook.qrk.localhost](https://app-storybook.qrk.localhost/) | 10020 |
+| Bricks Storybook | [bricks.qrk.localhost](https://bricks.qrk.localhost/) | 10024 |
 | Admin    | [admin.qrk.localhost](https://admin.qrk.localhost/)       | 10002                |
 | API      | [api.qrk.localhost](https://api.qrk.localhost/)           | 8787                 |
 | Zerospin | [zerospin.qrk.localhost](https://zerospin.qrk.localhost/) | 8788                 |
@@ -179,8 +180,8 @@ hostnames. Direct `dev:app` startup defaults to 10001 for App and 10000 for Web.
 development modules, workers, WASM, and HMR use App's origin through Portless.
 Web has no App proxy or asset-prefix routing. Existing `/assets/` public-file
 URLs retain explicit App mappings.
-App and API compile shared module definitions directly from Zerospin source. Storybook uses its own Vite configuration
-without the Start server plugin.
+Hosts compile shared module definitions directly from `@qrk.sh/bricks` source.
+Storybook uses its own Vite configuration without the Start server plugin.
 App bundles installed Zerospin packages with
 `ssr.noExternal` so their extensionless ESM imports resolve through Vite.
 
@@ -232,19 +233,22 @@ App's development and static-preview RPC proxies use the server-only
 `NEXT_PUBLIC_API_URL` remains the browser's HTTPS API origin; local Node proxy
 requests do not depend on trusting Portless's TLS certificate.
 
-To open the module playgrounds in App Storybook:
+To start just Bricks Storybook:
 
 ```bash
-pnpm nx run @qrk.sh/app:storybook
+PORTLESS_PORT=443 PORTLESS_HTTPS=1 PORTLESS_WILDCARD=1 pnpm --dir apps/bricks dev
 ```
 
-Open `http://127.0.0.1:10020`. Each module story includes metadata, local
-configuration, live Generate spec input, four breakpoint Component/JsonRender
-previews, and Brick Definition JSON. Fixture previews need no persisted user
-session; live generation/lookups/uploads use the API Worker through Storybook's
-same-origin proxies. See [Modules README](apps/app/modules/README.md) for its public
-Mapbox setting and server-only `API_WORKER_ORIGIN` override.
-The Library package and its separate Storybook target are removed.
+Open [Bricks Storybook](https://bricks.qrk.localhost/). The Brick stories
+compare JSX with JSON Render at four widths and put Configure and Generate Spec
+in the right sidebar. Live generation, lookup, and upload use the API Worker
+through Storybook's same-origin proxies. Build the Bricks package's standalone
+Storybook with `pnpm nx run @qrk.sh/bricks:build-storybook`. See the
+[Modules README](apps/app/modules/README.md) for the Mapbox setting and
+server-only `API_WORKER_ORIGIN` override.
+
+`pnpm nx run @qrk.sh/app:storybook` starts App Storybook with both Brick and
+App editor stories at its existing alias.
 
 To run only App through Portless:
 
@@ -264,7 +268,7 @@ preview on port 10010 (`PORT` overrides it). Web
 production startup defaults to port 10011. The separate preview configuration has no Start server
 plugin. Open App's own hostname; Web remains available for authentication.
 
-App Storybook includes the module playgrounds alongside editor stories. See
+App Storybook includes the Brick previews alongside editor stories. See
 [Modules README](apps/app/modules/README.md) for the backend-origin setting. API
 retains the existing R2 buckets; previously saved absolute URLs using port 4101
 need their origin updated separately.

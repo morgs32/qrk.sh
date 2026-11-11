@@ -7,8 +7,9 @@ preview upward, based on the preview container's 720px threshold.
 
 Workspace drawers use TanStack Hotkeys for Escape dismissal, including while a
 form field is focused. Escape uses the Close button's route transition and keeps
-the current breakpoint. Open menus, popovers, and dialogs consume Escape
-first; the next press closes the workspace drawer. Its line tabs open Bricks,
+the current breakpoint. Open menus, popovers, dialogs, and Article body text
+selection consume Escape first. When Escape dismisses the drawer from an inline
+Article field, it also blurs the field and deselects the Brick. The drawer tabs open Bricks,
 Page settings, and Site settings. Brick Details shows a selected Edit brick tab.
 Close and any available page-level Publish action
 share the drawer tab bar. Settings and manual Brick editors provide Save and

@@ -14,7 +14,6 @@
     "@cloudflare/puppeteer": "^1.1.0",
     "@json-render/core": "^0.20.0",
     "@qrk.sh/bricks": "workspace:*",
-    "@qrk.sh/r2-assets": "workspace:*",
     "@qrk.sh/zerospin": "workspace:*",
     "@remix-run/route-pattern": "^0.22.1",
     "@zerospin/core": "43.1.3",

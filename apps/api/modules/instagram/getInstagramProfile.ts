@@ -1,21 +1,20 @@
-import { makePublicObjectUrl } from "@qrk.sh/r2-assets";
 import { readRpcEnvelope } from "@zerospin/core/utils/readRpcEnvelope";
 import { ensureZerospinError } from "@zerospin/error";
 import { Effect, Schema } from "effect";
 
 import { BackendRepo } from "../../BackendRepo";
+import { makePublicObjectUrl } from "../../assets";
 import { ScrapeError } from "../ScrapeError";
 import { normalizeInstagramUrl } from "./normalizeInstagramUrl";
 import { parseInstagramPayload } from "./scrapeInstagram";
 
 export const getInstagramProfile = Effect.fn("getInstagramProfile")(function* (props: {
   url: string;
-  request: Request;
   token: string;
   bucket: R2Bucket;
   publicBaseUrl: string;
 }) {
-  const { url, request, token, bucket, publicBaseUrl } = props;
+  const { url, token, bucket, publicBaseUrl } = props;
   const canonicalUrl = yield* normalizeInstagramUrl(url);
   const username = new URL(canonicalUrl).pathname.slice(1);
   if (typeof token !== "string" || token.trim().length === 0) {
@@ -215,7 +214,7 @@ export const getInstagramProfile = Effect.fn("getInstagramProfile")(function* (p
         message: "Instagram image was not stored",
       });
     }
-    imageUrls.push(makePublicObjectUrl({ request, publicBaseUrl, key: objectKey }));
+    imageUrls.push(makePublicObjectUrl({ publicBaseUrl, key: objectKey }));
   }
   const payload = yield* parseInstagramPayload({
     payload: {

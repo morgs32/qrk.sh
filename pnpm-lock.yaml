@@ -105,9 +105,6 @@ importers:
       '@qrk.sh/bricks':
         specifier: workspace:*
         version: link:../bricks
-      '@qrk.sh/r2-assets':
-        specifier: workspace:*
-        version: link:../../packages/r2-assets
       '@qrk.sh/zerospin':
         specifier: workspace:*
         version: link:../zerospin
@@ -660,15 +657,6 @@ importers:
       wrangler:
         specifier: ^4.127.1
         version: 4.128.0(@cloudflare/workers-types@5.20260828.1)
-
-  packages/r2-assets:
-    devDependencies:
-      '@cloudflare/workers-types':
-        specifier: ^4.20250913.0
-        version: 4.20260702.1
-      typescript:
-        specifier: ^6.0.2
-        version: 6.0.2
 
 packages:
 
@@ -1562,9 +1550,6 @@ packages:
     engines: {node: '>=16'}
     cpu: [x64]
     os: [win32]
-
-  '@cloudflare/workers-types@4.20260702.1':
-    resolution: {integrity: sha512-mOhf5TUEB1m2vPrxtqoIGfz0fUC9xyxRDx5gWHy5s+OCo6dcV+g7wI1R7gYCMFohhqF/2y2xeKVwMwCJjfn/WA==}
 
   '@cloudflare/workers-types@5.20260828.1':
     resolution: {integrity: sha512-Ce0QfghuAK9v821gER8rFPR3rMeC+5puTgTzCu4UrG1Zg967Z5Aa+2uZVciIyfCAdGssyh+sLEC6rMjN/YBQwA==}
@@ -10253,8 +10238,6 @@ snapshots:
 
   '@cloudflare/workerd-windows-64@1.20260911.1':
     optional: true
-
-  '@cloudflare/workers-types@4.20260702.1': {}
 
   '@cloudflare/workers-types@5.20260828.1': {}
 

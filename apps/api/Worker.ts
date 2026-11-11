@@ -1,14 +1,8 @@
-import { handleR2Asset } from "@qrk.sh/r2-assets";
 import { newWorkersRpcResponse } from "capnweb";
 
 import { BackendRepo } from "./BackendRepo";
-import {
-  ALLOWED_ORIGINS,
-  emptyCorsResponse,
-  jsonResponse,
-  requireClerkUserId,
-  UploadHttpError,
-} from "./http";
+import { handleR2Asset } from "./assets";
+import { emptyCorsResponse, jsonResponse, requireClerkUserId, UploadHttpError } from "./http";
 import { handleUpload } from "./handleUpload";
 import { FigmaBackend } from "./modules/figmaThumbnail/FigmaBackend";
 import { BrowserHost } from "./modules/instagram/BrowserHost";
@@ -26,13 +20,12 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
   }
 
   if (url.pathname === "/rpc") {
-    return newWorkersRpcResponse(request, new LibraryApi(env, request));
+    return newWorkersRpcResponse(request, new LibraryApi(env));
   }
 
   const assetResponse = await handleR2Asset({
     request,
     bucket: url.pathname.startsWith("/assets/library/") ? env.ASSETS : env.QRKSH,
-    allowedOrigins: ALLOWED_ORIGINS,
   });
   if (assetResponse !== null) {
     return assetResponse;

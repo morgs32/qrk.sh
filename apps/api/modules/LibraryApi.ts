@@ -19,10 +19,7 @@ const GLOBAL_BACKEND_NAME = "global";
 const managedRuntime = ManagedRuntime.make(Layer.empty);
 
 export class LibraryApi extends RpcTarget {
-  constructor(
-    private readonly workerEnv: Env,
-    private readonly request: Request,
-  ) {
+  constructor(private readonly workerEnv: Env) {
     super();
   }
 
@@ -30,7 +27,6 @@ export class LibraryApi extends RpcTarget {
     return managedRuntime.runPromise(
       getInstagramProfile({
         url,
-        request: this.request,
         token: this.workerEnv.APIFY_API_TOKEN,
         bucket: this.workerEnv.QRKSH,
         publicBaseUrl: this.workerEnv.R2_PUBLIC_BASE_URL,

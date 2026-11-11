@@ -5,7 +5,7 @@
 - Before the first repository change each day, ask the user whether to work directly on `main` or use branches and PRs.
 - Before the day's first task that requires manual verification, ask whether the user or the agent should perform it.
 - Ask both together when both apply. As soon as the user gives or changes either choice, update the dated record below in this file. Keep the current day's answers and reuse them across chats. Ask only for choices the user has yet to give that day.
-- For 2026-11-11, work directly on `main`. The user performs manual verification.
+- For 2026-11-11, work directly on `main`. The user performs manual verification by default. The agent verifies the Plan 070 asset move.
 
 <!-- intent-skills:start -->
 

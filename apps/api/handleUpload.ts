@@ -1,5 +1,4 @@
-import { makePublicObjectUrl } from "@qrk.sh/r2-assets";
-
+import { makePublicObjectUrl } from "./assets";
 import { UploadHttpError } from "./http";
 
 const MAX_BYTES = 5 * 1024 * 1024;
@@ -73,7 +72,6 @@ export async function handleUpload(
   return {
     key,
     url: makePublicObjectUrl({
-      request,
       publicBaseUrl: env.R2_PUBLIC_BASE_URL,
       key,
     }),

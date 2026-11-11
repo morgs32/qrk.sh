@@ -1,6 +1,6 @@
 import { NumberField } from "@base-ui/react/number-field";
 import { ChevronDown, ChevronUp, Scan, SquareDashed, X } from "lucide-react";
-import { useId, useState } from "react";
+import { Fragment, useId, useState } from "react";
 import { HexColorInput, HexColorPicker } from "react-colorful";
 
 import { Button } from "@/components/ui/button";
@@ -188,6 +188,29 @@ export function StyleInspector(props: { defaultCornersOpen?: boolean }) {
               })}
             </div>
           </section>
+          {[
+            { name: "Row", dimension: "Width" },
+            { name: "Stack", dimension: "Height" },
+          ].map(({ name, dimension }) => (
+            <Fragment key={name}>
+              <Separator className="bg-neutral-200" />
+              <section aria-labelledby={`${id}-${name}`} className="px-4 pt-5 pb-4">
+                <h2 id={`${id}-${name}`} className="leading-5 font-medium">
+                  {name}
+                </h2>
+                <div className={`mt-3 ${styleRow}`}>
+                  <Label htmlFor={`${id}-${dimension}`} className={label}>
+                    {dimension}
+                  </Label>
+                  <NumberField.Root id={`${id}-${dimension}`} min={0} allowWheelScrub={false}>
+                    <NumberField.Group render={<InputGroup className={field} />}>
+                      <NumberField.Input render={<InputGroupInput className={fieldInput} />} />
+                    </NumberField.Group>
+                  </NumberField.Root>
+                </div>
+              </section>
+            </Fragment>
+          ))}
         </aside>
       </PopoverAnchor>
       <PopoverContent

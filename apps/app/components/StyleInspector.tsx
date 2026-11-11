@@ -1,8 +1,9 @@
+import { NumberField } from "@base-ui/react/number-field";
 import {
+  ChevronDown,
+  ChevronUp,
   FlipHorizontal2,
   FlipVertical2,
-  Minus,
-  Plus,
   RotateCcw,
   RotateCw,
   Scan,
@@ -21,7 +22,7 @@ import { Separator } from "@/components/ui/separator";
 export function StyleInspector(props: { defaultCornersOpen?: boolean }) {
   const { defaultCornersOpen = false } = props;
   const id = useId();
-  const [radii, setRadii] = useState(["0", "0", "0", "0"]);
+  const [radii, setRadii] = useState<(number | null)[]>([0, 0, 0, 0]);
   const [border, setBorder] = useState("0");
   const [shadow, setShadow] = useState("");
   const [fill, setFill] = useState("");
@@ -66,12 +67,16 @@ export function StyleInspector(props: { defaultCornersOpen?: boolean }) {
                     id={`${id}-radius`}
                     type="number"
                     min={0}
-                    value={hasMixedRadius ? "" : radii[0]}
+                    value={hasMixedRadius ? "" : (radii[0] ?? "")}
                     placeholder={hasMixedRadius ? "Mixed" : undefined}
                     className={`${fieldInput} ${numberInput} !pl-1`}
                     onChange={(event) => {
-                      const value = event.currentTarget.value;
-                      if (!value.startsWith("-")) setRadii(radii.map(() => value));
+                      const { value, valueAsNumber } = event.currentTarget;
+                      if (value === "" || valueAsNumber >= 0) {
+                        setRadii((current) =>
+                          current.map(() => (value === "" ? null : valueAsNumber)),
+                        );
+                      }
                     }}
                   />
                 </InputGroup>
@@ -219,54 +224,50 @@ export function StyleInspector(props: { defaultCornersOpen?: boolean }) {
             { name: "Bottom", corner: "Bottom right", mark: "rounded-br-[5px] border-r border-b" },
             { name: "Left", corner: "Bottom left", mark: "rounded-bl-[5px] border-b border-l" },
           ].map(({ name, corner, mark }, index) => (
-            <div key={corner} className={`group ${transformRow}`}>
+            <div
+              key={corner}
+              className="group grid grid-cols-[76px_minmax(0,1fr)] items-center gap-1"
+            >
               <Label
                 htmlFor={`${id}-corner-${index}`}
                 className={`${label} group-focus-within:text-neutral-950`}
               >
                 {name}
               </Label>
-              <InputGroup className={field}>
-                <InputGroupAddon className="pl-2">
-                  <span aria-hidden="true" className={`size-2 border-neutral-500 ${mark}`} />
-                </InputGroupAddon>
-                <InputGroupInput
-                  id={`${id}-corner-${index}`}
-                  aria-label={`${name} (${corner.toLowerCase()}) radius`}
-                  type="number"
-                  min={0}
-                  value={radii[index]}
-                  className={`${fieldInput} ${numberInput}`}
-                  onFocus={(event) => event.currentTarget.select()}
-                  onChange={(event) => {
-                    const value = event.currentTarget.value;
-                    if (!value.startsWith("-")) {
-                      setRadii((current) => current.with(index, value));
-                    }
-                  }}
-                />
-              </InputGroup>
-              {[
-                { step: 1, Icon: Plus, action: "Increase" },
-                { step: -1, Icon: Minus, action: "Decrease" },
-              ].map(({ step, Icon, action }) => (
-                <Button
-                  key={action}
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  aria-label={`${action} ${corner.toLowerCase()} radius`}
-                  className={iconButton}
-                  disabled={step < 0 && Number(radii[index]) === 0}
-                  onClick={() => {
-                    setRadii((current) =>
-                      current.with(index, String(Math.max(0, Number(current[index]) + step))),
-                    );
-                  }}
-                >
-                  <Icon aria-hidden="true" />
-                </Button>
-              ))}
+              <NumberField.Root
+                id={`${id}-corner-${index}`}
+                min={0}
+                allowWheelScrub={false}
+                value={radii[index]}
+                onValueChange={(value) => setRadii((current) => current.with(index, value))}
+              >
+                <NumberField.Group render={<InputGroup className={field} />}>
+                  <InputGroupAddon className="pl-2">
+                    <span aria-hidden="true" className={`size-2 border-neutral-500 ${mark}`} />
+                  </InputGroupAddon>
+                  <NumberField.Input
+                    render={<InputGroupInput className={fieldInput} />}
+                    aria-label={`${name} (${corner.toLowerCase()}) radius`}
+                    onFocus={(event) => event.currentTarget.select()}
+                  />
+                  <InputGroupAddon align="inline-end" className="grid gap-0 py-0 pr-1">
+                    <NumberField.Increment
+                      render={<Button variant="ghost" size="icon" />}
+                      aria-label={`Increase ${corner.toLowerCase()} radius`}
+                      className="h-[13px] w-6 rounded-sm text-neutral-600 hover:bg-neutral-200"
+                    >
+                      <ChevronUp aria-hidden="true" className="size-3" />
+                    </NumberField.Increment>
+                    <NumberField.Decrement
+                      render={<Button variant="ghost" size="icon" />}
+                      aria-label={`Decrease ${corner.toLowerCase()} radius`}
+                      className="h-[13px] w-6 rounded-sm text-neutral-600 hover:bg-neutral-200"
+                    >
+                      <ChevronDown aria-hidden="true" className="size-3" />
+                    </NumberField.Decrement>
+                  </InputGroupAddon>
+                </NumberField.Group>
+              </NumberField.Root>
             </div>
           ))}
         </div>

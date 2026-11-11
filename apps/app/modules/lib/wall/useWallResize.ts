@@ -46,6 +46,7 @@ export function useWallResize(props: {
     signature: string;
     target: HTMLSpanElement;
     line: HTMLElement;
+    zoom: number;
     pointerId: number;
     pointerType: string;
     startX: number;
@@ -137,12 +138,15 @@ export function useWallResize(props: {
       setDraft({
         kind: "height",
         rowId: current.rowId,
-        minHeight: Math.max(current.minimumHeight, current.height + current.y - current.startY),
+        minHeight: Math.max(
+          current.minimumHeight,
+          current.height + (current.y - current.startY) / current.zoom,
+        ),
       });
       return;
     }
     if (current.kind === "row-width") {
-      const delta = current.x - current.startX;
+      const delta = (current.x - current.startX) / current.zoom;
       const scale = current.alignment === "center" ? 2 : current.alignment === "right" ? -1 : 1;
       setDraft({
         kind: "row-width",
@@ -158,7 +162,7 @@ export function useWallResize(props: {
     if (!left || !right) throw new Error("Missing captured resize neighbors");
     const delta = Math.max(
       left.minWidth - left.width,
-      Math.min(right.width - right.minWidth, current.x - current.startX),
+      Math.min(right.width - right.minWidth, (current.x - current.startX) / current.zoom),
     );
     setDraft({
       kind: "width",
@@ -181,8 +185,9 @@ export function useWallResize(props: {
     if (current.kind === "height") {
       const surface = current.line.querySelector<HTMLElement>(".brick-hover-surface");
       const height =
-        surface?.getBoundingClientRect().height ??
-        current.line.getBoundingClientRect().height - current.brickGap - 1;
+        surface === null
+          ? current.line.getBoundingClientRect().height / current.zoom - current.brickGap - 1
+          : surface.getBoundingClientRect().height / current.zoom;
       setMeasuredReadout((previous) => {
         if (gesture.current !== current || !current.activated || current.finishing) return previous;
         if (
@@ -198,7 +203,7 @@ export function useWallResize(props: {
     if (current.kind === "row-width") {
       const group = current.line.querySelector<HTMLElement>("[data-wall-row-group]");
       if (group === null) throw new Error("Missing Row width readout group");
-      const width = group.getBoundingClientRect().width - current.brickGap;
+      const width = group.getBoundingClientRect().width / current.zoom - current.brickGap;
       setMeasuredReadout((previous) =>
         previous?.kind === "row-width" &&
         previous.rowId === current.rowId &&
@@ -218,8 +223,8 @@ export function useWallResize(props: {
       `[data-wall-placement-id="${CSS.escape(rightPlacementId)}"] .brick-hover-surface`,
     );
     if (left === null || right === null) throw new Error("Missing resize readout surfaces");
-    const leftWidth = left.getBoundingClientRect().width;
-    const rightWidth = right.getBoundingClientRect().width;
+    const leftWidth = left.getBoundingClientRect().width / current.zoom;
+    const rightWidth = right.getBoundingClientRect().width / current.zoom;
     setMeasuredReadout((previous) => {
       if (gesture.current !== current || !current.activated || current.finishing) return previous;
       if (
@@ -254,6 +259,7 @@ export function useWallResize(props: {
       row === undefined ||
       sizingSignature(row) !== current.signature ||
       !current.target.isConnected ||
+      (current.line.currentCSSZoom ?? 1) !== current.zoom ||
       Math.abs(current.line.getBoundingClientRect().width - current.availableWidth) > 0.5
     ) {
       clearGesture();
@@ -272,8 +278,9 @@ export function useWallResize(props: {
     if (current.kind === "height") {
       const surface = current.line.querySelector<HTMLElement>(".brick-hover-surface");
       const height =
-        surface?.getBoundingClientRect().height ??
-        current.line.getBoundingClientRect().height - brickGap - 1;
+        surface === null
+          ? current.line.getBoundingClientRect().height / current.zoom - brickGap - 1
+          : surface.getBoundingClientRect().height / current.zoom;
       clearGesture();
       if (Math.abs(height - current.height) <= 0.5) return;
       stageAggregateSessionCommand({
@@ -286,7 +293,7 @@ export function useWallResize(props: {
     if (current.kind === "row-width") {
       const group = current.line.querySelector<HTMLElement>("[data-wall-row-group]");
       if (group === null) throw new Error("Missing Row width commit group");
-      const preferredWidth = group.getBoundingClientRect().width - brickGap;
+      const preferredWidth = group.getBoundingClientRect().width / current.zoom - brickGap;
       clearGesture();
       if (Math.abs(preferredWidth - current.contentWidth) <= 0.5) return;
       stageAggregateSessionCommand({
@@ -347,6 +354,7 @@ export function useWallResize(props: {
     const rowElement = root.querySelector<HTMLElement>(`[data-wall-row-id="${CSS.escape(rowId)}"]`);
     const line = rowElement?.querySelector<HTMLElement>("[data-wall-row-content]");
     if (!line) throw new Error("Missing resize Row geometry");
+    const zoom = line.currentCSSZoom ?? 1;
     if (kind === "width") {
       const index = row.placements.findIndex((entry) => entry.id === leftPlacementId);
       if (index < 0 || row.placements[index + 1]?.id !== rightPlacementId) return;
@@ -358,7 +366,7 @@ export function useWallResize(props: {
       if (surface === null) throw new Error("Missing resize Placement surface");
       return {
         placementId: placement.id,
-        width: surface.getBoundingClientRect().width,
+        width: surface.getBoundingClientRect().width / zoom,
         minWidth: modulesHash[placement.brick.moduleId].variants[placement.variantId].minWidth,
       };
     });
@@ -373,6 +381,7 @@ export function useWallResize(props: {
       signature: sizingSignature(row),
       target,
       line,
+      zoom,
       pointerId: event.pointerId,
       pointerType: event.pointerType,
       startX: event.clientX,
@@ -381,8 +390,9 @@ export function useWallResize(props: {
       y: event.clientY,
       maxDistance: 0,
       height:
-        surface?.getBoundingClientRect().height ??
-        line.getBoundingClientRect().height - latest.current.brickGap - 1,
+        surface === null
+          ? line.getBoundingClientRect().height / zoom - latest.current.brickGap - 1
+          : surface.getBoundingClientRect().height / zoom,
       minimumHeight: Math.max(
         45,
         ...row.placements.map(
@@ -392,7 +402,7 @@ export function useWallResize(props: {
       ),
       availableWidth: line.getBoundingClientRect().width,
       contentWidth:
-        group === null ? 0 : group.getBoundingClientRect().width - latest.current.brickGap,
+        group === null ? 0 : group.getBoundingClientRect().width / zoom - latest.current.brickGap,
       alignment: row.alignment,
       activated: false,
       previewCommitted: false,
@@ -405,6 +415,10 @@ export function useWallResize(props: {
     const move = (event: globalThis.PointerEvent) => {
       if (gesture.current !== current || event.pointerId !== current.pointerId || current.finishing)
         return;
+      if ((line.currentCSSZoom ?? 1) !== current.zoom) {
+        clearGesture();
+        return;
+      }
       current.x = event.clientX;
       current.y = event.clientY;
       current.maxDistance = Math.max(
@@ -426,6 +440,7 @@ export function useWallResize(props: {
       if (gesture.current !== current || event.pointerId !== current.pointerId || current.finishing)
         return;
       move(event);
+      if (gesture.current !== current) return;
       if (frame.current !== null) {
         cancelAnimationFrame(frame.current);
         frame.current = null;
@@ -487,7 +502,10 @@ export function useWallResize(props: {
     const blur = () => clearGesture();
     const resized = new ResizeObserver(() => {
       if (gesture.current !== current) return;
-      if (Math.abs(line.getBoundingClientRect().width - current.availableWidth) > 0.5) {
+      if (
+        (line.currentCSSZoom ?? 1) !== current.zoom ||
+        Math.abs(line.getBoundingClientRect().width - current.availableWidth) > 0.5
+      ) {
         clearGesture();
         return;
       }

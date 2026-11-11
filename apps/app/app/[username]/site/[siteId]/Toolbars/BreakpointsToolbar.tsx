@@ -9,7 +9,6 @@ import { motion, useReducedMotion } from "framer-motion";
 import { X } from "lucide-react";
 
 import { useValidatedParams } from "@/hooks/useValidatedParams";
-import { useEditorViewportStore } from "@/stores/useEditorViewportStore";
 
 import { ToolbarButton } from "./ToolbarButton";
 import { ToolbarSeparator } from "./ToolbarSeparator";
@@ -35,7 +34,6 @@ export function BreakpointsToolbar() {
   const params = useValidatedParams(ParamsSchema);
   const navigate = useNavigate();
   const search = useSearch({ from: "/$username/site/$siteId/page/$pageId" });
-  const availableWidth = useEditorViewportStore((state) => state.availableWidth);
 
   return (
     <motion.div
@@ -57,11 +55,7 @@ export function BreakpointsToolbar() {
             tooltip={`${row.id} (${row.previewWidth}px)`}
             aria-label={`${row.id} preview width`}
             aria-pressed={search.breakpoint === row.id}
-            disabled={
-              search.breakpoint === row.id ||
-              availableWidth === null ||
-              row.previewWidth > availableWidth
-            }
+            disabled={search.breakpoint === row.id}
             onClick={() =>
               navigate({
                 to: ".",

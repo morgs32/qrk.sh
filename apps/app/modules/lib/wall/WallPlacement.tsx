@@ -13,10 +13,11 @@ export function WallPlacement(props: {
     content: ReactNode;
   };
   brickGap: number;
+  dragWholeBrick?: boolean;
   selected: boolean;
   onEditBrick?: (brickId: string) => void;
 }) {
-  const { placement, brickGap, selected, onEditBrick } = props;
+  const { placement, brickGap, dragWholeBrick, selected, onEditBrick } = props;
   // Adjacent half-gap insets preserve touching drop targets at every gap size.
   return (
     <div
@@ -27,7 +28,11 @@ export function WallPlacement(props: {
         minWidth: placement.minWidth + brickGap,
         padding: brickGap / 2,
       }}
-      className={cn("wall-placement group/brick relative", selected && "is-selected")}
+      className={cn(
+        "wall-placement group/brick relative",
+        selected && "is-selected",
+        dragWholeBrick && "cursor-grab select-none active:cursor-grabbing",
+      )}
     >
       <div
         className="wall-placement-content relative z-20 min-w-0 w-full"
@@ -72,17 +77,19 @@ export function WallPlacement(props: {
           onEditBrick?.(placement.brickId);
         }}
       >
-        <BrickAction>
-          <Button
-            type="button"
-            data-wall-drag-handle
-            variant="ghost"
-            className="size-7 cursor-grab rounded-none p-0 active:cursor-grabbing"
-            aria-label={`Move Brick ${placement.brickId}`}
-          >
-            <GripVertical className="size-4" aria-hidden="true" />
-          </Button>
-        </BrickAction>
+        {!dragWholeBrick && (
+          <BrickAction>
+            <Button
+              type="button"
+              data-wall-drag-handle
+              variant="ghost"
+              className="size-7 cursor-grab rounded-none p-0 active:cursor-grabbing"
+              aria-label={`Move Brick ${placement.brickId}`}
+            >
+              <GripVertical className="size-4" aria-hidden="true" />
+            </Button>
+          </BrickAction>
+        )}
         {placement.content}
       </div>
     </div>

@@ -33,7 +33,6 @@ import {
   useRef,
   useState,
   type CSSProperties,
-  type ReactNode,
 } from "react";
 import { brickV2 } from "@qrk.sh/zerospin/src/aggregates/user/models/brick/BrickV2";
 import { wallV3 } from "@qrk.sh/zerospin/src/aggregates/user/models/wall/WallV3";
@@ -42,6 +41,7 @@ import { Result, Schema } from "effect";
 import { wallInsertionTargetSchema } from "@qrk.sh/zerospin/src/aggregates/user/layout/wallTargetSchemas";
 import { canShareRow } from "@qrk.sh/zerospin/src/modules/lib/canShareRow";
 import {
+  allocateRowWidths,
   allocateStackWidths,
   measureWallFit,
   wallBreakpointWidths,
@@ -73,17 +73,21 @@ const WallPlacementData = Schema.Struct({
 /** Shared interactive Wall; its host owns navigation and the surrounding page chrome. */
 export function WallEditor(props: {
   wallId: IInferModelRow<typeof wallV3>["id"];
+  fitToWidth?: boolean;
+  inlineEditingAvailable?: boolean;
+  openBrickOnInlineFocus?: boolean;
   selectedBrickId?: string | null;
-  onEditBrick?: (brickId: string) => void;
-  renderBrickDrawer?: (brickId: string, content: ReactNode) => ReactNode;
-  registerBrickFlush?: (brickId: string, flush: (onRecover?: () => void) => boolean) => () => void;
-  flushBrick?: (brickId: string) => boolean;
+  onEditBrick: (brickId: string) => void;
+  registerBrickFlush: (brickId: string, flush: (onRecover?: () => void) => boolean) => () => void;
+  flushBrick: (brickId: string) => boolean;
 }) {
   const {
     wallId,
+    fitToWidth = false,
+    inlineEditingAvailable = true,
+    openBrickOnInlineFocus = true,
     selectedBrickId,
     onEditBrick,
-    renderBrickDrawer,
     registerBrickFlush,
     flushBrick,
   } = props;
@@ -122,7 +126,14 @@ export function WallEditor(props: {
   });
   const { sections } = makeWallLayoutView({ wall });
   const { brickGap } = wall.page.site;
-  const resize = useWallResize({ wallId, sections, brickGap, wallRef, disabled: nativeDragActive });
+  const resizeDisabled = nativeDragActive || fitToWidth;
+  const resize = useWallResize({
+    wallId,
+    sections,
+    brickGap,
+    wallRef,
+    disabled: resizeDisabled,
+  });
 
   useLayoutEffect(() => {
     // The ghost's drop payload follows its committed, visible position.
@@ -152,6 +163,7 @@ export function WallEditor(props: {
       }
       const rootBox = root.getBoundingClientRect();
       const targetBox = target.getBoundingClientRect();
+      const zoom = root.currentCSSZoom ?? 1;
       let left = targetBox.left;
       if (moveFeedback.kind === "row") {
         const placements = target.querySelectorAll<HTMLElement>("[data-wall-placement-id]");
@@ -171,10 +183,10 @@ export function WallEditor(props: {
         }
       }
       // Only feedback escapes the query container; content keeps its existing layer.
-      indicator.style.left = `${left - rootBox.left}px`;
-      indicator.style.top = `${targetBox.top - rootBox.top}px`;
-      indicator.style.width = `${moveFeedback.kind === "row" ? 0 : targetBox.width}px`;
-      indicator.style.height = `${targetBox.height}px`;
+      indicator.style.left = `${(left - rootBox.left) / zoom}px`;
+      indicator.style.top = `${(targetBox.top - rootBox.top) / zoom}px`;
+      indicator.style.width = `${moveFeedback.kind === "row" ? 0 : targetBox.width / zoom}px`;
+      indicator.style.height = `${targetBox.height / zoom}px`;
     };
     updateBounds();
     const resize = new ResizeObserver(updateBounds);
@@ -240,7 +252,8 @@ export function WallEditor(props: {
         location.current.dropTargets[0]?.data,
       );
       if (
-        movingElement?.querySelector("[data-wall-drag-handle]") !== source.element ||
+        movingElement === null ||
+        source.element.closest("[data-wall-placement-id]") !== movingElement ||
         !source.element.isConnected ||
         Result.isFailure(data) ||
         Result.isFailure(target) ||
@@ -428,7 +441,7 @@ export function WallEditor(props: {
           setMoveFeedback(null);
           if (move === null || !source.element.isConnected) return;
           const { placement, target } = move;
-          if (flushBrick?.(placement.brickId) === false) return;
+          if (!flushBrick(placement.brickId)) return;
           if (target.kind === "row") {
             const row = rows.find((row) => row.id === target.rowId);
             if (row === undefined) throw new Error(`Missing destination Row ${target.rowId}`);
@@ -509,7 +522,7 @@ export function WallEditor(props: {
             },
           });
           if (result._tag !== "Success") return;
-          onEditBrick?.(id);
+          onEditBrick(id);
         },
       }),
     ];
@@ -615,10 +628,13 @@ export function WallEditor(props: {
                       ),
                   });
                   const rect = rowElement.getBoundingClientRect();
+                  const edgeSize = 8 * (rowElement.currentCSSZoom ?? 1);
                   const beforeRow = canCombine
-                    ? input.clientY < rect.top + 8
+                    ? input.clientY < rect.top + edgeSize
                     : input.clientY < rect.top + rect.height / 2;
-                  const afterRow = canCombine ? input.clientY >= rect.bottom - 8 : !beforeRow;
+                  const afterRow = canCombine
+                    ? input.clientY >= rect.bottom - edgeSize
+                    : !beforeRow;
                   if (row.placements.length > 0 && (beforeRow || afterRow)) {
                     return {
                       wallId: wall.id,
@@ -679,11 +695,12 @@ export function WallEditor(props: {
             );
             if (placementElement === null) throw new Error(`Missing Placement ${placement.id}`);
             const handle = placementElement.querySelector<HTMLElement>("[data-wall-drag-handle]");
-            if (handle === null)
+            const dragElement = handle ?? (fitToWidth ? placementElement : null);
+            if (dragElement === null)
               throw new Error(`Missing drag handle for Placement ${placement.id}`);
             cleanups.push(
               draggable({
-                element: handle,
+                element: dragElement,
                 getInitialData: () => ({
                   type: "wall-placement",
                   wallId: wall.id,
@@ -780,7 +797,7 @@ export function WallEditor(props: {
       setShadowSource(null);
       shadowRowHeights.current.clear();
     };
-  }, [flushBrick, onEditBrick, session, wall]);
+  }, [fitToWidth, flushBrick, inlineEditingAvailable, onEditBrick, session, wall]);
 
   const shadowVariant =
     shadowSource === null ? null : modulesHash[shadowSource.moduleId].variants.default;
@@ -855,8 +872,9 @@ export function WallEditor(props: {
     <>
       <div
         ref={wallRef}
+        data-wall-fit-to-width={fitToWidth || undefined}
         data-wall-resizing={resize.preview?.kind}
-        data-wall-resize-disabled={nativeDragActive ? "true" : undefined}
+        data-wall-resize-disabled={resizeDisabled ? "true" : undefined}
         onDragStartCapture={(event) => {
           if (resize.preview !== null) event.preventDefault();
         }}
@@ -1042,51 +1060,13 @@ export function WallEditor(props: {
                               minimums.push(incomingVariant.minWidth);
                               weights.push(incomingVariant.defaultWidth);
                             }
-                            const floored = weights.map((weight, index) =>
-                              Math.max(weight, minimums[index]),
-                            );
-                            const gapWidth = Math.max(0, weights.length - 1) * brickGap;
-                            const minimumWidth = minimums.reduce(
-                              (sum, width) => sum + width,
-                              gapWidth,
-                            );
-                            const naturalWidth = floored.reduce(
-                              (sum, width) => sum + width,
-                              gapWidth,
-                            );
-                            const contentWidth = Math.min(
+                            const { contentWidth, widths } = allocateRowWidths({
                               stackWidth,
-                              Math.max(minimumWidth, preferredWidth ?? naturalWidth),
-                            );
-                            const proportions = preferredWidth === null ? floored : weights;
-                            const widths: number[] = [...minimums];
-                            let remaining = contentWidth - gapWidth;
-                            let open = proportions.map((_, index) => index);
-                            // Reallocate after pinning any Brick that would fall below its minimum.
-                            while (open.length > 0) {
-                              const largest = open.reduce(
-                                (max, index) => Math.max(max, proportions[index]),
-                                0,
-                              );
-                              const total = open.reduce(
-                                (sum, index) => sum + proportions[index] / largest,
-                                0,
-                              );
-                              const scale = remaining / total;
-                              const eligible = open.filter(
-                                (index) => (proportions[index] / largest) * scale < minimums[index],
-                              );
-                              if (eligible.length === 0) {
-                                for (const index of open)
-                                  widths[index] = (proportions[index] / largest) * scale;
-                                break;
-                              }
-                              remaining -= eligible.reduce(
-                                (sum, index) => sum + minimums[index],
-                                0,
-                              );
-                              open = open.filter((index) => !eligible.includes(index));
-                            }
+                              brickGap,
+                              minimums,
+                              weights,
+                              preferredWidth,
+                            });
                             const groupStyle: CSSProperties &
                               Record<"--wall-shadow-cell-width" | "--wall-row-grip-inset", string> =
                               {
@@ -1133,11 +1113,10 @@ export function WallEditor(props: {
                                           : null;
                                       const brick = placement.brick;
                                       const module = modulesHash[brick.moduleId];
-                                      const Component = module.component;
-                                      const inStudio =
-                                        onEditBrick !== undefined &&
-                                        renderBrickDrawer !== undefined &&
-                                        registerBrickFlush !== undefined;
+                                      const { InlineEditor, Render } = module;
+                                      const canEditInline =
+                                        inlineEditingAvailable && InlineEditor !== undefined;
+                                      const dragWholeBrick = fitToWidth && !canEditInline;
                                       return (
                                         <Fragment key={placement.id}>
                                           {dropTarget?.kind === "row" &&
@@ -1146,8 +1125,9 @@ export function WallEditor(props: {
                                             shadow}
                                           <WallPlacement
                                             brickGap={brickGap}
+                                            dragWholeBrick={dragWholeBrick}
                                             selected={brick.id === selectedBrickId}
-                                            onEditBrick={onEditBrick}
+                                            onEditBrick={dragWholeBrick ? undefined : onEditBrick}
                                             placement={{
                                               id: placement.id,
                                               brickId: brick.id,
@@ -1159,10 +1139,9 @@ export function WallEditor(props: {
                                                 isNonEmptySpec(placement.spec) ? (
                                                   <BrickWrapper
                                                     borderWidth={brick.borderWidth}
+                                                    inert={dragWholeBrick || undefined}
                                                     data-wall-inline-editor={
-                                                      inStudio && module.hasInlineEditor
-                                                        ? ""
-                                                        : undefined
+                                                      canEditInline ? "" : undefined
                                                     }
                                                     className={
                                                       wall.page.site.cardStyle
@@ -1170,36 +1149,40 @@ export function WallEditor(props: {
                                                         : undefined
                                                     }
                                                   >
-                                                    <Component
-                                                      {...(inStudio
-                                                        ? {
-                                                            mode: "studio",
-                                                            onFocus: () => onEditBrick(brick.id),
-                                                            renderDrawer: (content) =>
-                                                              renderBrickDrawer(brick.id, content),
-                                                            onSave: (state) =>
-                                                              stageAggregateSessionCommand({
-                                                                session,
-                                                                contractName: "updateBrick",
-                                                                payload: {
-                                                                  brickId: brick.id,
-                                                                  moduleId: brick.moduleId,
-                                                                  state,
-                                                                },
-                                                              }),
-                                                            registerFlush: (flush) =>
-                                                              registerBrickFlush(brick.id, flush),
-                                                          }
-                                                        : { mode: "view" })}
-                                                      state={brick.state}
-                                                      variantId={placement.variantId}
-                                                      spec={
-                                                        isNonEmptySpec(placement.spec)
-                                                          ? placement.spec
-                                                          : module.variants[placement.variantId]
-                                                              .spec
-                                                      }
-                                                    />
+                                                    {canEditInline ? (
+                                                      <InlineEditor
+                                                        state={brick.state}
+                                                        onFocus={() => {
+                                                          if (openBrickOnInlineFocus)
+                                                            onEditBrick(brick.id);
+                                                        }}
+                                                        onSave={(state) =>
+                                                          stageAggregateSessionCommand({
+                                                            session,
+                                                            contractName: "updateBrick",
+                                                            payload: {
+                                                              brickId: brick.id,
+                                                              moduleId: brick.moduleId,
+                                                              state,
+                                                            },
+                                                          })
+                                                        }
+                                                        registerFlush={(flush) =>
+                                                          registerBrickFlush(brick.id, flush)
+                                                        }
+                                                      />
+                                                    ) : (
+                                                      <Render
+                                                        state={brick.state}
+                                                        variantId={placement.variantId}
+                                                        spec={
+                                                          isNonEmptySpec(placement.spec)
+                                                            ? placement.spec
+                                                            : module.variants[placement.variantId]
+                                                                .spec
+                                                        }
+                                                      />
+                                                    )}
                                                   </BrickWrapper>
                                                 ) : (
                                                   <p role="alert">Invalid Brick spec</p>

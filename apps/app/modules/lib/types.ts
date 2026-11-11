@@ -19,32 +19,19 @@ export type IModule<MODULE extends string> = {
   /** Maximum bricks of this module per page, including hidden and unconfigured bricks. */
   maxPerPage?: number;
   hasPlaceholder: boolean;
-  /** Studio mounts the module editor in its Placement and gives it access to the drawer. */
-  hasInlineEditor: boolean;
+  InlineEditor?: (props: {
+    state: unknown;
+    onFocus: () => void;
+    onSave: (state: unknown) => IResult<unknown, { message: string }>;
+    registerFlush: (flush: (onRecover?: () => void) => boolean) => () => void;
+  }) => ReactNode;
   Form?: (props: {
     state: unknown;
     onSave: (state: unknown) => IResult<unknown, { message: string }>;
     onCancel: () => void;
   }) => ReactNode;
   def: IModuleBrickDef<MODULE>;
-  /**
-   * Render boundaries supply the brick state document; components without a
-   * state contract ignore the prop.
-   */
-  component: {
-    bivarianceHack(
-      props: { state?: unknown; spec: Spec; variantId: "default" } & (
-        | { mode: "view" }
-        | {
-            mode: "studio";
-            onFocus: () => void;
-            renderDrawer: (content: ReactNode) => ReactNode;
-            onSave: (state: unknown) => IResult<unknown, { message: string }>;
-            registerFlush: (flush: (onRecover?: () => void) => boolean) => () => void;
-          }
-      ),
-    ): ReactNode;
-  }["bivarianceHack"];
+  Render: (props: { state: unknown; spec: Spec; variantId: "default" }) => ReactNode;
   variants: {
     default: ReturnType<typeof makeModuleVersion>["variants"]["default"] & {
       component: {

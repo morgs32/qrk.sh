@@ -60,3 +60,39 @@ export function allocateStackWidths(props: {
   }
   return widths;
 }
+
+/** Fit a Row to its Stack while preserving each Brick's minimum width. */
+export function allocateRowWidths(props: {
+  stackWidth: number;
+  brickGap: number;
+  minimums: readonly number[];
+  weights: readonly number[];
+  preferredWidth: number | null;
+}) {
+  const { stackWidth, brickGap, minimums, weights, preferredWidth } = props;
+  const floored = weights.map((weight, index) => Math.max(weight, minimums[index]));
+  const gapWidth = Math.max(0, weights.length - 1) * brickGap;
+  const minimumWidth = minimums.reduce((sum, width) => sum + width, gapWidth);
+  const naturalWidth = floored.reduce((sum, width) => sum + width, gapWidth);
+  const contentWidth = Math.min(stackWidth, Math.max(minimumWidth, preferredWidth ?? naturalWidth));
+  const proportions = preferredWidth === null ? floored : weights;
+  const widths = [...minimums];
+  let remaining = contentWidth - gapWidth;
+  let open = proportions.map((_, index) => index);
+  // Reallocate after pinning any Brick that would fall below its minimum.
+  while (open.length > 0) {
+    const largest = open.reduce((max, index) => Math.max(max, proportions[index]), 0);
+    const total = open.reduce((sum, index) => sum + proportions[index] / largest, 0);
+    const scale = remaining / total;
+    const eligible = open.filter(
+      (index) => (proportions[index] / largest) * scale < minimums[index],
+    );
+    if (eligible.length === 0) {
+      for (const index of open) widths[index] = (proportions[index] / largest) * scale;
+      break;
+    }
+    remaining -= eligible.reduce((sum, index) => sum + minimums[index], 0);
+    open = open.filter((index) => !eligible.includes(index));
+  }
+  return { contentWidth, widths };
+}

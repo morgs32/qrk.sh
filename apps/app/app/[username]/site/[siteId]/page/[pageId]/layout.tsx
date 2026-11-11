@@ -10,13 +10,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { useReducedMotion } from "framer-motion";
-import {
-  useBlocker,
-  useMatches,
-  useNavigate,
-  useParams,
-  type ShouldBlockFn,
-} from "@tanstack/react-router";
+import { useBlocker, useMatches, useNavigate, type ShouldBlockFn } from "@tanstack/react-router";
 import { useAuth } from "@clerk/react";
 import { ClerkOfflineError } from "@clerk/react/errors";
 import { useLiveQuery, useSession } from "@zerospin/react";
@@ -30,7 +24,8 @@ import { Drawer } from "../../../../../../modules/lib/Drawer";
 import { Toolbars } from "../../Toolbars/Toolbars";
 import WorkspacePanelControls from "./(drawer)/layout";
 import { BrickAutosaveContext } from "./BrickAutosaveContext";
-import { ValidBreakpoint } from "./ValidBreakpoint";
+import { PagePreview } from "./PagePreview";
+import { SIDEBAR_PREVIEW_GUTTER, WORKSPACE_SIDEBAR_WIDTH } from "./WorkspaceSidebar";
 import { useBreakpointGuard } from "./useBreakpointGuard";
 import { useMatchMedia } from "./useMatchMedia";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
@@ -64,7 +59,6 @@ export default function PageLayout(props: { children: ReactNode }) {
   const { children } = props;
   const params = useValidatedParams(ParamsSchema);
   const { username, siteId, pageId } = params;
-  const { brickId } = useParams({ strict: false });
   const navigate = useNavigate({ from: "/$username/site/$siteId/page/$pageId" });
   const brickFlushes = useRef(new Map<string, (onRecover?: () => void) => boolean>());
   const pendingFlushes = useRef(new Map<() => boolean, Set<() => void>>());
@@ -176,8 +170,18 @@ export default function PageLayout(props: { children: ReactNode }) {
   const previewPress = useRef<number | null>(null);
   const { getToken } = useAuth();
   const session = useSession(userSessionDefinition);
-  const { breakpoint, previewRef, retainingPreview, visibleBreakpoint, insufficientWidth } =
-    useBreakpointGuard(flushPageEditors, sidebarOpen);
+  const previewGutter = sidebarOpen ? SIDEBAR_PREVIEW_GUTTER : 0;
+  const { availableWidth, breakpoint, previewRef, retainingPreview, scale } =
+    useBreakpointGuard(flushPageEditors, previewGutter);
+  const frameWidth =
+    breakpoint === undefined ? 0 : breakpoint.previewWidth + 2 * PREVIEW_BORDER_WIDTH;
+  // Typing must keep its focus if opening the sidebar would shrink the editor.
+  const openBrickOnInlineFocus =
+    !isDesktop ||
+    sidebarOpen ||
+    (!retainingPreview &&
+      availableWidth !== null &&
+      availableWidth >= frameWidth + WORKSPACE_SIDEBAR_WIDTH + 2 * SIDEBAR_PREVIEW_GUTTER);
   const scrollRef = useCallback<RefCallback<HTMLDivElement>>(
     (element) => {
       editorScroll.current = element;
@@ -352,26 +356,24 @@ export default function PageLayout(props: { children: ReactNode }) {
               className="wall-preview-scroll relative min-h-0 min-w-0 shrink-0 overflow-y-auto pt-[var(--wall-preview-top-gap)] pb-[var(--wall-preview-bottom-gap)]"
               style={{
                 height: "calc(100% - var(--wall-preview-drawer-height))",
-                overflowX: sidebarOpen || retainingPreview ? "auto" : "hidden",
+                overflowX: retainingPreview ? "auto" : "hidden",
               }}
             >
               <div
                 className="wall-preview-canvas"
-                style={
-                  (sidebarOpen || retainingPreview) && visibleBreakpoint !== undefined
-                    ? {
-                        minWidth:
-                          visibleBreakpoint.previewWidth +
-                          2 * PREVIEW_BORDER_WIDTH +
-                          (sidebarOpen ? 64 : 0),
-                      }
-                    : undefined
-                }
+                style={{
+                  paddingInline: previewGutter,
+                  minWidth: retainingPreview ? frameWidth + 2 * previewGutter : undefined,
+                }}
               >
-                <ValidBreakpoint
-                  breakpoint={visibleBreakpoint}
-                  insufficientWidth={insufficientWidth}
-                />
+                {breakpoint !== undefined && scale !== null && scale > 0 && (
+                  <PagePreview
+                    key={breakpoint.id}
+                    breakpoint={breakpoint}
+                    scale={scale}
+                    openBrickOnInlineFocus={openBrickOnInlineFocus}
+                  />
+                )}
               </div>
             </div>
             <div
@@ -414,16 +416,7 @@ export default function PageLayout(props: { children: ReactNode }) {
               )}
             </Drawer>
           )}
-          {breakpoint !== undefined &&
-            (panelOpen
-              ? createPortal(
-                  <>
-                    {brickId === undefined ? null : <div id={`brick-editor-drawer-${brickId}`} />}
-                    {children}
-                  </>,
-                  panelBody,
-                )
-              : children)}
+          {breakpoint !== undefined && (panelOpen ? createPortal(children, panelBody) : children)}
         </div>
       </BrickAutosaveContext>
     </SWRConfig>

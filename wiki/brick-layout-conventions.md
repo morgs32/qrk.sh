@@ -448,8 +448,9 @@ Immutable publication snapshots contain shared Bricks once and all four ordered
 Wall → Section → Stack → Row → Placement/spec hierarchies, including Row minimum
 heights and Placement width weights. The current snapshot builder also drives
 saved-versus-published comparison, so movement changes dirty state. Generation,
-revisions, and editor bookkeeping stay outside snapshots. Public website rendering
-remains deferred.
+revisions, and editor bookkeeping stay outside snapshots. Web's fixture-backed
+`WallViewer` renders one saved Wall as HTML. It shares Stack and Row width
+allocation with Studio. Public routes and snapshot loading remain deferred.
 
 [Plan 039](./archive/plans/039-plan-wall-owned-layout-tree.md) replaces the old layout
 tables with the Wall-owned tree. The authorized local hard cutover preserves the

@@ -23,6 +23,7 @@
   },
   "dependencies": {
     "@clerk/nextjs": "^7.1.0",
+    "@qrk.sh/zerospin": "workspace:*",
     "@radix-ui/react-slot": "^1.2.4",
     "@vercel/analytics": "^2.0.1",
     "@vercel/speed-insights": "^2.0.0",

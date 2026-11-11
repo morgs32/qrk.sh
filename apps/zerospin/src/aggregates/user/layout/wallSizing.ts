@@ -1,10 +1,13 @@
-import type { wallLayoutSchemaV2 } from "./wallLayoutSchemaV2";
-
 export const wallBreakpointWidths = { sm: 360, md: 720, lg: 1080, xl: 1440 };
 
 /** Measure required cell widths without changing the saved arrangement. */
 export function measureWallFit(props: {
-  layout: typeof wallLayoutSchemaV2.Type;
+  layout: {
+    sections: readonly {
+      id: string;
+      stacks: readonly { rows: readonly { placementIds: readonly string[] }[] }[];
+    }[];
+  };
   placementMinimumWidths: ReadonlyMap<string, number>;
   wallWidth: number;
   brickGap: number;

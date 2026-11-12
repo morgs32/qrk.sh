@@ -359,7 +359,9 @@ export default function PageLayout(props: { children: ReactNode }) {
                   )}
                 </div>
               </div>
-              <div className="pointer-events-none absolute inset-x-0 bottom-(--wall-preview-toolbar-gap) z-80 flex justify-center px-2">
+              <div
+                className={`pointer-events-none absolute inset-x-0 bottom-(--wall-preview-toolbar-gap) z-80 flex justify-center px-2${sidebarOpen ? " max-lg:hidden" : ""}`}
+              >
                 <Toolbars />
               </div>
             </div>

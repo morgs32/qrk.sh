@@ -5,7 +5,7 @@ import { Link } from "@tanstack/react-router";
 
 import * as React from "react";
 
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@qrk.sh/bricks/components/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "cn";
 
@@ -27,7 +27,6 @@ type IToolbarButtonLabeledProps = {
     | {
         to:
           | "/$username/site/$siteId/page/$pageId/modules"
-          | "/$username/site/$siteId/page/$pageId/breakpoints"
           | "/$username/site/$siteId/page/$pageId/page-settings"
           | "/$username/site/$siteId/page/$pageId/site-settings";
         params: { username: string; siteId: string; pageId: string };
@@ -50,6 +49,7 @@ function ToolbarLabeledButton(props: IToolbarButtonLabeledProps) {
     link,
     className,
     "aria-label": providedAriaLabel,
+    "aria-current": ariaCurrent,
     type: _type,
     ...buttonProps
   } = props;
@@ -64,9 +64,16 @@ function ToolbarLabeledButton(props: IToolbarButtonLabeledProps) {
   );
 
   return link !== undefined ? (
-    <Link {...link} resetScroll={false} aria-label={ariaLabel} className={cn(buttonVariants({ variant: "ghost" }), mergedClassName)}>
+    <Button
+      variant="ghost"
+      nativeButton={false}
+      aria-label={ariaLabel}
+      aria-current={ariaCurrent}
+      className={mergedClassName}
+      render={<Link {...link} resetScroll={false} role="link" />}
+    >
       {body}
-    </Link>
+    </Button>
   ) : (
     <Toolbar.Button render={<Button variant="ghost" />} type="button" aria-label={ariaLabel} className={mergedClassName} {...buttonProps}>
       {body}

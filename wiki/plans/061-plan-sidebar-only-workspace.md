@@ -15,8 +15,9 @@ interactive. This supersedes the responsive shell decision in
    header and filling the available workspace height. The overlay has a left
    border and shadow. The Wall can scroll and receive pointer and keyboard
    input in the exposed area. Its preview stays at the selected authored width.
-2. Use the compact **Page controls** select and **Close sidebar** button at
-   every viewport size. Bricks, Page settings, Site settings, and Edit brick
+2. Show the current section name at `lg` and wider and the compact **Page controls**
+   select below `lg`. Show **Close sidebar** at every viewport size.
+   Bricks, Page settings, Site settings, and Edit brick
    retain their existing URLs and route state. The sidebar body is a single
    vertical scroll area. Settings use the actual sidebar container width.
 3. [Plan 062](062-plan-brick-owned-interactions.md) supersedes this plan's
@@ -25,7 +26,9 @@ interactive. This supersedes the responsive shell decision in
    open Brick Details at any width.
 4. Preserve Close, Escape, and the current background-click behavior for Brick
    Details. Menus, dialogs, and text selection get the first chance to consume
-   Escape. Keep breakpoint controls accessible while the overlay is open.
+   Escape. Keep the floating toolbar visible on desktop with the sidebar open
+   and highlight the current section. Below `lg`, hide the toolbar while the
+   sidebar is open.
    Resizing across `lg` preserves the sidebar body, its draft, the Wall, and
    the selected breakpoint.
 
@@ -59,11 +62,9 @@ interactive. This supersedes the responsive shell decision in
 3. Use the full workspace height for the preview scrollport and anchor the
    toolbar to its normal bottom gap. Remove the 25dvh reservation, bottom
    offset transition, drawer attributes, and drawer snapshot animation.
-   While the overlay is open, layer the toolbar over the sidebar at the
-   existing bottom anchor, with pointer events limited to toolbar controls.
-   Reserve enough space at the bottom of the overlay body to scroll its last
-   control above the toolbar. Keep the global router transition policy and
-   existing preview scroll anchoring.
+   Use the existing bottom anchor on desktop and when the mobile sidebar is
+   closed. Keep the global router transition policy and existing preview scroll
+   anchoring.
 4. Keep Brick Details navigation in PagePreview. The inline-focus wiring
    described here was replaced by Plan 062. Distinguish an inline field
    focus from an explicit edit with an optional second argument
@@ -151,8 +152,9 @@ qrk.sh/
    `lg`, explicit selection and catalog drop, Close and Escape, and
    focus after sidebar dismissal. Confirm vertical catalog scrolling,
    thumbnail fit, and a successful drag onto the exposed Wall with a
-   drag-capable pointer. Check the breakpoint toolbar can still be used while
-   the overlay is open. Record the user's result before archiving the plan.
+   drag-capable pointer. Check that the toolbar stays visible on desktop with
+   the sidebar open, hides under the mobile overlay, and returns after closing
+   it. Record the user's result before archiving the plan.
 
 
 ## Results

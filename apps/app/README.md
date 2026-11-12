@@ -7,8 +7,9 @@ preview upward, based on the preview container's 720px threshold.
 
 The workspace uses a 300px right sidebar at Tailwind `lg` and wider. Below
 `lg`, the sidebar overlays the right edge at up to 75% of the viewport width.
-The exposed Wall remains interactive. Below `lg`, the sidebar's Page controls
-dropdown opens Bricks, Page settings, and Site settings. Brick selection opens
+The exposed Wall remains interactive. At `lg` and wider, the sidebar header
+shows the current section name. Below `lg`, the Page controls dropdown opens
+Bricks, Page settings, and Site settings. Brick selection opens
 Edit brick, which uses the same 12px section padding as the Form Inputs
 catalog. Inline Article focus opens
 Edit brick at `lg` and wider. At narrower widths, inline focus leaves the current
@@ -18,8 +19,12 @@ Close and Escape keep the current breakpoint. Open menus, popovers, dialogs,
 and Article body text selection consume Escape first. When Escape dismisses the
 sidebar from an inline Article field, it blurs the field and deselects the Brick.
 Settings and manual Brick editors provide Save and Cancel inside their forms.
-Exit sits at the left edge of the editor navbar. Set breakpoints is
-available from the floating page controls.
+Exit sits at the left edge of the editor navbar, with the breakpoint tabs in
+the center. Changing the preview width keeps the current sidebar section open.
+The floating toolbar stays
+visible on desktop while the sidebar is open and highlights the current
+section. Below `lg`, it hides while the sidebar is open and returns when it
+closes.
 
 For unpublished sites, the editor navbar shows Publish beside the account
 menu. The button uses 28px height and 8px horizontal padding. Site settings

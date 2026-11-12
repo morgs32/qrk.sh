@@ -1,113 +1,43 @@
 "use client";
 
-import { Toolbar } from "@base-ui/react/toolbar";
-import { useMatches, useNavigate, useSearch } from "@tanstack/react-router";
+import { useNavigate, useSearch } from "@tanstack/react-router";
 
 import { BREAKPOINTS } from "../../../../../lib/breakpoints";
-import { WallPreviewToolbar } from "./WallPreviewToolbar";
-import { Schema } from "effect";
-import { motion, useReducedMotion } from "framer-motion";
-import { X } from "lucide-react";
-
-import { Button } from "@/components/ui/button";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { useValidatedParams } from "@/hooks/useValidatedParams";
-
 import { ToolbarButton } from "./ToolbarButton";
-import { ToolbarSeparator } from "./ToolbarSeparator";
+import { WallPreviewToolbar } from "./WallPreviewToolbar";
 
-const ParamsSchema = Schema.Struct({
-  username: Schema.String,
-  siteId: Schema.String,
-  pageId: Schema.String,
-});
-
-const toolbarPresenceTransition = {
-  duration: 0.3,
-  ease: [0, 0, 0.2, 1] as const,
-};
-
-/** Breakpoint preview controls for breakpoint selection and the Bricks catalog. */
+/** Breakpoint selection for the Wall preview. */
 export function BreakpointsToolbar() {
-  const reducedMotion = useReducedMotion();
-  const isStandalone = useMatches({
-    select: (matches) =>
-      matches.at(-1)?.routeId === "/$username/site/$siteId/page/$pageId/breakpoints",
-  });
-  const params = useValidatedParams(ParamsSchema);
   const navigate = useNavigate();
   const search = useSearch({ from: "/$username/site/$siteId/page/$pageId" });
 
   return (
-    <motion.div
-      className="[grid-area:1/1]"
-      layout
-      layoutId="site-bottom-toolbar-shell"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={reducedMotion ? { duration: 0 } : toolbarPresenceTransition}
+    <WallPreviewToolbar
+      aria-label="Breakpoints"
+      className="h-7 gap-0.5 rounded-full bg-muted p-0.5 [&>button]:h-full"
     >
-      <WallPreviewToolbar
-        aria-label="Breakpoints"
-        className="border-border/80 bg-background shadow-md"
-      >
-        {BREAKPOINTS.map((row) => (
-          <ToolbarButton
-            key={row.id}
-            tooltip={`${row.id} (${row.previewWidth}px)`}
-            aria-label={`${row.id} preview width`}
-            aria-pressed={search.breakpoint === row.id}
-            disabled={search.breakpoint === row.id}
-            onClick={() =>
-              navigate({
-                to: ".",
-                search: (previous) => ({
-                  ...previous,
-                  breakpoint: row.id,
-                }),
-                resetScroll: false,
-              })
-            }
-            className={
-              search.breakpoint === row.id
-                ? "h-7 px-2 text-[13px] font-bold text-foreground disabled:opacity-100"
-                : "h-7 px-2 text-[13px] font-normal text-muted-foreground hover:text-foreground"
-            }
-          >
-            {row.id}
-          </ToolbarButton>
-        ))}
-        {isStandalone ? (
-          <>
-            <ToolbarSeparator />
-            <Tooltip>
-              <TooltipTrigger
-                render={
-                  <Toolbar.Button
-                    render={<Button variant="ghost" size="icon-sm" />}
-                    type="button"
-                    aria-label="Close"
-                    onClick={() =>
-                      navigate({
-                        to: "/$username/site/$siteId/page/$pageId",
-                        params,
-                        search: { breakpoint: search.breakpoint },
-                        resetScroll: false,
-                      })
-                    }
-                  >
-                    <X className="size-3.5" aria-hidden />
-                  </Toolbar.Button>
-                }
-              />
-              <TooltipContent side="top" sideOffset={8}>
-                Close
-              </TooltipContent>
-            </Tooltip>
-          </>
-        ) : null}
-      </WallPreviewToolbar>
-    </motion.div>
+      {BREAKPOINTS.map((row) => (
+        <ToolbarButton
+          key={row.id}
+          tooltip={`${row.id} (${row.previewWidth}px)`}
+          aria-label={`${row.id} preview width`}
+          aria-pressed={search.breakpoint === row.id}
+          disabled={search.breakpoint === row.id}
+          onClick={() =>
+            navigate({
+              to: ".",
+              search: (previous) => ({
+                ...previous,
+                breakpoint: row.id,
+              }),
+              resetScroll: false,
+            })
+          }
+          className="rounded-full px-1.5 text-xs font-normal text-muted-foreground hover:text-foreground aria-pressed:bg-background aria-pressed:text-foreground aria-pressed:shadow-sm disabled:opacity-100 sm:px-2"
+        >
+          {row.id}
+        </ToolbarButton>
+      ))}
+    </WallPreviewToolbar>
   );
 }

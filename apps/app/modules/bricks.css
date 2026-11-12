@@ -1,5 +1,6 @@
 :root {
   --brick-accent-rgb: 31 155 252;
+  --wall-preview-toolbar-height: 36px;
   --wall-action-tag-height: 1.5rem;
   --wall-action-tag-inset: 0.5rem;
   --wall-action-tag-gap: 0.25rem;
@@ -12,9 +13,11 @@
 
 .wall-preview-viewport {
   --wall-preview-top-gap: 32px;
-  --wall-preview-toolbar-height: 38px;
-  --wall-preview-toolbar-gap: 24px;
   --wall-preview-bottom-gap: 32px;
+  /* Align the toolbar midpoint with the preview frame's bottom edge. */
+  --wall-preview-toolbar-gap: calc(
+    var(--wall-preview-bottom-gap) - var(--wall-preview-toolbar-height) / 2
+  );
 }
 
 .wall-preview-frame {
@@ -24,6 +27,19 @@
 .wall-preview-frame[data-breakpoint="sm"],
 .wall-preview-frame[data-breakpoint="md"] {
   --wall-frame-radius: 16px;
+}
+
+/* Paint the frame shadow above the chrome and footer's scroll-gutter masks. */
+.wall-preview-canvas > .wall-preview-frame::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 61;
+  pointer-events: none;
+  border-radius: var(--wall-frame-radius);
+  box-shadow:
+    0 12px 24px -8px rgb(0 0 0 / 18%),
+    0 2px 8px rgb(0 0 0 / 8%);
 }
 
 .wall-preview-scroll {

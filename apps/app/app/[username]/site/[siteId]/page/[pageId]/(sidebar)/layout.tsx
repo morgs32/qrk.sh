@@ -185,7 +185,7 @@ export default function WorkspacePanelControls(props: {
     <WorkspaceSidebar
       controls={
         <>
-          {showPageControls && (
+          {showPageControls ? (
             <Select items={items} value={tab} onValueChange={selectSection}>
               <SelectTrigger
                 aria-label="Page controls"
@@ -202,6 +202,10 @@ export default function WorkspacePanelControls(props: {
                 ))}
               </SelectContent>
             </Select>
+          ) : (
+            <h2 className="hidden text-xs font-medium lg:block">
+              {sections.find(({ value }) => value === tab)?.label}
+            </h2>
           )}
           {actions}
         </>

@@ -558,9 +558,10 @@ gutters remain available to editor controls, and sections do not clip overflow.
 The editor's full-width scroll region is the only preview scroll container.
 `BrowserChrome` renders only the 48px browser bar, sticky at the top of that
 region, with its own real top border and bottom divider. The optional sticky
-site navbar sits below it. The full frame has no border or ring; browser/footer
-corners remain rounded without clipping descendants. The footer remains part
-of WallEditor and is 64px tall.
+site navbar sits below it. A soft shadow follows the frame's rounded corners
+without clipping descendants. The footer remains part
+of WallEditor and is 64px tall. The floating toolbar straddles the frame's
+bottom edge when the preview fits or is scrolled to the bottom.
 Stack and placed-Brick action bars stick below the browser bar and any sticky
 navbar while their owner remains visible. The Move Brick grip uses the same
 height as the Stack and Row controls. Full-height, pointer-transparent hosts

@@ -34,7 +34,7 @@ export function WorkspaceSidebar(props: { controls: ReactNode; children: ReactNo
       <header className="flex shrink-0 items-center gap-1 border-b border-sidebar-border px-3 py-2">
         {controls}
       </header>
-      <div className="@container/workspace flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto max-lg:pb-16">
+      <div className="@container/workspace flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto">
         {children}
       </div>
     </aside>

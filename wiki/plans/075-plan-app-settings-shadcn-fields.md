@@ -27,15 +27,14 @@ upload flows, publish selection, and command payloads.
 3. In [Site Settings](<../../apps/app/app/[username]/site/[siteId]/page/[pageId]/SiteSettings/SiteSettings.tsx#L199-L499>),
    replace calls to the old FieldLabel with the registry Field parts. Wire
    Cards, Brick gap, and Sticky navbar help to their controls by ID. Apply
-   Field to Site name and Description. Use visible headings for Logo,
-   Favicon, Social Preview, QR Code, Share URL, Preview, and Unpublish.
-   Associate Logo, Favicon, and Social Preview help with their existing
-   action buttons. Leave the three hidden native file inputs with their
-   ref-driven picker triggers. Retain the current narrow sidebar layouts
+   Field to Site name and Description. Use StudioSidebar headings and
+   dividers. Use visible Bricks file inputs for Logo and both favicons,
+   associate their help by ID, and place the browser chrome previews below
+   the favicon inputs. Retain the narrow sidebar layout
    and form-level save error. Remove `field-label.tsx` after its last caller.
 4. Replace the [Brick gap range](<../../apps/app/app/[username]/site/[siteId]/page/[pageId]/SiteSettings/SiteSettings.tsx#L217-L242>)
-   with a shadcn Base UI Slider in `components/ui/slider.tsx`, adapted for a
-   single named thumb. Keep min 0, max 12, step 1, live pixel output, and
+   with the shared Bricks Base UI Slider, adapted for a single named thumb.
+   Keep min 0, max 12, step 1, live pixel output, and
    the output's association with the thumb input. Put the label and help
    associations on the thumb. Replace the
    [Sticky navbar checkbox](<../../apps/app/app/[username]/site/[siteId]/page/[pageId]/SiteSettings/SiteSettings.tsx#L245-L257>)
@@ -87,9 +86,12 @@ qrk.sh/
 │       └── ui/
 │           ├── + checkbox.tsx
 │           ├── + field.tsx
-│           ├── + slider.tsx
 │           ├── ~ input.tsx
 │           └── - field-label.tsx
+├── apps/bricks/
+│   ├── ~ package.json
+│   └── src/components/
+│       └── ~ slider.tsx
 └── wiki/plans/
     └── ~ 075-plan-app-settings-shadcn-fields.md
 ```
@@ -98,7 +100,22 @@ qrk.sh/
 
 App typecheck and Storybook build passed. The new SiteTree Publish Selection story passed its checked/disabled root, accessible names, and label-click selection assertions. The slider output uses Base UI Slider.Value so its htmlFor targets the actual generated thumb input.
 
+Site Settings uses the Bricks Catalog field layout and controls for Cards,
+Brick gap, Sticky navbar, Logo, and both favicons. Site Settings uses shared
+StudioSidebar headings and full-width bottom borders. Site layout groups Cards, Brick
+gap, and Sticky navbar. Selecting a file starts the authenticated upload.
+Each successful upload updates its draft image URL and preview. Save
+persists the draft URLs, and a failed upload leaves the previous preview
+in place. Site identity is the first section, with Site name and wordmark
+and Description first. Both use Bricks labels. The name uses Bricks Input,
+Description uses Bricks TextboxInput, and form actions use Bricks Button.
+Social Preview uses Bricks ImageUploadInput with a 1200 × 630 crop frame.
+The image and crop are local to the open sidebar.
+Site V2 declares nullable `socialPreview` with the image URL and crop.
+Saving it requires a User release that binds Site V2 and its settings command.
+
 ## Remaining work
 
-1. User verification. Check the Create Site slug feedback, Page and Site Settings fields, Brick gap keyboard and readout, Sticky navbar, Publish selection, file pickers, and the narrow sidebar.
-2. Archive after verification.
+1. User verification. Check the Create Site slug feedback, Page and Site Settings fields, Brick gap keyboard and readout, Sticky navbar, Publish selection, and the narrow sidebar.
+2. In Site Settings, verify the three native file pickers, favicon previews below the controls, pending Save state, upload errors and retry, and Save and Cancel after upload.
+3. Archive after verification.

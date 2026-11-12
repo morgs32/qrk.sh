@@ -1,4 +1,4 @@
-import { ContractError, upgradeAggregateExternalContractRelease } from "@zerospin/sdk";
+import { DownAdapterRefused, upgradeAggregateExternalContractRelease } from "@zerospin/sdk";
 import { Effect, Schema } from "effect";
 import { makeZerospinError } from "@zerospin/error";
 import { newHttpBatchRpcSession } from "capnweb";
@@ -84,12 +84,7 @@ export const generateBrickSpecExternalV5 = upgradeAggregateExternalContractRelea
     down: Effect.fn("generateBrickSpecExternalV5.down")(function* (props) {
       const { payload, externalOutcome } = props;
       if (payload.moduleId === "behance" || payload.moduleId === "buy-me-a-coffee")
-        return yield* new ContractError({
-          code: "brick-module-release-required",
-          message: "This Brick module requires User release 12.",
-          status: 409,
-          extra: null,
-        });
+        return DownAdapterRefused;
       return { payload: { ...payload, moduleId: payload.moduleId }, externalOutcome };
     }),
   },

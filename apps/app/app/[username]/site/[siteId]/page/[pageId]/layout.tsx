@@ -11,12 +11,11 @@ import { SWRConfig } from "swr";
 import { siteV1 as Site } from "@qrk.sh/zerospin/src/aggregates/user/models/site/SiteV1";
 import { pageV1 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV1";
 import { PREVIEW_BORDER_WIDTH } from "../../../../../../lib/breakpoints";
-import { Header } from "../../../../Header";
 import { Toolbars } from "../../Toolbars/Toolbars";
 import WorkspacePanelControls from "./(sidebar)/layout";
 import { BrickAutosaveContext } from "./BrickAutosaveContext";
+import { PageEditorNavbar } from "./PageEditorNavbar";
 import { PagePreview } from "./PagePreview";
-import { PublishSiteDialog } from "./PublishSiteDialog";
 import { useBreakpointGuard } from "./useBreakpointGuard";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
 import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
@@ -258,9 +257,7 @@ export default function PageLayout(props: { children: ReactNode }) {
     <SWRConfig value={{ uploadImage }}>
       <BrickAutosaveContext value={{ registerBrickFlush, flushBrick, flushPageEditors }}>
         <div className="flex h-full min-h-0 flex-col overflow-hidden">
-          <Header>
-            {!site.isPublished && <PublishSiteDialog siteId={params.siteId} />}
-          </Header>
+          <PageEditorNavbar username={username} siteId={siteId} isPublished={site.isPublished} />
           <div className="relative isolate flex min-h-0 min-w-0 flex-1 overflow-hidden">
             <title>
               {pageTitle === "" ? `[Editing] ${siteName}` : `[Editing] ${siteName} - ${pageTitle}`}

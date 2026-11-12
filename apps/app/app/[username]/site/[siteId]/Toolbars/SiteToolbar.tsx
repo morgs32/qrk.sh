@@ -3,7 +3,7 @@
 import { Schema } from "effect";
 import { motion, useReducedMotion } from "framer-motion";
 import { useMemo } from "react";
-import { ArrowLeft, File, Globe, Plus, RectangleHorizontal } from "lucide-react";
+import { File, Globe, Plus, RectangleHorizontal } from "lucide-react";
 import { WallPreviewToolbar } from "./WallPreviewToolbar";
 import { useSearch } from "@tanstack/react-router";
 import { makeIdSchema } from "@zerospin/sdk/browser";
@@ -50,15 +50,6 @@ export function SiteToolbar() {
         aria-label="Page controls"
         className="border-border/80 bg-background shadow-md"
       >
-        <ToolbarButton
-          label="Exit"
-          icon={<ArrowLeft className="h-3.5 w-3.5" />}
-          link={{ to: "/$username", params: { username } }}
-          className="h-7 gap-1.5 px-2 text-[13px] font-normal text-muted-foreground hover:text-foreground"
-        />
-
-        <ToolbarSeparator />
-
         <ToolbarButton
           label="Bricks"
           icon={<Plus className="h-3.5 w-3.5" />}

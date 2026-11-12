@@ -1,4 +1,3 @@
-import { Separator } from "./separator";
 import { type ReactNode, useId } from "react";
 
 export function StudioSidebar(
@@ -36,20 +35,21 @@ export function StudioSidebar(
       className={
         embedded
           ? "flex min-w-0 flex-col"
-          : "flex w-[260px] max-w-full flex-col border-l border-sidebar-border bg-white"
+          : "flex w-[300px] max-w-full flex-col border-l border-sidebar-border bg-white"
       }
       aria-label={label}
     >
       {sections.map(({ title, content }, index) => (
-        <div key={title}>
-          {index > 0 && <Separator className="bg-sidebar-border" />}
-          <section aria-labelledby={`${id}-${index}`} className="flex flex-col gap-2 py-3">
-            <h2 id={`${id}-${index}`} className="flex h-7 items-center px-3 text-xs font-medium">
-              {title}
-            </h2>
-            <div className="grid gap-3 px-3">{content}</div>
-          </section>
-        </div>
+        <section
+          key={title}
+          aria-labelledby={`${id}-${index}`}
+          className="flex flex-col gap-2 border-b border-sidebar-border py-3"
+        >
+          <h2 id={`${id}-${index}`} className="flex h-7 items-center px-3 text-xs font-medium">
+            {title}
+          </h2>
+          <div className="grid gap-3 px-3">{content}</div>
+        </section>
       ))}
     </Panel>
   );

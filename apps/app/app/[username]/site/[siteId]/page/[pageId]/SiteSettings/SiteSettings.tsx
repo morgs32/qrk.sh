@@ -8,24 +8,34 @@ import { stageAggregateSessionCommand } from "@zerospin/sdk/browser";
 import { useAuth } from "@clerk/react";
 import { Slider as SliderPrimitive } from "@base-ui/react/slider";
 import { ClerkOfflineError } from "@clerk/react/errors";
+import { Button } from "@qrk.sh/bricks/components/button";
+import { Checkbox } from "@qrk.sh/bricks/components/checkbox";
+import { CroppedImage } from "@qrk.sh/bricks/components/CroppedImage";
+import {
+  Field as BrickField,
+  FieldContent,
+  FieldDescription as BrickFieldDescription,
+  FieldError as BrickFieldError,
+  FieldLabel as BrickFieldLabel,
+} from "@qrk.sh/bricks/components/field";
+import { Input } from "@qrk.sh/bricks/components/Input";
+import { ImageUploadInput } from "@qrk.sh/bricks/components/ImageUploadInput";
+import { Slider } from "@qrk.sh/bricks/components/slider";
+import { StudioSidebar } from "@qrk.sh/bricks/components/StudioSidebar";
+import { TextboxInput } from "@qrk.sh/bricks/components/TextboxInput";
 
 import { Schema } from "effect";
-import { useNavigate, useSearch } from "@tanstack/react-router";
 import { isEqual } from "es-toolkit";
-import { useMemo, useRef, useState } from "react";
-import { toast } from "sonner";
+import { X } from "lucide-react";
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import useSWR from "swr";
 
 import { CopyButton } from "./CopyButton";
 import { SearchPreviewCard } from "../SearchPreviewCard";
 
 import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
-import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
-import { Field, FieldDescription, FieldError, FieldLabel } from "@/components/ui/field";
-import { Slider } from "@/components/ui/slider";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import { FieldError } from "@/components/ui/field";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useUsername } from "@/hooks/useUsername";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
@@ -37,14 +47,20 @@ const ParamsSchema = Schema.Struct({
   pageId: Schema.String,
 });
 
-const IMAGE_ACCEPT = "image/png,image/jpeg,image/webp,image/svg+xml";
+const siteImageFields = [
+  { field: "logoUrl", label: "Logo", description: "PNG or SVG, up to 48px tall recommended" },
+  { field: "faviconLightUrl", label: "Light favicon", description: "64 × 64 pixels" },
+  { field: "faviconDarkUrl", label: "Dark favicon", description: "64 × 64 pixels" },
+] as const;
+const siteImageTypes = ["image/png", "image/jpeg", "image/webp", "image/svg+xml"];
 
 async function uploadSiteImage(props: {
   file: File;
   siteId: string;
   sessionToken: string;
+  signal: AbortSignal;
 }): Promise<{ url: string }> {
-  const { file, siteId, sessionToken } = props;
+  const { file, siteId, sessionToken, signal } = props;
   const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
   if (!apiBaseUrl) {
     throw new Error("NEXT_PUBLIC_API_URL is required");
@@ -56,6 +72,7 @@ async function uploadSiteImage(props: {
 
   const response = await fetch(`${apiBaseUrl.replace(/\/$/, "")}/upload`, {
     method: "POST",
+    signal,
     headers: {
       Authorization: `Bearer ${sessionToken}`,
     },
@@ -95,8 +112,11 @@ export function SiteSettings(props: {
   const { getToken } = useAuth();
   const session = useSession(userSessionDefinition);
   const siteId = site.id;
-  const navigate = useNavigate();
-  const search = useSearch({ from: "/$username/site/$siteId/page/$pageId" });
+  const formId = useId();
+  const [saveSlot, setSaveSlot] = useState<HTMLElement | null>(null);
+  useLayoutEffect(() => {
+    setSaveSlot(document.getElementById("site-settings-save-slot"));
+  }, []);
   const [fields, setFields] = useState(() => ({
     name: site.name,
     description: site.description,
@@ -108,6 +128,19 @@ export function SiteSettings(props: {
     stickyNavbar: site.stickyNavbar,
   }));
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [socialPreview, setSocialPreview] = useState<{
+    imageUrl: string;
+    crop: Parameters<typeof CroppedImage>[0]["crop"] | null;
+  }>({ imageUrl: "", crop: null });
+  const socialPreviewObjectUrl = useRef<string>(null);
+  useEffect(
+    () => () => {
+      if (socialPreviewObjectUrl.current !== null) {
+        URL.revokeObjectURL(socialPreviewObjectUrl.current);
+      }
+    },
+    [],
+  );
   const isDirty = !isEqual(fields, {
     name: site.name,
     description: site.description,
@@ -118,10 +151,11 @@ export function SiteSettings(props: {
     brickGap: site.brickGap,
     stickyNavbar: site.stickyNavbar,
   });
-  const logoInputRef = useRef<HTMLInputElement>(null);
-  const faviconLightInputRef = useRef<HTMLInputElement>(null);
-  const faviconDarkInputRef = useRef<HTMLInputElement>(null);
-  const [isUploading, setIsUploading] = useState(false);
+  const uploadRequest = useRef<AbortController | null>(null);
+  const [uploadingField, setUploadingField] = useState<string | null>(null);
+  const [uploadErrors, setUploadErrors] = useState<Record<string, string | undefined>>({});
+  const isUploading = uploadingField !== null;
+  useEffect(() => () => uploadRequest.current?.abort(), []);
   useWarnBeforeUnload(isDirty || isUploading);
   const publishedUrl = useMemo(() => {
     const pathname = `/${encodeURIComponent(username)}/${encodeURIComponent(siteId)}`;
@@ -143,41 +177,61 @@ export function SiteSettings(props: {
     });
   });
 
-  const runUpload = async (props: { file: File | undefined; onUrl: (url: string) => void }) => {
-    const { file, onUrl } = props;
-    if (file === undefined) {
+  const runUpload = async (file: File, field: (typeof siteImageFields)[number]["field"]) => {
+    if (uploadRequest.current !== null) return;
+    if (file.size === 0 || file.size > 5 * 1024 * 1024 || !siteImageTypes.includes(file.type)) {
+      setUploadErrors((current) => ({
+        ...current,
+        [field]: "Choose a PNG, JPEG, WebP, or SVG image up to 5 MiB.",
+      }));
       return;
     }
 
-    setIsUploading(true);
+    const request = new AbortController();
+    uploadRequest.current = request;
+    const { signal } = request;
+    setUploadingField(field);
+    setUploadErrors((current) => ({ ...current, [field]: undefined }));
     try {
+      const localUrl = URL.createObjectURL(file);
+      try {
+        const image = new Image();
+        image.src = localUrl;
+        await image.decode();
+      } catch {
+        throw new Error("This image could not be loaded. Choose another file.");
+      } finally {
+        URL.revokeObjectURL(localUrl);
+      }
+      signal.throwIfAborted();
       const sessionToken = await getToken().catch((cause) => {
         if (ClerkOfflineError.is(cause)) throw new Error("Clerk is offline");
         throw cause;
       });
-      if (sessionToken === null) {
-        toast.error("Sign in to upload images");
-        return;
-      }
-      const result = await uploadSiteImage({
-        file,
-        siteId: params.siteId,
-        sessionToken,
-      });
-      onUrl(result.url);
+      if (sessionToken === null) throw new Error("Sign in to upload images");
+      signal.throwIfAborted();
+      const { url } = await uploadSiteImage({ file, siteId: params.siteId, sessionToken, signal });
+      signal.throwIfAborted();
+      setFields((current) => ({ ...current, [field]: url }));
     } catch (cause) {
-      toast.error(cause instanceof Error ? cause.message : "Upload failed");
+      if (!signal.aborted) {
+        const message = cause instanceof Error ? cause.message : "Image upload failed.";
+        setUploadErrors((current) => ({ ...current, [field]: message }));
+      }
     } finally {
-      setIsUploading(false);
+      uploadRequest.current = null;
+      if (!signal.aborted) setUploadingField(null);
     }
   };
 
   return (
     <form
+      id={formId}
       autoComplete="off"
       className="w-full"
       onSubmit={(event) => {
         event.preventDefault();
+        if (uploadRequest.current !== null) return;
         setSaveError(null);
         const result = stageAggregateSessionCommand({
           session,
@@ -197,340 +251,336 @@ export function SiteSettings(props: {
         if (result._tag === "Failure") setSaveError(result.failure.message);
       }}
     >
-      <div className="grid grid-cols-2 items-start gap-x-6 gap-y-8 px-4 py-6 md:gap-x-8 @max-sm/workspace:[[data-workspace-sidebar]_&]:grid-cols-1">
-        <Field orientation="horizontal" className="col-start-1 justify-between gap-4">
-          <div className="space-y-1">
-            <FieldLabel htmlFor="site-card-style" className="text-base">
-              Cards
-            </FieldLabel>
-            <FieldDescription id="site-card-style-help">Show each brick as a card</FieldDescription>
-          </div>
-          <Switch
-            id="site-card-style"
-            aria-describedby="site-card-style-help"
-            checked={fields.cardStyle}
-            onCheckedChange={(cardStyle) => setFields({ ...fields, cardStyle })}
-          />
-        </Field>
-
-        <Field
-          orientation="horizontal"
-          className="col-start-1 justify-between gap-4 @max-sm/workspace:[[data-workspace-sidebar]_&]:flex-col @max-sm/workspace:[[data-workspace-sidebar]_&]:items-stretch"
-        >
-          <div className="space-y-1">
-            <FieldLabel id="site-brick-gap-label" className="text-base">
-              Brick gap
-            </FieldLabel>
-            <FieldDescription id="site-brick-gap-help">
-              Space between bricks, from 0 to 12 pixels
-            </FieldDescription>
-          </div>
-          <Slider
-            className="flex w-44 max-w-full shrink-0 items-center gap-3"
-            thumbLabelledBy="site-brick-gap-label"
-            thumbDescribedBy="site-brick-gap-help"
-            min={0}
-            max={12}
-            step={1}
-            value={fields.brickGap}
-            onValueChange={(brickGap) => setFields({ ...fields, brickGap })}
-          >
-            <SliderPrimitive.Value className="w-10 shrink-0 text-right text-sm tabular-nums">
-              {(_formattedValues, [brickGap]) => `${brickGap}px`}
-            </SliderPrimitive.Value>
-          </Slider>
-        </Field>
-
-        <Field orientation="horizontal" className="col-start-1 justify-between gap-4">
-          <div className="space-y-1">
-            <FieldLabel htmlFor="site-sticky-navbar" className="text-base">
-              Sticky navbar
-            </FieldLabel>
-            <FieldDescription id="site-sticky-navbar-help">
-              Keep the navbar visible while scrolling
-            </FieldDescription>
-          </div>
-          <Switch
-            id="site-sticky-navbar"
-            aria-describedby="site-sticky-navbar-help"
-            checked={fields.stickyNavbar}
-            onCheckedChange={(stickyNavbar) => setFields({ ...fields, stickyNavbar })}
-          />
-        </Field>
-
-        <div className="contents">
-          <div className="col-start-1 flex min-w-0 flex-col gap-4">
-            <div className="space-y-1">
-              <h3 className="font-medium">Logo</h3>
-              <FieldDescription id="site-logo-help">
-                PNG or SVG; height up to 48px recommended
-              </FieldDescription>
-            </div>
-            <div className="flex flex-col items-start gap-4">
-              <input
-                ref={logoInputRef}
-                type="file"
-                accept={IMAGE_ACCEPT}
-                className="hidden"
-                onChange={(event) => {
-                  const file = event.target.files?.[0];
-                  event.target.value = "";
-                  void runUpload({
-                    file,
-                    onUrl: (logoUrl) => setFields((current) => ({ ...current, logoUrl })),
-                  });
-                }}
-              />
-              <Button
-                type="button"
-                variant="outline"
-                disabled={isUploading}
-                aria-describedby="site-logo-help"
-                onClick={() => logoInputRef.current?.click()}
-              >
-                Upload
-              </Button>
-              <div className="relative flex w-full max-w-[375px] min-h-16 items-center justify-center overflow-hidden rounded-md border bg-muted">
-                {fields.logoUrl.length > 0 ? (
-                  <img
-                    src={fields.logoUrl}
-                    alt="Site logo"
-                    className="max-h-12 w-auto object-contain"
-                  />
-                ) : (
-                  <span className="text-sm text-muted-foreground">Logo</span>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <div className="flex min-w-0 flex-col gap-4">
-            <div className="space-y-1">
-              <h3 className="font-medium">Favicon</h3>
-              <FieldDescription id="site-favicon-help">64 × 64 pixels</FieldDescription>
-            </div>
-            <div className="flex flex-wrap justify-start gap-4">
-              <div className="flex flex-col items-start gap-2">
-                <span className="text-xs text-muted-foreground">Light</span>
-                <input
-                  ref={faviconLightInputRef}
-                  type="file"
-                  accept={IMAGE_ACCEPT}
-                  className="hidden"
-                  onChange={(event) => {
-                    const file = event.target.files?.[0];
-                    event.target.value = "";
-                    void runUpload({
-                      file,
-                      onUrl: (faviconLightUrl) =>
-                        setFields((current) => ({ ...current, faviconLightUrl })),
-                    });
-                  }}
-                />
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  disabled={isUploading}
-                  aria-describedby="site-favicon-help"
-                  onClick={() => faviconLightInputRef.current?.click()}
-                >
-                  Upload
-                </Button>
-                <div className="flex w-36 flex-col overflow-hidden rounded-md border bg-muted/30">
-                  <div className="flex items-center gap-1 border-b bg-background px-2 py-1.5">
-                    {fields.faviconLightUrl.length > 0 ? (
-                      <img
-                        src={fields.faviconLightUrl}
-                        alt="Light favicon"
-                        className="size-4 shrink-0 rounded-sm object-cover"
-                      />
-                    ) : (
-                      <div className="size-4 shrink-0 rounded-sm bg-muted" />
-                    )}
-                    <div className="h-2 min-w-0 flex-1 rounded bg-muted/80" />
-                  </div>
-                  <div className="h-16 bg-background" />
-                </div>
-              </div>
-              <div className="flex flex-col items-start gap-2">
-                <span className="text-xs text-muted-foreground">Dark</span>
-                <input
-                  ref={faviconDarkInputRef}
-                  type="file"
-                  accept={IMAGE_ACCEPT}
-                  className="hidden"
-                  onChange={(event) => {
-                    const file = event.target.files?.[0];
-                    event.target.value = "";
-                    void runUpload({
-                      file,
-                      onUrl: (faviconDarkUrl) =>
-                        setFields((current) => ({ ...current, faviconDarkUrl })),
-                    });
-                  }}
-                />
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  disabled={isUploading}
-                  aria-describedby="site-favicon-help"
-                  onClick={() => faviconDarkInputRef.current?.click()}
-                >
-                  Upload
-                </Button>
-                <div className="flex w-36 flex-col overflow-hidden rounded-md border bg-muted/30">
-                  <div className="flex items-center gap-1 border-b bg-zinc-900 px-2 py-1.5">
-                    {fields.faviconDarkUrl.length > 0 ? (
-                      <img
-                        src={fields.faviconDarkUrl}
-                        alt="Dark favicon"
-                        className="size-4 shrink-0 rounded-sm object-cover"
-                      />
-                    ) : (
-                      <div className="size-4 shrink-0 rounded-sm bg-zinc-700" />
-                    )}
-                    <div className="h-2 min-w-0 flex-1 rounded bg-zinc-600" />
-                  </div>
-                  <div className="h-16 bg-zinc-950" />
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="contents">
-          <Field>
-            <FieldLabel htmlFor="site-name-and-wordmark" className="text-base">
-              Site name and wordmark
-            </FieldLabel>
-            <Input
-              id="site-name-and-wordmark"
-              value={fields.name}
-              onChange={(event) => setFields({ ...fields, name: event.target.value })}
-            />
-          </Field>
-
-          <Field>
-            <FieldLabel htmlFor="site-description" className="text-base">
-              Description
-            </FieldLabel>
-            <Textarea
-              id="site-description"
-              value={fields.description}
-              onChange={(event) => setFields({ ...fields, description: event.target.value })}
-            />
-          </Field>
-        </div>
-
-        <div className="flex min-w-0 flex-col gap-4">
-          <div className="space-y-1">
-            <h3 className="font-medium">Social Preview</h3>
-            <FieldDescription id="site-social-preview-help">1200 × 630 pixels</FieldDescription>
-          </div>
-          <div className="flex flex-col items-start gap-4">
-            <Button type="button" variant="outline" aria-describedby="site-social-preview-help">
-              Upload
-            </Button>
-            <div className="relative w-full max-w-[375px] overflow-hidden rounded-md border bg-muted">
-              <div className="relative aspect-[375/197] w-full">
-                <img
-                  src="/assets/site-settings-social-preview.png"
-                  alt="Social preview"
-                  style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
-                  className="object-cover"
-                  sizes="(max-width: 767px) 100vw, 375px"
-                  loading="eager"
-                  fetchPriority="high"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="contents">
-          <div className="flex min-w-0 flex-col gap-2">
-            <h3 className="font-medium">QR Code</h3>
-            <div className="relative h-40 w-40 shrink-0 overflow-hidden rounded-md border bg-background">
-              {qrDataUrl ? (
-                <img
-                  loading="lazy"
-                  src={qrDataUrl}
-                  alt="Published URL QR code"
-                  className="h-full w-full object-contain"
-                  width={256}
-                  height={256}
-                />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center text-sm text-muted-foreground">
-                  Generating…
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="flex min-w-0 flex-col gap-2">
-            <h3 className="font-medium">Share URL</h3>
-            <div className="flex min-w-0 items-center gap-2">
-              <div className="min-w-0 flex-1 truncate rounded-md border bg-muted/30 px-3 py-2 font-mono text-xs text-foreground">
-                {publishedUrl}
-              </div>
-              <TooltipProvider delay={0}>
-                <CopyButton text={publishedUrl} />
-              </TooltipProvider>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-2">
-          <h3 className="font-medium">Preview</h3>
-          <SearchPreviewCard
-            title={fields.name}
-            url={publishedUrlDisplay}
-            description={fields.description}
-            faviconSrc={fields.faviconLightUrl.length > 0 ? fields.faviconLightUrl : undefined}
-          />
-        </div>
-
-        {saveError === null ? null : <FieldError className="col-span-full">{saveError}</FieldError>}
-        <div className="col-span-full flex items-center gap-2">
-          <Button type="submit" disabled={!isDirty || isUploading}>
+      {saveSlot &&
+        createPortal(
+          <Button type="submit" form={formId} size="sm" disabled={!isDirty || isUploading}>
             Save
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => {
-              void navigate({
-                to: "/$username/site/$siteId/page/$pageId",
-                params,
-                search: { breakpoint: search.breakpoint },
-                resetScroll: false,
-              });
-            }}
-          >
-            Cancel
-          </Button>
+          </Button>,
+          saveSlot,
+        )}
+      {saveError === null ? null : (
+        <div className="sticky top-0 z-10 bg-background px-3 py-2">
+          <FieldError>{saveError}</FieldError>
         </div>
+      )}
+      <StudioSidebar
+        embedded
+        label="Site settings"
+        sections={[
+          {
+            title: "Site identity",
+            content: (
+              <>
+                <BrickField orientation="horizontal">
+                  <BrickFieldLabel htmlFor="site-name-and-wordmark">Site name</BrickFieldLabel>
+                  <Input
+                    id="site-name-and-wordmark"
+                    value={fields.name}
+                    onChange={(event) => setFields({ ...fields, name: event.target.value })}
+                  />
+                </BrickField>
 
-        <div className="col-span-full flex flex-col items-start gap-4">
-          <div className="min-w-0 space-y-1">
-            <h3 className="font-medium">Danger Zone</h3>
-            <FieldDescription id="site-unpublish-help">
-              Unpublish your website from all domains.
-            </FieldDescription>
-          </div>
-          <Button
-            type="button"
-            variant="destructive"
-            aria-describedby="site-unpublish-help"
-            disabled
-          >
-            Unpublish
-          </Button>
-        </div>
-      </div>
+                <BrickField orientation="horizontal">
+                  <BrickFieldLabel htmlFor="site-description">Description</BrickFieldLabel>
+                  <TextboxInput
+                    id="site-description"
+                    value={fields.description}
+                    onChange={(event) => setFields({ ...fields, description: event.target.value })}
+                  />
+                </BrickField>
+
+                {siteImageFields.map(({ field, label, description }) => {
+                  const id = `site-${field}`;
+                  const imageUrl = fields[field];
+                  const error = uploadErrors[field];
+                  const dark = field === "faviconDarkUrl";
+                  return (
+                    <BrickField key={field} orientation="horizontal">
+                      <BrickFieldLabel htmlFor={id}>{label}</BrickFieldLabel>
+                      <FieldContent>
+                        <Input
+                          id={id}
+                          type="file"
+                          accept={siteImageTypes.join(",")}
+                          disabled={isUploading}
+                          aria-invalid={error !== undefined || undefined}
+                          aria-describedby={
+                            error === undefined ? `${id}-help` : `${id}-help ${id}-error`
+                          }
+                          onChange={(event) => {
+                            const { currentTarget } = event;
+                            const file = currentTarget.files?.[0];
+                            if (file === undefined) return;
+                            currentTarget.value = "";
+                            void runUpload(file, field);
+                          }}
+                        />
+                        {field === "logoUrl" ? (
+                          imageUrl && (
+                            <img
+                              src={imageUrl}
+                              alt="Current site logo"
+                              className="max-h-12 w-fit max-w-full object-contain"
+                            />
+                          )
+                        ) : (
+                          <span
+                            aria-hidden="true"
+                            className="flex w-24 min-w-0 flex-col overflow-hidden rounded-md border"
+                          >
+                            <span
+                              className={`flex items-center gap-1 border-b px-1.5 py-1 ${dark ? "bg-zinc-900" : "bg-background"}`}
+                            >
+                              {imageUrl ? (
+                                <img
+                                  src={imageUrl}
+                                  alt=""
+                                  className="size-4 rounded-sm object-cover"
+                                />
+                              ) : (
+                                <span
+                                  className={`size-4 shrink-0 rounded-sm ${dark ? "bg-zinc-700" : "bg-muted"}`}
+                                />
+                              )}
+                              <span
+                                className={`h-2 min-w-0 flex-1 rounded ${dark ? "bg-zinc-600" : "bg-muted/80"}`}
+                              />
+                            </span>
+                            <span className={`h-7 ${dark ? "bg-zinc-950" : "bg-background"}`} />
+                          </span>
+                        )}
+                        <BrickFieldDescription id={`${id}-help`}>
+                          {description}
+                        </BrickFieldDescription>
+                        {uploadingField === field && (
+                          <BrickFieldDescription role="status">Uploading…</BrickFieldDescription>
+                        )}
+                        {error !== undefined && (
+                          <BrickFieldError id={`${id}-error`}>{error}</BrickFieldError>
+                        )}
+                      </FieldContent>
+                    </BrickField>
+                  );
+                })}
+              </>
+            ),
+          },
+          {
+            title: "Site layout",
+            content: (
+              <>
+                <BrickField orientation="horizontal">
+                  <BrickFieldLabel htmlFor="site-card-style">Cards</BrickFieldLabel>
+                  <FieldContent>
+                    <Checkbox
+                      id="site-card-style"
+                      className="mt-1.5"
+                      aria-describedby="site-card-style-help"
+                      checked={fields.cardStyle}
+                      onCheckedChange={(cardStyle) =>
+                        setFields((current) => ({ ...current, cardStyle }))
+                      }
+                    />
+                    <BrickFieldDescription id="site-card-style-help">
+                      Show each brick as a card
+                    </BrickFieldDescription>
+                  </FieldContent>
+                </BrickField>
+
+                <BrickField orientation="horizontal">
+                  <BrickFieldLabel id="site-brick-gap-label">Brick gap</BrickFieldLabel>
+                  <FieldContent>
+                    <Slider
+                      className="flex items-center gap-2"
+                      thumbAlignment="edge"
+                      thumbLabelledBy="site-brick-gap-label"
+                      thumbDescribedBy="site-brick-gap-help"
+                      min={0}
+                      max={12}
+                      step={1}
+                      value={fields.brickGap}
+                      onValueChange={(brickGap) =>
+                        setFields((current) => ({ ...current, brickGap }))
+                      }
+                    >
+                      <SliderPrimitive.Value className="w-7 shrink-0 text-right text-xs tabular-nums">
+                        {(_formattedValues, [brickGap]) => `${brickGap}px`}
+                      </SliderPrimitive.Value>
+                    </Slider>
+                    <BrickFieldDescription id="site-brick-gap-help">
+                      Space between bricks, from 0 to 12 pixels
+                    </BrickFieldDescription>
+                  </FieldContent>
+                </BrickField>
+
+                <BrickField orientation="horizontal">
+                  <BrickFieldLabel htmlFor="site-sticky-navbar">Sticky navbar</BrickFieldLabel>
+                  <FieldContent>
+                    <Checkbox
+                      id="site-sticky-navbar"
+                      className="mt-1.5"
+                      aria-describedby="site-sticky-navbar-help"
+                      checked={fields.stickyNavbar}
+                      onCheckedChange={(stickyNavbar) =>
+                        setFields((current) => ({ ...current, stickyNavbar }))
+                      }
+                    />
+                    <BrickFieldDescription id="site-sticky-navbar-help">
+                      Keep the navbar visible while scrolling
+                    </BrickFieldDescription>
+                  </FieldContent>
+                </BrickField>
+              </>
+            ),
+          },
+          {
+            title: "Social Preview",
+            content: (
+              <>
+                <ImageUploadInput
+                  label="Social image"
+                  description="1200 × 630 pixels. Preview only."
+                  imageUrl={socialPreview.imageUrl}
+                  crop={socialPreview.crop}
+                  getFrameAspectRatio={() => 1200 / 630}
+                  onApply={(source) => {
+                    const objectUrl = socialPreviewObjectUrl.current;
+                    if (objectUrl !== null && objectUrl !== source.imageUrl) {
+                      URL.revokeObjectURL(objectUrl);
+                      socialPreviewObjectUrl.current = null;
+                    }
+                    setSocialPreview(source);
+                  }}
+                  uploadImage={async (file, { signal }) => {
+                    signal.throwIfAborted();
+                    if (socialPreviewObjectUrl.current !== null) {
+                      URL.revokeObjectURL(socialPreviewObjectUrl.current);
+                    }
+                    socialPreviewObjectUrl.current = URL.createObjectURL(file);
+                    return socialPreviewObjectUrl.current;
+                  }}
+                />
+                {socialPreview.imageUrl && (
+                  <div className="relative aspect-[1200/630] w-full overflow-hidden rounded-md border bg-muted">
+                    <CroppedImage
+                      key={socialPreview.imageUrl}
+                      src={socialPreview.imageUrl}
+                      alt="Social preview"
+                      crop={socialPreview.crop ?? { x: 0.5, y: 0.5, zoom: 1 }}
+                    />
+                  </div>
+                )}
+              </>
+            ),
+          },
+          {
+            title: "Sharing",
+            content: (
+              <>
+                <BrickField orientation="horizontal" aria-labelledby="site-share-url-label">
+                  <span
+                    id="site-share-url-label"
+                    className="flex min-h-7 items-center text-xs font-medium text-muted-foreground"
+                  >
+                    Share URL
+                  </span>
+                  <div className="flex min-w-0 items-center gap-2">
+                    <div className="min-w-0 flex-1 truncate rounded-md border bg-muted/30 px-3 py-2 font-mono text-xs text-foreground">
+                      {publishedUrl}
+                    </div>
+                    <TooltipProvider delay={0}>
+                      <CopyButton text={publishedUrl} />
+                    </TooltipProvider>
+                  </div>
+                </BrickField>
+                <BrickField orientation="horizontal" aria-labelledby="site-qr-code-label">
+                  <span
+                    id="site-qr-code-label"
+                    className="flex min-h-7 items-center text-xs font-medium text-muted-foreground"
+                  >
+                    QR Code
+                  </span>
+                  <FieldContent>
+                    <div className="aspect-square w-40 max-w-full overflow-hidden rounded-md border bg-background">
+                      {qrDataUrl ? (
+                        <img
+                          loading="lazy"
+                          src={qrDataUrl}
+                          alt="Published URL QR code"
+                          className="h-full w-full object-contain"
+                          width={256}
+                          height={256}
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center text-sm text-muted-foreground">
+                          Generating…
+                        </div>
+                      )}
+                    </div>
+                  </FieldContent>
+                </BrickField>
+              </>
+            ),
+          },
+          {
+            title: "Search result preview",
+            content: (
+              <SearchPreviewCard
+                title={fields.name}
+                url={publishedUrlDisplay}
+                description={fields.description}
+                faviconSrc={fields.faviconLightUrl.length > 0 ? fields.faviconLightUrl : undefined}
+              />
+            ),
+          },
+          {
+            title: "Browser tab preview",
+            content: (
+              <div className="overflow-hidden rounded-lg border border-sidebar-border bg-[#dbe5f5] dark:bg-zinc-900">
+                <div className="mx-2 mt-2 flex h-8 max-w-56 min-w-0 items-center gap-2 rounded-t-lg bg-[#f7faff] px-3 text-xs text-zinc-800 dark:bg-zinc-800 dark:text-zinc-100">
+                  <img
+                    src={fields.faviconLightUrl || "/favicon-light.png"}
+                    alt=""
+                    className="size-4 shrink-0 object-contain dark:hidden"
+                  />
+                  <img
+                    src={fields.faviconDarkUrl || fields.faviconLightUrl || "/favicon-light.png"}
+                    alt=""
+                    className="hidden size-4 shrink-0 object-contain dark:block"
+                  />
+                  <span className="min-w-0 flex-1 truncate">{fields.name || "Untitled site"}</span>
+                  <X aria-hidden className="size-3 shrink-0" />
+                </div>
+                <div className="h-2 bg-[#f7faff] dark:bg-zinc-800" />
+              </div>
+            ),
+          },
+          {
+            title: "Danger Zone",
+            content: (
+              <BrickField orientation="horizontal" aria-labelledby="site-publishing-label">
+                <span
+                  id="site-publishing-label"
+                  className="flex min-h-7 items-center text-xs font-medium text-muted-foreground"
+                >
+                  Publishing
+                </span>
+                <FieldContent>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="destructive"
+                    className="self-start"
+                    disabled
+                  >
+                    Unpublish
+                  </Button>
+                </FieldContent>
+              </BrickField>
+            ),
+          },
+        ]}
+      />
     </form>
   );
 }

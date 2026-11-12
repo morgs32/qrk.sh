@@ -158,6 +158,7 @@ export default function WorkspacePanelControls(props: {
           Publish
         </Button>
       ) : null}
+      {tab === "site-settings" ? <div id="site-settings-save-slot" /> : null}
       <Button
         type="button"
         variant="ghost"

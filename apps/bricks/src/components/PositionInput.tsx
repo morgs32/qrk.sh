@@ -9,7 +9,7 @@ export function PositionInput(props: {
     <div
       role="group"
       aria-label="Position"
-      className="grid grid-cols-[76px_minmax(0,1fr)_minmax(0,1fr)] items-center gap-1"
+      className="grid grid-cols-[100px_minmax(0,1fr)_minmax(0,1fr)] items-center gap-1"
     >
       <span className="text-xs font-medium text-muted-foreground">Position</span>
       <NumberInput

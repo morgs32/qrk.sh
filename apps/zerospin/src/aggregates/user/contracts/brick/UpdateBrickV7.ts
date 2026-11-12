@@ -1,4 +1,4 @@
-import { ContractError, findFirst, upgradeAggregateContractRelease } from "@zerospin/sdk/browser";
+import { ContractError, DownAdapterRefused, findFirst, upgradeAggregateContractRelease } from "@zerospin/sdk/browser";
 import { backendLibrary } from "@qrk.sh/bricks/modules/backendLibrary";
 import { makeEffectSchema } from "@zerospin/shapes";
 import { Effect, Result, Schema } from "effect";
@@ -87,12 +87,7 @@ export const updateBrickV7 = upgradeAggregateContractRelease(updateBrickV6, {
   down: Effect.fn("updateBrickV7.down")(function* (props) {
     const { payload } = props;
     if (payload.moduleId === "behance" || payload.moduleId === "buy-me-a-coffee")
-      return yield* new ContractError({
-        code: "brick-module-release-required",
-        message: "This Brick module requires User release 12.",
-        status: 409,
-        extra: null,
-      });
+      return DownAdapterRefused;
     return { ...payload, moduleId: payload.moduleId };
   }),
 });

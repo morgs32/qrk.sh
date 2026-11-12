@@ -110,10 +110,10 @@
   pointer-events: none;
 }
 
-/* Bricks, Stacks, and empty Rows share the outline paint. */
+/* Bricks, Stacks, and Rows share the outline paint. */
 .brick-hover-surface::after,
 [data-wall-stack-id]::after,
-[data-wall-row-empty]::after {
+.wall-row::after {
   --interaction-outline-width: 1px;
   --interaction-outline-outset: calc(var(--interaction-outline-width) / 2);
   content: "";
@@ -138,7 +138,7 @@
 }
 
 [data-wall-stack-id]::after,
-[data-wall-row-empty]::after {
+.wall-row::after {
   /* Keep container outlines below visible editing controls. */
   z-index: 1;
 }
@@ -151,7 +151,8 @@
 
   [data-catalog-module-id]:hover > .brick-hover-surface::after,
   .wall-placement:hover > .wall-placement-content > .brick-hover-surface::after,
-  .wall-editor:not([data-wall-resize-disabled]) [data-wall-row-empty]:hover::after,
+  .wall-editor:not([data-wall-resize-disabled])
+    .wall-row:is([data-wall-row-empty]:hover, :has(> .wall-row-menu-trigger:hover))::after,
   [data-wall-stack-id]:is([data-wall-stack-empty]:hover, :has(> * > .stack-action:hover))::after {
     opacity: 1;
   }
@@ -320,9 +321,7 @@
   position: absolute;
   z-index: 20;
   bottom: 0;
-  inset-inline-start: calc(
-    50% + var(--wall-height-resize-grip-width) / 2 + var(--wall-action-tag-inset)
-  );
+  left: 0;
 }
 
 .wall-height-resize-grip {

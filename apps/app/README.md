@@ -17,7 +17,8 @@ Close and Escape keep the current breakpoint. Open menus, popovers, dialogs,
 and Article body text selection consume Escape first. When Escape dismisses the
 sidebar from an inline Article field, it blurs the field and deselects the Brick.
 Settings and manual Brick editors provide Save and Cancel inside their forms.
-Exit and Set breakpoints are available from the floating page controls.
+Exit sits at the left edge of the editor navbar. Set breakpoints is
+available from the floating page controls.
 
 For unpublished sites, the editor navbar shows Publish beside the account
 menu. The button uses 28px height and 8px horizontal padding.

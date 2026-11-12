@@ -16,6 +16,10 @@ const breakpoints: Array<"sm" | "md" | "lg" | "xl"> = ["sm", "md", "lg", "xl"];
 export const updateBrickV6 = upgradeAggregateContractRelease(updateBrickV5, {
   version: 6,
   payload: {},
+  down: Effect.fn("updateBrickV6.down")(function* (props) {
+    const { payload } = props;
+    return payload;
+  }),
   operations: {
     updateBrick: brick.operations.update,
     updatePlacement: placement.operations.update,

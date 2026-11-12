@@ -25,7 +25,7 @@ export function Field(props: ComponentProps<"div"> & { orientation?: "vertical" 
       data-orientation={orientation}
       className={cn(
         "group/field grid w-full min-w-0",
-        orientation === "vertical" ? "gap-2" : "grid-cols-[76px_minmax(0,1fr)] items-start gap-1",
+        orientation === "vertical" ? "gap-2" : "grid-cols-[100px_minmax(0,1fr)] items-start gap-1",
         className,
       )}
       {...fieldProps}

@@ -44,11 +44,13 @@ Module forms and their lookup controls use the
 text, URL, search, and file fields and `ColorInput` for labeled hex fields
 with a color-picker popover.
 The Storybook [Form Inputs catalog](https://bricks.qrk.localhost/?path=/story/components-form-inputs--catalog)
-shows these controls alongside `NumberInput`, `PositionInput`, `SizeInput`,
+shows these controls alongside `TextboxInput`, `NumberInput`, `PositionInput`, `SizeInput`,
 `RadiusInput`, `BorderInput`, and `ShadowInput` under **Components → Form Inputs**.
+Its Site Settings section demonstrates Cards, Brick gap, Sticky navbar, and
+local image previews for the logo and light and dark favicons.
 Border and Shadow use `ColorInput` inside their shared `SwatchPopover`.
 Brick sidebar forms use [shadcn Base UI Field](https://ui.shadcn.com/docs/components/base/field)
-and `FieldGroup` from the Bricks package. Put the label beside the control and
+and `FieldGroup` from the Bricks package. Put inline labels in a 100px column beside the control and
 use `FieldContent` to stack descriptions, errors, and status below it. Text
 fields in Figma Thumbnail, Link, Instagram, GitHub Repo, GitHub Profile, and
 GitHub Activity stack their label above the control. Stacked fields leave 8px

@@ -5,7 +5,7 @@
 - Before the first repository change each day, ask the user whether to work directly on `main` or use branches and PRs.
 - Before the day's first task that requires manual verification, ask whether the user or the agent should perform it.
 - Ask both together when both apply. As soon as the user gives or changes either choice, update the dated record below in this file. Keep the current day's answers and reuse them across chats. Ask only for choices the user has yet to give that day.
-- For 2026-11-11, work directly on `main`. The user performs manual verification by default. The agent verifies Plan 068 and the Plan 070 asset move.
+- For 2026-11-11, work directly on `main`. The user performs manual verification by default. The agent verifies Plan 068, the Plan 070 asset move, and the separate page editor navbar.
 
 <!-- intent-skills:start -->
 
@@ -54,6 +54,7 @@ Review changed code and the declarations that define its guarantees:
 - Every function that accepts `props` must destructure it as the first statement (`const { foo, bar } = props;`) before doing anything else. Keep `props` as the parameter rather than destructuring in the parameter list, and use the destructured names throughout the body.
 - Use PascalCase component filenames matching the primary component, except shadcn and framework special files. Prefer one primary component per file; keep single-use route logic in its owning `page.tsx`. Preserve existing brick identity, drag, grid, and group conventions.
 - For UI work, always look for an existing shadcn-style component backed by Base UI first. If none fits, adapt shadcn's Base UI version or compose Base UI primitives with the project's existing styles. Build a custom component only when those options cannot meet the requirement.
+- **Buttons are an exception to the general UI fallback rule.** Always use an existing Bricks button component for every new or changed button control, including links presented as buttons. Import the standard `Button` from `@qrk.sh/bricks/components/button` in consumers. Never hand-build a button with `<button>`, style a link to imitate a button, or create a local substitute. If the existing Bricks components cannot meet the requirement, tell the user which shared component or variant needs to be created and get their direction before implementing the control.
 - In the wall editor, **selected** means a Brick's Edit Brick panel is open in the workspace sidebar. **Active** means DOM focus, including keyboard focus. An Article can be editable in Studio without being selected.
 - Prefer named `Effect.fn` programs for domain behavior and thin Promise boundaries. Use Effect Schema at untrusted boundaries, preserving local naming and decoding conventions. Ask before moving validation or trust boundaries between browser, server, packages, or Workers. Do not parenthesize `yield*`.
 

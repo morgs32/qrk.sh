@@ -13,6 +13,7 @@ import { makeIdSchema, stageAggregateSessionCommand } from "@zerospin/sdk/browse
 import { useLiveQuery, useSession } from "@zerospin/react";
 import { Schema } from "effect";
 import { useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 import { useValidatedParams } from "@/hooks/useValidatedParams";
 import { BrickWrapper } from "@qrk.sh/bricks/components/BrickWrapper";
@@ -44,6 +45,10 @@ export function BrickDetail() {
   const router = useRouter();
   const location = useLocation();
   const [editorEpoch, setEditorEpoch] = useState(0);
+  const [titleSlot, setTitleSlot] = useState<HTMLElement | null>(null);
+  useLayoutEffect(() => {
+    setTitleSlot(document.getElementById("edit-brick-title-slot"));
+  }, []);
   const navigationPending = useRef(false);
   const currentPlacementId = useRef<string | null>(null);
   const brickId = isBrickId(params.brickId) ? params.brickId : null;
@@ -124,27 +129,31 @@ export function BrickDetail() {
     entry === undefined ||
     view === undefined ||
     spec === undefined;
+  const title = titleSlot && createPortal(brick?.label ?? "Edit brick", titleSlot);
 
   if (unavailable) {
     return (
-      <StudioSidebar
-        embedded
-        label="Edit brick"
-        sections={[
-          {
-            title: "Brick not found",
-            content: (
-              <p className="text-muted-foreground">
-                This brick is not available in this page's current session.
-              </p>
-            ),
-          },
-        ]}
-      />
+      <>
+        {title}
+        <StudioSidebar
+          embedded
+          label="Edit brick"
+          sections={[
+            {
+              title: "Brick not found",
+              content: (
+                <p className="text-muted-foreground">
+                  This brick is not available in this page's current session.
+                </p>
+              ),
+            },
+          ]}
+        />
+      </>
     );
   }
 
-  if (brick.InlineEditor !== undefined) return null;
+  if (brick.InlineEditor !== undefined) return title;
 
   const content =
     Form !== undefined ? (
@@ -194,5 +203,13 @@ export function BrickDetail() {
       </div>
     );
 
-  return <StudioSidebar embedded label="Edit brick" sections={[{ title: brick.label, content }]} />;
+  return (
+    <>
+      {title}
+      <div>
+        <h2 className="flex h-11 items-center px-3 text-xs font-medium lg:hidden">{brick.label}</h2>
+        <div className="grid gap-3 px-3 py-3">{content}</div>
+      </div>
+    </>
+  );
 }

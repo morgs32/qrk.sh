@@ -36,9 +36,7 @@ export function WorkspaceSidebar(props: {
       className="flex h-full min-h-0 shrink-0 flex-col border-l border-sidebar-border bg-background max-lg:absolute max-lg:inset-y-0 max-lg:right-0 max-lg:z-[79] max-lg:max-w-[75vw] max-lg:shadow-xl"
       style={{ width: sidebarWidth }}
     >
-      <header className="flex shrink-0 items-center gap-1 border-b border-sidebar-border px-3 py-2">
-        {controls}
-      </header>
+      <header className="flex shrink-0 items-center gap-1 px-3 py-2">{controls}</header>
       <div className="@container/workspace flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto">
         {children}
       </div>

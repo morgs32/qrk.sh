@@ -581,12 +581,13 @@ The Wall Editor story uses the same section widths and a full-width scroll
 owner. Its frame uses the selected content width plus both side borders.
 Oversized selections scroll horizontally. Breakpoint controls show the nominal
 content widths.
-The App's route-backed workspace sidebar is 300px wide for the `sm` preview and
-half the authored preview width for `md`, `lg`, and `xl` (360px, 540px, and
-720px). At Tailwind `lg` and wider it sits beside the preview. Below `lg`, the
-same sidebar overlays the right edge and occupies at most 75% of the viewport
-width. The Wall remains interactive in the exposed area and keeps its 32px side
-gutters. Catalog drag sources reflow within their preferred and minimum widths
+The App's Page settings and Site settings sidebars are 300px wide. Its Bricks and
+Edit brick sidebars are 300px wide for the `sm` preview and half the authored
+preview width for `md`, `lg`, and `xl` (360px, 540px, and 720px). At Tailwind
+`lg` and wider the sidebar sits beside the preview. Below `lg`, it overlays the
+right edge and occupies at most 75% of the viewport width. The Wall remains
+interactive in the exposed area and keeps its 32px side gutters. Catalog drag
+sources reflow within their preferred and minimum widths
 without scaling, and scroll horizontally when their minimum width does not fit.
 Drops use the selected breakpoint's authored Wall sizing.
 

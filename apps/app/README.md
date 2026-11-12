@@ -5,9 +5,10 @@ App serves the editor at <https://app.qrk.localhost/>.
 The site navbar uses 16px side padding in the sm preview and 24px from the md
 preview upward, based on the preview container's 720px threshold.
 
-The workspace sidebar is 300px wide for the `sm` preview and half the authored
-preview width for `md`, `lg`, and `xl` (360px, 540px, and 720px). At
-Tailwind `lg` and wider it sits beside the preview. Below `lg`, it overlays
+The Page settings and Site settings sidebars are 300px wide. The Bricks and
+Edit brick sidebars are 300px wide for the `sm` preview and half the authored
+preview width for `md`, `lg`, and `xl` (360px, 540px, and 720px). At Tailwind
+`lg` and wider the sidebar sits beside the preview. Below `lg`, it overlays
 the right edge at up to 75% of the viewport width.
 The exposed Wall remains interactive. At `lg` and wider, the sidebar header
 shows the current section name. Below `lg`, the Page controls dropdown opens

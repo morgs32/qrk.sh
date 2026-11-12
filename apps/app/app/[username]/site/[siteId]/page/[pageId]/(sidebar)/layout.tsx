@@ -179,7 +179,7 @@ export default function WorkspacePanelControls(props: {
   );
   return (
     <WorkspaceSidebar
-      sidebarWidth={sidebarWidth}
+      sidebarWidth={tab === "page-settings" || tab === "site-settings" ? 300 : sidebarWidth}
       controls={
         <>
           {showPageControls ? (
@@ -195,11 +195,14 @@ export default function WorkspacePanelControls(props: {
                 ))}
               </SelectContent>
             </Select.Root>
-          ) : (
-            <h2 className="hidden text-xs font-medium lg:block">
-              {sections.find(({ value }) => value === tab)?.label}
-            </h2>
-          )}
+          ) : null}
+          <h2 className="hidden text-xs font-medium lg:block">
+            {isBrickDetails ? (
+              <span id="edit-brick-title-slot" />
+            ) : (
+              sections.find(({ value }) => value === tab)?.label
+            )}
+          </h2>
           {actions}
         </>
       }

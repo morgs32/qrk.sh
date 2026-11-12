@@ -1,7 +1,7 @@
 import { type ReactNode, useId } from "react";
 
 export function StudioSidebar(
-  props: { label: string } & (
+  props: { label: string; hideDividers?: boolean } & (
     | {
         sections: readonly { title: string; content: ReactNode }[];
         embedded?: boolean;
@@ -11,7 +11,7 @@ export function StudioSidebar(
     | { sections?: never; embedded?: never; header: ReactNode; children: ReactNode }
   ),
 ) {
-  const { label, sections, embedded = false, header, children } = props;
+  const { label, sections, embedded = false, header, children, hideDividers = false } = props;
   const id = useId();
 
   if (sections === undefined) {
@@ -32,20 +32,20 @@ export function StudioSidebar(
 
   return (
     <Panel
-      className={
+      className={`${
         embedded
-          ? "flex min-w-0 flex-col divide-y divide-sidebar-border"
-          : "flex w-[300px] max-w-full flex-col divide-y divide-sidebar-border border-l border-sidebar-border bg-white"
-      }
+          ? "flex min-w-0 flex-col"
+          : "flex w-[300px] max-w-full flex-col border-l border-sidebar-border bg-white"
+      }${hideDividers ? "" : " divide-y divide-sidebar-border"}`}
       aria-label={label}
     >
       {sections.map(({ title, content }, index) => (
         <section
           key={title}
           aria-labelledby={`${id}-${index}`}
-          className="flex flex-col gap-2 py-3"
+          className="flex flex-col gap-2 pb-3"
         >
-          <h2 id={`${id}-${index}`} className="flex h-7 items-center px-3 text-xs font-medium">
+          <h2 id={`${id}-${index}`} className="flex h-11 items-center px-3 text-xs font-medium">
             {title}
           </h2>
           <div className="grid gap-3 px-3">{content}</div>

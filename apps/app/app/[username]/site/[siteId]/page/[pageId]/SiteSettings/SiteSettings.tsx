@@ -260,7 +260,7 @@ export function SiteSettings(props: {
           <FieldError>{saveError}</FieldError>
         </div>
       )}
-      <div className="grid gap-3 border-b border-sidebar-border px-3 py-3">
+      <div className="grid gap-3 px-3 py-3">
         <BrickField orientation="horizontal">
           <BrickFieldLabel htmlFor="site-name-and-wordmark">Site name</BrickFieldLabel>
           <Input
@@ -354,6 +354,7 @@ export function SiteSettings(props: {
       </div>
       <StudioSidebar
         embedded
+        hideDividers
         label="Site settings"
         sections={[
           {

@@ -4,6 +4,7 @@ import { pointerOutsideOfPreview } from "@atlaskit/pragmatic-drag-and-drop/utils
 import { setCustomNativeDragPreview } from "@atlaskit/pragmatic-drag-and-drop/utils/set-custom-native-drag-preview";
 
 import { BrickWrapper } from "@qrk.sh/bricks/components/BrickWrapper";
+import { FieldLabel } from "@qrk.sh/bricks/components/field";
 import { BrickAction } from "../../../../../../../modules/components/BrickAction";
 import { BREAKPOINTS } from "../../../../../../../lib/breakpoints";
 import { modulesHash } from "../../../../../../../modules/modulesHash";
@@ -102,8 +103,10 @@ export function ModulePreview(props: {
 
   return (
     <div className="brick-catalog-preview flex min-h-0 w-full shrink-0 flex-col">
-      <header className="flex shrink-0 items-baseline gap-3 bg-white px-[var(--brick-catalog-inset)] py-2 text-zinc-950">
-        <h2 className="m-0 font-normal">{brickModule.label}</h2>
+      <header className="flex shrink-0 items-baseline gap-3 bg-white px-[var(--brick-catalog-inset)] text-zinc-950">
+        <h2 className="m-0 min-w-0">
+          <FieldLabel className="font-sans">{brickModule.label}</FieldLabel>
+        </h2>
         {maxPerPage !== undefined ? (
           <span className="text-xs text-zinc-500">Limit: {maxPerPage} per page.</span>
         ) : null}

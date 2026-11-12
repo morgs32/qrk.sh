@@ -85,7 +85,7 @@ export function PageSettings(props: {
           <FieldError>{saveError}</FieldError>
         </div>
       )}
-      <div className="grid gap-3 border-b border-sidebar-border px-3 py-3">
+      <div className="grid gap-3 px-3 py-3">
         <Field orientation="horizontal">
           <FieldLabel htmlFor="page-title">Title</FieldLabel>
           <Input

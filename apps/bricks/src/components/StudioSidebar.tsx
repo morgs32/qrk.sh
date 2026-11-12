@@ -34,8 +34,8 @@ export function StudioSidebar(
     <Panel
       className={
         embedded
-          ? "flex min-w-0 flex-col"
-          : "flex w-[300px] max-w-full flex-col border-l border-sidebar-border bg-white"
+          ? "flex min-w-0 flex-col divide-y divide-sidebar-border"
+          : "flex w-[300px] max-w-full flex-col divide-y divide-sidebar-border border-l border-sidebar-border bg-white"
       }
       aria-label={label}
     >
@@ -43,7 +43,7 @@ export function StudioSidebar(
         <section
           key={title}
           aria-labelledby={`${id}-${index}`}
-          className="flex flex-col gap-2 border-b border-sidebar-border py-3"
+          className="flex flex-col gap-2 py-3"
         >
           <h2 id={`${id}-${index}`} className="flex h-7 items-center px-3 text-xs font-medium">
             {title}

@@ -28,7 +28,7 @@ function TabsList(
       data-variant={variant}
       className={(state) =>
         cn(
-          "group/tabs-list inline-flex h-9 items-center justify-center text-muted-foreground",
+          "group/tabs-list inline-flex h-9 items-center justify-center border border-zinc-200 text-muted-foreground dark:border-zinc-800",
           variant === "line" ? "gap-3" : "rounded-full bg-muted p-1",
           typeof className === "function" ? className(state) : className,
         )

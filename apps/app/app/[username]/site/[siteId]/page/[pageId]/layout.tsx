@@ -367,7 +367,11 @@ export default function PageLayout(props: { children: ReactNode }) {
             </div>
             {breakpoint !== undefined &&
               (sidebarOpen ? (
-                <WorkspacePanelControls isSitePublished={site.isPublished} onClose={closePanel}>
+                <WorkspacePanelControls
+                  isSitePublished={site.isPublished}
+                  sidebarWidth={breakpoint.id === "sm" ? 300 : breakpoint.previewWidth / 2}
+                  onClose={closePanel}
+                >
                   {children}
                 </WorkspacePanelControls>
               ) : (

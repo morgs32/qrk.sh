@@ -1,6 +1,7 @@
 import { isIP } from "node:net";
 import { Effect, Schema } from "effect";
 import { mapValues } from "es-toolkit";
+import { imageSize } from "image-size";
 
 import { ScrapeError } from "../ScrapeError";
 
@@ -35,19 +36,24 @@ async function readSource(
   let current = requestUrl;
   let status: number | undefined;
   let advertised: URL | undefined;
+  let manifest: URL | undefined;
   let hasEmbedDeclaration = false;
   const openGraph: { property: string; content: string }[] = [];
   const jsonLd: Schema.Json[] = [];
   const icons: { url: string; rel: string; sizes?: string }[] = [];
   const canonicalLinks = new Set<string>();
   const images = new Set<string>();
-  const imageFields = new Map<string, { field: string; url: string }>();
+  const imageFields = new Map<
+    string,
+    { field: string; url: string; source: string; path: (string | number)[] }
+  >();
   let oEmbed: Schema.Json | undefined;
 
   function result(outcome: "ok" | "empty" | "error", error?: string) {
     return {
       advertised,
       hasEmbedDeclaration,
+      manifest,
       source: {
         url,
         finalUrl: current.href === url ? undefined : current.href,
@@ -71,31 +77,51 @@ async function readSource(
     if (href.trim()) advertised ??= publicUrl(href, current);
   }
 
-  function addImage(value: string, knownImage: boolean, field = "") {
+  function addImage(
+    value: string,
+    knownImage: boolean,
+    field = "",
+    source = "html",
+    path: (string | number)[] = [field],
+  ) {
     if (!value.trim()) return;
     const image = publicUrl(value, current);
     if (!image || (!knownImage && !imageExtension.test(image.pathname))) return;
     images.add(image.href);
-    if (field) imageFields.set(JSON.stringify([field, image.href]), { field, url: image.href });
+    if (field)
+      imageFields.set(JSON.stringify([source, path, image.href]), {
+        field,
+        url: image.href,
+        source,
+        path,
+      });
   }
 
-  function readImageValues(value: Schema.Json, field = "", depth = 0, isImageObjectUrl = false) {
+  function readImageValues(
+    value: Schema.Json,
+    source: string,
+    field = "",
+    path: (string | number)[] = [],
+    depth = 0,
+    isImageObjectUrl = false,
+  ) {
     if (depth > 32 || value === null) return;
     if (typeof value === "string") {
       const trimmed = value.trim();
       if (trimmed.startsWith("{") || trimmed.startsWith("[") || trimmed.startsWith('"')) {
         const embedded = decodeJson(trimmed);
         if (embedded._tag === "Some")
-          readImageValues(embedded.value, field, depth + 1, isImageObjectUrl);
+          readImageValues(embedded.value, source, field, path, depth + 1, isImageObjectUrl);
       } else {
         const knownImage =
           isImageObjectUrl ||
           /^(?:image|imageUrl|thumbnail|thumbnailUrl|thumbnail_url)$/i.test(field);
         if (knownImage || /^(?:https?:\/\/|\/\/|\.{0,2}\/)/i.test(trimmed))
-          addImage(trimmed, knownImage, field);
+          addImage(trimmed, knownImage, field, source, path);
       }
     } else if (value instanceof Array) {
-      for (const item of value) readImageValues(item, field, depth + 1);
+      for (const [index, item] of value.entries())
+        readImageValues(item, source, field, [...path, index], depth + 1, isImageObjectUrl);
     } else if (typeof value === "object") {
       // Sprite metadata also marks standalone UI assets when its value is zero or false.
       if (typeof value.sprited === "number" || typeof value.sprited === "boolean") return;
@@ -104,7 +130,9 @@ async function readSource(
         const field = String(key);
         readImageValues(
           item,
+          source,
           field,
+          [...path, field],
           depth + 1,
           isImageObject && /^(?:url|contentUrl)$/.test(field),
         );
@@ -161,7 +189,7 @@ async function readSource(
       contentType === "application/xml+oembed";
     if (contentType?.startsWith("image/")) {
       await response.body?.cancel();
-      images.add(current.href);
+      addImage(current.href, true, "url", "response");
     } else if (!isHtml && !isJson && !isXml) {
       await response.body?.cancel();
       return result("empty");
@@ -188,7 +216,7 @@ async function readSource(
         const parsed = decodeJson(body);
         if (parsed._tag === "None") return result("error", "The response contains invalid JSON.");
         oEmbed = parsed.value;
-        readImageValues(oEmbed);
+        readImageValues(oEmbed, discovery ? "oembed" : "json");
       } else if (isXml) {
         const fields = new Map<string, string>();
         await new HTMLRewriter()
@@ -212,7 +240,7 @@ async function readSource(
           .text();
         if (fields.size > 0) {
           oEmbed = Object.fromEntries(fields);
-          readImageValues(oEmbed);
+          readImageValues(oEmbed, "oembed");
         }
       } else {
         let script = "";
@@ -224,7 +252,7 @@ async function readSource(
               if (/^(?:og|article|book|music|profile|video):/.test(property) && content.trim()) {
                 openGraph.push({ property, content });
                 if (/^og:image(?::(?:url|secure_url))?$/.test(property))
-                  addImage(content, true, property);
+                  addImage(content, true, property, "opengraph");
               }
             },
           })
@@ -241,6 +269,7 @@ async function readSource(
                 discoverEmbed(href);
               const target = publicUrl(href, current);
               if (!target) return;
+              if (relations.includes("manifest")) manifest ??= target;
               if (relations.includes("canonical")) canonicalLinks.add(target.href);
               if (
                 relations.some((value) => ["icon", "apple-touch-icon", "mask-icon"].includes(value))
@@ -250,9 +279,9 @@ async function readSource(
                   rel,
                   sizes: element.getAttribute("sizes") ?? undefined,
                 });
-                images.add(target.href);
+                addImage(target.href, true, rel, "icon");
               }
-              if (relations.includes("image_src")) images.add(target.href);
+              if (relations.includes("image_src")) addImage(target.href, true, "image_src");
             },
           })
           .on("img, picture source, video[poster]", {
@@ -282,13 +311,13 @@ async function readSource(
                     typeof parsed.value !== "string" ||
                     /^\s*[\[{]/.test(parsed.value)
                   )
-                    readImageValues(parsed.value);
+                    readImageValues(parsed.value, isJsonLd ? "json-ld" : "json");
                 } else if (!isJsonLd) {
                   // Inline scripts can pass serialized JSON as quoted strings.
                   for (const match of script.matchAll(/"(?:[^"\\]|\\[\s\S])*"/g)) {
                     if (!/^"\s*[\[{]/.test(match[0])) continue;
                     const embedded = decodeJson(match[0]);
-                    if (embedded._tag === "Some") readImageValues(embedded.value);
+                    if (embedded._tag === "Some") readImageValues(embedded.value, "json");
                   }
                 }
               });
@@ -341,5 +370,137 @@ export const getOmniLinkData = Effect.fn("getOmniLinkData")(function* (input: st
   const embed = embedUrl
     ? (yield* Effect.promise(() => readSource(embedUrl, 2_000, discovery))).source
     : { discovery, outcome: "error", error: "The advertised embed URL is not a public web URL." };
-  return JSON.stringify({ page: page.source, embed }, null, 2);
+
+  async function readResource(input: URL) {
+    const signal = AbortSignal.timeout(2_000);
+    let current = input;
+    try {
+      for (let redirects = 0; ; redirects++) {
+        const response = await fetch(current, { redirect: "manual", signal });
+        if ([301, 302, 303, 307, 308].includes(response.status)) {
+          await response.body?.cancel();
+          const location = response.headers.get("location");
+          const target = location ? publicUrl(location, current) : undefined;
+          if (!target || redirects >= 4) return;
+          current = target;
+          continue;
+        }
+        if (!response.ok || !response.body) {
+          await response.body?.cancel();
+          return;
+        }
+        const reader = response.body.getReader();
+        const chunks: Uint8Array[] = [];
+        let length = 0;
+        for (;;) {
+          const chunk = await reader.read();
+          if (chunk.done) break;
+          length += chunk.value.byteLength;
+          if (length > maxResponseBytes) {
+            await reader.cancel();
+            return;
+          }
+          chunks.push(chunk.value);
+        }
+        const bytes = new Uint8Array(length);
+        let offset = 0;
+        for (const chunk of chunks) {
+          bytes.set(chunk, offset);
+          offset += chunk.byteLength;
+        }
+        return { url: current.href, bytes };
+      }
+    } catch {
+      return;
+    }
+  }
+
+  const candidates = page.source.icons.map((icon) => ({
+    url: icon.url,
+    mask: icon.rel.toLowerCase().split(/\s+/).includes("mask-icon"),
+  }));
+  const manifestUrl = page.manifest;
+  if (manifestUrl) {
+    const manifest = yield* Effect.promise(() => readResource(manifestUrl));
+    if (manifest) {
+      const parsed = decodeJson(new TextDecoder().decode(manifest.bytes));
+      if (
+        parsed._tag === "Some" &&
+        parsed.value !== null &&
+        typeof parsed.value === "object" &&
+        !Array.isArray(parsed.value) &&
+        Array.isArray(parsed.value.icons)
+      ) {
+        for (const icon of parsed.value.icons) {
+          if (!icon || typeof icon !== "object" || Array.isArray(icon)) continue;
+          if (typeof icon.src !== "string") continue;
+          const target = publicUrl(icon.src, new URL(manifest.url));
+          if (target) candidates.push({ url: target.href, mask: false });
+        }
+      }
+    }
+  }
+
+  async function inspectIcon(value: string) {
+    const candidate = publicUrl(value);
+    if (!candidate) return;
+    const resource = await readResource(candidate);
+    if (!resource) return;
+    const text = new TextDecoder().decode(resource.bytes);
+    if (
+      /^\s*(?:(?:<\?xml\b[^>]*>|<!--[\s\S]*?-->|<!DOCTYPE\s+svg\b(?:[^>\[]|\[[\s\S]*?\])*>)[\s]*)*<svg(?:\s|>)/i.test(text) &&
+      /(?:<\/svg\s*>|<svg\b[^>]*\/>)(?:\s*<!--[\s\S]*?-->)*\s*$/i.test(text)
+    ) {
+      return { type: "svg", url: resource.url, width: null, height: null };
+    }
+    try {
+      const dimensions = imageSize(resource.bytes);
+      const largest = (dimensions.images ?? []).reduce(
+        (current, size) =>
+          size.width * size.height > current.width * current.height ? size : current,
+        dimensions,
+      );
+      if (dimensions.type === "svg" || largest.width <= 0 || largest.height <= 0) return;
+      return {
+        type: "raster",
+        url: resource.url,
+        width: largest.width,
+        height: largest.height,
+      };
+    } catch {
+      return;
+    }
+  }
+
+  const uniqueUrls = [...new Set(candidates.map((candidate) => candidate.url))];
+  const inspected = new Map<string, Awaited<ReturnType<typeof inspectIcon>>>();
+  for (let index = 0; index < uniqueUrls.length; index += 4) {
+    const urls = uniqueUrls.slice(index, index + 4);
+    const icons = yield* Effect.promise(() => Promise.all(urls.map(inspectIcon)));
+    for (const [position, icon] of icons.entries()) {
+      const url = urls[position];
+      if (url) inspected.set(url, icon);
+    }
+  }
+  let favicon: { type: string; url: string; width: number | null; height: number | null } | null = null;
+  let maskIcon: { type: string; url: string; width: number | null; height: number | null } | null = null;
+  for (const candidate of candidates) {
+    const icon = inspected.get(candidate.url);
+    if (!icon) continue;
+    const current = candidate.mask ? maskIcon : favicon;
+    const area = (icon.width ?? 0) * (icon.height ?? 0);
+    const currentArea = (current?.width ?? 0) * (current?.height ?? 0);
+    if (!current || (icon.type === "svg" && current.type !== "svg") ||
+      (icon.type === current.type && area > currentArea)) {
+      if (candidate.mask) maskIcon = icon;
+      else favicon = icon;
+    }
+  }
+  if (!favicon) {
+    const origin = new URL(page.source.finalUrl ?? page.source.url);
+    const fallback = new URL("/favicon.ico", origin);
+    favicon = (yield* Effect.promise(() => inspectIcon(fallback.href))) ?? null;
+  }
+
+  return JSON.stringify({ page: page.source, embed, favicon, maskIcon }, null, 2);
 });

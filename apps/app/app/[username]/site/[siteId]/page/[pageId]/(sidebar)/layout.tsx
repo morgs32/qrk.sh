@@ -34,9 +34,10 @@ const ParamsSchema = Schema.Struct({
 export default function WorkspacePanelControls(props: {
   children: ReactNode;
   isSitePublished: boolean;
+  sidebarWidth: number;
   onClose: () => void;
 }) {
-  const { children, isSitePublished, onClose } = props;
+  const { children, isSitePublished, sidebarWidth, onClose } = props;
   const [showPageControls, setShowPageControls] = useState(false);
   useEffect(() => {
     // Match the lg breakpoint used by WorkspaceSidebar.
@@ -183,6 +184,7 @@ export default function WorkspacePanelControls(props: {
   );
   return (
     <WorkspaceSidebar
+      sidebarWidth={sidebarWidth}
       controls={
         <>
           {showPageControls ? (

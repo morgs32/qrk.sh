@@ -100,6 +100,7 @@ export function PageSettings(props: {
           <FieldLabel htmlFor="page-description">Description</FieldLabel>
           <TextboxInput
             id="page-description"
+            placeholder={page.site.description ?? undefined}
             value={fields.description}
             onChange={(event) => setFields({ ...fields, description: event.target.value })}
           />

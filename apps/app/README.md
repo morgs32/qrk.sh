@@ -5,8 +5,10 @@ App serves the editor at <https://app.qrk.localhost/>.
 The site navbar uses 16px side padding in the sm preview and 24px from the md
 preview upward, based on the preview container's 720px threshold.
 
-The workspace uses a 300px right sidebar at Tailwind `lg` and wider. Below
-`lg`, the sidebar overlays the right edge at up to 75% of the viewport width.
+The workspace sidebar is 300px wide for the `sm` preview and half the authored
+preview width for `md`, `lg`, and `xl` (360px, 540px, and 720px). At
+Tailwind `lg` and wider it sits beside the preview. Below `lg`, it overlays
+the right edge at up to 75% of the viewport width.
 The exposed Wall remains interactive. At `lg` and wider, the sidebar header
 shows the current section name. Below `lg`, the Page controls dropdown opens
 Bricks, Page settings, and Site settings. Brick selection opens
@@ -20,10 +22,14 @@ and Article body text selection consume Escape first. When Escape dismisses the
 sidebar from an inline Article field, it blurs the field and deselects the Brick.
 Settings and manual Brick editors provide Save and Cancel inside their forms.
 Exit sits at the left edge of the editor navbar, with the breakpoint tabs in
-the center. Changing the preview width keeps the current sidebar section open.
+the center. The breakpoint controls use the small 32px toolbar size; page
+controls use the default 36px size. Changing the preview width keeps the current
+sidebar section open.
 The floating toolbar stays
 visible on desktop while the sidebar is open and highlights the current
-section. Below `lg`, it hides while the sidebar is open and returns when it
+section when it has a toolbar item. Edit brick leaves the items unhighlighted.
+Its page controls use Nova Tabs styling and remain still while
+pressed. Below `lg`, it hides while the sidebar is open and returns when it
 closes.
 
 For unpublished sites, the editor navbar shows Publish beside the account
@@ -38,9 +44,9 @@ shows the Danger Zone only while the site is published.
 
 The Bricks catalog provides draggable previews with plain module labels. Dragging
 creates Bricks through the Wall's existing command path; Brick Details edits saved
-Bricks. Module metadata and Component/JsonRender comparisons live in Storybook's
-module playgrounds. The App has no per-module inspection pages or URL-driven
-Add here/insertion flow.
+Bricks. Module metadata and Component/JsonRender comparisons live in
+[Bricks Storybook](https://bricks.qrk.localhost/). The App has no per-module
+inspection pages or URL-driven Add here/insertion flow.
 
 ## Wall dragging
 

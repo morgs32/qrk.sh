@@ -6,7 +6,7 @@
 
 @theme static {
   --color-form-input: oklch(0.97 0 0);
-  --radius-form-input: 9px;
+  --radius-form-input: 6px;
   --spacing-form-input: 28px;
 }
 

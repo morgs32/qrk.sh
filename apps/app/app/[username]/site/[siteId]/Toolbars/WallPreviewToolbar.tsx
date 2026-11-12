@@ -8,20 +8,30 @@ export function WallPreviewToolbar(props: {
   children: ReactNode;
   className?: string;
   navigation?: boolean;
+  size?: "default" | "sm";
+  variant?: "default" | "shadow";
   "aria-label": string;
 }) {
-  const { children, className, navigation = false, "aria-label": ariaLabel } = props;
-  // Button radius (--radius - 2px) plus 4px padding and a 1px border.
+  const {
+    children,
+    className,
+    navigation = false,
+    size = "default",
+    variant = "default",
+    "aria-label": ariaLabel,
+  } = props;
   const shellClassName = cn(
-    "pointer-events-auto flex h-[var(--wall-preview-toolbar-height)] max-w-full shrink-0 items-center justify-center rounded-[calc(var(--radius)_+_3px)] border border-border/80 bg-background px-1 py-1 shadow-md [&>a]:h-7 [&>button]:h-7",
+    "group/preview-toolbar pointer-events-auto flex max-w-full shrink-0 items-center justify-center rounded-lg bg-muted p-[3px] text-muted-foreground",
+    size === "sm" ? "h-8 gap-0" : "h-9 gap-1",
+    variant === "shadow" && "border border-zinc-200 shadow-md dark:border-zinc-800",
     className,
   );
   return navigation ? (
-    <nav aria-label={ariaLabel} className={shellClassName}>
+    <nav aria-label={ariaLabel} data-size={size} className={shellClassName}>
       {children}
     </nav>
   ) : (
-    <Toolbar.Root aria-label={ariaLabel} className={shellClassName}>
+    <Toolbar.Root aria-label={ariaLabel} data-size={size} className={shellClassName}>
       {children}
     </Toolbar.Root>
   );

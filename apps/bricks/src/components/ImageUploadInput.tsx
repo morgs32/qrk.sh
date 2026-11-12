@@ -254,7 +254,7 @@ export function ImageUploadInput(
                 <TabsList
                   aria-label="Image options"
                   activateOnFocus
-                  className="mb-3 flex h-auto flex-wrap justify-start gap-1 rounded-none border-b border-border bg-transparent p-0 pb-2"
+                  className="mb-3 flex h-auto flex-wrap justify-start gap-1 rounded-none border-b border-zinc-200 bg-transparent p-0 pb-2 dark:border-zinc-800"
                 >
                   {uploadImage !== undefined && (
                     <TabsTrigger disabled={applying} value="upload" className={tabClass}>

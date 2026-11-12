@@ -3,6 +3,7 @@ import { Button } from "./button";
 
 const meta = {
   title: "Components/Button",
+  tags: ["!dev"],
   id: "ui-button",
   component: Button,
   args: {

@@ -247,8 +247,8 @@ Storybook with `pnpm nx run @qrk.sh/bricks:build-storybook`. See the
 [Modules README](apps/app/modules/README.md) for the Mapbox setting and
 server-only `API_WORKER_ORIGIN` override.
 
-`pnpm app:storybook` starts App Storybook with both Brick and
-App editor stories at [storybook.app.qrk.localhost](https://storybook.app.qrk.localhost/).
+`pnpm app:storybook` starts App Storybook at
+[storybook.app.qrk.localhost](https://storybook.app.qrk.localhost/).
 
 `pnpm web:storybook` starts Web Storybook at
 [storybook.web.qrk.localhost](https://storybook.web.qrk.localhost/).

@@ -11,6 +11,7 @@ const { wall } = userSessionDefinition.models;
 const meta = {
   ...wallEditorMeta,
   title: "Studio/WallEditor.tsx/Scripted",
+  tags: ["!dev"],
   id: "app-studio-wall-editor",
 };
 

@@ -633,6 +633,7 @@ function WallEditorStory(props: {
               </div>
             </main>
             <WorkspaceSidebar
+              sidebarWidth={breakpoint.id === "sm" ? 300 : breakpoint.previewWidth / 2}
               controls={
                 <div className="flex min-h-8 w-full items-center justify-between gap-2 text-xs">
                   <p className="text-zinc-500">
@@ -743,5 +744,6 @@ export const EmptyWall: StoryObj<typeof meta> = { args: { emptyWall: true } };
 
 /** No capture stubs or synthetic play: use this fixture for native mouse, pen, and touch input. */
 export const PointerResizeNative: StoryObj<typeof meta> = {
+  tags: ["!dev"],
   args: { brickGap: 12, cardStyle: true },
 };

@@ -10,7 +10,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { cn } from "cn";
 
 const toolbarButtonClassName =
-  "h-8 cursor-pointer gap-1.5 rounded-md border-0 px-2 text-sm text-muted-foreground hover:text-foreground";
+  "relative h-[calc(100%-1px)] flex-1 cursor-pointer gap-1.5 rounded-md border border-transparent px-2.5 py-0.5 text-sm font-medium text-foreground/60 hover:bg-transparent hover:text-foreground focus-visible:outline-1 focus-visible:outline-ring active:not-aria-[haspopup]:translate-y-0 disabled:aria-pressed:opacity-100 dark:text-muted-foreground dark:hover:bg-transparent dark:hover:text-foreground aria-[current=page]:bg-background aria-[current=page]:text-foreground aria-[current=page]:shadow-sm aria-pressed:bg-background aria-pressed:text-foreground aria-pressed:shadow-sm dark:aria-[current=page]:border-input dark:aria-[current=page]:bg-input/30 dark:aria-[current=page]:text-foreground dark:aria-pressed:border-input dark:aria-pressed:bg-input/30 dark:aria-pressed:text-foreground group-data-[size=sm]/preview-toolbar:px-1.5 group-data-[size=sm]/preview-toolbar:text-[12px]";
 
 type IToolbarButtonLegacyProps = {
   tooltip?: string;

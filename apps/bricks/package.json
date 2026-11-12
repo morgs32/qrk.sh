@@ -99,6 +99,7 @@
     "drizzle-orm": "npm:@zerospin/drizzle-orm@1.0.0-rc.5-qrk.3",
     "effect": "4.0.2",
     "es-toolkit": "^1.52.0",
+    "image-size": "^2.1.0",
     "lucide-react": "^1.7.0",
     "mapbox-gl": "^3.26.0",
     "react": "19.2.7",

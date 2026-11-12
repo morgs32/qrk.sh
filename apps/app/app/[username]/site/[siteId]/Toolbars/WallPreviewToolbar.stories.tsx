@@ -9,6 +9,7 @@ import { WallPreviewToolbar } from "./WallPreviewToolbar";
 
 const meta = {
   title: "Components/Floating Toolbar",
+  tags: ["!dev"],
   component: WallPreviewToolbar,
   parameters: { layout: "fullscreen", controls: { disable: true } },
 } satisfies Meta<typeof WallPreviewToolbar>;
@@ -30,15 +31,13 @@ export const BreakpointPicker: StoryObj = {
         </div>
         <div className="pointer-events-none fixed inset-x-0 bottom-(--wall-preview-toolbar-gap) flex justify-center px-2">
           <TooltipProvider delay={0}>
-            <WallPreviewToolbar aria-label="Breakpoints">
+            <WallPreviewToolbar aria-label="Breakpoints" size="sm">
               {BREAKPOINTS.map((row) => (
                 <ToolbarButton
                   key={row.id}
-                  tooltip={`${row.id} (${row.previewWidth}px)`}
                   aria-label={`${row.id} preview width`}
                   aria-pressed={breakpoint.id === row.id}
                   onClick={() => setBreakpoint(row)}
-                  className="h-7 px-2 text-[13px] font-normal aria-pressed:font-bold aria-pressed:text-foreground"
                 >
                   {row.id}
                 </ToolbarButton>

@@ -578,11 +578,13 @@ The Wall Editor story uses the same section widths and a full-width scroll
 owner. Its frame uses the selected content width plus both side borders.
 Oversized selections scroll horizontally. Breakpoint controls show the nominal
 content widths.
-The App's route-backed workspace uses a 320px right sidebar at Tailwind `lg`
-and wider. Below `lg`, the same sidebar overlays the right edge and occupies at
-most 75% of the viewport width. The Wall remains interactive in the exposed area
-and keeps its 32px side gutters. Catalog drag sources fit the measured sidebar
-column using CSS zoom. Drops use the selected breakpoint's authored Wall sizing.
+The App's route-backed workspace sidebar is 300px wide for the `sm` preview and
+half the authored preview width for `md`, `lg`, and `xl` (360px, 540px, and
+720px). At Tailwind `lg` and wider it sits beside the preview. Below `lg`, the
+same sidebar overlays the right edge and occupies at most 75% of the viewport
+width. The Wall remains interactive in the exposed area and keeps its 32px side
+gutters. Catalog drag sources fit the measured sidebar column using CSS zoom.
+Drops use the selected breakpoint's authored Wall sizing.
 
 Both floating toolbars keep a 38px height and concentric corners: the buttons'
 8px radius plus their 5px inset (4px padding and 1px border) gives the shell a

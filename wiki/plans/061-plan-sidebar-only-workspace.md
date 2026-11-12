@@ -10,8 +10,10 @@ interactive. This supersedes the responsive shell decision in
 
 ## Behavior
 
-1. At `lg` and wider, use a 300 px in-flow sidebar. Below `lg`,
-   use a right overlay with width `min(300px, 75vw)`, starting below the App
+1. Size the sidebar from the selected preview: 300px for `sm` and half the
+   authored preview width for `md`, `lg`, and `xl` (360px, 540px, and
+   720px). At viewport `lg` and wider, keep it in flow. Below `lg`,
+   use a right overlay capped at 75vw, starting below the App
    header and filling the available workspace height. The overlay has a left
    border and shadow. The Wall can scroll and receive pointer and keyboard
    input in the exposed area. Its preview stays at the selected authored width.
@@ -46,7 +48,11 @@ interactive. This supersedes the responsive shell decision in
    // The route chooses whether the sidebar exists.
    // CSS positions this same subtree on either side of lg.
    {sidebarOpen && (
-     <WorkspacePanelControls isSitePublished={site.isPublished} onClose={closePanel}>
+     <WorkspacePanelControls
+       isSitePublished={site.isPublished}
+       onClose={closePanel}
+       sidebarWidth={breakpoint.id === "sm" ? 300 : breakpoint.previewWidth / 2}
+     >
        {children}
      </WorkspacePanelControls>
    )}
@@ -142,12 +148,17 @@ qrk.sh/
 1. Run App and Storybook builds through Nx and `git diff --check`. Verify the
    generated public paths for all four sidebar routes and search the App for
    leftover workspace drawer routes, CSS, selectors, and consumers.
-2. The user performs manual verification under the November 11 daily choice.
-   Open each sidebar route directly and through Page controls. At 1024 px,
-   confirm a 300 px in-flow sidebar. At 1023 px, confirm an overlay. At 375 px,
+2. The user performs manual verification under the November 12 daily choice.
+   Open each sidebar route directly and through Page controls. Confirm the
+   `sm`, `md`, `lg`, and `xl` sidebar widths are 300px, 360px, 540px,
+   and 720px when uncapped. At 1024 px, confirm the sidebar is in flow. At
+   1023 px, confirm an overlay. At 375 px,
    confirm a sidebar at most 281.25 px wide and an interactive exposed Wall.
    Resize across the threshold with a form draft open, then verify the draft,
    selected breakpoint, scroll position, and controls.
+   In Page settings, check for a divider above Previews and none below it.
+   In Site settings, check that dividers appear between sections and stop
+   before the bottom edge, whether Sharing or Danger Zone is last.
 3. Use a local test page to verify inline Article focus on both sides of
    `lg`, explicit selection and catalog drop, Close and Escape, and
    focus after sidebar dismissal. Confirm vertical catalog scrolling,
@@ -164,6 +175,11 @@ qrk.sh/
    tree, and the App search found no retired workspace drawer routes,
    reservation CSS, drag markers, or Drawer component consumers.
 2. `git diff --check` passed.
+3. The App build passed after the section divider change. In the local editor,
+   Page settings had a 1 px divider above Previews and none below it. The
+   unpublished site's Design and Social Preview sections had 1 px dividers,
+   and Sharing had none. The local site list contained no published site for
+   the Danger Zone check.
 
 **Remaining work:** The user will run manual Studio scenarios 2 and 3 above.
 Record the result and archive this plan after those checks pass.

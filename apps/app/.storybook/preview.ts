@@ -10,7 +10,6 @@ const preview: Preview = {
         order: [
           "Studio",
           ["WallEditor.tsx", "Wall Placement", "Site Tree"],
-          "Modules",
           "Components",
           "Experiments",
         ],

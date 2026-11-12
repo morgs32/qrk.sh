@@ -15,7 +15,8 @@ import { movePlacementToNewSectionV5 as movePlacementToNewSection } from "@qrk.s
 import { moveStackV5 as moveStack } from "@qrk.sh/zerospin/src/aggregates/user/contracts/wall/MoveStackContractV5";
 import { renameStackV3 as renameStack } from "@qrk.sh/zerospin/src/aggregates/user/contracts/wall/RenameStackContractV3";
 import { deleteBrickV5 as deleteBrick } from "@qrk.sh/zerospin/src/aggregates/user/contracts/wall/DeleteBrickContractV5";
-import { updateBrickV7 as updateBrick } from "@qrk.sh/zerospin/src/aggregates/user/contracts/brick/UpdateBrickV7";
+import { deleteStackV2 as deleteStack } from "@qrk.sh/zerospin/src/aggregates/user/contracts/wall/DeleteStackContractV2";
+import { updateBrickV8 as updateBrick } from "@qrk.sh/zerospin/src/aggregates/user/contracts/brick/UpdateBrickV8";
 import { generateBrickSpecV5 as generateBrickSpec } from "@qrk.sh/zerospin/src/aggregates/user/contracts/brick/GenerateBrickSpecV5";
 import { publishSiteV5 as publishSite } from "@qrk.sh/zerospin/src/aggregates/user/contracts/publishSite/PublishSiteV5";
 import { publishPageV5 as publishPage } from "@qrk.sh/zerospin/src/aggregates/user/contracts/publishPage/PublishPageV5";
@@ -38,8 +39,8 @@ export const userSessionDefinition = makeAggregateSessionDefinition({
   aggregateName: "user",
   sessionName: "userSession",
   actorName: "web",
-  actorVersion: 12,
-  aggregateVersion: 12,
+  actorVersion: 14,
+  aggregateVersion: 14,
   models: {
     wall: Wall,
     brick: Brick,
@@ -60,6 +61,7 @@ export const userSessionDefinition = makeAggregateSessionDefinition({
     moveStack,
     renameStack,
     deleteBrick,
+    deleteStack,
     updateBrick,
     setBrickBorderWidth,
     setRowWidthWeights,

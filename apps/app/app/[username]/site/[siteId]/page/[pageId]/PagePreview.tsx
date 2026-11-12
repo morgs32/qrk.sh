@@ -1,7 +1,7 @@
 "use client";
 
 import { makeIdSchema } from "@zerospin/sdk/browser";
-import { useNavigate, useParams } from "@tanstack/react-router";
+import { useNavigate, useParams, useSearch } from "@tanstack/react-router";
 import { pageV1 } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV1";
 import { siteV1 } from "@qrk.sh/zerospin/src/aggregates/user/models/site/SiteV1";
 import { useLiveQuery, useSession } from "@zerospin/react";
@@ -23,6 +23,7 @@ export function PagePreview(props: { breakpoint: (typeof BREAKPOINTS)[number] })
   const { registerBrickFlush, flushBrick } = autosave;
   const navigate = useNavigate();
   const { brickId: selectedBrickId } = useParams({ strict: false });
+  const { selected } = useSearch({ from: "/$username/site/$siteId/page/$pageId" });
   const session = useSession(userSessionDefinition);
   const params = useValidatedParams(
     Schema.Struct({
@@ -65,6 +66,21 @@ export function PagePreview(props: { breakpoint: (typeof BREAKPOINTS)[number] })
         key={wall.id}
         wallId={wall.id}
         selectedBrickId={selectedBrickId}
+        selectedWallId={selectedBrickId === undefined ? selected : undefined}
+        onSelectWallItem={(id) => {
+          if (selectedBrickId === undefined && selected === id) return;
+          const search = { breakpoint: breakpoint.id, selected: id };
+          if (selectedBrickId !== undefined) {
+            void navigate({
+              to: "/$username/site/$siteId/page/$pageId",
+              params,
+              search,
+              resetScroll: false,
+            });
+            return;
+          }
+          void navigate({ to: ".", search, resetScroll: false });
+        }}
         registerBrickFlush={registerBrickFlush}
         flushBrick={flushBrick}
         onBrickDeleted={(brickId) => {
@@ -84,6 +100,7 @@ export function PagePreview(props: { breakpoint: (typeof BREAKPOINTS)[number] })
             search: (previous) => ({
               ...previous,
               breakpoint: breakpoint.id,
+              selected: undefined,
             }),
             resetScroll: false,
           });

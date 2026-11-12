@@ -11,7 +11,9 @@ owns the existing route transition. This adds zero module props.
 [Plan 061](061-plan-sidebar-only-workspace.md) governs the sidebar layout.
 This plan supersedes its inline-focus navigation behavior at every viewport
 width. A click into an Article field edits the Article in place on desktop,
-tablet, and mobile.
+tablet, and mobile. [Plan 078](../archive/plans/078-plan-wall-selection.md) also
+selects the Article on click and gives it a persistent outline while it edits
+inline.
 
 ## Implementation
 

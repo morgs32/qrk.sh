@@ -3,10 +3,11 @@
 import { Check, Copy } from "lucide-react";
 import { useState } from "react";
 
-import { Button } from "@/components/ui/button";
+import { Button } from "@qrk.sh/bricks/components/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
-export function CopyButton({ text }: { text: string }) {
+export function CopyButton(props: { text: string; label?: string; inline?: boolean }) {
+  const { text, label = "Copy share URL", inline = false } = props;
   const [isCopying, setIsCopying] = useState(false);
   const [didCopy, setDidCopy] = useState(false);
 
@@ -16,10 +17,10 @@ export function CopyButton({ text }: { text: string }) {
         render={
           <Button
             type="button"
-            size="icon"
-            variant="secondary"
-            className="size-8 shadow-sm"
-            aria-label="Copy share URL"
+            size={inline ? "icon-xs" : "icon"}
+            variant={inline ? "ghost" : "secondary"}
+            className={inline ? undefined : "size-8 shadow-sm"}
+            aria-label={label}
             disabled={isCopying}
             onClick={async () => {
               try {

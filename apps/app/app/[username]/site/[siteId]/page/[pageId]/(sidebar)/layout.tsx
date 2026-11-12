@@ -1,7 +1,7 @@
 "use client";
 
 import { useContext, type ReactNode } from "react";
-import { useMatches, useNavigate, useSearch } from "@tanstack/react-router";
+import { useMatches, useNavigate } from "@tanstack/react-router";
 import { File, Globe, Pencil, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -40,7 +40,6 @@ export default function WorkspacePanelControls(props: {
   const params = useValidatedParams(ParamsSchema);
   const autosave = useContext(BrickAutosaveContext);
   if (autosave === null) throw new Error("Brick autosave requires the Page layout");
-  const { breakpoint } = useSearch({ from: "/$username/site/$siteId/page/$pageId" });
   const routeId = useMatches({ select: (matches) => matches.at(-1)?.routeId });
   const navigate = useNavigate();
   const session = useSession(userSessionDefinition);
@@ -131,7 +130,10 @@ export default function WorkspacePanelControls(props: {
       void navigate({
         to: `/$username/site/$siteId/page/$pageId/${value}`,
         params,
-        search: { breakpoint },
+        search: (previous) => ({
+          ...previous,
+          selected: isBrickDetails ? undefined : previous.selected,
+        }),
         resetScroll: false,
       });
     }
@@ -158,7 +160,7 @@ export default function WorkspacePanelControls(props: {
           Publish
         </Button>
       ) : null}
-      {tab === "site-settings" ? <div id="site-settings-save-slot" /> : null}
+      {tab === "site-settings" || tab === "page-settings" ? <div id={`${tab}-save-slot`} /> : null}
       <Button
         type="button"
         variant="ghost"

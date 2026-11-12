@@ -1,21 +1,26 @@
 import { useSession } from "@zerospin/react";
 ("use client");
 
-import { Globe } from "lucide-react";
-import { useState } from "react";
-import { useNavigate, useSearch } from "@tanstack/react-router";
+/* oxlint-disable next/no-img-element -- App uses Vite, so Next image optimization is unavailable. */
+
+import { X } from "lucide-react";
+import { useId, useLayoutEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { stageAggregateSessionCommand } from "@zerospin/sdk/browser";
 import { Schema } from "effect";
 
 import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
-import { Button } from "@/components/ui/button";
+import { Button } from "@qrk.sh/bricks/components/button";
 
-import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Field, FieldError, FieldLabel } from "@/components/ui/field";
-import { Textarea } from "@/components/ui/textarea";
+import { FieldError } from "@/components/ui/field";
+import { Field, FieldLabel } from "@qrk.sh/bricks/components/field";
+import { Input } from "@qrk.sh/bricks/components/Input";
+import { StudioSidebar } from "@qrk.sh/bricks/components/StudioSidebar";
+import { TextboxInput } from "@qrk.sh/bricks/components/TextboxInput";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
 import { useWarnBeforeUnload } from "@qrk.sh/bricks/modules/react/useWarnBeforeUnload";
+
+import { SearchPreviewCard } from "../SearchPreviewCard";
 
 const ParamsSchema = Schema.Struct({
   username: Schema.String,
@@ -24,13 +29,18 @@ const ParamsSchema = Schema.Struct({
 });
 
 export function PageSettings(props: {
-  page: { id: `pag_${string}`; title: string; description: string };
+  page: { id: `pag_${string}`; title: string; description: string; slug: string | null };
+  faviconLightUrl: string | null;
+  faviconDarkUrl: string | null;
 }) {
-  const { page } = props;
+  const { page, faviconLightUrl, faviconDarkUrl } = props;
   const params = useValidatedParams(ParamsSchema);
   const session = useSession(userSessionDefinition);
-  const navigate = useNavigate();
-  const search = useSearch({ from: "/$username/site/$siteId/page/$pageId" });
+  const formId = useId();
+  const [saveSlot, setSaveSlot] = useState<HTMLElement | null>(null);
+  useLayoutEffect(() => {
+    setSaveSlot(document.getElementById("page-settings-save-slot"));
+  }, []);
   const [fields, setFields] = useState(() => ({
     title: page.title,
     description: page.description,
@@ -38,9 +48,13 @@ export function PageSettings(props: {
   const [saveError, setSaveError] = useState<string | null>(null);
   const isDirty = fields.title !== page.title || fields.description !== page.description;
   useWarnBeforeUnload(isDirty);
+  const sitePath = `/${encodeURIComponent(params.username)}/${encodeURIComponent(params.siteId)}`;
+  const pagePath = page.slug ? `/${page.slug.split("/").map(encodeURIComponent).join("/")}` : "";
+  const previewUrl = `www.qrk.sh${sitePath}${pagePath}`;
 
   return (
     <form
+      id={formId}
       autoComplete="off"
       className="w-full"
       onSubmit={(event) => {
@@ -58,71 +72,90 @@ export function PageSettings(props: {
         if (result._tag === "Failure") setSaveError(result.failure.message);
       }}
     >
-      <div className="space-y-8 px-4 py-6">
-        <div className="space-y-6">
-          <Field>
-            <FieldLabel htmlFor="page-title">Title</FieldLabel>
-            <Input
-              id="page-title"
-              value={fields.title}
-              onChange={(event) => setFields({ ...fields, title: event.target.value })}
-            />
-          </Field>
-
-          <div className="flex flex-col gap-6 md:flex-row md:items-stretch @max-sm/workspace:[[data-workspace-sidebar]_&]:flex-col">
-            <Field className="min-h-0 flex-1">
-              <FieldLabel htmlFor="page-description">Description</FieldLabel>
-              <Textarea
-                id="page-description"
-                className="min-h-[126px] flex-1 resize-y field-sizing-fixed"
-                value={fields.description}
-                onChange={(event) => setFields({ ...fields, description: event.target.value })}
-              />
-            </Field>
-
-            <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2">
-              <h3 className="text-sm font-medium">Preview</h3>
-              {/* Fixed-height SERP mock; description column can grow taller via flex-1 textarea */}
-              <Card className="max-h-[126px] max-w-[400px] shrink-0 overflow-hidden py-4 shadow-none">
-                <CardContent className="min-w-0 space-y-2">
-                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <Globe className="size-3.5 shrink-0" aria-hidden />
-                    <span className="truncate">makeitrainey.framer.website</span>
-                  </div>
-                  <a
-                    href="#"
-                    className="block truncate text-sm font-medium text-blue-600 hover:underline dark:text-blue-400"
-                    onClick={(e) => e.preventDefault()}
-                  >
-                    {fields.title}
-                  </a>
-                  <p className="line-clamp-2 text-sm text-muted-foreground">{fields.description}</p>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        </div>
-        {saveError === null ? null : <FieldError>{saveError}</FieldError>}
-        <div className="flex items-center gap-2">
-          <Button type="submit" disabled={!isDirty}>
+      {saveSlot &&
+        createPortal(
+          <Button type="submit" form={formId} size="sm" disabled={!isDirty}>
             Save
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => {
-              void navigate({
-                to: "/$username/site/$siteId/page/$pageId",
-                params,
-                search: { breakpoint: search.breakpoint },
-                resetScroll: false,
-              });
-            }}
-          >
-            Cancel
-          </Button>
+          </Button>,
+          saveSlot,
+        )}
+      {saveError === null ? null : (
+        <div className="sticky top-0 z-10 bg-background px-3 py-2">
+          <FieldError>{saveError}</FieldError>
         </div>
+      )}
+      <div className="grid gap-3 border-b border-sidebar-border px-3 py-3">
+        <Field orientation="horizontal">
+          <FieldLabel htmlFor="page-title">Title</FieldLabel>
+          <Input
+            id="page-title"
+            value={fields.title}
+            onChange={(event) => setFields({ ...fields, title: event.target.value })}
+          />
+        </Field>
+        <Field orientation="horizontal">
+          <FieldLabel htmlFor="page-description">Description</FieldLabel>
+          <TextboxInput
+            id="page-description"
+            value={fields.description}
+            onChange={(event) => setFields({ ...fields, description: event.target.value })}
+          />
+        </Field>
       </div>
+      <StudioSidebar
+        embedded
+        label="Page previews"
+        sections={[
+          {
+            title: "Previews",
+            content: (
+              <>
+                <Field aria-labelledby="search-result-preview-label">
+                  <span
+                    id="search-result-preview-label"
+                    className="text-xs font-medium text-muted-foreground"
+                  >
+                    Search result
+                  </span>
+                  <SearchPreviewCard
+                    title={fields.title}
+                    url={previewUrl}
+                    description={fields.description}
+                    faviconSrc={faviconLightUrl || undefined}
+                  />
+                </Field>
+                <Field aria-labelledby="browser-tab-preview-label">
+                  <span
+                    id="browser-tab-preview-label"
+                    className="text-xs font-medium text-muted-foreground"
+                  >
+                    Browser tab
+                  </span>
+                  <div className="overflow-hidden rounded-lg border border-sidebar-border bg-[#dbe5f5] dark:bg-zinc-900">
+                    <div className="mx-2 mt-2 flex h-8 max-w-56 min-w-0 items-center gap-2 rounded-t-lg bg-[#f7faff] px-3 text-xs text-zinc-800 dark:bg-zinc-800 dark:text-zinc-100">
+                      <img
+                        src={faviconLightUrl || "/favicon-light.png"}
+                        alt=""
+                        className="size-4 shrink-0 object-contain dark:hidden"
+                      />
+                      <img
+                        src={faviconDarkUrl || faviconLightUrl || "/favicon-light.png"}
+                        alt=""
+                        className="hidden size-4 shrink-0 object-contain dark:block"
+                      />
+                      <span className="min-w-0 flex-1 truncate">
+                        {fields.title || "Untitled page"}
+                      </span>
+                      <X aria-hidden className="size-3 shrink-0" />
+                    </div>
+                    <div className="h-2 bg-[#f7faff] dark:bg-zinc-800" />
+                  </div>
+                </Field>
+              </>
+            ),
+          },
+        ]}
+      />
     </form>
   );
 }

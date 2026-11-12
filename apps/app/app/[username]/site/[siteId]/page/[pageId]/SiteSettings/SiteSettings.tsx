@@ -26,16 +26,16 @@ import { TextboxInput } from "@qrk.sh/bricks/components/TextboxInput";
 
 import { Schema } from "effect";
 import { isEqual } from "es-toolkit";
-import { X } from "lucide-react";
+import { ExternalLink } from "lucide-react";
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import useSWR from "swr";
 
 import { CopyButton } from "./CopyButton";
-import { SearchPreviewCard } from "../SearchPreviewCard";
 
 import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
 import { FieldError } from "@/components/ui/field";
+import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useUsername } from "@/hooks/useUsername";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
@@ -95,6 +95,7 @@ async function uploadSiteImage(props: {
 export function SiteSettings(props: {
   site: {
     id: `sit_${string}`;
+    slug: string | null;
     name: string;
     description: string;
     logoUrl: string;
@@ -161,10 +162,7 @@ export function SiteSettings(props: {
     const pathname = `/${encodeURIComponent(username)}/${encodeURIComponent(siteId)}`;
     return `https://www.qrk.sh${pathname}`;
   }, [siteId, username]);
-  const publishedUrlDisplay = useMemo(
-    () => publishedUrl.replace(/^https?:\/\//, ""),
-    [publishedUrl],
-  );
+  const siteDomain = site.slug ? `${site.slug}.qrk.sh` : null;
 
   const { data: qrDataUrl } = useSWR([username, siteId], async ([username, siteId]) => {
     const pathname = `/${encodeURIComponent(username)}/${encodeURIComponent(siteId)}`;
@@ -263,110 +261,102 @@ export function SiteSettings(props: {
           <FieldError>{saveError}</FieldError>
         </div>
       )}
+      <div className="grid gap-3 border-b border-sidebar-border px-3 py-3">
+        <BrickField orientation="horizontal">
+          <BrickFieldLabel htmlFor="site-name-and-wordmark">Site name</BrickFieldLabel>
+          <Input
+            id="site-name-and-wordmark"
+            value={fields.name}
+            onChange={(event) => setFields({ ...fields, name: event.target.value })}
+          />
+        </BrickField>
+
+        <BrickField orientation="horizontal">
+          <BrickFieldLabel htmlFor="site-subdomain">Site subdomain</BrickFieldLabel>
+          <Input id="site-subdomain" value={site.slug ?? ""} placeholder="Not set" readOnly />
+        </BrickField>
+
+        <BrickField orientation="horizontal">
+          <BrickFieldLabel htmlFor="site-description">Description</BrickFieldLabel>
+          <TextboxInput
+            id="site-description"
+            value={fields.description}
+            onChange={(event) => setFields({ ...fields, description: event.target.value })}
+          />
+        </BrickField>
+
+        {siteImageFields.map(({ field, label, description }) => {
+          const id = `site-${field}`;
+          const imageUrl = fields[field];
+          const error = uploadErrors[field];
+          const dark = field === "faviconDarkUrl";
+          return (
+            <BrickField key={field} orientation="horizontal">
+              <BrickFieldLabel htmlFor={id}>{label}</BrickFieldLabel>
+              <FieldContent>
+                <Input
+                  id={id}
+                  type="file"
+                  accept={siteImageTypes.join(",")}
+                  disabled={isUploading}
+                  aria-invalid={error !== undefined || undefined}
+                  aria-describedby={error === undefined ? `${id}-help` : `${id}-help ${id}-error`}
+                  onChange={(event) => {
+                    const { currentTarget } = event;
+                    const file = currentTarget.files?.[0];
+                    if (file === undefined) return;
+                    currentTarget.value = "";
+                    void runUpload(file, field);
+                  }}
+                />
+                {field === "logoUrl" ? (
+                  imageUrl && (
+                    <img
+                      src={imageUrl}
+                      alt="Current site logo"
+                      className="max-h-12 w-fit max-w-full object-contain"
+                    />
+                  )
+                ) : (
+                  <span
+                    aria-hidden="true"
+                    className="flex w-24 min-w-0 flex-col overflow-hidden rounded-md border"
+                  >
+                    <span
+                      className={`flex items-center gap-1 border-b px-1.5 py-1 ${dark ? "bg-zinc-900" : "bg-background"}`}
+                    >
+                      {imageUrl ? (
+                        <img src={imageUrl} alt="" className="size-4 rounded-sm object-cover" />
+                      ) : (
+                        <span
+                          className={`size-4 shrink-0 rounded-sm ${dark ? "bg-zinc-700" : "bg-muted"}`}
+                        />
+                      )}
+                      <span
+                        className={`h-2 min-w-0 flex-1 rounded ${dark ? "bg-zinc-600" : "bg-muted/80"}`}
+                      />
+                    </span>
+                    <span className={`h-7 ${dark ? "bg-zinc-950" : "bg-background"}`} />
+                  </span>
+                )}
+                <BrickFieldDescription id={`${id}-help`}>{description}</BrickFieldDescription>
+                {uploadingField === field && (
+                  <BrickFieldDescription role="status">Uploading…</BrickFieldDescription>
+                )}
+                {error !== undefined && (
+                  <BrickFieldError id={`${id}-error`}>{error}</BrickFieldError>
+                )}
+              </FieldContent>
+            </BrickField>
+          );
+        })}
+      </div>
       <StudioSidebar
         embedded
         label="Site settings"
         sections={[
           {
-            title: "Site identity",
-            content: (
-              <>
-                <BrickField orientation="horizontal">
-                  <BrickFieldLabel htmlFor="site-name-and-wordmark">Site name</BrickFieldLabel>
-                  <Input
-                    id="site-name-and-wordmark"
-                    value={fields.name}
-                    onChange={(event) => setFields({ ...fields, name: event.target.value })}
-                  />
-                </BrickField>
-
-                <BrickField orientation="horizontal">
-                  <BrickFieldLabel htmlFor="site-description">Description</BrickFieldLabel>
-                  <TextboxInput
-                    id="site-description"
-                    value={fields.description}
-                    onChange={(event) => setFields({ ...fields, description: event.target.value })}
-                  />
-                </BrickField>
-
-                {siteImageFields.map(({ field, label, description }) => {
-                  const id = `site-${field}`;
-                  const imageUrl = fields[field];
-                  const error = uploadErrors[field];
-                  const dark = field === "faviconDarkUrl";
-                  return (
-                    <BrickField key={field} orientation="horizontal">
-                      <BrickFieldLabel htmlFor={id}>{label}</BrickFieldLabel>
-                      <FieldContent>
-                        <Input
-                          id={id}
-                          type="file"
-                          accept={siteImageTypes.join(",")}
-                          disabled={isUploading}
-                          aria-invalid={error !== undefined || undefined}
-                          aria-describedby={
-                            error === undefined ? `${id}-help` : `${id}-help ${id}-error`
-                          }
-                          onChange={(event) => {
-                            const { currentTarget } = event;
-                            const file = currentTarget.files?.[0];
-                            if (file === undefined) return;
-                            currentTarget.value = "";
-                            void runUpload(file, field);
-                          }}
-                        />
-                        {field === "logoUrl" ? (
-                          imageUrl && (
-                            <img
-                              src={imageUrl}
-                              alt="Current site logo"
-                              className="max-h-12 w-fit max-w-full object-contain"
-                            />
-                          )
-                        ) : (
-                          <span
-                            aria-hidden="true"
-                            className="flex w-24 min-w-0 flex-col overflow-hidden rounded-md border"
-                          >
-                            <span
-                              className={`flex items-center gap-1 border-b px-1.5 py-1 ${dark ? "bg-zinc-900" : "bg-background"}`}
-                            >
-                              {imageUrl ? (
-                                <img
-                                  src={imageUrl}
-                                  alt=""
-                                  className="size-4 rounded-sm object-cover"
-                                />
-                              ) : (
-                                <span
-                                  className={`size-4 shrink-0 rounded-sm ${dark ? "bg-zinc-700" : "bg-muted"}`}
-                                />
-                              )}
-                              <span
-                                className={`h-2 min-w-0 flex-1 rounded ${dark ? "bg-zinc-600" : "bg-muted/80"}`}
-                              />
-                            </span>
-                            <span className={`h-7 ${dark ? "bg-zinc-950" : "bg-background"}`} />
-                          </span>
-                        )}
-                        <BrickFieldDescription id={`${id}-help`}>
-                          {description}
-                        </BrickFieldDescription>
-                        {uploadingField === field && (
-                          <BrickFieldDescription role="status">Uploading…</BrickFieldDescription>
-                        )}
-                        {error !== undefined && (
-                          <BrickFieldError id={`${id}-error`}>{error}</BrickFieldError>
-                        )}
-                      </FieldContent>
-                    </BrickField>
-                  );
-                })}
-              </>
-            ),
-          },
-          {
-            title: "Site layout",
+            title: "Design",
             content: (
               <>
                 <BrickField orientation="horizontal">
@@ -477,26 +467,79 @@ export function SiteSettings(props: {
             title: "Sharing",
             content: (
               <>
-                <BrickField orientation="horizontal" aria-labelledby="site-share-url-label">
+                <BrickField aria-labelledby="site-domains-label">
+                  <span
+                    id="site-domains-label"
+                    className="text-xs font-medium text-muted-foreground"
+                  >
+                    Domains
+                  </span>
+                  <FieldContent>
+                    {siteDomain === null ? (
+                      <BrickFieldDescription className="flex min-h-7 items-center">
+                        No subdomain set
+                      </BrickFieldDescription>
+                    ) : (
+                      <InputGroup className="h-8 bg-muted/30 shadow-none">
+                        <InputGroupInput
+                          aria-labelledby="site-domains-label"
+                          title={siteDomain}
+                          value={siteDomain}
+                          readOnly
+                          className="h-full truncate px-2 font-mono text-xs md:text-xs"
+                        />
+                        <InputGroupAddon align="inline-end" className="shrink-0 gap-0 py-0">
+                          <TooltipProvider delay={0}>
+                            <CopyButton text={siteDomain} label="Copy domain" inline />
+                          </TooltipProvider>
+                          <Button
+                            nativeButton={false}
+                            variant="ghost"
+                            size="icon-xs"
+                            aria-label="Open domain in a new tab"
+                            render={
+                              <a
+                                href={`https://${siteDomain}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                role="link"
+                                onClick={(event) => event.stopPropagation()}
+                              />
+                            }
+                          >
+                            <ExternalLink className="size-3.5" aria-hidden />
+                          </Button>
+                        </InputGroupAddon>
+                      </InputGroup>
+                    )}
+                  </FieldContent>
+                </BrickField>
+                <BrickField aria-labelledby="site-share-url-label">
                   <span
                     id="site-share-url-label"
-                    className="flex min-h-7 items-center text-xs font-medium text-muted-foreground"
+                    className="text-xs font-medium text-muted-foreground"
                   >
                     Share URL
                   </span>
-                  <div className="flex min-w-0 items-center gap-2">
-                    <div className="min-w-0 flex-1 truncate rounded-md border bg-muted/30 px-3 py-2 font-mono text-xs text-foreground">
-                      {publishedUrl}
-                    </div>
-                    <TooltipProvider delay={0}>
-                      <CopyButton text={publishedUrl} />
-                    </TooltipProvider>
-                  </div>
+                  <InputGroup className="h-8 bg-muted/30 shadow-none">
+                    <InputGroupInput
+                      aria-labelledby="site-share-url-label"
+                      title={publishedUrl}
+                      value={publishedUrl}
+                      readOnly
+                      className="h-full truncate px-2 font-mono text-xs md:text-xs"
+                    />
+                    <InputGroupAddon align="inline-end" className="shrink-0 gap-0 py-0">
+                      <TooltipProvider delay={0}>
+                        <CopyButton text={publishedUrl} inline />
+                      </TooltipProvider>
+                    </InputGroupAddon>
+                  </InputGroup>
                 </BrickField>
-                <BrickField orientation="horizontal" aria-labelledby="site-qr-code-label">
+                <BrickField aria-labelledby="site-qr-code-label">
                   <span
                     id="site-qr-code-label"
-                    className="flex min-h-7 items-center text-xs font-medium text-muted-foreground"
+                    className="text-xs font-medium text-muted-foreground"
                   >
                     QR Code
                   </span>
@@ -520,39 +563,6 @@ export function SiteSettings(props: {
                   </FieldContent>
                 </BrickField>
               </>
-            ),
-          },
-          {
-            title: "Search result preview",
-            content: (
-              <SearchPreviewCard
-                title={fields.name}
-                url={publishedUrlDisplay}
-                description={fields.description}
-                faviconSrc={fields.faviconLightUrl.length > 0 ? fields.faviconLightUrl : undefined}
-              />
-            ),
-          },
-          {
-            title: "Browser tab preview",
-            content: (
-              <div className="overflow-hidden rounded-lg border border-sidebar-border bg-[#dbe5f5] dark:bg-zinc-900">
-                <div className="mx-2 mt-2 flex h-8 max-w-56 min-w-0 items-center gap-2 rounded-t-lg bg-[#f7faff] px-3 text-xs text-zinc-800 dark:bg-zinc-800 dark:text-zinc-100">
-                  <img
-                    src={fields.faviconLightUrl || "/favicon-light.png"}
-                    alt=""
-                    className="size-4 shrink-0 object-contain dark:hidden"
-                  />
-                  <img
-                    src={fields.faviconDarkUrl || fields.faviconLightUrl || "/favicon-light.png"}
-                    alt=""
-                    className="hidden size-4 shrink-0 object-contain dark:block"
-                  />
-                  <span className="min-w-0 flex-1 truncate">{fields.name || "Untitled site"}</span>
-                  <X aria-hidden className="size-3 shrink-0" />
-                </div>
-                <div className="h-2 bg-[#f7faff] dark:bg-zinc-800" />
-              </div>
             ),
           },
           {

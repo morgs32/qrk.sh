@@ -1,7 +1,13 @@
 "use client";
 
 import { useCallback, useLayoutEffect, useRef, type ReactNode, type RefCallback } from "react";
-import { useBlocker, useMatches, useNavigate, type ShouldBlockFn } from "@tanstack/react-router";
+import {
+  useBlocker,
+  useMatches,
+  useNavigate,
+  useSearch,
+  type ShouldBlockFn,
+} from "@tanstack/react-router";
 import { useAuth } from "@clerk/react";
 import { ClerkOfflineError } from "@clerk/react/errors";
 import { useLiveQuery, useSession } from "@zerospin/react";
@@ -38,10 +44,10 @@ const previewControlSelector = [
   '[role="button"], [role="link"], [role^="menuitem"], [tabindex]:not([tabindex="-1"])',
 ].join(", ");
 
-function isPreviewBackground(preview: HTMLDivElement, target: EventTarget) {
+function isEditorBackground(surface: HTMLDivElement, target: EventTarget) {
   return (
     target instanceof Element &&
-    preview.contains(target) &&
+    surface.contains(target) &&
     target.closest(previewControlSelector) === null
   );
 }
@@ -50,7 +56,8 @@ export default function PageLayout(props: { children: ReactNode }) {
   const { children } = props;
   const params = useValidatedParams(ParamsSchema);
   const { username, siteId, pageId } = params;
-  const navigate = useNavigate({ from: "/$username/site/$siteId/page/$pageId" });
+  const navigate = useNavigate();
+  const { selected } = useSearch({ from: "/$username/site/$siteId/page/$pageId" });
   const brickFlushes = useRef(new Map<string, (onRecover?: () => void) => boolean>());
   const pendingFlushes = useRef(new Map<() => boolean, Set<() => void>>());
   const pendingNavigation = useRef<((block: boolean) => void) | null>(null);
@@ -139,7 +146,7 @@ export default function PageLayout(props: { children: ReactNode }) {
       matches.at(-1)?.routeId === "/$username/site/$siteId/page/$pageId/_sidebar/brick/$brickId",
   });
   const editorScroll = useRef<HTMLDivElement>(null);
-  const previewPress = useRef<number | null>(null);
+  const backgroundPress = useRef<number | null>(null);
   const { getToken } = useAuth();
   const session = useSession(userSessionDefinition);
   const { breakpoint, previewRef } = useBreakpointGuard(PREVIEW_INLINE_GUTTER);
@@ -248,15 +255,88 @@ export default function PageLayout(props: { children: ReactNode }) {
     void navigate({
       to: "/$username/site/$siteId/page/$pageId",
       params,
-      search: ({ breakpoint }) => ({ breakpoint }),
+      search: (previous) => ({
+        ...previous,
+        selected: isBrickDetails ? undefined : previous.selected,
+      }),
       resetScroll: false,
     });
+  };
+
+  const isOutsideSelection = (editor: HTMLDivElement, target: EventTarget) => {
+    if (isBrickDetails) {
+      return editorScroll.current !== null && isEditorBackground(editorScroll.current, target);
+    }
+    return (
+      selected !== undefined &&
+      target instanceof Element &&
+      isEditorBackground(editor, target) &&
+      target.closest("[data-wall-selected], .wall-placement.is-selected") === null
+    );
   };
 
   return (
     <SWRConfig value={{ uploadImage }}>
       <BrickAutosaveContext value={{ registerBrickFlush, flushBrick, flushPageEditors }}>
-        <div className="flex h-full min-h-0 flex-col overflow-hidden">
+        <div
+          onPointerDownCapture={(event) => {
+            if (!event.isPrimary || event.button !== 0) return;
+            // A click can target a shared ancestor when the press and release differ.
+            backgroundPress.current = isOutsideSelection(event.currentTarget, event.target)
+              ? event.pointerId
+              : null;
+          }}
+          onPointerUpCapture={(event) => {
+            if (
+              backgroundPress.current === event.pointerId &&
+              !isOutsideSelection(event.currentTarget, event.target)
+            )
+              backgroundPress.current = null;
+          }}
+          onPointerCancelCapture={(event) => {
+            if (backgroundPress.current === event.pointerId) backgroundPress.current = null;
+          }}
+          onClick={(event) => {
+            const pointerId = backgroundPress.current;
+            backgroundPress.current = null;
+            if (
+              pointerId === null ||
+              (event.nativeEvent instanceof PointerEvent &&
+                event.nativeEvent.pointerId !== pointerId) ||
+              event.defaultPrevented ||
+              event.button !== 0 ||
+              event.detail === 0 ||
+              event.altKey ||
+              event.ctrlKey ||
+              event.metaKey ||
+              event.shiftKey ||
+              !isOutsideSelection(event.currentTarget, event.target)
+            )
+              return;
+
+            const selection = event.currentTarget.ownerDocument.getSelection();
+            const selectionScope = isBrickDetails ? editorScroll.current : event.currentTarget;
+            if (
+              selectionScope !== null &&
+              selection !== null &&
+              !selection.isCollapsed &&
+              selection.rangeCount > 0 &&
+              selection.getRangeAt(0).intersectsNode(selectionScope)
+            )
+              return;
+
+            if (isBrickDetails) {
+              closePanel();
+              return;
+            }
+            void navigate({
+              to: ".",
+              search: (previous) => ({ ...previous, selected: undefined }),
+              resetScroll: false,
+            });
+          }}
+          className="flex h-full min-h-0 flex-col overflow-hidden"
+        >
           <PageEditorNavbar username={username} siteId={siteId} isPublished={site.isPublished} />
           <div className="relative isolate flex min-h-0 min-w-0 flex-1 overflow-hidden">
             <title>
@@ -265,54 +345,6 @@ export default function PageLayout(props: { children: ReactNode }) {
             <div className="wall-preview-viewport relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
               <div
                 ref={scrollRef}
-                onPointerDownCapture={(event) => {
-                  if (!event.isPrimary || event.button !== 0) return;
-                  // A click can target a shared ancestor when the press and release differ.
-                  previewPress.current =
-                    isBrickDetails && isPreviewBackground(event.currentTarget, event.target)
-                      ? event.pointerId
-                      : null;
-                }}
-                onPointerUpCapture={(event) => {
-                  if (
-                    previewPress.current === event.pointerId &&
-                    !isPreviewBackground(event.currentTarget, event.target)
-                  )
-                    previewPress.current = null;
-                }}
-                onPointerCancelCapture={(event) => {
-                  if (previewPress.current === event.pointerId) previewPress.current = null;
-                }}
-                onClick={(event) => {
-                  const pointerId = previewPress.current;
-                  previewPress.current = null;
-                  if (
-                    !isBrickDetails ||
-                    pointerId === null ||
-                    (event.nativeEvent instanceof PointerEvent &&
-                      event.nativeEvent.pointerId !== pointerId) ||
-                    event.defaultPrevented ||
-                    event.button !== 0 ||
-                    event.detail === 0 ||
-                    event.altKey ||
-                    event.ctrlKey ||
-                    event.metaKey ||
-                    event.shiftKey ||
-                    !isPreviewBackground(event.currentTarget, event.target)
-                  )
-                    return;
-
-                  const selection = event.currentTarget.ownerDocument.getSelection();
-                  if (
-                    selection !== null &&
-                    !selection.isCollapsed &&
-                    selection.rangeCount > 0 &&
-                    selection.getRangeAt(0).intersectsNode(event.currentTarget)
-                  )
-                    return;
-
-                  closePanel();
-                }}
                 className="wall-preview-scroll relative h-full min-h-0 min-w-0 shrink-0 overflow-auto pt-[var(--wall-preview-top-gap)] pb-[var(--wall-preview-bottom-gap)]"
               >
                 <div

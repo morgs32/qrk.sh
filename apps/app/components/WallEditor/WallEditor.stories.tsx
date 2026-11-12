@@ -462,6 +462,7 @@ function WallEditorStory(props: {
   const [selectedBrickId, setSelectedBrickId] = useState<string | null>(() =>
     selected ? (resources.brick[0]?.id ?? null) : null,
   );
+  const [selectedWallId, setSelectedWallId] = useState<string | null>(null);
   const [requestedBreakpoint, setRequestedBreakpoint] = useState<(typeof BREAKPOINTS)[number]>(
     BREAKPOINTS[0],
   );
@@ -534,9 +535,10 @@ function WallEditorStory(props: {
                 <input
                   type="checkbox"
                   checked={selectedBrickId !== null}
-                  onChange={(event) =>
-                    setSelectedBrickId(event.target.checked ? resources.brick[0].id : null)
-                  }
+                  onChange={(event) => {
+                    setSelectedWallId(null);
+                    setSelectedBrickId(event.target.checked ? resources.brick[0].id : null);
+                  }}
                 />
                 Selected placement
               </label>
@@ -611,7 +613,15 @@ function WallEditorStory(props: {
                       key={wallId}
                       wallId={wallId}
                       selectedBrickId={selectedBrickId}
-                      onEditBrick={setSelectedBrickId}
+                      selectedWallId={selectedWallId}
+                      onSelectWallItem={(id) => {
+                        setSelectedBrickId(null);
+                        setSelectedWallId(id);
+                      }}
+                      onEditBrick={(id) => {
+                        setSelectedWallId(null);
+                        setSelectedBrickId(id);
+                      }}
                       onBrickDeleted={(brickId) =>
                         setSelectedBrickId((selected) => (selected === brickId ? null : selected))
                       }

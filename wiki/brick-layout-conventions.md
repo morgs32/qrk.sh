@@ -7,9 +7,10 @@
 App is the persisted editor. A Page owns shared Bricks and four Walls at
 360 / 720 / 1080 / 1440px (`sm` / `md` / `lg` / `xl`). Wall contains ordered
 Sections, Section contains ordered Stacks, Stack contains vertical Rows, and
-Row contains side-by-side Placements. Each Brick has one deterministic Placement
-per breakpoint. `Wall.layout` stores Section, named Stack, and Row nodes whose
-ordered arrays reference Placement IDs. The nodes retain stable IDs without
+Row contains side-by-side Placements. A new Brick has one deterministic Placement
+per breakpoint. Deleting its Stack at one width removes that Placement.
+`Wall.layout` stores Section, named Stack, and Row nodes whose ordered arrays
+reference Placement IDs. The nodes retain stable IDs without
 separate tables, parent columns, or numeric sibling positions. Brick content and
 Placement specs/revisions/generation remain separate records. Placement's direct
 `wallId` identifies its Wall and breakpoint. Canonical declarations and commands
@@ -19,7 +20,10 @@ Each new Page starts with four Walls whose layouts are `{ sections: [] }`.
 The first Brick drop creates the required Section, Stack, and Row. Moves and
 Brick deletion prune only the emptied source ancestry; unrelated empty Rows,
 Stacks, and Sections remain. Stack actions can insert an empty named Stack to
-the left or right. Empty Stacks retain their actions and accept Brick drops.
+the left or right. Delete stack removes the Stack from the current Wall and lets
+the editor remove its Bricks at that width or every width. A Brick is deleted
+when its last Placement is removed. Empty Stacks retain their actions and accept
+Brick drops.
 Stack capacity follows content minimums rather than breakpoint count caps.
 Stacks receive equal widths when possible; a Stack whose widest Row requires
 more keeps that minimum while the other Stacks share the remainder. Empty
@@ -111,8 +115,8 @@ Each module's required `hasPlaceholder` flag declares whether null is valid stat
 Modules declaring `true` provide their module-owned placeholder and blank form
 draft. Swatch and Icon declares `false`, has no placeholder renderer, and requires
 configured color/icon state. Catalog/Storybook example defaults remain separate.
-Editing shared content affects all four Placements; arrangement and spec changes
-affect only their Wall/Placement.
+Editing shared content affects every remaining Placement. Arrangement and spec
+changes affect only their Wall/Placement.
 
 ## Insertion, movement, and selection
 
@@ -243,8 +247,9 @@ representations and use scenario-valid fixture controls. The old hover-study
 gallery and its mock stylesheet are removed; production components own paint.
 Backend move commands remain available independently of the canvas.
 
-Clicking ordinary placed-Brick content opens its edit form through the existing
-route-owned selection. Clicking an already selected Brick keeps it selected.
+Clicking a sidebar-backed Brick opens its edit form through the Brick route.
+Clicking an Article selects it in the Wall and lets the inline editor place the
+caret. Clicking an already selected Brick keeps it selected.
 Links, buttons, form controls, editable content, media controls, and action
 controls keep their own interactions without selecting. MapCanvas owns its click
 boundary so map gestures and controls remain usable. Modified or prevented clicks
@@ -257,8 +262,11 @@ gutters, closes Brick Details and clears selection through the usual Close
 behavior. A press that starts on a Brick or preview control and ends on empty
 space keeps the drawer open.
 
-StackAction displays the saved Stack name as plain text. Its chevron opens the
-menu for inserting a Stack to the left or right.
+Clicking the Stack name or Row label selects that container. Its adjacent
+chevron opens Stack actions or Row alignment. The Page URL's `selected` query
+parameter holds the selected Row, Stack, or Article ID. A blank click outside
+the selected item anywhere in the Page editor clears the selection. Menus and
+resize controls preserve it.
 
 The `renameStack` command checks authenticated ownership and current Wall
 membership, then updates only the embedded Stack's name.
@@ -273,8 +281,8 @@ clipping layer, and BrickAction at 20. StackAction retains its existing z-index
 surface without editor actions or an added edge. The separate native pointer
 image retains its 2px `#1F9BFC` edge, with no halos or card shadow.
 
-Selected means a Brick's edit form is open. Active means DOM focus, including
-keyboard focus. A shared 1px `#1F9BFC` content stroke and sharp same-blue halos
+Selected means the Wall item has a persistent outline. Active means DOM focus,
+including keyboard focus. A shared 1px `#1F9BFC` content stroke and sharp same-blue halos
 (30% opacity outside and 15% inside) decorate hover, focus, and selection without
 changing layout. Selection can keep that content paint while focus is in the
 drawer, but it does not force BrickAction visible. BrickAction appears only on

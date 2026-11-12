@@ -34,12 +34,14 @@ import {
   useRef,
   useState,
   type CSSProperties,
+  type MouseEvent,
 } from "react";
 import { brickV3 } from "@qrk.sh/zerospin/src/aggregates/user/models/brick/BrickV3";
 import { wallV3 } from "@qrk.sh/zerospin/src/aggregates/user/models/wall/WallV3";
 import { useLiveQuery, useSession } from "@zerospin/react";
 import { Result, Schema } from "effect";
 import { wallInsertionTargetSchema } from "@qrk.sh/zerospin/src/aggregates/user/layout/wallTargetSchemas";
+import type { stackIdSchema } from "@qrk.sh/zerospin/src/aggregates/user/layout/wallLayoutSchema";
 import { canShareRow } from "@qrk.sh/zerospin/src/aggregates/user/layout/canShareRow";
 import {
   allocateRowWidths,
@@ -60,6 +62,7 @@ import { makeWallLayoutView } from "./makeWallLayoutView";
 import { useWallResize } from "./useWallResize";
 import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
 import { Button } from "@/components/ui/button";
+import { Button as BricksButton } from "@qrk.sh/bricks/components/button";
 import {
   AlertDialogCancel,
   AlertDialogContent,
@@ -91,19 +94,36 @@ const WallPlacementData = Schema.Struct({
 export function WallEditor(props: {
   wallId: IInferModelRow<typeof wallV3>["id"];
   selectedBrickId?: string | null;
+  selectedWallId?: string | null;
+  onSelectWallItem: (id: string) => void;
   onEditBrick: (brickId: string) => void;
   onBrickDeleted: (brickId: string) => void;
   registerBrickFlush: (brickId: string, flush: (onRecover?: () => void) => boolean) => () => void;
   flushBrick: (brickId: string) => boolean;
 }) {
-  const { wallId, selectedBrickId, onEditBrick, onBrickDeleted, registerBrickFlush, flushBrick } =
-    props;
+  const {
+    wallId,
+    selectedBrickId,
+    selectedWallId,
+    onSelectWallItem,
+    onEditBrick,
+    onBrickDeleted,
+    registerBrickFlush,
+    flushBrick,
+  } = props;
   const wallRef = useRef<HTMLDivElement>(null);
   const deleteReturnFocus = useRef<HTMLElement | null>(null);
   const deleteCancelRef = useRef<HTMLButtonElement>(null);
   const [brickToDelete, setBrickToDelete] = useState<IInferModelRow<typeof brickV3>["id"] | null>(
     null,
   );
+  const [stackToDelete, setStackToDelete] = useState<{
+    id: typeof stackIdSchema.Type;
+    name: string;
+    placementIds: Array<`plc_${string}`>;
+  } | null>(null);
+  const stackDeleteReturnFocus = useRef<HTMLElement | null>(null);
+  const stackDeleteCancelRef = useRef<HTMLButtonElement>(null);
   const moveIndicatorRef = useRef<HTMLDivElement>(null);
   const shadowTargetRef = useRef<typeof wallInsertionTargetSchema.Type | null>(null);
   const shadowRowHeights = useRef(new Map<HTMLElement, number>());
@@ -151,6 +171,29 @@ export function WallEditor(props: {
   }, [pendingInsertion, wall.placements]);
 
   const { sections } = makeWallLayoutView({ wall });
+  const deleteStack = (allWidths: boolean) => {
+    if (stackToDelete === null) return;
+    const stack = sections
+      .flatMap((section) => section.stacks)
+      .find((entry) => entry.id === stackToDelete.id);
+    const selectedPlacement = stack?.rows
+      .flatMap((row) => row.placements)
+      .find((placement) => placement.brickId === selectedBrickId);
+    const result = stageAggregateSessionCommand({
+      session,
+      contractName: "deleteStack",
+      payload: {
+        wallId,
+        stackId: stackToDelete.id,
+        placementIds: stackToDelete.placementIds,
+        allWidths,
+      },
+    });
+    if (result._tag !== "Success") return;
+    stackDeleteReturnFocus.current = null;
+    setStackToDelete(null);
+    if (selectedPlacement !== undefined) onBrickDeleted(selectedPlacement.brickId);
+  };
   const { brickGap } = wall.page.site;
   const resizeDisabled = nativeDragActive;
   const resize = useWallResize({
@@ -963,22 +1006,34 @@ export function WallEditor(props: {
                         <div
                           key={stack.id}
                           data-wall-stack-id={stack.id}
+                          data-wall-selected={selectedWallId === stack.id ? "" : undefined}
                           data-wall-stack-empty={isEmpty ? "" : undefined}
                           className={`group/stack relative min-h-[50px] min-w-0 ${isEmpty && dropTarget?.kind === "stack" && dropTarget.stackId === stack.id ? "bg-blue-50 outline outline-blue-500 -outline-offset-2" : ""}`}
                         >
                           <StackAction>
                             <Menu.Root>
-                              <DropdownMenuTrigger
-                                className="wall-action-tag wall-action-tag-button max-w-full"
-                                aria-label={`Stack ${stack.name} actions`}
-                              >
-                                <span className="min-w-0 truncate">{stack.name}</span>
-                                <ChevronDown
-                                  className="wall-action-tag-chevron"
-                                  strokeWidth={1.5}
-                                  aria-hidden="true"
-                                />
-                              </DropdownMenuTrigger>
+                              <div className="wall-selection-tag wall-action-tag">
+                                <BricksButton
+                                  type="button"
+                                  variant="ghost"
+                                  className="wall-selection-name wall-action-tag-button"
+                                  aria-pressed={selectedWallId === stack.id}
+                                  onClick={() => onSelectWallItem(stack.id)}
+                                >
+                                  <span className="truncate">{stack.name}</span>
+                                </BricksButton>
+                                <DropdownMenuTrigger
+                                  render={<BricksButton variant="ghost" />}
+                                  className="wall-selection-menu wall-action-tag-button"
+                                  aria-label={`Stack ${stack.name} actions`}
+                                >
+                                  <ChevronDown
+                                    className="wall-action-tag-chevron size-3.5"
+                                    strokeWidth={1.5}
+                                    aria-hidden="true"
+                                  />
+                                </DropdownMenuTrigger>
+                              </div>
                               <DropdownMenuContent
                                 side="bottom"
                                 align="start"
@@ -1025,6 +1080,24 @@ export function WallEditor(props: {
                                 >
                                   <ArrowRight className="size-4" aria-hidden="true" />
                                   Insert right
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  className="min-h-5 cursor-pointer rounded-none px-0.5 py-px text-[15px] leading-[18px] text-destructive data-highlighted:bg-destructive/10 data-highlighted:text-destructive"
+                                  onClick={() => {
+                                    stackDeleteReturnFocus.current =
+                                      wallRef.current?.querySelector<HTMLElement>(
+                                        `[data-wall-stack-id="${stack.id}"] .wall-action-tag-button`,
+                                      ) ?? null;
+                                    setStackToDelete({
+                                      id: stack.id,
+                                      name: stack.name,
+                                      placementIds: stack.rows.flatMap((row) =>
+                                        row.placements.map((placement) => placement.id),
+                                      ),
+                                    });
+                                  }}
+                                >
+                                  Delete stack
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </Menu.Root>
@@ -1109,6 +1182,7 @@ export function WallEditor(props: {
                               <div
                                 key={row.id}
                                 data-wall-row-id={row.id}
+                                data-wall-selected={selectedWallId === row.id ? "" : undefined}
                                 data-wall-row-empty={row.placements.length === 0 ? "" : undefined}
                                 className="wall-row relative flow-root min-w-0"
                               >
@@ -1139,6 +1213,40 @@ export function WallEditor(props: {
                                       const module = modulesHash[brick.moduleId];
                                       const { InlineEditor, Render } = module;
                                       const canEditInline = InlineEditor !== undefined;
+                                      const selectInlineBrick = (
+                                        event: MouseEvent<HTMLDivElement>,
+                                      ) => {
+                                        const { currentTarget, target } = event;
+                                        if (
+                                          event.defaultPrevented ||
+                                          event.button !== 0 ||
+                                          event.altKey ||
+                                          event.ctrlKey ||
+                                          event.metaKey ||
+                                          event.shiftKey ||
+                                          !(target instanceof Element) ||
+                                          !currentTarget.contains(target) ||
+                                          target.closest(
+                                            'a, button, input, select, label, summary, audio, video, canvas, [role="button"], [role="link"], [role^="menuitem"]',
+                                          )
+                                        )
+                                          return;
+                                        if (
+                                          target instanceof HTMLTextAreaElement &&
+                                          target.selectionStart !== target.selectionEnd
+                                        )
+                                          return;
+                                        const selection =
+                                          currentTarget.ownerDocument.getSelection();
+                                        if (
+                                          selection !== null &&
+                                          !selection.isCollapsed &&
+                                          selection.rangeCount > 0 &&
+                                          selection.getRangeAt(0).intersectsNode(currentTarget)
+                                        )
+                                          return;
+                                        onSelectWallItem(brick.id);
+                                      };
                                       return (
                                         <Fragment key={placement.id}>
                                           {dropTarget?.kind === "row" &&
@@ -1148,7 +1256,10 @@ export function WallEditor(props: {
                                           <WallPlacement
                                             brickGap={brickGap}
                                             brickLabel={module.label}
-                                            selected={brick.id === selectedBrickId}
+                                            selected={
+                                              brick.id === selectedBrickId ||
+                                              (canEditInline && brick.id === selectedWallId)
+                                            }
                                             onRequestDeleteBrick={(trigger) => {
                                               deleteReturnFocus.current = trigger;
                                               setBrickToDelete(brick.id);
@@ -1164,6 +1275,9 @@ export function WallEditor(props: {
                                                   borderWidth={brick.borderWidth}
                                                   data-wall-inline-editor={
                                                     canEditInline ? "" : undefined
+                                                  }
+                                                  onClick={
+                                                    canEditInline ? selectInlineBrick : undefined
                                                   }
                                                   className={
                                                     wall.page.site.cardStyle
@@ -1295,17 +1409,28 @@ export function WallEditor(props: {
                                 </div>
                                 {!nativeDragActive && rowReadout?.kind !== "height" && (
                                   <Menu.Root>
-                                    <DropdownMenuTrigger
-                                      aria-label="Row alignment"
-                                      className="wall-row-menu-trigger wall-action-tag wall-action-tag-button"
-                                    >
-                                      Row
-                                      <ChevronDown
-                                        className="wall-action-tag-chevron"
-                                        strokeWidth={1.5}
-                                        aria-hidden="true"
-                                      />
-                                    </DropdownMenuTrigger>
+                                    <div className="wall-row-action wall-selection-tag wall-action-tag">
+                                      <BricksButton
+                                        type="button"
+                                        variant="ghost"
+                                        className="wall-selection-name wall-action-tag-button"
+                                        aria-pressed={selectedWallId === row.id}
+                                        onClick={() => onSelectWallItem(row.id)}
+                                      >
+                                        Row
+                                      </BricksButton>
+                                      <DropdownMenuTrigger
+                                        render={<BricksButton variant="ghost" />}
+                                        aria-label="Row alignment"
+                                        className="wall-selection-menu wall-action-tag-button"
+                                      >
+                                        <ChevronDown
+                                          className="wall-action-tag-chevron size-3.5"
+                                          strokeWidth={1.5}
+                                          aria-hidden="true"
+                                        />
+                                      </DropdownMenuTrigger>
+                                    </div>
                                     <DropdownMenuContent
                                       side="bottom"
                                       align="start"
@@ -1446,6 +1571,54 @@ export function WallEditor(props: {
             >
               Delete Brick
             </Button>
+          </div>
+        </AlertDialogContent>
+      </AlertDialog.Root>
+      <AlertDialog.Root
+        open={stackToDelete !== null}
+        onOpenChange={(open) => {
+          if (!open) setStackToDelete(null);
+        }}
+        onOpenChangeComplete={(open) => {
+          if (!open && !stackDeleteReturnFocus.current?.isConnected)
+            wallRef.current?.focus({ preventScroll: true });
+        }}
+      >
+        <AlertDialogContent
+          backdropClassName="z-[100]"
+          className="z-[101] rounded-none"
+          initialFocus={() => stackDeleteCancelRef.current}
+          finalFocus={() =>
+            stackDeleteReturnFocus.current?.isConnected ? stackDeleteReturnFocus.current : false
+          }
+        >
+          <AlertDialogTitle>Delete {stackToDelete?.name}?</AlertDialogTitle>
+          <AlertDialogDescription>
+            {stackToDelete && stackToDelete.placementIds.length > 0
+              ? "Delete the Stack and choose whether to remove its Bricks at this device width or every device width. Bricks with no remaining Placements are deleted."
+              : "This removes the empty Stack at this device width."}
+          </AlertDialogDescription>
+          <div className="flex flex-wrap justify-end gap-2">
+            <AlertDialog.Close
+              render={<BricksButton variant="outline" />}
+              ref={stackDeleteCancelRef}
+            >
+              Cancel
+            </AlertDialog.Close>
+            {stackToDelete && stackToDelete.placementIds.length > 0 ? (
+              <>
+                <BricksButton variant="destructive" onClick={() => deleteStack(false)}>
+                  This width only
+                </BricksButton>
+                <BricksButton variant="destructive" onClick={() => deleteStack(true)}>
+                  Every width
+                </BricksButton>
+              </>
+            ) : (
+              <BricksButton variant="destructive" onClick={() => deleteStack(false)}>
+                Delete stack
+              </BricksButton>
+            )}
           </div>
         </AlertDialogContent>
       </AlertDialog.Root>

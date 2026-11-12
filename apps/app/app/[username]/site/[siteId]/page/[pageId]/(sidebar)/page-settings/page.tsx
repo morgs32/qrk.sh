@@ -20,6 +20,7 @@ export default function Page() {
     query: (db, { siteId, pageId }) =>
       db.query.page.findFirst({
         where: { id: { eq: pageId }, siteId: { eq: siteId } },
+        with: { site: true },
       }),
   });
   if (page === undefined) return <NotFound />;
@@ -28,7 +29,14 @@ export default function Page() {
     <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
       <PageSettings
         key={page.id}
-        page={{ id: page.id, title: page.title ?? "", description: page.description ?? "" }}
+        page={{
+          id: page.id,
+          title: page.title ?? "",
+          description: page.description ?? "",
+          slug: page.slug,
+        }}
+        faviconLightUrl={page.site.faviconLightUrl}
+        faviconDarkUrl={page.site.faviconDarkUrl}
       />
     </div>
   );

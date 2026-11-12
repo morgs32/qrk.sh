@@ -152,13 +152,14 @@
   [data-catalog-module-id]:hover > .brick-hover-surface::after,
   .wall-placement:hover > .wall-placement-content > .brick-hover-surface::after,
   .wall-editor:not([data-wall-resize-disabled])
-    .wall-row:is([data-wall-row-empty]:hover, :has(> .wall-row-menu-trigger:hover))::after,
+    .wall-row:is([data-wall-row-empty]:hover, :has(> .wall-row-action:hover))::after,
   [data-wall-stack-id]:is([data-wall-stack-empty]:hover, :has(> * > .stack-action:hover))::after {
     opacity: 1;
   }
 }
 
-/* Selection persists while its edit form owns focus outside the Wall. */
+/* Selection persists as focus moves between the editor and its controls. */
+[data-wall-selected]::after,
 .wall-placement.is-selected > .wall-placement-content > .brick-hover-surface::after,
 [data-catalog-module-id]:focus-within > .brick-hover-surface::after,
 .wall-placement:focus-within > .wall-placement-content > .brick-hover-surface::after {
@@ -213,6 +214,35 @@
 
 .wall-action-tag-button {
   cursor: pointer;
+}
+
+.wall-action-tag.wall-selection-tag {
+  gap: 0;
+  padding: 0;
+}
+
+.wall-selection-tag > .wall-action-tag-button {
+  min-width: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+
+.wall-selection-tag > .wall-selection-name {
+  flex: 0 1 auto;
+  padding-inline: var(--wall-action-tag-inset) var(--wall-action-tag-gap);
+}
+
+.wall-selection-tag > .wall-selection-menu {
+  padding-inline: 0 var(--wall-action-tag-gap);
+}
+
+.wall-selection-tag > .wall-action-tag-button:focus-visible {
+  z-index: 1;
+  outline: 2px solid white;
+  outline-offset: -2px;
 }
 
 .wall-action-tag-button:focus-visible {
@@ -317,7 +347,7 @@
   --wall-height-resize-grip-width: 32px;
 }
 
-.wall-row-menu-trigger {
+.wall-row-action {
   position: absolute;
   z-index: 20;
   bottom: 0;
@@ -369,13 +399,12 @@
   .wall-row:hover .wall-row-width-resize-grip {
     opacity: 1;
   }
-  .wall-row-menu-trigger {
+  .wall-row-action {
     opacity: 0;
     pointer-events: none;
   }
-  .wall-row:hover > .wall-row-menu-trigger,
-  .wall-row-menu-trigger:focus-visible,
-  .wall-row-menu-trigger[data-popup-open] {
+  .wall-row:hover > .wall-row-action,
+  .wall-row-action:has(:focus-visible, [data-popup-open]) {
     opacity: 1;
     pointer-events: auto;
   }

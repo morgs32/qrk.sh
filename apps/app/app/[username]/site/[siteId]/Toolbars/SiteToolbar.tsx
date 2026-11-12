@@ -28,7 +28,7 @@ const toolbarPresenceTransition = {
 export function SiteToolbar() {
   const reducedMotion = useReducedMotion();
   const params = useValidatedParams(ParamsSchema);
-  const { breakpoint } = useSearch({ from: "/$username/site/$siteId/page/$pageId" });
+  const search = useSearch({ from: "/$username/site/$siteId/page/$pageId" });
   const username = params.username;
   const siteId = params.siteId;
   const pageId = params.pageId;
@@ -56,7 +56,7 @@ export function SiteToolbar() {
           link={{
             to: "/$username/site/$siteId/page/$pageId/modules",
             params: hrefParams,
-            search: { breakpoint },
+            search,
           }}
           className="h-7 gap-1.5 px-2 text-[13px] font-normal text-muted-foreground hover:text-foreground"
         />
@@ -69,7 +69,7 @@ export function SiteToolbar() {
           link={{
             to: "/$username/site/$siteId/page/$pageId/breakpoints",
             params: hrefParams,
-            search: { breakpoint },
+            search: { breakpoint: search.breakpoint },
           }}
           className="h-7 gap-1.5 px-2 text-[13px] font-normal text-muted-foreground hover:text-foreground"
         />
@@ -82,7 +82,7 @@ export function SiteToolbar() {
           link={{
             to: "/$username/site/$siteId/page/$pageId/page-settings",
             params: hrefParams,
-            search: { breakpoint },
+            search,
           }}
           className="h-7 gap-1.5 px-2 text-[13px] font-normal text-muted-foreground hover:text-foreground"
         />
@@ -95,7 +95,7 @@ export function SiteToolbar() {
           link={{
             to: "/$username/site/$siteId/page/$pageId/site-settings",
             params: hrefParams,
-            search: { breakpoint },
+            search,
           }}
           className="h-7 gap-1.5 px-2 text-[13px] font-normal text-muted-foreground hover:text-foreground"
         />

@@ -89,7 +89,10 @@ test("uses the advertised endpoint and preserves repeated metadata and structure
     },
   });
   assert.deepEqual(calls, [url, declaredUrl]);
-  assert.deepEqual(data.page.openGraph.map(({ content }) => content), ["/first.jpg", "/second.jpg"]);
+  assert.deepEqual(
+    data.page.openGraph.map(({ content }) => content),
+    ["/first.jpg", "/second.jpg"],
+  );
   assert.deepEqual(data.page.jsonLd, [{ name: "Example" }]);
   assert.deepEqual(data.page.canonicalLinks, ["https://example.com/canonical"]);
   assert.equal(data.page.icons[0].url, "https://example.com/favicon.ico");
@@ -101,19 +104,37 @@ test("uses the advertised endpoint and preserves repeated metadata and structure
   ]);
 });
 
-test("finds image URLs in escaped JSON on the appended embed when the page has no data", async () => {
-  const escaped = JSON.stringify(JSON.stringify({ items: [{ cover: "https://cdn.example.com/a.jpg" }] }));
+test("finds content images in escaped JSON while skipping UI asset records and bare script URLs", async () => {
+  const escaped = JSON.stringify(
+    JSON.stringify({
+      assets: [
+        { sprited: 2, src: "https://cdn.example.com/sheet.webp", position: "0 -32px" },
+        { sprited: 0, uri: "https://cdn.example.com/icon.gif", width: 16, height: 16 },
+      ],
+      profile: { avatar: "https://cdn.example.com/avatar.jpg" },
+      items: [{ cover: "https://cdn.example.com/a.jpg" }],
+    }),
+  );
   const { data, calls } = await lookup({
     [url]: { headers: htmlHeaders, body: "<html></html>" },
     [embedUrl]: {
       headers: htmlHeaders,
-      body: `<script>render({args:[${escaped}]});</script><img src="/b.webp">`,
+      body: `
+        <script>render({args:[${escaped},"https://cdn.example.com/bare.gif"]});</script>
+        <script>"https://cdn.example.com/standalone.webp"</script>
+        <img src="/b.webp">
+      `,
     },
   });
   assert.deepEqual(calls, [url, embedUrl]);
   assert.equal(data.page.outcome, "empty");
   assert.equal(data.embed.outcome, "ok");
-  assert.deepEqual(data.embed.images, ["https://cdn.example.com/a.jpg", "https://example.com/b.webp"]);
+  assert.deepEqual(data.embed.images, [
+    "https://cdn.example.com/avatar.jpg",
+    "https://cdn.example.com/a.jpg",
+    "https://example.com/b.webp",
+  ]);
+  assert.deepEqual(data.embed.imageFields.map(({ field }) => field), ["avatar", "cover", "src"]);
 });
 
 test("keeps page results when a declared embed redirects to a private URL", async () => {

@@ -88,7 +88,8 @@ async function readSource(
         if (embedded._tag === "Some")
           readImageValues(embedded.value, field, depth + 1, isImageObjectUrl);
       } else {
-        const knownImage = isImageObjectUrl ||
+        const knownImage =
+          isImageObjectUrl ||
           /^(?:image|imageUrl|thumbnail|thumbnailUrl|thumbnail_url)$/i.test(field);
         if (knownImage || /^(?:https?:\/\/|\/\/|\.{0,2}\/)/i.test(trimmed))
           addImage(trimmed, knownImage, field);
@@ -96,10 +97,17 @@ async function readSource(
     } else if (value instanceof Array) {
       for (const item of value) readImageValues(item, field, depth + 1);
     } else if (typeof value === "object") {
+      // Sprite metadata also marks standalone UI assets when its value is zero or false.
+      if (typeof value.sprited === "number" || typeof value.sprited === "boolean") return;
       const isImageObject = value["@type"] === "ImageObject";
       mapValues(value, (item, key) => {
         const field = String(key);
-        readImageValues(item, field, depth + 1, isImageObject && /^(?:url|contentUrl)$/.test(field));
+        readImageValues(
+          item,
+          field,
+          depth + 1,
+          isImageObject && /^(?:url|contentUrl)$/.test(field),
+        );
       });
     }
   }
@@ -142,10 +150,15 @@ async function readSource(
 
     const contentType = response.headers.get("content-type")?.split(";")[0]?.trim().toLowerCase();
     const isHtml = contentType === "text/html" || contentType === "application/xhtml+xml";
-    const isJson = contentType === "application/json" || contentType?.endsWith("+json") ||
+    const isJson =
+      contentType === "application/json" ||
+      contentType?.endsWith("+json") ||
       contentType === "application/json+oembed";
-    const isXml = contentType === "text/xml" || contentType === "application/xml" ||
-      contentType === "text/xml+oembed" || contentType === "application/xml+oembed";
+    const isXml =
+      contentType === "text/xml" ||
+      contentType === "application/xml" ||
+      contentType === "text/xml+oembed" ||
+      contentType === "application/xml+oembed";
     if (contentType?.startsWith("image/")) {
       await response.body?.cancel();
       images.add(current.href);
@@ -210,7 +223,8 @@ async function readSource(
               const content = element.getAttribute("content") ?? "";
               if (/^(?:og|article|book|music|profile|video):/.test(property) && content.trim()) {
                 openGraph.push({ property, content });
-                if (/^og:image(?::(?:url|secure_url))?$/.test(property)) addImage(content, true, property);
+                if (/^og:image(?::(?:url|secure_url))?$/.test(property))
+                  addImage(content, true, property);
               }
             },
           })
@@ -220,13 +234,22 @@ async function readSource(
               const relations = rel.toLowerCase().split(/\s+/);
               const href = element.getAttribute("href") ?? "";
               if (!href.trim()) return;
-              if (relations.includes("alternate") && oEmbedType.test(element.getAttribute("type") ?? ""))
+              if (
+                relations.includes("alternate") &&
+                oEmbedType.test(element.getAttribute("type") ?? "")
+              )
                 discoverEmbed(href);
               const target = publicUrl(href, current);
               if (!target) return;
               if (relations.includes("canonical")) canonicalLinks.add(target.href);
-              if (relations.some((value) => ["icon", "apple-touch-icon", "mask-icon"].includes(value))) {
-                icons.push({ url: target.href, rel, sizes: element.getAttribute("sizes") ?? undefined });
+              if (
+                relations.some((value) => ["icon", "apple-touch-icon", "mask-icon"].includes(value))
+              ) {
+                icons.push({
+                  url: target.href,
+                  rel,
+                  sizes: element.getAttribute("sizes") ?? undefined,
+                });
                 images.add(target.href);
               }
               if (relations.includes("image_src")) images.add(target.href);
@@ -248,16 +271,22 @@ async function readSource(
           .on("script", {
             element(element) {
               script = "";
-              const isJsonLd = element.getAttribute("type")?.toLowerCase() === "application/ld+json";
+              const isJsonLd =
+                element.getAttribute("type")?.toLowerCase() === "application/ld+json";
               element.onEndTag(() => {
                 const parsed = decodeJson(script.trim());
                 if (parsed._tag === "Some") {
                   if (isJsonLd) jsonLd.push(parsed.value);
-                  readImageValues(parsed.value);
+                  if (
+                    isJsonLd ||
+                    typeof parsed.value !== "string" ||
+                    /^\s*[\[{]/.test(parsed.value)
+                  )
+                    readImageValues(parsed.value);
                 } else if (!isJsonLd) {
                   // Inline scripts can pass serialized JSON as quoted strings.
                   for (const match of script.matchAll(/"(?:[^"\\]|\\[\s\S])*"/g)) {
-                      if (!/^"\s*(?:[\[{]|https?:|\/)/.test(match[0])) continue;
+                    if (!/^"\s*[\[{]/.test(match[0])) continue;
                     const embedded = decodeJson(match[0]);
                     if (embedded._tag === "Some") readImageValues(embedded.value);
                   }
@@ -273,18 +302,24 @@ async function readSource(
       }
     }
     const hasEmbedFields =
-      oEmbed !== undefined && oEmbed !== null && typeof oEmbed === "object" &&
+      oEmbed !== undefined &&
+      oEmbed !== null &&
+      typeof oEmbed === "object" &&
       Object.keys(oEmbed).length > 0;
-    const hasImages = discovery === undefined
-      ? images.size > 0
-      : [...images].some((url) => !icons.some((icon) => icon.url === url));
+    const hasImages =
+      discovery === undefined
+        ? images.size > 0
+        : [...images].some((url) => !icons.some((icon) => icon.url === url));
     return result(
       openGraph.length || jsonLd.length || canonicalLinks.size || hasImages || hasEmbedFields
         ? "ok"
         : "empty",
     );
   } catch {
-    return result("error", signal.aborted ? "The request timed out." : "The response could not be read.");
+    return result(
+      "error",
+      signal.aborted ? "The request timed out." : "The response could not be read.",
+    );
   }
 }
 

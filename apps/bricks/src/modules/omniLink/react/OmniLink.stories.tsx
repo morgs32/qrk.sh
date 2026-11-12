@@ -9,4 +9,4 @@ const meta = {
 
 export default meta;
 
-export const Lookup: StoryObj<typeof meta> = {};
+export const Lookup: StoryObj<typeof meta> = { name: "Form" };

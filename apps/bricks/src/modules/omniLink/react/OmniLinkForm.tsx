@@ -47,26 +47,33 @@ export function OmniLinkForm() {
         void fetchData();
       }}
     >
-      <TextInput
-        label="Web URL"
-        orientation="vertical"
-        type="url"
-        required
-        value={url}
-        placeholder="https://example.com"
-        onChange={(event) => {
-          activeRequest.current?.abort();
-          setUrl(event.currentTarget.value);
-          setLoading(false);
-          setError(undefined);
-          setResult(undefined);
-        }}
-      />
-      <Button type="submit" className="justify-self-start" disabled={loading || url.trim() === ""}>
-        Fetch data
-      </Button>
-      {loading && <p role="status">Fetching data…</p>}
-      {error && <p role="alert">{error}</p>}
+      <div className="grid gap-2">
+        <TextInput
+          label="Web URL"
+          orientation="vertical"
+          type="url"
+          required
+          value={url}
+          placeholder="https://example.com"
+          error={error}
+          status={loading ? "Fetching data…" : undefined}
+          onChange={(event) => {
+            activeRequest.current?.abort();
+            setUrl(event.currentTarget.value);
+            setLoading(false);
+            setError(undefined);
+            setResult(undefined);
+          }}
+        />
+        <Button
+          type="submit"
+          size="xs"
+          className="justify-self-start"
+          disabled={loading || url.trim() === ""}
+        >
+          Fetch data
+        </Button>
+      </div>
       {result !== undefined && (
         <pre
           aria-label="Extracted data"

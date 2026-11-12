@@ -17,6 +17,7 @@ const { registry } = defineRegistry(makeCatalogFromComponentMetadata(behanceV1.c
 });
 
 const view = makeModuleView(behanceV1, {
+  categoryIds: ["new", "social"],
   defaultState: {
     payload: { url: "https://www.behance.net/grapheine" },
     data: {

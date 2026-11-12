@@ -8,6 +8,7 @@ import { GitHubProfilePlaceholder } from "./GitHubProfilePlaceholder";
 import { GitHubProfileLineIcon } from "./GitHubProfileLineIcon";
 
 const githubProfile = makeModuleView(githubProfileV1, {
+  categoryIds: ["social", "tools"],
   defaultState: githubProfilePreviewState,
   LineIcon: GitHubProfileLineIcon,
   form: GitHubProfileForm,

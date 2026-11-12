@@ -8,6 +8,7 @@ import { userAggregateV11 } from "./aggregates/user/UserV11";
 import { userAggregateV12 } from "./aggregates/user/UserV12";
 import { userAggregateV13 } from "./aggregates/user/UserV13";
 import { userAggregateV14 } from "./aggregates/user/UserV14";
+import { userAggregateV15 } from "./aggregates/user/UserV15";
 
 export const system = makeSystem({
   name: "qrk-sh",
@@ -20,6 +21,7 @@ export const system = makeSystem({
         12: userAggregateV12,
         13: userAggregateV13,
         14: userAggregateV14,
+        15: userAggregateV15,
       },
       canonical: 9,
     },

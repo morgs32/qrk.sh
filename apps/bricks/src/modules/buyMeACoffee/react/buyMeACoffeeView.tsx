@@ -20,6 +20,7 @@ const { registry } = defineRegistry(
 );
 
 const view = makeModuleView(buyMeACoffeeV1, {
+  categoryIds: ["new", "business"],
   defaultState: {
     payload: {
       url: "https://buymeacoffee.com/example",

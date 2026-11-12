@@ -8,6 +8,7 @@ import { SwatchAndIconForm } from "./SwatchAndIconForm";
 import { SwatchAndIconLineIcon } from "./SwatchAndIconLineIcon";
 
 const swatchAndIcon = makeModuleView(swatchAndIconV1, {
+  categoryIds: ["tools"],
   defaultState: swatchAndIconPreviewState,
   LineIcon: SwatchAndIconLineIcon,
   form: SwatchAndIconForm,

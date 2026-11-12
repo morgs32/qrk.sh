@@ -15,6 +15,7 @@ import { Schema } from "effect";
 import { mapValues } from "es-toolkit";
 import type { makeModuleVersion } from "../../definition/makeModuleVersion";
 import type { IModule, IModuleBrickDef } from "./types";
+import type { categories } from "./categories";
 
 function makeInitialState(state: unknown): Record<string, unknown> {
   if (state !== null && typeof state === "object" && !Array.isArray(state)) {
@@ -42,6 +43,7 @@ export function makeModuleView<
 >(
   module: MODULE,
   view: {
+    categoryIds: readonly (typeof categories)[number]["id"][];
     defaultState: IInferDecodedRow<MODULE["stateShape"]>;
     LineIcon: ComponentType<SVGProps<SVGSVGElement>>;
     variants: {
@@ -166,6 +168,7 @@ export function makeModuleView<
 
   return {
     ...moduleFields,
+    categoryIds: view.categoryIds,
     LineIcon: view.LineIcon,
     stateShape: module.stateShape,
     defaultState,

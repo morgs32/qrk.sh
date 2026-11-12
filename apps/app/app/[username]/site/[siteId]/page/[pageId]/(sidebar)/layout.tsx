@@ -8,7 +8,7 @@ import { Select } from "@base-ui/react/select";
 import { SelectContent, SelectItem, SelectTrigger } from "@qrk.sh/bricks/components/select";
 import { useHotkey } from "@tanstack/react-hotkeys";
 import { Schema } from "effect";
-import { isEqual } from "es-toolkit";
+import { isEqual, omit } from "es-toolkit";
 import { useLiveQuery, useSession } from "@zerospin/react";
 import { makeId, makeIdSchema, stageAggregateSessionCommand } from "@zerospin/sdk/browser";
 import { pageV1 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV1";
@@ -78,12 +78,27 @@ export default function WorkspacePanelControls(props: {
           placements: page.walls.flatMap((wall) => wall.placements),
         });
   const canPublishPage = isSitePublished && page?.isPublished === false;
+  const comparableContents =
+    savedContent !== null && publishedSnapshot !== undefined
+      ? [savedContent, publishedSnapshot.content].map((content) => ({
+          ...content,
+          walls: content.walls.map((wall) => ({
+            ...wall,
+            sections: wall.sections.map((section) => ({
+              ...section,
+              stacks: section.stacks.map((stack) => ({
+                ...stack,
+                rows: stack.rows.map((row) => omit(row, ["preferredWidth"])),
+              })),
+            })),
+          })),
+        }))
+      : null;
   const canPublishUpdates =
     isSitePublished &&
     page?.isPublished === true &&
-    savedContent !== null &&
-    publishedSnapshot !== undefined &&
-    !isEqual(savedContent, publishedSnapshot.content);
+    comparableContents !== null &&
+    !isEqual(comparableContents[0], comparableContents[1]);
 
   useHotkey(
     "Escape",

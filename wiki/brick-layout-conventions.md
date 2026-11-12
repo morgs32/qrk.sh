@@ -34,8 +34,7 @@ each Placement cell minimum includes its module minimum plus one gap.
 Rows span their Stacks. Their Brick groups use each Placement’s saved positive
 `widthWeight` as its preferred width in CSS pixels, initially the module default.
 When the group must shrink, it distributes width proportionally with module
-minimums as floors. A Row can save a preferred group width including interior
-gaps, and its Bricks then share that width according to their weights. The group
+minimums as floors. Historical saved Row widths do not affect the group. The group
 aligns Left, Center, or Right inside the Row. Left is the default. Each Row owns `minHeight`: null selects
 automatic module preferred heights; a saved pixel minimum replaces that preference.
 The shared 45px floor, module minimums, and taller content or insertion shadows
@@ -407,14 +406,10 @@ minimums. The complete Row's resulting surface widths become its submitted
 weights, preserving the other Bricks' visible widths even when minimums have
 overridden the saved proportions. Gap padding stays outside those measurements.
 
-The outlined outer width grip changes the whole Brick group. The opposite
-edge stays anchored for Left and Right alignment, and the group stays centered
-for Center alignment. The readout shows the occupied width including interior
-gaps. Empty space remains available for drops. The Row tag sits flush with the
+Empty space remains available for drops. The Row tag sits flush with the
 bottom edge beside the height grip and opens a menu for Left, Center, or Right
 alignment. Row and Stack tags share their sizing tokens and menu styles.
-Alignment and preferred width save independently through `setRowAlignment`
-and `setRowPreferredWidth`.
+Alignment saves through `setRowAlignment`.
 
 Hovering over an empty Row or its tag outlines the full Row in the same blue as
 a Stack. During a Brick drag, the drop indicator shows the target.
@@ -474,15 +469,15 @@ retain their existing session owner. Local staging Success is distinct from a
 finalized canonical outcome. Spec/provider completions retain revision/request
 checks and tolerate deleted Bricks.
 
-The App session binds User V10 and Web Actor V10, using Wall V3 and PageSnapshot V4. Editable historical
-Rows use their existing saved weights without rewriting Placement data. V4
-publish commands carry the new sizing rule and Row settings. Adapting historical
-publish commands keeps the legacy V3 snapshot representation.
+Editable historical Rows use their existing saved weights without rewriting
+Placement data. Historical published snapshots retain their stored Row width,
+which the current viewer ignores.
 
 Immutable publication snapshots contain shared Bricks once and all four ordered
 Wall → Section → Stack → Row → Placement/spec hierarchies, including Row minimum
 heights and Placement width weights. The current snapshot builder also drives
-saved-versus-published comparison, so movement changes dirty state. Generation,
+saved-versus-published comparison, which ignores historical Row-width differences.
+Movement changes dirty state. Generation,
 revisions, and editor bookkeeping stay outside snapshots. Web's fixture-backed
 `WallViewer` renders one saved Wall as HTML. It shares Stack and Row width
 allocation with Studio. Public routes and snapshot loading remain deferred.

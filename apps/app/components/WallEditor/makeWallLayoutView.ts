@@ -1,7 +1,7 @@
 import type { IInferModelRow } from "@zerospin/core/models/types";
 import type { wallLayoutSchemaV3 } from "@qrk.sh/zerospin/src/aggregates/user/layout/wallLayoutSchemaV3";
 import type { placementV2 } from "@qrk.sh/zerospin/src/aggregates/user/models/placement/PlacementV2";
-import type { brickV3 } from "@qrk.sh/zerospin/src/aggregates/user/models/brick/BrickV3";
+import type { brickV4 } from "@qrk.sh/zerospin/src/aggregates/user/models/brick/BrickV4";
 
 /** Resolve structural references while preserving the Wall's authoritative array order. */
 export function makeWallLayoutView(props: {
@@ -13,7 +13,7 @@ export function makeWallLayoutView(props: {
       variantId: IInferModelRow<typeof placementV2>["variantId"];
       widthWeight: IInferModelRow<typeof placementV2>["widthWeight"];
       spec: IInferModelRow<typeof placementV2>["spec"];
-      brick: IInferModelRow<typeof brickV3>;
+      brick: IInferModelRow<typeof brickV4>;
     }[];
   };
 }) {
@@ -28,7 +28,6 @@ export function makeWallLayoutView(props: {
         rows: stack.rows.map((row) => ({
           id: row.id,
           minHeight: row.minHeight,
-          preferredWidth: row.preferredWidth ?? null,
           alignment: row.alignment ?? "left",
           placements: row.placementIds.map((id) => {
             const placement = placements.get(id);

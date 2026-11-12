@@ -11,6 +11,7 @@ import { ImageForm } from "./ImageForm";
 import { ImageLineIcon } from "./ImageLineIcon";
 
 const image = makeModuleView(imageV2, {
+  categoryIds: ["tools"],
   defaultState: imagePreviewState,
   LineIcon: ImageLineIcon,
   form: ImageForm,

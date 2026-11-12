@@ -5,6 +5,7 @@ import type { Spec } from "@json-render/core";
 import type { ComponentRegistry } from "@json-render/react";
 import type { IShape } from "@zerospin/shapes";
 import type { makeModuleVersion } from "../../definition/makeModuleVersion";
+import type { categories } from "./categories";
 
 /** A library module with shared state and JSON Render variants. */
 export type IModule<MODULE extends string> = {
@@ -14,6 +15,7 @@ export type IModule<MODULE extends string> = {
   abbreviation: string;
   label: string;
   description: string;
+  categoryIds: readonly (typeof categories)[number]["id"][];
   /** Module-owned line icon; accepts native SVG sizing, styling, and accessibility props. */
   LineIcon: ComponentType<SVGProps<SVGSVGElement>>;
   /** Maximum bricks of this module per page, including hidden and unconfigured bricks. */

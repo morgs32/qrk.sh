@@ -8,6 +8,7 @@ import { FigmaThumbnailPlaceholder } from "./FigmaThumbnailPlaceholder";
 import { FigmaThumbnailLineIcon } from "./FigmaThumbnailLineIcon";
 
 const figmaThumbnail = makeModuleView(figmaThumbnailV1, {
+  categoryIds: ["tools"],
   defaultState: figmaThumbnailPreviewState,
   LineIcon: FigmaThumbnailLineIcon,
   form: FigmaThumbnailForm,

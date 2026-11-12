@@ -5,10 +5,31 @@ import { Effect, Exit, Schema } from "effect";
 
 import { userAggregateV9 } from "../src/aggregates/user/UserV9";
 import { wallLayoutSchemaV2 } from "../src/aggregates/user/layout/wallLayoutSchemaV2";
-import { allocateStackWidths, measureWallFit } from "../src/aggregates/user/layout/wallSizing";
+import {
+  allocateRowWidths,
+  allocateStackWidths,
+  measureWallFit,
+} from "../src/aggregates/user/layout/wallSizing";
 import { swatchAndIconPreviewState } from "@qrk.sh/bricks/modules/swatchAndIcon/definition/swatchAndIconPreviewState";
 import { makePlacementId } from "../src/aggregates/user/layout/makePlacementId";
 import { system } from "../src/system";
+
+it("sizes Row contents from Brick preferences within the Stack and minimums", () => {
+  expect(
+    allocateRowWidths({ stackWidth: 720, brickGap: 16, minimums: [320], weights: [480] }),
+  ).toEqual({ contentWidth: 480, widths: [480] });
+  expect(
+    allocateRowWidths({ stackWidth: 360, brickGap: 16, minimums: [320], weights: [480] }),
+  ).toEqual({ contentWidth: 360, widths: [360] });
+  expect(
+    allocateRowWidths({
+      stackWidth: 560,
+      brickGap: 16,
+      minimums: [300, 200],
+      weights: [320, 320],
+    }),
+  ).toEqual({ contentWidth: 560, widths: [300, 244] });
+});
 
 it("shares width equally until Stack minimums constrain the allocation", () => {
   expect(allocateStackWidths({ minimumWidths: [160, 160, 160], availableWidth: 900 })).toEqual([

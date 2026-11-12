@@ -7,6 +7,7 @@ import { ArticleEditor } from "./ArticleEditor";
 import { ArticleLineIcon } from "./ArticleLineIcon";
 
 export const articleView = makeModuleView(articleV1, {
+  categoryIds: ["tools"],
   defaultState: articlePreviewState,
   LineIcon: ArticleLineIcon,
   inlineEditor: ArticleEditor,

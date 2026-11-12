@@ -8,6 +8,7 @@ import { MapPlaceForm } from "./MapPlaceForm";
 import { MapPlaceLineIcon } from "./MapPlaceLineIcon";
 
 const mapPlace = makeModuleView(mapPlaceV1, {
+  categoryIds: ["business"],
   defaultState: mapPlacePreviewState,
   LineIcon: MapPlaceLineIcon,
   form(props) {

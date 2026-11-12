@@ -70,15 +70,14 @@ export function allocateRowWidths(props: {
   brickGap: number;
   minimums: readonly number[];
   weights: readonly number[];
-  preferredWidth: number | null;
 }) {
-  const { stackWidth, brickGap, minimums, weights, preferredWidth } = props;
+  const { stackWidth, brickGap, minimums, weights } = props;
   const floored = weights.map((weight, index) => Math.max(weight, minimums[index]));
   const gapWidth = Math.max(0, weights.length - 1) * brickGap;
   const minimumWidth = minimums.reduce((sum, width) => sum + width, gapWidth);
   const naturalWidth = floored.reduce((sum, width) => sum + width, gapWidth);
-  const contentWidth = Math.min(stackWidth, Math.max(minimumWidth, preferredWidth ?? naturalWidth));
-  const proportions = preferredWidth === null ? floored : weights;
+  const contentWidth = Math.min(stackWidth, Math.max(minimumWidth, naturalWidth));
+  const proportions = floored;
   const widths = [...minimums];
   let remaining = contentWidth - gapWidth;
   let open = proportions.map((_, index) => index);

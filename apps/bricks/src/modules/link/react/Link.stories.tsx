@@ -27,6 +27,7 @@ async function lookupLinkPreview(url: string, signal: AbortSignal) {
 }
 
 const view = makeModuleView(linkV1, {
+  categoryIds: ["business", "tools"],
   defaultState: linkPreviewState,
   LineIcon: LinkLineIcon,
   form(props) {

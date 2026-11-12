@@ -4,17 +4,17 @@ import {
   measureWallFit,
   wallBreakpointWidths,
 } from "@qrk.sh/zerospin/src/aggregates/user/layout/wallSizing";
-import type { PageSnapshotSchemaV5 } from "@qrk.sh/zerospin/src/aggregates/user/snapshots/pageSnapshotSchemaV5";
+import type { PageSnapshotSchemaV6 } from "@qrk.sh/zerospin/src/aggregates/user/snapshots/pageSnapshotSchemaV6";
 import { backendLibrary } from "@qrk.sh/bricks/modules/backendLibrary";
 import type { ReactNode } from "react";
 
 export function WallViewer(props: {
-  snapshot: typeof PageSnapshotSchemaV5.Type;
+  snapshot: typeof PageSnapshotSchemaV6.Type;
   breakpoint: keyof typeof wallBreakpointWidths;
   brickGap: number;
   renderBrick: (
-    brick: (typeof PageSnapshotSchemaV5.Type.bricks)[number],
-    placement: (typeof PageSnapshotSchemaV5.Type.walls)[number]["sections"][number]["stacks"][number]["rows"][number]["placements"][number],
+    brick: (typeof PageSnapshotSchemaV6.Type.bricks)[number],
+    placement: (typeof PageSnapshotSchemaV6.Type.walls)[number]["sections"][number]["stacks"][number]["rows"][number]["placements"][number],
   ) => ReactNode;
 }) {
   const { snapshot, breakpoint, brickGap, renderBrick } = props;
@@ -87,7 +87,6 @@ export function WallViewer(props: {
                     brickGap,
                     minimums: row.placements.map(({ variant }) => variant.minWidth),
                     weights: row.placements.map(({ placement }) => placement.widthWeight),
-                    preferredWidth: row.preferredWidth ?? null,
                   });
                   const minHeight = Math.max(
                     45,

@@ -8,6 +8,7 @@ import { InstagramPlaceholder } from "./InstagramPlaceholder";
 import { InstagramLineIcon } from "./InstagramLineIcon";
 
 const instagram = makeModuleView(instagramV1, {
+  categoryIds: ["social"],
   defaultState: instagramPreviewState,
   LineIcon: InstagramLineIcon,
   form: InstagramForm,

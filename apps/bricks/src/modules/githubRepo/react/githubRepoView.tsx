@@ -8,6 +8,7 @@ import { GitHubRepoPlaceholder } from "./GitHubRepoPlaceholder";
 import { GitHubRepoLineIcon } from "./GitHubRepoLineIcon";
 
 const githubRepo = makeModuleView(githubRepoV1, {
+  categoryIds: ["tools"],
   defaultState: githubRepoPreviewState,
   LineIcon: GitHubRepoLineIcon,
   form: GitHubRepoForm,

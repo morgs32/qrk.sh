@@ -8,6 +8,7 @@ import { GitHubActivityPlaceholder } from "./GitHubActivityPlaceholder";
 import { GitHubActivityLineIcon } from "./GitHubActivityLineIcon";
 
 const githubActivity = makeModuleView(githubActivityV1, {
+  categoryIds: ["tools"],
   defaultState: githubActivityPreviewState,
   LineIcon: GitHubActivityLineIcon,
   form: GitHubActivityForm,

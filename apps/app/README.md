@@ -20,6 +20,10 @@ their minimum width does not fit. Inline Article focus opens
 Edit brick at `lg` and wider. At narrower widths, inline focus leaves the current
 route and sidebar state alone.
 
+The Bricks pane keeps its line-style category tabs visible above the scrolling
+previews. All is selected initially; categories without matching Bricks are
+hidden. Arrow keys move between tabs and select the focused category.
+
 Close and Escape keep the current breakpoint. Open menus, popovers, dialogs,
 and Article body text selection consume Escape first. When Escape dismisses the
 sidebar from an inline Article field, it blurs the field and deselects the Brick.

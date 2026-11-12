@@ -5,6 +5,7 @@ import { githubActivityView } from "@qrk.sh/bricks/modules/githubActivity/view";
 import { githubProfileView } from "@qrk.sh/bricks/modules/githubProfile/view";
 import { githubRepoView } from "@qrk.sh/bricks/modules/githubRepo/view";
 import { imageView } from "@qrk.sh/bricks/modules/image/view";
+import { imageCarouselView } from "@qrk.sh/bricks/modules/imageCarousel/view";
 import { instagramView } from "@qrk.sh/bricks/modules/instagram/view";
 import { linkView } from "./link/linkView";
 import { mapPlaceView } from "@qrk.sh/bricks/modules/mapPlace/view";
@@ -21,6 +22,7 @@ export const modulesHash = makeModuleViewLibrary<IBackendLibrary>(backendLibrary
   "github-repo": githubRepoView,
   "figma-thumbnail": figmaThumbnailView,
   image: imageView,
+  "image-carousel": imageCarouselView,
   instagram: instagramView,
   link: linkView,
   "map-place": mapPlaceView,

@@ -11,9 +11,11 @@ import { articleV1 } from "@qrk.sh/bricks/modules/article/definition";
 import { swatchAndIconV1 } from "@qrk.sh/bricks/modules/swatchAndIcon/definition";
 import { swatchAndIconPreviewState } from "@qrk.sh/bricks/modules/swatchAndIcon/definition/swatchAndIconPreviewState";
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { expect } from "storybook/test";
 import { WallViewer } from "./WallViewer";
 
 const linkView = makeModuleView(linkV1, {
+  categoryIds: ["business", "tools"],
   defaultState: linkPreviewState,
   LineIcon: LinkLineIcon,
   variants: {
@@ -202,7 +204,14 @@ const meta = {
 } satisfies Meta<typeof WallViewer>;
 
 export default meta;
-export const PublishedSnapshot = {} satisfies StoryObj<typeof meta>;
+export const PublishedSnapshot = {
+  play: async ({ canvasElement }) => {
+    const articleRow = canvasElement.querySelector('[data-wall-row-id="row_article"]');
+    await expect(articleRow).toHaveStyle({ width: "720px" });
+    const linkRow = canvasElement.querySelector('[data-wall-row-id="row_link"]');
+    await expect(linkRow).toHaveStyle({ width: "480px" });
+  },
+} satisfies StoryObj<typeof meta>;
 
 
 export const PortfolioSnapshot = {

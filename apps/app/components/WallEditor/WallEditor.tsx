@@ -36,7 +36,7 @@ import {
   type CSSProperties,
   type MouseEvent,
 } from "react";
-import { brickV3 } from "@qrk.sh/zerospin/src/aggregates/user/models/brick/BrickV3";
+import { brickV4 } from "@qrk.sh/zerospin/src/aggregates/user/models/brick/BrickV4";
 import { wallV3 } from "@qrk.sh/zerospin/src/aggregates/user/models/wall/WallV3";
 import { useLiveQuery, useSession } from "@zerospin/react";
 import { Result, Schema } from "effect";
@@ -79,7 +79,7 @@ import {
 
 const CatalogBrickData = Schema.Struct({
   type: Schema.Literal("catalog-brick"),
-  moduleId: brickV3.attributesSchema.fields.moduleId,
+  moduleId: brickV4.attributesSchema.fields.moduleId,
   state: Schema.Unknown,
 });
 
@@ -114,7 +114,7 @@ export function WallEditor(props: {
   const wallRef = useRef<HTMLDivElement>(null);
   const deleteReturnFocus = useRef<HTMLElement | null>(null);
   const deleteCancelRef = useRef<HTMLButtonElement>(null);
-  const [brickToDelete, setBrickToDelete] = useState<IInferModelRow<typeof brickV3>["id"] | null>(
+  const [brickToDelete, setBrickToDelete] = useState<IInferModelRow<typeof brickV4>["id"] | null>(
     null,
   );
   const [stackToDelete, setStackToDelete] = useState<{
@@ -459,7 +459,7 @@ export function WallEditor(props: {
         session,
         contractName: "addBrick",
         payload: {
-          id: session.runSync(makeId(brickV3)),
+          id: session.runSync(makeId(brickV4)),
           pageId: wall.pageId,
           moduleId: data.success.moduleId,
           state: data.success.state,
@@ -577,7 +577,7 @@ export function WallEditor(props: {
             !source.element.isConnected
           )
             return;
-          const id = session.runSync(makeId(brickV3));
+          const id = session.runSync(makeId(brickV4));
           const result = stageAggregateSessionCommand({
             session,
             contractName: "addBrick",
@@ -1147,10 +1147,6 @@ export function WallEditor(props: {
                                   ),
                             );
                             const stackWidth = stackWidths[stackIndex] - brickGap;
-                            const preferredWidth =
-                              rowPreview?.kind === "row-width"
-                                ? rowPreview.preferredWidth
-                                : row.preferredWidth;
                             const minimums = variants.map((variant) => variant.minWidth);
                             const weights = rowPlacements.map((placement) => placement.widthWeight);
                             if (incomingVariant !== null) {
@@ -1162,22 +1158,17 @@ export function WallEditor(props: {
                               brickGap,
                               minimums,
                               weights,
-                              preferredWidth,
                             });
                             const groupStyle: CSSProperties &
-                              Record<"--wall-shadow-cell-width" | "--wall-row-grip-inset", string> =
-                              {
-                                width: contentWidth + brickGap,
-                                marginInlineStart:
-                                  row.alignment === "left"
-                                    ? 0
-                                    : (stackWidth - contentWidth) /
-                                      (row.alignment === "center" ? 2 : 1),
-                                "--wall-row-grip-inset": `${brickGap / 2}px`,
-                                "--wall-shadow-cell-width": `${(widths.at(-1) ?? 0) + brickGap}px`,
-                              };
-                            const rowWidthReadout =
-                              rowReadout?.kind === "row-width" ? rowReadout : null;
+                              Record<"--wall-shadow-cell-width", string> = {
+                              width: contentWidth + brickGap,
+                              marginInlineStart:
+                                row.alignment === "left"
+                                  ? 0
+                                  : (stackWidth - contentWidth) /
+                                    (row.alignment === "center" ? 2 : 1),
+                              "--wall-shadow-cell-width": `${(widths.at(-1) ?? 0) + brickGap}px`,
+                            };
                             return (
                               <div
                                 key={row.id}
@@ -1378,33 +1369,6 @@ export function WallEditor(props: {
                                       dropTarget.rowId === row.id &&
                                       dropTarget.beforePlacementId === null &&
                                       shadow}
-                                    {row.placements.length > 0 && (
-                                      <span
-                                        role="separator"
-                                        aria-label="Resize Row width"
-                                        aria-orientation="vertical"
-                                        data-wall-row-width-resize-handle
-                                        data-side={row.alignment === "right" ? "left" : "right"}
-                                        data-wall-resize-active={
-                                          rowWidthReadout === null ? undefined : ""
-                                        }
-                                        className="wall-resize-grip wall-row-width-resize-grip z-30"
-                                        draggable={false}
-                                        onPointerDown={(event) =>
-                                          resize.startRowWidthResize({ event, rowId: row.id })
-                                        }
-                                        onDragStart={(event) => event.preventDefault()}
-                                      >
-                                        {rowWidthReadout !== null && (
-                                          <span
-                                            data-wall-resize-readout
-                                            className="wall-resize-readout"
-                                          >
-                                            {`${Math.round(rowWidthReadout.width)} px`}
-                                          </span>
-                                        )}
-                                      </span>
-                                    )}
                                   </div>
                                 </div>
                                 {!nativeDragActive && rowReadout?.kind !== "height" && (

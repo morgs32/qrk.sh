@@ -202,9 +202,12 @@ Article's stylesheet, Storybook, and App declare
 `@layer theme, base, components, meowdown, utilities` before imports so Preflight
 precedes Meowdown rules and utilities remain last.
 
-`ModuleFilmstrip` lays out previews in a vertical catalog and measures the
-padded card width for thumbnail sizing. App supplies the catalog actions, and
-Storybook supplies its own module examples. Live preview content stays interactive.
+`ModuleFilmstrip` lays out previews in a vertical catalog. Each preview reflows
+to the available column up to its preferred width, respects its minimum width,
+and scrolls horizontally when that minimum cannot fit. Previews render without
+scaling and have a 1px zinc border that becomes a blue outline on hover or focus.
+App supplies the catalog actions, and Storybook supplies its own module
+examples. Live preview content stays interactive.
 `--brick-catalog-inset` sets the heading's side padding and the preview's top
 and side padding.
 `ModulePreview` owns its current local preview state, initialized from the module's
@@ -458,7 +461,7 @@ Catalog `ModulePreview` templates are copy drag sources carrying the module ID a
 the committed creation-state snapshot. Their desktop native drag preview copies the rendered
 Brick and uses the library's pointer offset (16px horizontally, 8px vertically)
 to leave insertion feedback visible. Its detached container retains the source's
-font, text color, and Brick theme. The floating copy keeps a 2px `#1F9BFC`
+font, text color, Brick theme, and unscaled size. The floating copy keeps a 2px `#1F9BFC`
 edge without relying on hover, removes interaction halos and card shadows, and
 hides editor action controls. This pointer-following image is distinct from the
 borderless insertion shadow on the Wall. WallEditor owns production drop targeting.
@@ -583,7 +586,8 @@ half the authored preview width for `md`, `lg`, and `xl` (360px, 540px, and
 720px). At Tailwind `lg` and wider it sits beside the preview. Below `lg`, the
 same sidebar overlays the right edge and occupies at most 75% of the viewport
 width. The Wall remains interactive in the exposed area and keeps its 32px side
-gutters. Catalog drag sources fit the measured sidebar column using CSS zoom.
+gutters. Catalog drag sources reflow within their preferred and minimum widths
+without scaling, and scroll horizontally when their minimum width does not fit.
 Drops use the selected breakpoint's authored Wall sizing.
 
 Both floating toolbars keep a 38px height and concentric corners: the buttons'

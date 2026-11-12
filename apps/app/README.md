@@ -13,7 +13,9 @@ The exposed Wall remains interactive. At `lg` and wider, the sidebar header
 shows the current section name. Below `lg`, the Page controls dropdown opens
 Bricks, Page settings, and Site settings. Brick selection opens
 Edit brick, which uses the same 12px section padding as the Form Inputs
-catalog. Inline Article focus opens
+catalog. Bricks-pane previews reflow without scaling and have a 1px zinc border
+that becomes a blue outline on hover or focus. They scroll horizontally if
+their minimum width does not fit. Inline Article focus opens
 Edit brick at `lg` and wider. At narrower widths, inline focus leaves the current
 route and sidebar state alone.
 

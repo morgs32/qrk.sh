@@ -2,7 +2,6 @@ import { Button } from "@qrk.sh/bricks/components/button";
 import type { BricksApi } from "@qrk.sh/bricks/rpc";
 import { newSyncRpcSession } from "@zerospin/core/utils/getApi/newSyncRpcSession/newSyncRpcSession";
 import { Schema } from "effect";
-import { mapValues } from "es-toolkit";
 import { useEffect, useRef, useState } from "react";
 import { collapseAllNested, defaultStyles, JsonView } from "react-json-view-lite";
 import "react-json-view-lite/dist/index.css";
@@ -31,12 +30,33 @@ const iconSchema = Schema.NullOr(Schema.Struct({
   width: Schema.NullOr(Schema.Number),
   height: Schema.NullOr(Schema.Number),
 }));
+const largeImageSchema = Schema.Struct({
+  url: Schema.String,
+  width: Schema.Number,
+  height: Schema.Number,
+  sources: Schema.Array(Schema.Struct({
+    source: Schema.Literals(["page", "embed"]),
+    path: Schema.String,
+  })),
+});
+const dataFieldSchema = Schema.Struct({
+  field: Schema.String,
+  value: Schema.String,
+  originalType: Schema.Literals(["string", "number", "boolean"]),
+  derived: Schema.Boolean,
+  sources: Schema.Array(Schema.Struct({
+    source: Schema.Literals(["page", "embed"]),
+    path: Schema.String,
+  })),
+});
 const decodeLookup = Schema.decodeUnknownOption(
   Schema.fromJsonString(Schema.Struct({
     page: sourceSchema,
     embed: sourceSchema,
     favicon: iconSchema,
     maskIcon: iconSchema,
+    largeImages: Schema.Array(largeImageSchema),
+    data: Schema.Array(dataFieldSchema),
   })),
 );
 const decodeRawLookup = Schema.decodeUnknownOption(
@@ -45,6 +65,8 @@ const decodeRawLookup = Schema.decodeUnknownOption(
     embed: Schema.Json,
     favicon: Schema.Json,
     maskIcon: Schema.Json,
+    largeImages: Schema.Json,
+    data: Schema.Json,
   })),
 );
 
@@ -53,6 +75,8 @@ function readPreview(lookup: {
   embed: typeof sourceSchema.Type;
   favicon: typeof iconSchema.Type;
   maskIcon: typeof iconSchema.Type;
+  largeImages: readonly (typeof largeImageSchema.Type)[];
+  data: readonly (typeof dataFieldSchema.Type)[];
 }) {
   const sources = [lookup.page, lookup.embed];
   const siteIcons = new Set(sources.flatMap((source) => [
@@ -64,46 +88,11 @@ function readPreview(lookup: {
   const images = new Set(
     sources.flatMap((source) => source.images ?? []).filter((url) => !siteIcons.has(url)),
   );
-  const fields = new Map<string, { label: string; value: string }>();
-  function addField(key: string, value: string | number | boolean) {
-    const display = String(value).trim();
-    if (!display || images.has(display)) return;
-    const label = key
-      .replace(/^og:|^@/, "")
-      .replace(/([a-z\d])([A-Z])/g, "$1 $2")
-      .replace(/[:_-]/g, " ")
-      .replace(/^./, (letter) => letter.toUpperCase());
-    fields.set(JSON.stringify([label, display]), { label, value: display });
-  }
-
-  for (const source of sources) {
-    for (const { property, content } of source.openGraph ?? []) {
-      if (/^og:(?:image|video|audio)(?::|$)/i.test(property)) continue;
-      addField(property, content);
-      if (property.toLowerCase() === "og:description") {
-        for (const [, count, label] of content.matchAll(
-          /\b(\d[\d,.]*(?:[KMB])?)\s+(followers|following|posts)\b/gi,
-        )) {
-          if (count && label) addField(label.toLowerCase(), count);
-        }
-      }
-    }
-    for (const data of [...(source.jsonLd ?? []), source.oEmbed]) {
-      for (const record of Array.isArray(data) ? data : [data]) {
-        if (!record || typeof record !== "object" || Array.isArray(record)) continue;
-        mapValues(record, (value, key) => {
-          if (key === "html" || key === "@context") return;
-          if (typeof value === "string" || typeof value === "number" || typeof value === "boolean")
-            addField(String(key), value);
-        });
-      }
-    }
-  }
-
   return {
-    fields: [...fields.entries()],
+    fields: lookup.data,
     favicon: lookup.favicon,
     maskIcon: lookup.maskIcon,
+    largeImages: lookup.largeImages,
     siteIcons,
     sources: [
       { label: "Page", ...lookup.page },
@@ -122,6 +111,8 @@ export function OmniLinkForm() {
     embed: Schema.Json;
     favicon: Schema.Json;
     maskIcon: Schema.Json;
+    largeImages: Schema.Json;
+    data: Schema.Json;
   }>();
   const [dimensions, setDimensions] = useState<Map<string, { width: number; height: number } | null>>(new Map());
   const [error, setError] = useState<string>();
@@ -193,6 +184,7 @@ export function OmniLinkForm() {
     }
   }
 
+  const imageKeys = new Map<string, string>();
   const gallery = new Map<string, {
     url: string;
     size: number;
@@ -225,6 +217,7 @@ export function OmniLinkForm() {
       const assetId = /(?:^|[._-])(?:\d{15,}|[a-f\d]{24,})(?=[._-]|$)/i.test(filename);
       parsed.searchParams.sort();
       const identity = assetId ? parsed.pathname : parsed.href;
+      imageKeys.set(image.url, identity);
       const dimensionsForImage = dimensions.get(image.url);
       const area = dimensionsForImage ? dimensionsForImage.width * dimensionsForImage.height : 0;
       const group = `${image.source} · ${groupPath || image.field}`;
@@ -301,9 +294,9 @@ export function OmniLinkForm() {
             <h2 className="text-sm font-semibold">Data fields</h2>
             {result.fields.length > 0 ? (
               <dl className="grid gap-1 text-sm">
-                {result.fields.map(([key, { label, value }]) => (
-                  <div key={key} className="wrap-anywhere">
-                    <dt className="inline font-medium">{label}: </dt>
+                {result.fields.map(({ field, value, originalType, derived }) => (
+                  <div key={JSON.stringify([field, value, originalType, derived])} className="wrap-anywhere">
+                    <dt className="inline font-medium">{field.replace(/^./, (letter) => letter.toUpperCase())}: </dt>
                     <dd className="inline">{value}</dd>
                   </div>
                 ))}
@@ -354,9 +347,39 @@ export function OmniLinkForm() {
             const groups = new Map<string, Array<{
               url: string;
               paths: Set<string>;
+              measured?: { width: number; height: number };
+              category?: string;
             }>>();
-            for (const image of gallery.values()) {
-              if (image.source !== source.label) continue;
+            const largeImageKeys = new Set(
+              result.largeImages.map((image) => imageKeys.get(image.url)).filter((key) => key !== undefined),
+            );
+            for (const image of result.largeImages) {
+              const first = image.sources[0];
+              if (!first || first.source !== source.label.toLowerCase()) continue;
+              const field = source.imageFields?.find((entry) =>
+                (entry.path.map((part) => typeof part === "number" ? `[${part}]` : part)
+                  .join(".").replace(/\.\[/g, "[") || entry.field) === first.path,
+              );
+              const groupPath = first.path.replace(/\[\d+\]/g, "[]");
+              const group = field ? `${field.source} · ${groupPath}` : groupPath;
+              const paths = new Set<string>();
+              for (const entry of image.sources) {
+                const origin = result.sources.find((item) => item.label.toLowerCase() === entry.source);
+                const fields = origin?.imageFields?.filter((item) =>
+                  (item.path.map((part) => typeof part === "number" ? `[${part}]` : part)
+                    .join(".").replace(/\.\[/g, "[") || item.field) === entry.path,
+                ) ?? [];
+                if (fields.length === 0) paths.add(`${entry.source} · ${entry.path}`);
+                for (const item of fields) {
+                  paths.add(`${entry.source} · ${item.source} · ${entry.path}`);
+                }
+              }
+              const images = groups.get(group) ?? [];
+              images.push({ url: image.url, paths, measured: image, category: "largeImages" });
+              groups.set(group, images);
+            }
+            for (const [identity, image] of gallery) {
+              if (image.source !== source.label || largeImageKeys.has(identity)) continue;
               const images = groups.get(image.group) ?? [];
               images.push(image);
               groups.set(image.group, images);
@@ -368,21 +391,24 @@ export function OmniLinkForm() {
                 {[...groups].map(([group, images]) => (
                   <div key={group} className="grid gap-2">
                     <h3 className="break-all text-sm font-medium">{group}</h3>
-                    {["largeImages", "otherImages", "unknownSize"].map((category) => {
-                      const matching = images.filter(({ url }) => {
-                        const size = dimensions.get(url);
+                    {["largeImages", "browserOnly", "otherImages", "unknownSize"].map((category) => {
+                      const matching = images.filter((image) => {
+                        if (image.category) return category === image.category;
+                        const size = dimensions.get(image.url);
                         if (!size) return category === "unknownSize";
                         if (size.width < 600 || size.height < 600) return false;
-                        const large = size.width > 600 && size.height > 600;
-                        return category === (large ? "largeImages" : "otherImages");
+                        if (size.width > 600 && size.height > 600) return category === "browserOnly";
+                        return category === "otherImages" && (size.width === 600 || size.height === 600);
                       });
                       if (!matching.length) return null;
                       return (
                         <div key={category} className="grid gap-1">
-                          <h4 className="text-xs text-muted-foreground">{category}</h4>
+                          <h4 className="text-xs text-muted-foreground">
+                            {category === "browserOnly" ? "Only measured by browser" : category}
+                          </h4>
                           <ul className="grid grid-cols-[repeat(auto-fill,96px)] gap-2">
-                            {matching.map(({ url, paths }) => {
-                              const size = dimensions.get(url);
+                            {matching.map(({ url, paths, measured: workerSize }) => {
+                              const size = workerSize ?? dimensions.get(url);
                               return (
                                 <li key={url} className="min-w-0">
                                   <img src={url} alt={[...paths][0]} referrerPolicy="no-referrer"

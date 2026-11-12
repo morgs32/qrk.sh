@@ -502,5 +502,191 @@ export const getOmniLinkData = Effect.fn("getOmniLinkData")(function* (input: st
     favicon = (yield* Effect.promise(() => inspectIcon(fallback.href))) ?? null;
   }
 
-  return JSON.stringify({ page: page.source, embed, favicon, maskIcon }, null, 2);
+  const siteIcons = new Set([
+    ...page.source.icons.map((icon) => icon.url),
+    ...("icons" in embed ? embed.icons.map((icon) => icon.url) : []),
+    ...candidates.map((candidate) => candidate.url),
+  ]);
+  if (favicon) siteIcons.add(favicon.url);
+  if (maskIcon) siteIcons.add(maskIcon.url);
+
+  const imageGroups = new Map<string, {
+    urls: Set<string>;
+    sources: Map<string, { source: string; path: string }>;
+  }>();
+  const imageSources = [
+    { source: "page", fields: page.source.imageFields },
+    { source: "embed", fields: "imageFields" in embed ? embed.imageFields : [] },
+  ];
+  for (const imageSource of imageSources) {
+    for (const image of imageSource.fields) {
+      if (image.source === "icon" || siteIcons.has(image.url)) continue;
+      const parsed = publicUrl(image.url);
+      if (!parsed) continue;
+      for (const [key, value] of [...parsed.searchParams]) {
+        if (
+          (/^(?:w|width|h|height)$/i.test(key) && /^\d{1,5}$/.test(value)) ||
+          /^\d{2,5}x\d{2,5}$/i.test(value) ||
+          /(?:^|[^a-z\d])[a-z]\d{2,5}x\d{2,5}(?=$|[^a-z\d])/i.test(value)
+        ) {
+          parsed.searchParams.delete(key, value);
+        }
+      }
+      const filename = parsed.pathname.split("/").at(-1) ?? "";
+      const assetId = /(?:^|[._-])(?:\d{15,}|[a-f\d]{24,})(?=[._-]|$)/i.test(filename);
+      parsed.searchParams.sort();
+      const identity = assetId ? parsed.pathname : parsed.href;
+      const group = imageGroups.get(identity) ?? { urls: new Set(), sources: new Map() };
+      group.urls.add(image.url);
+      const path = image.path.map((part) =>
+        typeof part === "number" ? `[${part}]` : part,
+      ).join(".").replace(/\.\[/g, "[") || image.field;
+      const source = { source: imageSource.source, path };
+      group.sources.set(JSON.stringify(source), source);
+      imageGroups.set(identity, group);
+    }
+  }
+
+  const imageUrls = [...new Set([...imageGroups.values()].flatMap((group) => [...group.urls]))];
+  const imageDimensions = new Map<string, { width: number; height: number }>();
+  for (let index = 0; index < imageUrls.length; index += 4) {
+    const urls = imageUrls.slice(index, index + 4);
+    const resources = yield* Effect.promise(() =>
+      Promise.all(urls.map(async (value) => {
+        const candidate = publicUrl(value);
+        return candidate ? readResource(candidate) : undefined;
+      })),
+    );
+    for (const [position, resource] of resources.entries()) {
+      const imageUrl = urls[position];
+      if (!resource || !imageUrl || siteIcons.has(resource.url)) continue;
+      try {
+        const dimensions = imageSize(resource.bytes);
+        const largest = (dimensions.images ?? []).reduce(
+          (current, size) =>
+            size.width * size.height > current.width * current.height ? size : current,
+          dimensions,
+        );
+        if (largest.width > 0 && largest.height > 0)
+          imageDimensions.set(imageUrl, { width: largest.width, height: largest.height });
+      } catch {
+        // Images that cannot be measured remain available in the raw source data.
+      }
+    }
+  }
+
+  const largeImages: {
+    url: string;
+    width: number;
+    height: number;
+    sources: { source: string; path: string }[];
+  }[] = [];
+  for (const group of imageGroups.values()) {
+    let largest: { url: string; width: number; height: number } | undefined;
+    for (const imageUrl of group.urls) {
+      const dimensions = imageDimensions.get(imageUrl);
+      if (!dimensions || dimensions.width <= 600 || dimensions.height <= 600) continue;
+      if (!largest || dimensions.width * dimensions.height > largest.width * largest.height)
+        largest = { url: imageUrl, ...dimensions };
+    }
+    if (largest) largeImages.push({ ...largest, sources: [...group.sources.values()] });
+  }
+
+  const displayIcons = new Set([
+    ...page.source.icons.map((icon) => icon.url),
+    ...("icons" in embed ? embed.icons.map((icon) => icon.url) : []),
+    ...page.source.imageFields.filter((image) => image.source === "icon").map((image) => image.url),
+    ...("imageFields" in embed
+      ? embed.imageFields.filter((image) => image.source === "icon").map((image) => image.url)
+      : []),
+  ]);
+  if (favicon) displayIcons.add(favicon.url);
+  if (maskIcon) displayIcons.add(maskIcon.url);
+  const displayImages = new Set([
+    ...page.source.images,
+    ...("images" in embed ? embed.images : []),
+  ].filter((image) => !displayIcons.has(image)));
+  const dataFields = new Map<string, {
+    field: string;
+    value: string;
+    originalType: string;
+    derived: boolean;
+    sources: { source: string; path: string }[];
+  }>();
+
+  function addField(
+    key: string,
+    value: string | number | boolean,
+    source: string,
+    path: string,
+    derived = false,
+  ) {
+    const display = String(value).trim();
+    if (!display || displayImages.has(display)) return;
+    const field = key
+      .replace(/^og:|^@/, "")
+      .replace(/([a-z\d])([A-Z])/g, "$1 $2")
+      .replace(/[:_-]/g, " ")
+      .replace(/^./, (letter) => letter.toLowerCase());
+    const originalType = typeof value;
+    const identity = JSON.stringify([field, display, originalType, derived]);
+    const existing = dataFields.get(identity);
+    if (existing) {
+      if (!existing.sources.some((item) => item.source === source && item.path === path))
+        existing.sources.push({ source, path });
+    } else {
+      dataFields.set(identity, {
+        field,
+        value: display,
+        originalType,
+        derived,
+        sources: [{ source, path }],
+      });
+    }
+  }
+
+  for (const item of [
+    { source: "page", data: page.source },
+    { source: "embed", data: embed },
+  ]) {
+    if ("openGraph" in item.data) {
+      for (const [index, { property, content }] of item.data.openGraph.entries()) {
+        if (/^og:(?:image|video|audio)(?::|$)/i.test(property)) continue;
+        const path = `openGraph[${index}].content`;
+        addField(property, content, item.source, path);
+        if (property.toLowerCase() === "og:description") {
+          for (const [, count, label] of content.matchAll(
+            /\b(\d[\d,.]*(?:[KMB])?)\s+(followers|following|posts)\b/gi,
+          )) {
+            if (count && label) addField(label.toLowerCase(), count, item.source, path, true);
+          }
+        }
+      }
+    }
+    const structured = [
+      ...("jsonLd" in item.data
+        ? item.data.jsonLd.map((value, index) => ({ value, path: `jsonLd[${index}]` }))
+        : []),
+      { value: "oEmbed" in item.data ? item.data.oEmbed : undefined, path: "oEmbed" },
+    ];
+    for (const entry of structured) {
+      const records = Array.isArray(entry.value) ? entry.value : [entry.value];
+      for (const [index, record] of records.entries()) {
+        if (!record || typeof record !== "object" || Array.isArray(record)) continue;
+        const recordPath = Array.isArray(entry.value) ? `${entry.path}[${index}]` : entry.path;
+        mapValues(record, (value, key) => {
+          if (key === "html" || key === "@context") return;
+          if (typeof value !== "string" && typeof value !== "number" && typeof value !== "boolean")
+            return;
+          const property = String(key);
+          const path = /^[A-Za-z_$][\w$]*$/.test(property)
+            ? `${recordPath}.${property}`
+            : `${recordPath}[${JSON.stringify(property)}]`;
+          addField(property, value, item.source, path);
+        });
+      }
+    }
+  }
+
+  return JSON.stringify({ page: page.source, embed, favicon, maskIcon, largeImages, data: [...dataFields.values()] }, null, 2);
 });

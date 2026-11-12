@@ -12,10 +12,9 @@ export function ModulePreview(props: {
   brickModule: (typeof modulesHash)[keyof typeof modulesHash];
   breakpoint: (typeof BREAKPOINTS)[number]["id"];
   cardStyle: boolean;
-  sidebarCardWidth?: number;
   moduleAction?: (state: unknown) => ReactNode;
 }) {
-  const { brickModule, breakpoint, cardStyle, sidebarCardWidth, moduleAction } = props;
+  const { brickModule, breakpoint, cardStyle, moduleAction } = props;
   const previewRef = useRef<HTMLDivElement>(null);
   const [{ state: previewState, revision: previewRevision }, setPreviewFrame] = useState(() => ({
     state: brickModule.def.state,
@@ -78,6 +77,7 @@ export function ModulePreview(props: {
             container.classList.toggle("dark", element.closest(".dark") !== null);
             container.style.font = appearance.font;
             container.style.color = appearance.color;
+            container.style.width = `${element.getBoundingClientRect().width}px`;
             container.append(element.cloneNode(true));
           },
         });
@@ -101,17 +101,14 @@ export function ModulePreview(props: {
   );
 
   return (
-    <div className="brick-catalog-preview flex min-h-0 w-full shrink-0 flex-col border-b border-zinc-200 last:border-b-0">
-      <header className="flex shrink-0 items-baseline gap-3 border-b border-zinc-200 bg-white px-[var(--brick-catalog-inset)] py-2 text-zinc-950">
+    <div className="brick-catalog-preview flex min-h-0 w-full shrink-0 flex-col">
+      <header className="flex shrink-0 items-baseline gap-3 bg-white px-[var(--brick-catalog-inset)] py-2 text-zinc-950">
         <h2 className="m-0 font-normal">{brickModule.label}</h2>
         {maxPerPage !== undefined ? (
           <span className="text-xs text-zinc-500">Limit: {maxPerPage} per page.</span>
         ) : null}
       </header>
-      <div
-        data-brick-catalog-content=""
-        className="px-[var(--brick-catalog-inset)] pb-8 pt-[var(--brick-catalog-inset)]"
-      >
+      <div className="overflow-x-auto px-[var(--brick-catalog-inset)] pb-8 pt-[var(--brick-catalog-inset)]">
         <div
           ref={previewRef}
           data-catalog-module-id={brickModule.id}
@@ -129,12 +126,8 @@ export function ModulePreview(props: {
           }}
           className={`group/brick relative z-0 shrink-0 cursor-grab ${dragging ? "opacity-40" : ""}`}
           style={{
-            width: previewWidth,
+            width: `min(100%, ${previewWidth}px)`,
             minWidth: view.minWidth,
-            zoom:
-              sidebarCardWidth === undefined
-                ? undefined
-                : Math.min(1, sidebarCardWidth / previewWidth),
           }}
         >
           <BrickAction>

@@ -92,7 +92,7 @@ test("uses the advertised endpoint and preserves repeated metadata and structure
       body: JSON.stringify({ author_name: "Example", thumbnail_url: "/thumb" }),
     },
   });
-  assert.deepEqual(calls.filter((call) => call !== fallbackIcon), [url, declaredUrl]);
+  assert.deepEqual(calls.slice(0, 2), [url, declaredUrl]);
   assert.deepEqual(
     data.page.openGraph.map(({ content }) => content),
     ["/first.jpg", "/second.jpg"],
@@ -138,7 +138,7 @@ test("finds content images in escaped JSON while skipping UI asset records and b
       `,
     },
   });
-  assert.deepEqual(calls.filter((call) => call !== fallbackIcon), [url, embedUrl]);
+  assert.deepEqual(calls.slice(0, 2), [url, embedUrl]);
   assert.equal(data.page.outcome, "empty");
   assert.equal(data.embed.outcome, "ok");
   assert.deepEqual(data.embed.images, [
@@ -335,4 +335,181 @@ test("resolves manifest icons against the final manifest URL and rejects an inva
   assert.deepEqual(data.favicon, {
     type: "raster", url: manifestIconUrl, width: 512, height: 512,
   });
+});
+
+test("returns large images with their page and embed paths, deduplicating variants by actual size", async () => {
+  const smallVariant = "https://cdn.example.com/cover.jpg?w=500&h=500&token=shared";
+  const largeVariant = "https://cdn.example.com/cover.jpg?w=1080&h=1440&token=shared";
+  const secondImage = "https://cdn.example.com/another.png";
+  const icon = "https://example.com/icon.png";
+  const embedIcon = "https://example.com/embed-icon.png";
+  const { data, calls } = await lookup({
+    [url]: {
+      headers: htmlHeaders,
+      body: `
+        <link rel="icon" href="/icon.png">
+        <script type="application/json">${JSON.stringify({
+          posts: [
+            { image: smallVariant },
+            { image: largeVariant },
+            { image: secondImage },
+            { image: "https://cdn.example.com/exact.png" },
+            { image: "https://cdn.example.com/narrow.png" },
+            { image: "https://cdn.example.com/missing.png" },
+            { image: "https://cdn.example.com/invalid.png" },
+            { image: "https://cdn.example.com/redirect.png" },
+            { image: icon },
+          ],
+        })}</script>
+      `,
+    },
+    [embedUrl]: {
+      headers: htmlHeaders,
+      body: `
+        <link rel="icon" href="/embed-icon.png">
+        <script type="application/json">${JSON.stringify({
+          feed: [{ image: largeVariant }, { image: embedIcon }],
+        })}</script>
+      `,
+    },
+    [smallVariant]: png(500, 500),
+    [largeVariant]: png(1080, 1440),
+    [secondImage]: png(601, 601),
+    "https://cdn.example.com/exact.png": png(600, 900),
+    "https://cdn.example.com/narrow.png": png(900, 599),
+    "https://cdn.example.com/missing.png": { status: 404 },
+    "https://cdn.example.com/invalid.png": { headers: { "Content-Type": "image/png" }, body: "not an image" },
+    "https://cdn.example.com/redirect.png": { status: 302, headers: { Location: "http://127.0.0.1/private.png" } },
+    [icon]: png(900, 900),
+    [embedIcon]: png(900, 900),
+  });
+
+  assert.deepEqual(data.largeImages, [
+    {
+      url: largeVariant,
+      width: 1080,
+      height: 1440,
+      sources: [
+        { source: "page", path: "posts[0].image" },
+        { source: "page", path: "posts[1].image" },
+        { source: "embed", path: "feed[0].image" },
+      ],
+    },
+    {
+      url: secondImage,
+      width: 601,
+      height: 601,
+      sources: [{ source: "page", path: "posts[2].image" }],
+    },
+  ]);
+  assert.equal(calls.filter((call) => call === largeVariant).length, 1);
+  assert.equal(calls.filter((call) => call === embedIcon).length, 0);
+  assert.ok(!calls.some((call) => call.startsWith("http://127.0.0.1")));
+  assert.equal(data.page.outcome, "ok");
+  assert.equal(data.embed.outcome, "ok");
+});
+
+test("returns an empty largeImages array when no image dimensions can be read", async () => {
+  const { data } = await lookup({
+    [url]: {
+      headers: htmlHeaders,
+      body: '<img src="https://cdn.example.com/missing.png"><img src="https://cdn.example.com/invalid.png">',
+    },
+    [embedUrl]: { status: 404 },
+    "https://cdn.example.com/missing.png": { status: 404 },
+    "https://cdn.example.com/invalid.png": { headers: { "Content-Type": "image/png" }, body: "invalid" },
+  });
+
+  assert.deepEqual(data.largeImages, []);
+  assert.equal(data.page.outcome, "ok");
+  assert.equal(data.embed.outcome, "error");
+});
+
+test("returns field values with original types, derivations and all resolvable source paths", async () => {
+  const declaredUrl = "https://example.com/oembed";
+  const { data } = await lookup({
+    [url]: {
+      headers: htmlHeaders,
+      body: `
+        <meta property="og:title" content="Example">
+        <meta property="og:title" content="Example">
+        <meta property="og:title" content="Other">
+        <meta property="og:description" content="3,192 Followers, 5.2K Following, 42 Posts">
+        <link rel="alternate" type="application/json+oembed" href="/oembed">
+        <script type="application/ld+json">[{"name":"Example","score":42,"active":true,"unusual.key":false}]</script>
+        <script type="application/ld+json">{"score":"42"}</script>
+      `,
+    },
+    [declaredUrl]: {
+      headers: { "Content-Type": "application/json+oembed" },
+      body: JSON.stringify({ title: "Example", author_name: "Author" }),
+    },
+  });
+
+  assert.deepEqual(data.data.find((entry) => entry.field === "title" && entry.value === "Example"), {
+    field: "title",
+    value: "Example",
+    originalType: "string",
+    derived: false,
+    sources: [
+      { source: "page", path: "openGraph[0].content" },
+      { source: "page", path: "openGraph[1].content" },
+      { source: "embed", path: "oEmbed.title" },
+    ],
+  });
+  assert.deepEqual(data.data.find((entry) => entry.field === "title" && entry.value === "Other"), {
+    field: "title",
+    value: "Other",
+    originalType: "string",
+    derived: false,
+    sources: [{ source: "page", path: "openGraph[2].content" }],
+  });
+  assert.deepEqual(data.data.find((entry) => entry.field === "followers"), {
+    field: "followers",
+    value: "3,192",
+    originalType: "string",
+    derived: true,
+    sources: [{ source: "page", path: "openGraph[3].content" }],
+  });
+  assert.equal(data.data.find((entry) => entry.field === "following")?.value, "5.2K");
+  assert.equal(data.data.find((entry) => entry.field === "posts")?.value, "42");
+  assert.deepEqual(data.data.filter((entry) => entry.field === "score"), [
+    { field: "score", value: "42", originalType: "number", derived: false,
+      sources: [{ source: "page", path: "jsonLd[0][0].score" }] },
+    { field: "score", value: "42", originalType: "string", derived: false,
+      sources: [{ source: "page", path: "jsonLd[1].score" }] },
+  ]);
+  assert.deepEqual(data.data.find((entry) => entry.field === "active"), {
+    field: "active", value: "true", originalType: "boolean", derived: false,
+    sources: [{ source: "page", path: "jsonLd[0][0].active" }],
+  });
+  assert.equal(
+    data.data.find((entry) => entry.value === "false").sources[0].path,
+    'jsonLd[0][0]["unusual.key"]',
+  );
+  assert.equal(
+    data.data.find((entry) => entry.value === "Author").sources[0].path,
+    "oEmbed.author_name",
+  );
+});
+
+test("preserves source paths for scalar fields in an oEmbed array", async () => {
+  const declaredUrl = "https://example.com/oembed-array";
+  const { data } = await lookup({
+    [url]: {
+      headers: htmlHeaders,
+      body: '<link rel="alternate" type="application/json+oembed" href="/oembed-array">',
+    },
+    [declaredUrl]: {
+      headers: { "Content-Type": "application/json+oembed" },
+      body: JSON.stringify([{ name: "First" }, { name: "Second" }]),
+    },
+  });
+
+  assert.deepEqual(data.data.filter((entry) => entry.field === "name"), [
+    { field: "name", value: "First", originalType: "string", derived: false,
+      sources: [{ source: "embed", path: "oEmbed[0].name" }] },
+    { field: "name", value: "Second", originalType: "string", derived: false,
+      sources: [{ source: "embed", path: "oEmbed[1].name" }] },
+  ]);
 });

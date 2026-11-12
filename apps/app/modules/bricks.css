@@ -132,14 +132,13 @@
 .wall-row::after {
   --interaction-outline-width: 1px;
   --interaction-outline-outset: calc(var(--interaction-outline-width) / 2);
+  --interaction-outline-halo: 0 0 0 1px #bce1fe, inset 0 0 0 1px #ddf0ff;
   content: "";
   position: absolute;
   inset: calc(-1 * var(--interaction-outline-outset));
   border: var(--interaction-outline-width) solid rgb(var(--brick-accent-rgb));
   /* Opaque equivalents of the blue accent at 30% and 15% over white. */
-  box-shadow:
-    0 0 0 1px #bce1fe,
-    inset 0 0 0 1px #ddf0ff;
+  box-shadow: var(--interaction-outline-halo);
   opacity: 0;
   pointer-events: none;
 }
@@ -151,6 +150,14 @@
 
 .brick-hover-surface.brick-surface-card::after {
   border-radius: calc(var(--brick-card-radius) + var(--interaction-outline-outset));
+}
+
+/* The catalog uses the interaction outline for its resting border too. */
+:where(.brick-catalog-preview) [data-catalog-module-id] > .brick-hover-surface::after {
+  --interaction-outline-outset: 0px;
+  border-color: var(--border);
+  box-shadow: none;
+  opacity: 1;
 }
 
 [data-wall-stack-id]::after,
@@ -172,6 +179,12 @@
   [data-wall-stack-id]:is([data-wall-stack-empty]:hover, :has(> * > .stack-action:hover))::after {
     opacity: 1;
   }
+
+  :where(.brick-catalog-preview) [data-catalog-module-id]:hover > .brick-hover-surface::after {
+    --interaction-outline-outset: calc(var(--interaction-outline-width) / 2);
+    border-color: rgb(var(--brick-accent-rgb));
+    box-shadow: var(--interaction-outline-halo);
+  }
 }
 
 /* Selection persists as focus moves between the editor and its controls. */
@@ -180,6 +193,12 @@
 [data-catalog-module-id]:focus-within > .brick-hover-surface::after,
 .wall-placement:focus-within > .wall-placement-content > .brick-hover-surface::after {
   opacity: 1;
+}
+
+:where(.brick-catalog-preview) [data-catalog-module-id]:focus-within > .brick-hover-surface::after {
+  --interaction-outline-outset: calc(var(--interaction-outline-width) / 2);
+  border-color: rgb(var(--brick-accent-rgb));
+  box-shadow: var(--interaction-outline-halo);
 }
 
 .wall-placement:is(:focus-within, .is-selected) {

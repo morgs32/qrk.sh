@@ -98,8 +98,11 @@ interactive. This supersedes the responsive shell decision in
 
 5. Make the Bricks catalog a vertical list at every width. Remove
    `verticalAtLg` and the horizontal drawer styles from ModuleFilmstrip and
-   ModulePreview. Measure the actual padded catalog column with the existing
-   observer and preserve thumbnail sizing and the native drag preview.
+   ModulePreview. Render previews without scaling, reflowing to the padded
+   catalog column up to the preferred width and respecting the minimum width.
+   Give each preview a 1px zinc border that becomes a blue outline on hover or
+   focus, and horizontal scrolling when its minimum width does not fit. Keep
+   the native drag preview at the same unscaled size.
    Rename the browser-local `drawer-brick` payload discriminator and
    `data-drawer-module-id` to `catalog-brick` and `data-catalog-module-id`
    together in the source, Wall consumers, and scripted stories. Keep the
@@ -162,7 +165,8 @@ qrk.sh/
 3. Use a local test page to verify inline Article focus on both sides of
    `lg`, explicit selection and catalog drop, Close and Escape, and
    focus after sidebar dismissal. Confirm vertical catalog scrolling,
-   thumbnail fit, and a successful drag onto the exposed Wall with a
+   preview reflow and horizontal overflow at minimum width, visible borders,
+   and a successful drag onto the exposed Wall with a
    drag-capable pointer. Check that the toolbar stays visible on desktop with
    the sidebar open, hides under the mobile overlay, and returns after closing
    it. Record the user's result before archiving the plan.

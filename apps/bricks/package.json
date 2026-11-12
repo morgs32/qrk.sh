@@ -88,11 +88,11 @@
     "@meowdown/react": "0.71.4",
     "@remix-run/route-pattern": "^0.22.1",
     "@unpic/react": "1.0.2",
-    "@zerospin/core": "44.0.1",
-    "@zerospin/error": "44.0.1",
-    "@zerospin/logger": "44.0.1",
-    "@zerospin/shapes": "44.0.1",
-    "@zerospin/zod": "44.0.1",
+    "@zerospin/core": "44.0.2",
+    "@zerospin/error": "44.0.2",
+    "@zerospin/logger": "44.0.2",
+    "@zerospin/shapes": "44.0.2",
+    "@zerospin/zod": "44.0.2",
     "capnweb": "^0.12.0",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.3.0",
@@ -107,7 +107,7 @@
     "react-dom": "19.2.7",
     "react-json-view-lite": "^2.5.0",
     "swr": "^2.3.3",
-    "system-worker": "44.0.1"
+    "system-worker": "44.0.2"
   },
   "devDependencies": {
     "@fontsource-variable/geist": "^5.2.8",

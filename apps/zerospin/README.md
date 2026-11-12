@@ -35,6 +35,6 @@ show the authored Declaration Board. Restart Studio after declaration changes.
 Deployment credentials are unnecessary. Repo/table inspection belongs in
 Zerospin Cloud under Organization → System → Instance → Studio.
 
-The consumer framework packages use the exact `44.0.1` release. The Studio
+The consumer framework packages use the exact `44.0.2` release. The Studio
 process is separate from the existing development scripts and does not deploy
 or reset application storage.

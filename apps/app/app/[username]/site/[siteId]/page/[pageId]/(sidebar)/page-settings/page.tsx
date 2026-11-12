@@ -27,17 +27,7 @@ export default function Page() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-      <PageSettings
-        key={page.id}
-        page={{
-          id: page.id,
-          title: page.title ?? "",
-          description: page.description ?? "",
-          slug: page.slug,
-        }}
-        faviconLightUrl={page.site.faviconLightUrl}
-        faviconDarkUrl={page.site.faviconDarkUrl}
-      />
+      <PageSettings key={page.id} page={page} />
     </div>
   );
 }

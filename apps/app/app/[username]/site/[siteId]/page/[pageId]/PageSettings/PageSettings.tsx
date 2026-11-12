@@ -6,6 +6,7 @@ import { useSession } from "@zerospin/react";
 import { X } from "lucide-react";
 import { useId, useLayoutEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import type { ISessionModelRow } from "@zerospin/browser/ISessionModelRow";
 import { stageAggregateSessionCommand } from "@zerospin/sdk/browser";
 import { Schema } from "effect";
 
@@ -29,11 +30,12 @@ const ParamsSchema = Schema.Struct({
 });
 
 export function PageSettings(props: {
-  page: { id: `pag_${string}`; title: string; description: string; slug: string | null };
-  faviconLightUrl: string | null;
-  faviconDarkUrl: string | null;
+  page: ISessionModelRow<typeof userSessionDefinition, "page", { with: { site: true } }>;
 }) {
-  const { page, faviconLightUrl, faviconDarkUrl } = props;
+  const { page } = props;
+  const { faviconLightUrl, faviconDarkUrl } = page.site;
+  const savedTitle = page.title ?? "";
+  const savedDescription = page.description ?? "";
   const params = useValidatedParams(ParamsSchema);
   const session = useSession(userSessionDefinition);
   const formId = useId();
@@ -42,11 +44,11 @@ export function PageSettings(props: {
     setSaveSlot(document.getElementById("page-settings-save-slot"));
   }, []);
   const [fields, setFields] = useState(() => ({
-    title: page.title,
-    description: page.description,
+    title: savedTitle,
+    description: savedDescription,
   }));
   const [saveError, setSaveError] = useState<string | null>(null);
-  const isDirty = fields.title !== page.title || fields.description !== page.description;
+  const isDirty = fields.title !== savedTitle || fields.description !== savedDescription;
   useWarnBeforeUnload(isDirty);
   const sitePath = `/${encodeURIComponent(params.username)}/${encodeURIComponent(params.siteId)}`;
   const pagePath = page.slug ? `/${page.slug.split("/").map(encodeURIComponent).join("/")}` : "";
@@ -89,6 +91,7 @@ export function PageSettings(props: {
           <FieldLabel htmlFor="page-title">Title</FieldLabel>
           <Input
             id="page-title"
+            placeholder={page.site.name ?? undefined}
             value={fields.title}
             onChange={(event) => setFields({ ...fields, title: event.target.value })}
           />

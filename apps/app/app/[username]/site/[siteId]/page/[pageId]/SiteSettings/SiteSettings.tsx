@@ -565,30 +565,34 @@ export function SiteSettings(props: {
               </>
             ),
           },
-          {
-            title: "Danger Zone",
-            content: (
-              <BrickField orientation="horizontal" aria-labelledby="site-publishing-label">
-                <span
-                  id="site-publishing-label"
-                  className="flex min-h-7 items-center text-xs font-medium text-muted-foreground"
-                >
-                  Publishing
-                </span>
-                <FieldContent>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="destructive"
-                    className="self-start"
-                    disabled
-                  >
-                    Unpublish
-                  </Button>
-                </FieldContent>
-              </BrickField>
-            ),
-          },
+          ...(site.isPublished
+            ? [
+                {
+                  title: "Danger Zone",
+                  content: (
+                    <BrickField orientation="horizontal" aria-labelledby="site-publishing-label">
+                      <span
+                        id="site-publishing-label"
+                        className="flex min-h-7 items-center text-xs font-medium text-muted-foreground"
+                      >
+                        Publishing
+                      </span>
+                      <FieldContent>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="destructive"
+                          className="self-start"
+                          disabled
+                        >
+                          Unpublish
+                        </Button>
+                      </FieldContent>
+                    </BrickField>
+                  ),
+                },
+              ]
+            : []),
         ]}
       />
     </form>

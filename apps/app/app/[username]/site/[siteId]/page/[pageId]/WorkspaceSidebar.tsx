@@ -29,7 +29,7 @@ export function WorkspaceSidebar(props: { controls: ReactNode; children: ReactNo
       ref={sidebarRef}
       aria-label="Workspace sidebar"
       data-workspace-sidebar=""
-      className="flex h-full min-h-0 w-[320px] shrink-0 flex-col border-l border-sidebar-border bg-background max-lg:absolute max-lg:inset-y-0 max-lg:right-0 max-lg:z-[79] max-lg:max-w-[75vw] max-lg:shadow-xl"
+      className="flex h-full min-h-0 w-[300px] shrink-0 flex-col border-l border-sidebar-border bg-background max-lg:absolute max-lg:inset-y-0 max-lg:right-0 max-lg:z-[79] max-lg:max-w-[75vw] max-lg:shadow-xl"
     >
       <header className="flex shrink-0 items-center gap-1 border-b border-sidebar-border px-3 py-2">
         {controls}

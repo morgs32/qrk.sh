@@ -14,6 +14,7 @@ import { generateSpec } from "./generateSpec";
 import { getGitHubProfile } from "./githubProfile/getGitHubProfile";
 import { getGitHubRepo } from "./githubRepo/getGitHubRepo";
 import { getInstagramProfile } from "./instagram/getInstagramProfile";
+import { getOmniLinkData } from "./omniLink/getOmniLinkData";
 
 const GLOBAL_BACKEND_NAME = "global";
 const managedRuntime = ManagedRuntime.make(Layer.empty);
@@ -27,6 +28,10 @@ export class BricksApi extends RpcTarget {
     return managedRuntime.runPromise(
       getBehanceProfile({ url, token: this.workerEnv.APIFY_API_TOKEN }).pipe(encodeRpc),
     );
+  }
+
+  getOmniLinkData(url: string) {
+    return managedRuntime.runPromise(getOmniLinkData(url).pipe(encodeRpc));
   }
 
   getInstagramProfile(url: string): Promise<IRpcEither<IInstagramScrapePayload>> {

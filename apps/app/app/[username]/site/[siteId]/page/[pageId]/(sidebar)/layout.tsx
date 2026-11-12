@@ -1,6 +1,6 @@
 "use client";
 
-import { useContext, type ReactNode } from "react";
+import { useContext, useEffect, useState, type ReactNode } from "react";
 import { useMatches, useNavigate } from "@tanstack/react-router";
 import { File, Globe, Pencil, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -37,6 +37,15 @@ export default function WorkspacePanelControls(props: {
   onClose: () => void;
 }) {
   const { children, isSitePublished, onClose } = props;
+  const [showPageControls, setShowPageControls] = useState(false);
+  useEffect(() => {
+    // Match the lg breakpoint used by WorkspaceSidebar.
+    const mobileViewport = window.matchMedia("(width < 64rem)");
+    const update = () => setShowPageControls(mobileViewport.matches);
+    mobileViewport.addEventListener("change", update);
+    update();
+    return () => mobileViewport.removeEventListener("change", update);
+  }, []);
   const params = useValidatedParams(ParamsSchema);
   const autosave = useContext(BrickAutosaveContext);
   if (autosave === null) throw new Error("Brick autosave requires the Page layout");
@@ -176,22 +185,24 @@ export default function WorkspacePanelControls(props: {
     <WorkspaceSidebar
       controls={
         <>
-          <Select items={items} value={tab} onValueChange={selectSection}>
-            <SelectTrigger
-              aria-label="Page controls"
-              size="sm"
-              className={`${compactControlClassName} min-w-0 border-0 bg-secondary text-secondary-foreground hover:bg-secondary/80 data-[size=sm]:h-7 dark:bg-secondary dark:hover:bg-secondary/80 [&>svg]:size-3.5`}
-            >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent alignItemWithTrigger={false} align="start">
-              {items.map(({ value, label }) => (
-                <SelectItem key={value} value={value} className="text-xs">
-                  {label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {showPageControls && (
+            <Select items={items} value={tab} onValueChange={selectSection}>
+              <SelectTrigger
+                aria-label="Page controls"
+                size="sm"
+                className={`${compactControlClassName} min-w-0 border-0 bg-secondary text-secondary-foreground hover:bg-secondary/80 data-[size=sm]:h-7 dark:bg-secondary dark:hover:bg-secondary/80 [&>svg]:size-3.5`}
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent alignItemWithTrigger={false} align="start">
+                {items.map(({ value, label }) => (
+                  <SelectItem key={value} value={value} className="text-xs">
+                    {label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
           {actions}
         </>
       }

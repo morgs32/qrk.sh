@@ -10,8 +10,8 @@ interactive. This supersedes the responsive shell decision in
 
 ## Behavior
 
-1. At `lg` and wider, keep the existing 320 px in-flow sidebar. Below `lg`,
-   use a right overlay with width `min(320px, 75vw)`, starting below the App
+1. At `lg` and wider, use a 300 px in-flow sidebar. Below `lg`,
+   use a right overlay with width `min(300px, 75vw)`, starting below the App
    header and filling the available workspace height. The overlay has a left
    border and shadow. The Wall can scroll and receive pointer and keyboard
    input in the exposed area. Its preview stays at the selected authored width.
@@ -143,7 +143,7 @@ qrk.sh/
    leftover workspace drawer routes, CSS, selectors, and consumers.
 2. The user performs manual verification under the November 11 daily choice.
    Open each sidebar route directly and through Page controls. At 1024 px,
-   confirm a 320 px in-flow sidebar. At 1023 px, confirm an overlay. At 375 px,
+   confirm a 300 px in-flow sidebar. At 1023 px, confirm an overlay. At 375 px,
    confirm a sidebar at most 281.25 px wide and an interactive exposed Wall.
    Resize across the threshold with a form draft open, then verify the draft,
    selected breakpoint, scroll position, and controls.

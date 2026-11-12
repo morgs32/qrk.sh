@@ -5,11 +5,12 @@ App serves the editor at <https://app.qrk.localhost/>.
 The site navbar uses 16px side padding in the sm preview and 24px from the md
 preview upward, based on the preview container's 720px threshold.
 
-The workspace uses a 320px right sidebar at Tailwind `lg` and wider. Below
+The workspace uses a 300px right sidebar at Tailwind `lg` and wider. Below
 `lg`, the sidebar overlays the right edge at up to 75% of the viewport width.
-The exposed Wall remains interactive. Page controls opens Bricks, Page settings,
-and Site settings. Brick selection opens Edit brick, which uses the same 12px
-section padding as the Form Inputs catalog. Inline Article focus opens
+The exposed Wall remains interactive. Below `lg`, the sidebar's Page controls
+dropdown opens Bricks, Page settings, and Site settings. Brick selection opens
+Edit brick, which uses the same 12px section padding as the Form Inputs
+catalog. Inline Article focus opens
 Edit brick at `lg` and wider. At narrower widths, inline focus leaves the current
 route and sidebar state alone.
 
@@ -21,7 +22,8 @@ Exit sits at the left edge of the editor navbar. Set breakpoints is
 available from the floating page controls.
 
 For unpublished sites, the editor navbar shows Publish beside the account
-menu. The button uses 28px height and 8px horizontal padding.
+menu. The button uses 28px height and 8px horizontal padding. Site settings
+shows the Danger Zone only while the site is published.
 
 | Area | Worker                    | Pure manifest           |
 | ---- | ------------------------- | ----------------------- |

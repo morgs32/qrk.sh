@@ -27,6 +27,8 @@ export declare class BricksApi extends RpcTarget {
 
   getBehanceProfile(url: string): Promise<IRpcEither<typeof behanceImportSchema.Type>>;
 
+  getOmniLinkData(url: string): Promise<IRpcEither<string>>;
+
   getInstagramProfile(url: string): Promise<IRpcEither<IInstagramScrapePayload>>;
 
   getGitHubProfile(url: string): Promise<IRpcEither<IGitHubScrapePayload>>;

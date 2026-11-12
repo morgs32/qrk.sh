@@ -34,7 +34,7 @@ Browser verification on the supplied md page at 965×1034 measured the preview v
 ## Current workspace sidebar
 
 The page route renders its outlet in one sidebar below the App navbar. At
-`lg` and wider the sidebar takes 320px in the workspace row. Below `lg` it
+`lg` and wider the sidebar takes 300px in the workspace row. Below `lg` it
 overlays the right edge at up to 75vw and the exposed Wall remains interactive.
 The route and mounted sidebar body survive viewport resizing. The Wall
 keeps its authored width and scrolls horizontally. The toolbar stays at the

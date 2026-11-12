@@ -1,4 +1,4 @@
-import { primitives } from "@zerospin/shapes";
+import { makeEffectSchema, primitives } from "@zerospin/shapes";
 import { Schema } from "effect";
 import { defineComponentMetadata } from "../../../definition/defineComponentMetadata";
 import { defineModule } from "../../../definition/defineModule";
@@ -47,3 +47,11 @@ export const imageCarouselV1 = makeModuleVersion(imageCarousel, {
     }),
   },
 });
+
+export const completeStateSchema = Schema.toType(makeEffectSchema(imageCarouselV1.stateShape)).check(
+  Schema.makeFilter((state) =>
+    (state.slides.length >= 2 && state.slides.every((slide) =>
+      slide.imageUrl.trim().length > 0 && slide.alt.trim().length > 0,
+    )) || "At least two images with alt text are required",
+  ),
+);

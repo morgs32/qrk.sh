@@ -10,6 +10,7 @@ import { SwatchAndIconLineIcon } from "./SwatchAndIconLineIcon";
 const swatchAndIcon = makeModuleView(swatchAndIconV1, {
   categoryIds: ["tools"],
   defaultState: swatchAndIconPreviewState,
+  initialDraft: "preview",
   LineIcon: SwatchAndIconLineIcon,
   form: SwatchAndIconForm,
   variants: {

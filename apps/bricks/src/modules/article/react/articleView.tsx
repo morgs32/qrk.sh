@@ -9,6 +9,7 @@ import { ArticleLineIcon } from "./ArticleLineIcon";
 export const articleView = makeModuleView(articleV1, {
   categoryIds: ["tools"],
   defaultState: articlePreviewState,
+  initialDraft: { title: "", subtitle: "", content: null },
   LineIcon: ArticleLineIcon,
   inlineEditor: ArticleEditor,
   variants: {

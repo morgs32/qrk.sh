@@ -202,26 +202,24 @@ Article's stylesheet, Storybook, and App declare
 `@layer theme, base, components, meowdown, utilities` before imports so Preflight
 precedes Meowdown rules and utilities remain last.
 
-`ModuleFilmstrip` lays out previews in a vertical catalog. Each preview reflows
-to the available column up to its preferred width, respects its minimum width,
-and scrolls horizontally when that minimum cannot fit. Previews render without
-scaling and have a 1px zinc border that becomes a blue outline on hover or focus.
-App supplies the catalog actions, and Storybook supplies its own module
-examples. Live preview content stays interactive.
-`--brick-catalog-inset` sets the heading's side padding and the preview's top
-and side padding.
-`ModulePreview` owns its current local preview state, initialized from the module's
-`defaultState`. A module can supply `preview({ state, setState, isActive })`
-to change that local state. `IntersectionObserver`, document visibility, dragging,
-and reduced-motion preference determine `isActive`: it is true only while the
-preview is visible, the document is visible, that preview is not being dragged,
-and reduced motion is disabled. Swatch and Icon owns a discrete two-second color/SVG cycle through
-this callback and pauses it while inactive. Preview ticks write no model data.
-Drag start captures the committed preview state and freezes the catalog rendering;
-the native drag copy, insertion shadow, and newly created Brick use that same
-snapshot. Catalog Add uses the current preview state; static module-detail Add
-uses the `defaultState` displayed there. Preview animation never changes a saved
-Brick.
+`ModuleFilmstrip` displays curated horizontal rows of selectable previews, with
+category tabs filtering their modules. GitHub modules share a row; Image's
+captioned and captionless layouts share a row with Image Carousel. Other modules
+have their own rows. Each preview has a module-owned example state and a layout
+ID; the example is not normally the new Brick's content.
+
+Selection opens a configuration view with a live draft and form. Modules choose
+their initial draft: Article starts blank and Swatch and Icon captures the
+current animated preview. Other modules start unconfigured. Form drafts report
+pending and invalid work so an incomplete or stale value cannot be dragged.
+A successful local insertion returns to the catalog; cancellation leaves the
+draft open. The chosen layout and complete state travel with the drag, and the
+selected spec initializes each of the four Placements. Local staging does not
+establish canonical admission.
+
+`ModulePreview` owns its local sample state. Modules can animate it through
+`preview({ state, setState, isActive })`; visibility, document visibility and
+reduced-motion preference control animation. Preview ticks write no model data.
 Catalog previews share the placed Brick's content decoration on hover or DOM
 focus: an opaque 1px `#1F9BFC` stroke centered on the Brick's edge, with sharp 1px
 solid halos in `#BCE1FE` outside and `#DDF0FF` inside. It overlays the content
@@ -346,15 +344,10 @@ Catalog and playground previews display the limit. App enforces it against the
 Page's shared Bricks during creation, counting a Brick once across four Placements.
 
 Module views can supply a display-only `variants.default.placeholder` in
-`makeModuleView`. The backend module's required `hasPlaceholder` flag owns whether
-null is valid creation or saved state. Modules declaring `true` supply their
-module-owned placeholder; exact null selects it before state decoding or
-JsonRender execution. Empty strings, objects, and collections still use the normal
-schema/rendering path. Swatch and Icon declares `hasPlaceholder: false`, supplies
-no placeholder renderer, and rejects null; the other modules declare `true` and
-retain their null-state presentations and blank form drafts. Catalog `defaultState`
-examples remain separate. Placeholder skeletons respect reduced motion and contain
-no outbound interactions; a configured Brick is never reset by preview controls.
+`makeModuleView`. A null draft selects it before state decoding or JSON Render;
+Swatch and Icon has no placeholder and starts with its selected preview state.
+Placeholder skeletons respect reduced motion and contain no outbound interactions.
+Historical releases retain their original null-state rules.
 
 `defineComponentMetadata` describes an allowed component using its name, `propsShape`,
 slots, and description; it contains no React implementation. Each module exposes
@@ -406,14 +399,12 @@ so consumers do not need an empty-spec rendering fallback. The root-membership
 filter runs in Effect and is not represented in generic JSON Schema.
 
 Module defaults, preview state, and authored rendering discard undeclared fields
-during decoding. `addBrick@3` requires an explicit `state`: it decodes non-null
-state through the selected module's schema and accepts null only when that module
-declares `hasPlaceholder: true`. `updateBrick@3` applies the same rule, checks
-`moduleId` against the stored Brick, and persists shared content while advancing
-its revision and superseding active spec generation. Swatch and Icon rejects null
-on both paths. Spec validation remains strict. The update command preserves each
-Placement's identity, layout membership, and spec; it stores no pixel dimensions,
-`gridItem`, or visibility.
+during decoding. Candidate `addBrick@11` and `updateBrick@12` validate complete
+state using the selected module's schema. Creation resolves a module-owned layout
+ID; update checks the Brick's module, advances its revision, and supersedes active
+spec generation without changing Placement identity, layout membership, or spec.
+Historical releases retain their original validation. The candidate requires
+separate replay and promotion evidence before changing the canonical release.
 
 Each Brick also owns `borderWidth`, shared by all four breakpoint Placements.
 It defaults to `0` and accepts whole pixels from `0` to `12` through the authenticated

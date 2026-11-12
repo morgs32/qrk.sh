@@ -4,97 +4,112 @@ import type { IResult } from "@zerospin/error";
 import { Schema } from "effect";
 import { useLayoutEffect, useRef, useState } from "react";
 import { useSWRConfig } from "swr";
-
 import { FieldGroup } from "../../../components/field";
 import { ImageUploadInput } from "../../../components/ImageUploadInput";
 import { TextInput } from "../../../components/TextInput";
 import { useTextCommit } from "../../react/useTextCommit";
 import { useWarnBeforeUnload } from "../../react/useWarnBeforeUnload";
-import { imageStateSchema, imageV2 } from "../definition/imageV2";
+import { completeImageStateSchema, imageStateSchemaV3, imageV3 } from "../definition/imageV3";
 import type {} from "./ImageUploadSWR";
 
-const blankImage = { imageUrl: "", title: "", crop: null };
+const blankImage = { imageUrl: "", altText: "", caption: "", crop: null };
 
 export function ImageForm(props: {
-  state: typeof imageStateSchema.Type | null;
-  onSave: (state: typeof imageStateSchema.Type) => IResult<unknown, { message: string }>;
+  state: typeof imageStateSchemaV3.Type | null;
+  onSave: (state: typeof imageStateSchemaV3.Type) => IResult<unknown, { message: string }>;
+  onDraftChange?: (draft: { state: unknown; pending: boolean; valid: boolean }) => void;
   previewWidth?: number;
   measureFrame?: (selector: string) => number | undefined;
 }) {
-  const { state, onSave, previewWidth, measureFrame } = props;
+  const { state, onSave, onDraftChange, previewWidth, measureFrame } = props;
   const { uploadImage } = useSWRConfig();
-  const accepted = useRef(state ?? blankImage);
+  const working = useRef(state ?? blankImage);
+  const [draft, setDraft] = useState(state ?? blankImage);
+  const [error, setError] = useState<string>();
+  const [uploadPending, setUploadPending] = useState(false);
+  const uploadPendingRef = useRef(false);
+  const saveFailed = useRef(false);
+  const isEditing = useRef(false);
+  const { defaultWidth, defaultHeight, minWidth } = imageV3.variants.default;
+
   useLayoutEffect(() => {
-    accepted.current = state ?? blankImage;
-  }, [state]);
-
-  const [titleDraft, setTitleDraft] = useState<string | null>(null);
-  const [imageDraft, setImageDraft] = useState<{
-    imageUrl: string;
-    crop: typeof imageStateSchema.Type.crop;
-  } | null>(null);
-  const [titleError, setTitleError] = useState<string>();
-  const [imageError, setImageError] = useState<string>();
-  const title = titleDraft ?? state?.title ?? "";
-  const { imageUrl, crop } = imageDraft ?? state ?? blankImage;
-  const { defaultWidth, defaultHeight, minWidth } = imageV2.variants.default;
-
-  useWarnBeforeUnload(title !== (state?.title ?? "") || imageDraft !== null);
-
-  function save(next: typeof imageStateSchema.Type) {
-    try {
-      const decoded = Schema.decodeUnknownSync(imageStateSchema)(next);
-      const result = onSave(decoded);
-      if (result._tag === "Failure") return result.failure.message ?? "Brick save was refused";
-      accepted.current = decoded;
-    } catch (cause) {
-      return cause instanceof Error ? cause.message : "Failed to save image";
+    if (!isEditing.current) {
+      working.current = state ?? blankImage;
+      setDraft(state ?? blankImage);
     }
-  }
+  }, [state]);
+  useWarnBeforeUnload(isEditing.current || uploadPending);
 
-  const { schedule, onBlur, onKeyDown, onCompositionEnd } = useTextCommit((value) => {
-    if (value === accepted.current.title) {
-      setTitleDraft(null);
-      setTitleError(undefined);
+  function save(next: typeof imageStateSchemaV3.Type) {
+    working.current = next;
+    setDraft(next);
+    const valid = Schema.is(completeImageStateSchema)(next);
+    if (!valid) {
+      isEditing.current = true;
+      saveFailed.current = false;
+      setError(undefined);
+      onDraftChange?.({ state: next, pending: uploadPendingRef.current, valid: false });
       return;
     }
-    const error = save({ ...accepted.current, title: value });
-    setTitleError(error);
-    if (error === undefined) setTitleDraft(null);
-  });
+    const result = onSave(next);
+    saveFailed.current = result._tag === "Failure";
+    isEditing.current = saveFailed.current;
+    setError(result._tag === "Failure" ? result.failure.message ?? "Brick save was refused" : undefined);
+    onDraftChange?.({ state: next, pending: uploadPendingRef.current, valid: !saveFailed.current });
+  }
+
+  const altCommit = useTextCommit((value) => save({ ...working.current, altText: value }));
+  const captionCommit = useTextCommit((value) => save({ ...working.current, caption: value }));
 
   return (
     <FieldGroup>
       <ImageUploadInput
-        label="Edit"
-        saveError={imageError}
-        imageUrl={imageUrl}
-        crop={crop}
+        label="Image"
+        saveError={error}
+        imageUrl={draft.imageUrl}
+        crop={draft.crop}
         uploadImage={uploadImage}
         getFrameAspectRatio={() =>
           measureFrame?.("[data-image-cover]") ??
           Math.max(minWidth, Math.min(defaultWidth, previewWidth ?? defaultWidth)) /
             (defaultHeight === null ? 200 : defaultHeight - 56)
         }
-        onApply={(source) => {
-          const error = save({ ...accepted.current, ...source });
-          setImageError(error);
-          setImageDraft(error === undefined ? null : source);
+        onPendingChange={(pending) => {
+          uploadPendingRef.current = pending;
+          setUploadPending(pending);
+          onDraftChange?.({ state: working.current, pending: pending || isEditing.current, valid: !saveFailed.current && Schema.is(completeImageStateSchema)(working.current) });
         }}
+        onApply={(source) => save({ ...working.current, ...source })}
       />
       <TextInput
-        label="Title"
-        type="text"
-        value={title}
-        error={titleError}
+        label="Alt text"
+        value={draft.altText}
         onChange={(event) => {
-          setTitleDraft(event.currentTarget.value);
-          setTitleError(undefined);
-          schedule(event);
+          const next = { ...working.current, altText: event.currentTarget.value };
+          working.current = next;
+          setDraft(next);
+          isEditing.current = true;
+          onDraftChange?.({ state: next, pending: true, valid: Schema.is(completeImageStateSchema)(next) });
+          altCommit.schedule(event);
         }}
-        onBlur={onBlur}
-        onKeyDown={onKeyDown}
-        onCompositionEnd={onCompositionEnd}
+        onBlur={altCommit.onBlur}
+        onKeyDown={altCommit.onKeyDown}
+        onCompositionEnd={altCommit.onCompositionEnd}
+      />
+      <TextInput
+        label="Caption"
+        value={draft.caption}
+        onChange={(event) => {
+          const next = { ...working.current, caption: event.currentTarget.value };
+          working.current = next;
+          setDraft(next);
+          isEditing.current = true;
+          onDraftChange?.({ state: next, pending: true, valid: Schema.is(completeImageStateSchema)(next) });
+          captionCommit.schedule(event);
+        }}
+        onBlur={captionCommit.onBlur}
+        onKeyDown={captionCommit.onKeyDown}
+        onCompositionEnd={captionCommit.onCompositionEnd}
       />
     </FieldGroup>
   );

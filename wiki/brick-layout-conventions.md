@@ -25,10 +25,12 @@ the editor remove its Bricks at that width or every width. A Brick is deleted
 when its last Placement is removed. Empty Stacks retain their actions and accept
 Brick drops.
 Stack capacity follows content minimums rather than breakpoint count caps.
-Stacks receive equal widths when possible; a Stack whose widest Row requires
-more keeps that minimum while the other Stacks share the remainder. Empty
-Stacks reserve 160px plus the existing cell gap allowance. Widths are automatic,
-not saved Stack preferences. Fit uses the authored Wall width, independently of
+Stacks share width in proportion to their saved weights. A Stack whose widest
+Row requires more keeps that minimum while the other Stacks share the remainder.
+When the constraint is removed, its saved proportion applies again. New Stacks
+and Stacks moved from another Section receive the destination's mean weight;
+same-Section reordering carries the weight with the Stack. Empty Stacks reserve
+160px plus the existing cell gap allowance. Fit uses the authored Wall width, independently of
 the editor viewport. The Section track budget is the Wall width plus one gap;
 each Placement cell minimum includes its module minimum plus one gap.
 Rows span their Stacks. Their Brick groups use each Placement’s saved positive
@@ -334,6 +336,11 @@ App, Web, and Storybook load the design system from
 dark tokens, Geist, and Geist Mono at document level, including for portaled
 controls. The hosts own Tailwind source scanning and their route layouts.
 
+Brick prose inherits Geist across editing, previews, and published Pages,
+including Article titles, subtitles, and their input placeholders. Article
+bodies use Spectral in both the editor and the read-only view. Existing
+monospace roles use Geist Mono.
+
 Use the 36px default `Input` or `InputGroup` in standalone forms and
 `variant="sm"` for the 28px fields in editor sidebars. Both heights use the same
 surface and focus treatment. Set the variant on the group when composing an
@@ -405,6 +412,13 @@ trade visible surface width between adjacent Bricks, clamping both module
 minimums. The complete Row's resulting surface widths become its submitted
 weights, preserving the other Bricks' visible widths even when minimums have
 overridden the saved proportions. Gap padding stays outside those measurements.
+
+Stack divider grips transfer width between adjacent Stacks while leaving the
+other Stacks' visible widths unchanged. The gesture preserves their saved
+weights, including preferences hidden by minimum constraints, and submits the
+two adjacent weights through `setStackWidthWeights` on release. A single Stack
+fills its Section without a divider. Published snapshots carry Stack weights;
+historical snapshots without them use equal proportions.
 
 Empty space remains available for drops. The Row tag sits flush with the
 bottom edge beside the height grip and opens a menu for Left, Center, or Right

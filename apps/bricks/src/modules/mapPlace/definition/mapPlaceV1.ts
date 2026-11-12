@@ -1,3 +1,4 @@
+import { normalizeMapPlaceInput } from "./normalizeMapPlaceInput";
 import { defaultSpec } from "./generator/defaultSpec";
 
 import { Schema } from "effect";
@@ -56,3 +57,9 @@ export const mapPlaceV1 = makeModuleVersion(mapPlace, {
     data: primitives.json({ nullable: true, schema: makeEffectSchema(dataShape) }),
   },
 });
+
+export const completeStateSchema = Schema.toType(makeEffectSchema(mapPlaceV1.stateShape)).check(
+  Schema.makeFilter((state) =>
+    (state.data !== null && normalizeMapPlaceInput(state.payload.googlePlaceId) === state.payload.googlePlaceId) || "A configured source and content are required",
+  ),
+);

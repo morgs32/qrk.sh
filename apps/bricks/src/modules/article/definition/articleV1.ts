@@ -1,6 +1,7 @@
 import { defaultSpec } from "./generator/defaultSpec";
 
-import { primitives } from "@zerospin/shapes";
+import { makeEffectSchema, primitives } from "@zerospin/shapes";
+import { Schema } from "effect";
 
 import {
   brickBodyComponentMetadata,
@@ -46,3 +47,5 @@ export const articleV1 = makeModuleVersion(article, {
   },
   stateShape: dataShape,
 });
+
+export const completeStateSchema = Schema.toType(makeEffectSchema(articleV1.stateShape));

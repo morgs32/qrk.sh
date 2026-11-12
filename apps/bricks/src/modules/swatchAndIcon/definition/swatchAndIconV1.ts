@@ -1,6 +1,7 @@
 import { defaultSpec } from "./generator/defaultSpec";
 
 import { makeEffectSchema, primitives } from "@zerospin/shapes";
+import { Schema } from "effect";
 
 import { makeModuleVersion } from "../../../definition/makeModuleVersion";
 
@@ -40,3 +41,12 @@ export const swatchAndIconV1 = makeModuleVersion(swatchAndIcon, {
     data: primitives.json({ schema: makeEffectSchema(dataShape) }),
   },
 });
+
+export const completeStateSchema = Schema.toType(makeEffectSchema(swatchAndIconV1.stateShape)).check(
+  Schema.makeFilter(({ payload, data }) =>
+    (/^#?(?:[a-f\d]{3}|[a-f\d]{6})$/i.test(payload.color) &&
+      data.name.trim().length > 0 &&
+      data.svg.trim().length > 0) ||
+    "A valid color and icon are required",
+  ),
+);

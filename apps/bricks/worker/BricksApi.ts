@@ -15,6 +15,7 @@ import { getGitHubProfile } from "./githubProfile/getGitHubProfile";
 import { getGitHubRepo } from "./githubRepo/getGitHubRepo";
 import { getInstagramProfile } from "./instagram/getInstagramProfile";
 import { getOmniLinkData } from "./omniLink/getOmniLinkData";
+import { resolveSpotifyLink } from "./spotify/resolveSpotifyLink";
 
 const GLOBAL_BACKEND_NAME = "global";
 const managedRuntime = ManagedRuntime.make(Layer.empty);
@@ -32,6 +33,10 @@ export class BricksApi extends RpcTarget {
 
   getOmniLinkData(url: string) {
     return managedRuntime.runPromise(getOmniLinkData(url).pipe(encodeRpc));
+  }
+
+  resolveSpotifyLink(url: string) {
+    return managedRuntime.runPromise(resolveSpotifyLink({ url }).pipe(encodeRpc));
   }
 
   getInstagramProfile(url: string): Promise<IRpcEither<IInstagramScrapePayload>> {

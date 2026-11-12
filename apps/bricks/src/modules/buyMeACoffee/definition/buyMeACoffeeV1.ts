@@ -1,4 +1,4 @@
-import { primitives } from "@zerospin/shapes";
+import { makeEffectSchema, primitives } from "@zerospin/shapes";
 import { Schema } from "effect";
 
 import { defineComponentMetadata } from "../../../definition/defineComponentMetadata";
@@ -52,3 +52,5 @@ export const buyMeACoffeeV1 = makeModuleVersion(
     },
   },
 );
+
+export const completeStateSchema = Schema.toType(makeEffectSchema(buyMeACoffeeV1.stateShape));

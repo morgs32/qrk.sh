@@ -1,3 +1,4 @@
+import { normalizeGithubActivityInput } from "./normalizeGithubActivityInput";
 import { defaultSpec } from "./generator/defaultSpec";
 
 import { makeEffectSchema, primitives } from "@zerospin/shapes";
@@ -60,3 +61,9 @@ export const githubActivityV1 = makeModuleVersion(githubActivity, {
     data: primitives.json({ nullable: true, schema: makeEffectSchema(dataShape) }),
   },
 });
+
+export const completeStateSchema = Schema.toType(makeEffectSchema(githubActivityV1.stateShape)).check(
+  Schema.makeFilter((state) =>
+    (state.data !== null && normalizeGithubActivityInput(state.payload.url) === state.payload.url) || "A configured source and content are required",
+  ),
+);

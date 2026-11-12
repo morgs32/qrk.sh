@@ -18,6 +18,7 @@ export function ImageUploadInput(
     imageUrl: string;
     crop: typeof imageCropSchema.Type | null;
     onApply: (source: { imageUrl: string; crop: typeof imageCropSchema.Type | null }) => void;
+    onPendingChange?: (pending: boolean) => void;
     saveError?: string;
     description?: string;
     preview?: ReactNode;
@@ -39,6 +40,7 @@ export function ImageUploadInput(
     crop,
     getFrameAspectRatio,
     onApply,
+    onPendingChange,
     saveError,
     uploadImage,
     description,
@@ -83,6 +85,7 @@ export function ImageUploadInput(
     releaseSource();
     setApplying(false);
     setOpen(false);
+    onPendingChange?.(false);
   }
 
   function replaceSource(next: string, localFile?: File) {
@@ -186,6 +189,7 @@ export function ImageUploadInput(
                     : "upload",
             );
             setOpen(true);
+            onPendingChange?.(true);
           }}
         >
           <Dialog.Trigger

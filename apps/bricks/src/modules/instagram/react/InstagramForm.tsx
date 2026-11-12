@@ -7,7 +7,7 @@ import { makeEffectSchema, type IInferDecodedRow } from "@zerospin/shapes";
 import { newSyncRpcSession } from "@zerospin/core/utils/getApi/newSyncRpcSession/newSyncRpcSession";
 import { Schema } from "effect";
 import type { BricksApi } from "@qrk.sh/bricks/rpc";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { FieldGroup } from "../../../components/field";
 import { TextInput } from "../../../components/TextInput";
@@ -20,13 +20,22 @@ export function InstagramForm(props: {
   onSave: (
     state: IInferDecodedRow<typeof instagramV1.stateShape>,
   ) => IResult<unknown, { message: string }>;
+  onDraftChange?: (draft: { state: unknown; pending: boolean; valid: boolean }) => void;
 }) {
-  const { state, onSave } = props;
+  const { state, onSave, onDraftChange } = props;
   const [profileDraft, setProfile] = useState<string | null>(null);
   const profile = profileDraft ?? state?.payload.url ?? "";
   const [validationError, setValidationError] = useState<string>();
   const [saveError, setSaveError] = useState<string>();
   const [isSaving, setIsSaving] = useState(false);
+  useEffect(() => {
+    onDraftChange?.({
+      state,
+      pending: isSaving,
+      valid:
+        profileDraft === null && state !== null && state.data !== null && saveError === undefined,
+    });
+  }, [onDraftChange, state, profileDraft, isSaving, saveError]);
   useWarnBeforeUnload(profile !== (state?.payload.url ?? "") || isSaving);
 
   const { schedule, onBlur, onKeyDown, onCompositionEnd } = useTextCommit(
@@ -107,6 +116,7 @@ export function InstagramForm(props: {
           autoCorrect="off"
           onChange={(event) => {
             const value = event.currentTarget.value;
+            onDraftChange?.({ state, pending: true, valid: false });
             setProfile(value);
             setValidationError(undefined);
             setSaveError(undefined);

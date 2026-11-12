@@ -4,17 +4,17 @@ import {
   measureWallFit,
   wallBreakpointWidths,
 } from "@qrk.sh/zerospin/src/aggregates/user/layout/wallSizing";
-import type { PageSnapshotSchemaV6 } from "@qrk.sh/zerospin/src/aggregates/user/snapshots/pageSnapshotSchemaV6";
+import type { PageSnapshotSchemaV9 } from "@qrk.sh/zerospin/src/aggregates/user/snapshots/pageSnapshotSchemaV9";
 import { backendLibrary } from "@qrk.sh/bricks/modules/backendLibrary";
 import type { ReactNode } from "react";
 
 export function WallViewer(props: {
-  snapshot: typeof PageSnapshotSchemaV6.Type;
+  snapshot: typeof PageSnapshotSchemaV9.Type;
   breakpoint: keyof typeof wallBreakpointWidths;
   brickGap: number;
   renderBrick: (
-    brick: (typeof PageSnapshotSchemaV6.Type.bricks)[number],
-    placement: (typeof PageSnapshotSchemaV6.Type.walls)[number]["sections"][number]["stacks"][number]["rows"][number]["placements"][number],
+    brick: (typeof PageSnapshotSchemaV9.Type.bricks)[number],
+    placement: (typeof PageSnapshotSchemaV9.Type.walls)[number]["sections"][number]["stacks"][number]["rows"][number]["placements"][number],
   ) => ReactNode;
 }) {
   const { snapshot, breakpoint, brickGap, renderBrick } = props;
@@ -62,6 +62,7 @@ export function WallViewer(props: {
         const stackWidths = allocateStackWidths({
           minimumWidths: sectionFits[sectionIndex].stackMinimums,
           availableWidth: wallWidth + brickGap,
+          weights: section.stacks.map((stack) => stack.widthWeight ?? 1),
         }).map((width) => width - brickGap);
 
         return (

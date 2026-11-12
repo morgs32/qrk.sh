@@ -80,6 +80,10 @@ const meta = {
           brickGap={brickGap}
           brickLabel={brickLabel}
           selected={isSelected}
+          onRequestEditBrick={() => {
+            editBrick(placement.brickId);
+            setSelected(true);
+          }}
           onRequestDeleteBrick={onRequestDeleteBrick}
         />
       </div>
@@ -132,6 +136,17 @@ export const ClickSelection: StoryObj<typeof meta> = {
     expect(editBrick).toHaveBeenCalledTimes(2);
     await userEvent.click(text);
     expect(editBrick).toHaveBeenCalledTimes(3);
+    expect(canvasElement.querySelector("[data-wall-placement-id]")).toHaveClass("is-selected");
+  },
+};
+
+export const MenuEdit: StoryObj<typeof meta> = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByRole("button", { name: "Fixture Brick actions" }));
+    await userEvent.click(within(canvasElement.ownerDocument.body).getByRole("menuitem", { name: "Edit brick" }));
+    expect(editBrick).toHaveBeenCalledOnce();
+    expect(editBrick).toHaveBeenCalledWith("story-brick");
     expect(canvasElement.querySelector("[data-wall-placement-id]")).toHaveClass("is-selected");
   },
 };

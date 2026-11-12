@@ -13,8 +13,8 @@ import { useLiveQuery, useSession } from "@zerospin/react";
 import { makeId, makeIdSchema, stageAggregateSessionCommand } from "@zerospin/sdk/browser";
 import { pageV1 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV1";
 import { siteV1 as Site } from "@qrk.sh/zerospin/src/aggregates/user/models/site/SiteV1";
-import { pageSnapshotV5 as PageSnapshot } from "@qrk.sh/zerospin/src/aggregates/user/models/pageSnapshot/PageSnapshotV5";
-import { makePageSnapshotV5 } from "@qrk.sh/zerospin/src/aggregates/user/snapshots/makePageSnapshotV5";
+import { pageSnapshotV9 as PageSnapshot } from "@qrk.sh/zerospin/src/aggregates/user/models/pageSnapshot/PageSnapshotV9";
+import { makePageSnapshotV9 } from "@qrk.sh/zerospin/src/aggregates/user/snapshots/makePageSnapshotV9";
 import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
 import { WorkspaceSidebar } from "../WorkspaceSidebar";
@@ -70,8 +70,9 @@ export default function WorkspacePanelControls(props: {
   const savedContent =
     page === undefined
       ? null
-      : makePageSnapshotV5({
+      : makePageSnapshotV9({
           preferredRowSizing: true,
+          preferredStackSizing: true,
           page,
           bricks: page.bricks,
           walls: page.walls,
@@ -88,6 +89,7 @@ export default function WorkspacePanelControls(props: {
               ...section,
               stacks: section.stacks.map((stack) => ({
                 ...stack,
+                widthWeight: stack.widthWeight ?? 1,
                 rows: stack.rows.map((row) => omit(row, ["preferredWidth"])),
               })),
             })),
@@ -173,7 +175,12 @@ export default function WorkspacePanelControls(props: {
             stageAggregateSessionCommand({
               session,
               contractName: "publishPage",
-              payload: { pageId: params.pageId, snapshotId, preferredRowSizing: true },
+              payload: {
+                pageId: params.pageId,
+                snapshotId,
+                preferredRowSizing: true,
+                preferredStackSizing: true,
+              },
             });
           }}
         >

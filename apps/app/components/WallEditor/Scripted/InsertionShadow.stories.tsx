@@ -233,6 +233,9 @@ export const ShadowStability: StoryObj<typeof meta> = {
   play: async ({ canvasElement }) => {
     const document = canvasElement.ownerDocument;
     await document.fonts.ready;
+    await userEvent.click(
+      within(canvasElement).getByRole("button", { name: "Choose Swatch and Icon" }),
+    );
     await waitFor(
       () =>
         expect(

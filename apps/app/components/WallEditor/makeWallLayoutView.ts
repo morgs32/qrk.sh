@@ -1,19 +1,19 @@
 import type { IInferModelRow } from "@zerospin/core/models/types";
-import type { wallLayoutSchemaV3 } from "@qrk.sh/zerospin/src/aggregates/user/layout/wallLayoutSchemaV3";
+import type { wallLayoutSchemaV4 } from "@qrk.sh/zerospin/src/aggregates/user/layout/wallLayoutSchemaV4";
 import type { placementV2 } from "@qrk.sh/zerospin/src/aggregates/user/models/placement/PlacementV2";
-import type { brickV4 } from "@qrk.sh/zerospin/src/aggregates/user/models/brick/BrickV4";
+import type { brickV6 } from "@qrk.sh/zerospin/src/aggregates/user/models/brick/BrickV6";
 
 /** Resolve structural references while preserving the Wall's authoritative array order. */
 export function makeWallLayoutView(props: {
   wall: {
-    layout: typeof wallLayoutSchemaV3.Type;
+    layout: typeof wallLayoutSchemaV4.Type;
     placements: readonly {
       id: IInferModelRow<typeof placementV2>["id"];
       brickId: IInferModelRow<typeof placementV2>["brickId"];
       variantId: IInferModelRow<typeof placementV2>["variantId"];
       widthWeight: IInferModelRow<typeof placementV2>["widthWeight"];
       spec: IInferModelRow<typeof placementV2>["spec"];
-      brick: IInferModelRow<typeof brickV4>;
+      brick: IInferModelRow<typeof brickV6>;
     }[];
   };
 }) {
@@ -25,6 +25,7 @@ export function makeWallLayoutView(props: {
       stacks: section.stacks.map((stack) => ({
         id: stack.id,
         name: stack.name,
+        widthWeight: stack.widthWeight ?? 1,
         rows: stack.rows.map((row) => ({
           id: row.id,
           minHeight: row.minHeight,

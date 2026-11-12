@@ -21,9 +21,10 @@ export function WallPlacement(props: {
   brickGap: number;
   brickLabel: string;
   selected: boolean;
+  onRequestEditBrick?: () => void;
   onRequestDeleteBrick: (trigger: HTMLElement | null) => void;
 }) {
-  const { placement, brickGap, brickLabel, selected, onRequestDeleteBrick } = props;
+  const { placement, brickGap, brickLabel, selected, onRequestEditBrick, onRequestDeleteBrick } = props;
   const menuTrigger = useRef<HTMLButtonElement>(null);
   // Adjacent half-gap insets preserve touching drop targets at every gap size.
   return (
@@ -61,6 +62,14 @@ export function WallPlacement(props: {
               positionerClassName="z-[90]"
               className="w-max min-w-[90px] max-w-(--available-width) rounded-none border-[#dedede] bg-white p-0 font-mono text-[15px] leading-[18px] font-normal text-[#111] shadow-[2px_3px_0_#0005]"
             >
+              {onRequestEditBrick === undefined ? null : (
+                <DropdownMenuItem
+                  className="min-h-5 cursor-pointer rounded-none px-0.5 py-px text-[15px] leading-[18px] data-highlighted:bg-[#f1f1f1] data-highlighted:text-current"
+                  onClick={onRequestEditBrick}
+                >
+                  Edit brick
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem
                 className="min-h-5 cursor-pointer rounded-none px-0.5 py-px text-[15px] leading-[18px] data-highlighted:bg-[#f1f1f1] data-highlighted:text-current data-disabled:opacity-40 text-destructive"
                 onClick={() => onRequestDeleteBrick(menuTrigger.current)}

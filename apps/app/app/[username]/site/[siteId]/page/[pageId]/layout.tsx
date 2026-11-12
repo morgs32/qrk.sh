@@ -14,9 +14,10 @@ import { useLiveQuery, useSession } from "@zerospin/react";
 import { makeIdSchema } from "@zerospin/sdk/browser";
 import { Schema } from "effect";
 import { SWRConfig } from "swr";
+import { Tabs, TabsContent } from "@qrk.sh/bricks/components/tabs";
 import { siteV1 as Site } from "@qrk.sh/zerospin/src/aggregates/user/models/site/SiteV1";
 import { pageV1 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV1";
-import { PREVIEW_BORDER_WIDTH } from "../../../../../../lib/breakpoints";
+import { BREAKPOINTS, PREVIEW_BORDER_WIDTH } from "../../../../../../lib/breakpoints";
 import { Toolbars } from "../../Toolbars/Toolbars";
 import WorkspacePanelControls from "./(sidebar)/layout";
 import { BrickAutosaveContext } from "./BrickAutosaveContext";
@@ -27,7 +28,7 @@ import { useValidatedParams } from "@/hooks/useValidatedParams";
 import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
 import NotFound from "@/app/not-found";
 
-const PREVIEW_INLINE_GUTTER = 32;
+const PREVIEW_GUTTERS = { sm: 32, md: 40, lg: 60, xl: 80 };
 
 const ParamsSchema = Schema.Struct({
   username: Schema.String,
@@ -145,11 +146,29 @@ export default function PageLayout(props: { children: ReactNode }) {
     select: (matches) =>
       matches.at(-1)?.routeId === "/$username/site/$siteId/page/$pageId/_sidebar/brick/$brickId",
   });
+  const pageTab = useMatches({
+    select: (matches) => {
+      const routeId = matches.at(-1)?.routeId;
+      if (routeId === "/$username/site/$siteId/page/$pageId/_sidebar/modules/") return "modules";
+      if (routeId === "/$username/site/$siteId/page/$pageId/_sidebar/page-settings")
+        return "page-settings";
+      if (routeId === "/$username/site/$siteId/page/$pageId/_sidebar/site-settings")
+        return "site-settings";
+      return null;
+    },
+  });
   const editorScroll = useRef<HTMLDivElement>(null);
   const backgroundPress = useRef<number | null>(null);
   const { getToken } = useAuth();
   const session = useSession(userSessionDefinition);
-  const { breakpoint, previewRef } = useBreakpointGuard(PREVIEW_INLINE_GUTTER);
+  const { breakpoint, previewRef } = useBreakpointGuard(PREVIEW_GUTTERS);
+  const previewGutter =
+    breakpoint === undefined ? PREVIEW_GUTTERS.sm : PREVIEW_GUTTERS[breakpoint.id];
+  const previewViewportStyle = {
+    "--wall-preview-top-gap": `${previewGutter}px`,
+    "--wall-preview-bottom-gap": `${previewGutter}px`,
+    minWidth: 0,
+  };
   const frameWidth =
     breakpoint === undefined ? 0 : breakpoint.previewWidth + 2 * PREVIEW_BORDER_WIDTH;
   const scrollRef = useCallback<RefCallback<HTMLDivElement>>(
@@ -278,107 +297,152 @@ export default function PageLayout(props: { children: ReactNode }) {
   return (
     <SWRConfig value={{ uploadImage }}>
       <BrickAutosaveContext value={{ registerBrickFlush, flushBrick, flushPageEditors }}>
-        <div
-          onPointerDownCapture={(event) => {
-            if (!event.isPrimary || event.button !== 0) return;
-            // A click can target a shared ancestor when the press and release differ.
-            backgroundPress.current = isOutsideSelection(event.currentTarget, event.target)
-              ? event.pointerId
-              : null;
-          }}
-          onPointerUpCapture={(event) => {
-            if (
-              backgroundPress.current === event.pointerId &&
-              !isOutsideSelection(event.currentTarget, event.target)
-            )
+        <Tabs value={pageTab} className="h-full min-h-0 gap-0">
+          <div
+            data-page-editor=""
+            onPointerDownCapture={(event) => {
+              if (!event.isPrimary || event.button !== 0) return;
+              // A click can target a shared ancestor when the press and release differ.
+              backgroundPress.current = isOutsideSelection(event.currentTarget, event.target)
+                ? event.pointerId
+                : null;
+            }}
+            onPointerUpCapture={(event) => {
+              if (
+                backgroundPress.current === event.pointerId &&
+                !isOutsideSelection(event.currentTarget, event.target)
+              )
+                backgroundPress.current = null;
+            }}
+            onPointerCancelCapture={(event) => {
+              if (backgroundPress.current === event.pointerId) backgroundPress.current = null;
+            }}
+            onClick={(event) => {
+              const pointerId = backgroundPress.current;
               backgroundPress.current = null;
-          }}
-          onPointerCancelCapture={(event) => {
-            if (backgroundPress.current === event.pointerId) backgroundPress.current = null;
-          }}
-          onClick={(event) => {
-            const pointerId = backgroundPress.current;
-            backgroundPress.current = null;
-            if (
-              pointerId === null ||
-              (event.nativeEvent instanceof PointerEvent &&
-                event.nativeEvent.pointerId !== pointerId) ||
-              event.defaultPrevented ||
-              event.button !== 0 ||
-              event.detail === 0 ||
-              event.altKey ||
-              event.ctrlKey ||
-              event.metaKey ||
-              event.shiftKey ||
-              !isOutsideSelection(event.currentTarget, event.target)
-            )
-              return;
+              if (
+                pointerId === null ||
+                (event.nativeEvent instanceof PointerEvent &&
+                  event.nativeEvent.pointerId !== pointerId) ||
+                event.defaultPrevented ||
+                event.button !== 0 ||
+                event.detail === 0 ||
+                event.altKey ||
+                event.ctrlKey ||
+                event.metaKey ||
+                event.shiftKey ||
+                !isOutsideSelection(event.currentTarget, event.target)
+              )
+                return;
 
-            const selection = event.currentTarget.ownerDocument.getSelection();
-            const selectionScope = isBrickDetails ? editorScroll.current : event.currentTarget;
-            if (
-              selectionScope !== null &&
-              selection !== null &&
-              !selection.isCollapsed &&
-              selection.rangeCount > 0 &&
-              selection.getRangeAt(0).intersectsNode(selectionScope)
-            )
-              return;
+              const selection = event.currentTarget.ownerDocument.getSelection();
+              const selectionScope = isBrickDetails ? editorScroll.current : event.currentTarget;
+              if (
+                selectionScope !== null &&
+                selection !== null &&
+                !selection.isCollapsed &&
+                selection.rangeCount > 0 &&
+                selection.getRangeAt(0).intersectsNode(selectionScope)
+              )
+                return;
 
-            if (isBrickDetails) {
-              closePanel();
-              return;
-            }
-            void navigate({
-              to: ".",
-              search: (previous) => ({ ...previous, selected: undefined }),
-              resetScroll: false,
-            });
-          }}
-          className="flex h-full min-h-0 flex-col overflow-hidden"
-        >
-          <PageEditorNavbar username={username} siteId={siteId} isPublished={site.isPublished} />
-          <div className="relative isolate flex min-h-0 min-w-0 flex-1 overflow-hidden">
-            <title>
-              {pageTitle === "" ? `[Editing] ${siteName}` : `[Editing] ${siteName} - ${pageTitle}`}
-            </title>
-            <div className="wall-preview-viewport relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+              if (isBrickDetails) {
+                closePanel();
+                return;
+              }
+              void navigate({
+                to: ".",
+                search: (previous) => ({ ...previous, selected: undefined }),
+                resetScroll: false,
+              });
+            }}
+            className="relative isolate grid h-full min-h-0 grid-cols-[minmax(0,1fr)_auto] grid-rows-[auto_minmax(0,1fr)] overflow-hidden"
+          >
+            <Tabs
+              value={breakpoint?.id ?? null}
+              onValueChange={(value) => {
+                if (typeof value !== "string" || !BREAKPOINTS.some((entry) => entry.id === value))
+                  return;
+                void navigate({
+                  to: ".",
+                  search: (previous) => ({ ...previous, breakpoint: value }),
+                  resetScroll: false,
+                });
+              }}
+              className="contents"
+            >
+              <PageEditorNavbar
+                username={username}
+                siteId={siteId}
+                isPublished={site.isPublished}
+              />
+              <title>
+                {pageTitle === ""
+                  ? `[Editing] ${siteName}`
+                  : `[Editing] ${siteName} - ${pageTitle}`}
+              </title>
               <div
-                ref={scrollRef}
-                className="wall-preview-scroll relative h-full min-h-0 min-w-0 shrink-0 overflow-auto pt-[var(--wall-preview-top-gap)] pb-[var(--wall-preview-bottom-gap)]"
+                className="wall-preview-viewport relative col-start-1 row-start-2 flex min-h-0 flex-col overflow-hidden"
+                style={previewViewportStyle}
               >
                 <div
-                  className="wall-preview-canvas grid min-h-full"
-                  style={{
-                    paddingInline: PREVIEW_INLINE_GUTTER,
-                    minWidth: frameWidth + 2 * PREVIEW_INLINE_GUTTER,
-                  }}
+                  ref={scrollRef}
+                  className="wall-preview-scroll relative h-full min-h-0 min-w-0 shrink-0 overflow-auto pt-[var(--wall-preview-top-gap)] pb-[var(--wall-preview-bottom-gap)]"
                 >
-                  {breakpoint !== undefined && (
-                    <PagePreview key={breakpoint.id} breakpoint={breakpoint} />
-                  )}
+                  <div
+                    className="wall-preview-canvas grid min-h-full"
+                    style={{
+                      paddingInline: previewGutter,
+                      minWidth: frameWidth + 2 * previewGutter,
+                    }}
+                  >
+                    {BREAKPOINTS.map((entry) => (
+                      <TabsContent
+                        key={entry.id}
+                        value={entry.id}
+                        tabIndex={-1}
+                        className="mt-0 flex min-h-full min-w-0 flex-col"
+                      >
+                        <PagePreview breakpoint={entry} />
+                      </TabsContent>
+                    ))}
+                  </div>
                 </div>
               </div>
-              <div
-                className={`pointer-events-none absolute inset-x-0 bottom-(--wall-preview-toolbar-gap) z-80 flex justify-center px-2${sidebarOpen ? " max-lg:hidden" : ""}`}
-              >
-                <Toolbars />
-              </div>
+            </Tabs>
+            <div
+              className={`pointer-events-none z-80 col-start-1 row-start-2 flex justify-center self-end px-2${sidebarOpen ? " max-lg:hidden" : ""}`}
+              style={{
+                marginBottom: `calc(${previewGutter}px - var(--wall-preview-toolbar-height) / 2)`,
+              }}
+            >
+              <Toolbars />
             </div>
-            {breakpoint !== undefined &&
-              (sidebarOpen ? (
-                <WorkspacePanelControls
-                  isSitePublished={site.isPublished}
-                  sidebarWidth={breakpoint.id === "sm" ? 300 : breakpoint.previewWidth / 2}
-                  onClose={closePanel}
-                >
-                  {children}
-                </WorkspacePanelControls>
-              ) : (
-                children
-              ))}
+            <div className="relative col-start-2 row-start-2 min-h-0">
+              {breakpoint !== undefined &&
+                (sidebarOpen ? (
+                  <WorkspacePanelControls
+                    isSitePublished={site.isPublished}
+                    sidebarWidth={breakpoint.id === "sm" ? 300 : breakpoint.previewWidth / 2}
+                    onClose={closePanel}
+                  >
+                    {pageTab === null ? (
+                      children
+                    ) : (
+                      <TabsContent
+                        value={pageTab}
+                        className="mt-0 flex min-h-0 min-w-0 flex-1 flex-col"
+                      >
+                        {children}
+                      </TabsContent>
+                    )}
+                  </WorkspacePanelControls>
+                ) : (
+                  children
+                ))}
+            </div>
           </div>
-        </div>
+        </Tabs>
       </BrickAutosaveContext>
     </SWRConfig>
   );

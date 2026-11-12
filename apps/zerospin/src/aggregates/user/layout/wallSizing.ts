@@ -37,22 +37,36 @@ export function measureWallFit(props: {
   });
 }
 
-/** Share free space equally, fixing constrained Stacks at their minimums. */
+/** Share space by Stack weight, fixing constrained Stacks at their minimums. */
 export function allocateStackWidths(props: {
   minimumWidths: readonly number[];
   availableWidth: number;
+  weights?: readonly number[];
 }) {
-  const { minimumWidths, availableWidth } = props;
+  const { minimumWidths, availableWidth, weights } = props;
   if (minimumWidths.reduce((total, minimum) => total + minimum, 0) > availableWidth)
     throw new Error("The Section's Stacks cannot fit their available width");
+  if (weights !== undefined && weights.length !== minimumWidths.length)
+    throw new Error("The Section's Stack weights do not match its minimum widths");
+  const proportions = weights ?? minimumWidths.map(() => 1);
   const widths = minimumWidths.map(() => 0);
   const pending = new Set(minimumWidths.map((_, index) => index));
   let remaining = availableWidth;
   while (pending.size > 0) {
-    const equalWidth = remaining / pending.size;
-    const constrained = [...pending].filter((index) => minimumWidths[index] > equalWidth);
+    const largestWeight = [...pending].reduce(
+      (largest, index) => Math.max(largest, proportions[index]),
+      0,
+    );
+    const totalWeight = [...pending].reduce(
+      (total, index) => total + proportions[index] / largestWeight,
+      0,
+    );
+    const scale = remaining / totalWeight;
+    const constrained = [...pending].filter(
+      (index) => (proportions[index] / largestWeight) * scale < minimumWidths[index],
+    );
     if (constrained.length === 0) {
-      for (const index of pending) widths[index] = equalWidth;
+      for (const index of pending) widths[index] = (proportions[index] / largestWeight) * scale;
       break;
     }
     for (const index of constrained) {

@@ -30,7 +30,11 @@
 }
 
 /* Paint the frame shadow above the chrome and footer's scroll-gutter masks. */
-.wall-preview-canvas > .wall-preview-frame::after {
+.wall-preview-canvas > [data-slot="tabs-content"] > .wall-preview-frame {
+  flex: 1;
+}
+
+.wall-preview-canvas > [data-slot="tabs-content"] > .wall-preview-frame::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -153,7 +157,7 @@
 }
 
 /* The catalog uses the interaction outline for its resting border too. */
-:where(.brick-catalog-preview) [data-catalog-module-id] > .brick-hover-surface::after {
+:where(.brick-catalog-preview) [data-catalog-module-id] .brick-hover-surface::after {
   --interaction-outline-outset: 0px;
   border-color: var(--border);
   box-shadow: none;
@@ -172,7 +176,7 @@
     z-index: 2;
   }
 
-  [data-catalog-module-id]:hover > .brick-hover-surface::after,
+  [data-catalog-module-id]:hover .brick-hover-surface::after,
   .wall-placement:hover > .wall-placement-content > .brick-hover-surface::after,
   .wall-editor:not([data-wall-resize-disabled])
     .wall-row:is([data-wall-row-empty]:hover, :has(> .wall-row-action:hover))::after,
@@ -180,7 +184,7 @@
     opacity: 1;
   }
 
-  :where(.brick-catalog-preview) [data-catalog-module-id]:hover > .brick-hover-surface::after {
+  :where(.brick-catalog-preview) [data-catalog-module-id]:hover .brick-hover-surface::after {
     --interaction-outline-outset: calc(var(--interaction-outline-width) / 2);
     border-color: rgb(var(--brick-accent-rgb));
     box-shadow: var(--interaction-outline-halo);
@@ -190,12 +194,12 @@
 /* Selection persists as focus moves between the editor and its controls. */
 [data-wall-selected]::after,
 .wall-placement.is-selected > .wall-placement-content > .brick-hover-surface::after,
-[data-catalog-module-id]:focus-within > .brick-hover-surface::after,
+[data-catalog-module-id]:focus-within .brick-hover-surface::after,
 .wall-placement:focus-within > .wall-placement-content > .brick-hover-surface::after {
   opacity: 1;
 }
 
-:where(.brick-catalog-preview) [data-catalog-module-id]:focus-within > .brick-hover-surface::after {
+:where(.brick-catalog-preview) [data-catalog-module-id]:focus-within .brick-hover-surface::after {
   --interaction-outline-outset: calc(var(--interaction-outline-width) / 2);
   border-color: rgb(var(--brick-accent-rgb));
   box-shadow: var(--interaction-outline-halo);
@@ -345,6 +349,21 @@
   pointer-events: none;
 }
 
+.wall-stack-width-resize-grip {
+  right: 0;
+  top: 50%;
+  width: 24px;
+  height: 24px;
+  transform: translate(50%, -50%);
+  cursor: col-resize;
+}
+
+.wall-stack-width-resize-grip::after {
+  width: 4px;
+  height: 16px;
+  pointer-events: none;
+}
+
 .wall-row {
   --wall-height-resize-grip-height: 16px;
   --wall-height-resize-grip-width: 32px;
@@ -398,7 +417,8 @@
     opacity: 0;
   }
   [data-wall-row-id]:hover > .wall-height-resize-grip,
-  .wall-row:hover .wall-width-resize-slot > .wall-resize-grip {
+  .wall-row:hover .wall-width-resize-slot > .wall-resize-grip,
+  [data-wall-stack-id]:hover > .wall-stack-width-resize-grip {
     opacity: 1;
   }
   .wall-row-action {
@@ -422,7 +442,9 @@
 }
 
 .wall-editor[data-wall-resizing="width"],
-.wall-editor[data-wall-resizing="width"] * {
+.wall-editor[data-wall-resizing="width"] *,
+.wall-editor[data-wall-resizing="stack-width"],
+.wall-editor[data-wall-resizing="stack-width"] * {
   cursor: col-resize !important;
   user-select: none !important;
 }

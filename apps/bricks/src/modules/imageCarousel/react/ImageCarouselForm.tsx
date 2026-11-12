@@ -24,7 +24,7 @@ import {
 import { TextInput } from "../../../components/TextInput";
 import { useWarnBeforeUnload } from "../../react/useWarnBeforeUnload";
 import type {} from "../../image/react/ImageUploadSWR";
-import { imageCarouselV1 } from "../definition/imageCarouselV1";
+import { completeStateSchema, imageCarouselV1 } from "../definition/imageCarouselV1";
 
 const schema = Schema.toType(makeEffectSchema(imageCarouselV1.stateShape));
 const emptyState = { slides: [], interval: 5 };
@@ -34,13 +34,16 @@ export function ImageCarouselForm(props: {
   onSave: (
     state: IInferDecodedRow<typeof imageCarouselV1.stateShape>,
   ) => IResult<unknown, { message: string }>;
+  onDraftChange?: (draft: { state: unknown; pending: boolean; valid: boolean }) => void;
   previewWidth?: number;
   measureFrame?: (selector: string) => number | undefined;
 }) {
-  const { state, onSave, previewWidth, measureFrame } = props;
+  const { state, onSave, onDraftChange, previewWidth, measureFrame } = props;
   const { uploadImage } = useSWRConfig();
   const working = useRef(state ?? emptyState);
   const hasPending = useRef(false);
+  const saveFailed = useRef(false);
+  const uploadPending = useRef(false);
   const intervalId = useId();
   const [pending, setPending] = useState<typeof state>(null);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
@@ -60,15 +63,27 @@ export function ImageCarouselForm(props: {
   function save(next: typeof current) {
     try {
       const decoded = Schema.decodeUnknownSync(schema)(next);
+      if (!Schema.is(completeStateSchema)(decoded)) {
+        saveFailed.current = false;
+        working.current = decoded;
+        hasPending.current = true;
+        setPending(decoded);
+        setError(undefined);
+        onDraftChange?.({ state: decoded, pending: uploadPending.current, valid: false });
+        return true;
+      }
       const result = onSave(decoded);
       if (result._tag === "Failure") {
+        saveFailed.current = true;
         working.current = decoded;
         hasPending.current = true;
         setPending(decoded);
         setError(result.failure.message ?? "Brick save was refused");
+        onDraftChange?.({ state: decoded, pending: uploadPending.current, valid: false });
         return false;
       }
       working.current = decoded;
+      saveFailed.current = false;
       hasPending.current = false;
       setPending(null);
       setDrafts((previous) => {
@@ -80,14 +95,17 @@ export function ImageCarouselForm(props: {
         return nextDrafts;
       });
       setError(undefined);
+      onDraftChange?.({ state: decoded, pending: uploadPending.current, valid: true });
       return true;
     } catch (cause) {
+      saveFailed.current = true;
       working.current = next;
       hasPending.current = true;
       setPending(next);
       setError(
         cause instanceof Error ? cause.message : "Failed to save carousel",
       );
+      onDraftChange?.({ state: next, pending: uploadPending.current, valid: false });
       return false;
     }
   }
@@ -188,6 +206,13 @@ export function ImageCarouselForm(props: {
             imageUrl={slide.imageUrl}
             crop={slide.crop}
             uploadImage={uploadImage}
+            onPendingChange={(isPending) => {
+              uploadPending.current = isPending;
+              const hasUncommittedAlt = Object.keys(drafts).some((id) =>
+                working.current.slides.find((item) => item.id === id)?.alt !== drafts[id],
+              );
+              onDraftChange?.({ state: working.current, pending: isPending || hasUncommittedAlt, valid: !saveFailed.current && Schema.is(completeStateSchema)(working.current) });
+            }}
             getFrameAspectRatio={ratio}
             onApply={(source) =>
               save({
@@ -201,10 +226,12 @@ export function ImageCarouselForm(props: {
           <TextInput
             label="Alt text"
             value={drafts[slide.id] ?? slide.alt}
-            description="Describe the image, or leave empty if decorative."
+            description="Describe the image."
             onChange={(event) => {
               const value = event.currentTarget.value;
               setDrafts((previous) => ({ ...previous, [slide.id]: value }));
+              const next = { ...working.current, slides: working.current.slides.map((item) => item.id === slide.id ? { ...item, alt: value } : item) };
+              onDraftChange?.({ state: next, pending: true, valid: Schema.is(completeStateSchema)(next) });
             }}
             onBlur={() => {
               const value = drafts[slide.id];
@@ -231,6 +258,13 @@ export function ImageCarouselForm(props: {
         imageUrl=""
         crop={null}
         uploadImage={uploadImage}
+        onPendingChange={(isPending) => {
+          uploadPending.current = isPending;
+          const hasUncommittedAlt = Object.keys(drafts).some((id) =>
+            working.current.slides.find((item) => item.id === id)?.alt !== drafts[id],
+          );
+          onDraftChange?.({ state: working.current, pending: isPending || hasUncommittedAlt, valid: !saveFailed.current && Schema.is(completeStateSchema)(working.current) });
+        }}
         getFrameAspectRatio={ratio}
         onApply={(source) =>
           save({
@@ -243,7 +277,7 @@ export function ImageCarouselForm(props: {
         }
       />
       {error === undefined ? null : <FieldError>{error}</FieldError>}
-      {pending === null ? null : (
+      {pending === null || error === undefined ? null : (
         <Button
           type="button"
           variant="outline"

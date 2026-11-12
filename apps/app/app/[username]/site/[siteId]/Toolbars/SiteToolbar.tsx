@@ -2,16 +2,13 @@
 
 import { Schema } from "effect";
 import { motion, useReducedMotion } from "framer-motion";
-import { useMemo } from "react";
 import { File, Globe, Plus } from "lucide-react";
-import { WallPreviewToolbar } from "./WallPreviewToolbar";
-import { useSearch } from "@tanstack/react-router";
+import { Link, useSearch } from "@tanstack/react-router";
+import { Button } from "@qrk.sh/bricks/components/button";
+import { TabsList, TabsTrigger } from "@qrk.sh/bricks/components/tabs";
 import { makeIdSchema } from "@zerospin/sdk/browser";
 import { siteV1 as Site } from "@qrk.sh/zerospin/src/aggregates/user/models/site/SiteV1";
-
 import { useValidatedParams } from "@/hooks/useValidatedParams";
-
-import { ToolbarButton } from "./ToolbarButton";
 
 const ParamsSchema = Schema.Struct({
   username: Schema.String,
@@ -28,11 +25,6 @@ export function SiteToolbar() {
   const reducedMotion = useReducedMotion();
   const params = useValidatedParams(ParamsSchema);
   const search = useSearch({ from: "/$username/site/$siteId/page/$pageId" });
-  const username = params.username;
-  const siteId = params.siteId;
-  const pageId = params.pageId;
-
-  const hrefParams = useMemo(() => ({ username, siteId, pageId }), [username, siteId, pageId]);
 
   return (
     <motion.div
@@ -44,37 +36,71 @@ export function SiteToolbar() {
       exit={{ opacity: 0 }}
       transition={reducedMotion ? { duration: 0 } : toolbarPresenceTransition}
     >
-      <WallPreviewToolbar navigation aria-label="Page controls" variant="shadow">
-        <ToolbarButton
-          label="Bricks"
-          icon={<Plus className="size-4" />}
-          link={{
-            to: "/$username/site/$siteId/page/$pageId/modules",
-            params: hrefParams,
-            search,
-          }}
-        />
-
-        <ToolbarButton
-          label="Page settings"
-          icon={<File className="size-4" />}
-          link={{
-            to: "/$username/site/$siteId/page/$pageId/page-settings",
-            params: hrefParams,
-            search,
-          }}
-        />
-
-        <ToolbarButton
-          label="Site settings"
-          icon={<Globe className="size-4" />}
-          link={{
-            to: "/$username/site/$siteId/page/$pageId/site-settings",
-            params: hrefParams,
-            search,
-          }}
-        />
-      </WallPreviewToolbar>
+      <TabsList aria-label="Page controls" className="pointer-events-auto shadow-md">
+        <TabsTrigger
+          value="modules"
+          nativeButton={false}
+          render={
+            <Button
+              variant="ghost"
+              nativeButton={false}
+              render={
+                <Link
+                  to="/$username/site/$siteId/page/$pageId/modules"
+                  params={params}
+                  search={search}
+                  resetScroll={false}
+                />
+              }
+            />
+          }
+        >
+          <Plus aria-hidden className="size-4" />
+          Bricks
+        </TabsTrigger>
+        <TabsTrigger
+          value="page-settings"
+          nativeButton={false}
+          render={
+            <Button
+              variant="ghost"
+              nativeButton={false}
+              render={
+                <Link
+                  to="/$username/site/$siteId/page/$pageId/page-settings"
+                  params={params}
+                  search={search}
+                  resetScroll={false}
+                />
+              }
+            />
+          }
+        >
+          <File aria-hidden className="size-4" />
+          Page settings
+        </TabsTrigger>
+        <TabsTrigger
+          value="site-settings"
+          nativeButton={false}
+          render={
+            <Button
+              variant="ghost"
+              nativeButton={false}
+              render={
+                <Link
+                  to="/$username/site/$siteId/page/$pageId/site-settings"
+                  params={params}
+                  search={search}
+                  resetScroll={false}
+                />
+              }
+            />
+          }
+        >
+          <Globe aria-hidden className="size-4" />
+          Site settings
+        </TabsTrigger>
+      </TabsList>
     </motion.div>
   );
 }

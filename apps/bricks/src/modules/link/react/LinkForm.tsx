@@ -15,12 +15,13 @@ import { normalizeLinkInput } from "../definition/normalizeLinkInput";
 
 export function LinkForm(props: {
   state: IInferDecodedRow<typeof linkV1.stateShape> | null;
+  onDraftChange?: ((draft: { state: unknown; pending: boolean; valid: boolean }) => void) | undefined;
   onSave: (
     state: IInferDecodedRow<typeof linkV1.stateShape>,
   ) => IResult<unknown, { message: string }>;
   lookupLinkPreview: (url: string, signal: AbortSignal) => Promise<IRpcEither<ILinkPreview>>;
 }) {
-  const { state, onSave, lookupLinkPreview } = props;
+  const { state, onSave, lookupLinkPreview, onDraftChange } = props;
   const [urlDraft, setUrl] = useState<string | null>(null);
   const url = urlDraft ?? state?.payload.url ?? "";
   const [validationError, setValidationError] = useState<string>();
@@ -33,6 +34,7 @@ export function LinkForm(props: {
       if (urlDraft === null) return;
       const normalizedUrl = normalizeLinkInput(draft);
       if (normalizedUrl === undefined) {
+        onDraftChange?.({ state, pending: false, valid: false });
         if (explicit && (draft.trim() !== "" || state !== null))
           setValidationError("Enter a valid HTTP or HTTPS URL.");
         return;
@@ -40,6 +42,7 @@ export function LinkForm(props: {
       setValidationError(undefined);
       if (normalizedUrl === state?.payload.url && state.data !== null && saveError === undefined) {
         setUrl(null);
+        onDraftChange?.({ state, pending: false, valid: true });
         return;
       }
 
@@ -49,6 +52,7 @@ export function LinkForm(props: {
         const response = await lookupLinkPreview(normalizedUrl, signal);
         if (signal.aborted) return;
         if (response._tag === "Left") {
+          onDraftChange?.({ state, pending: false, valid: false });
           setSaveError(response.left.message);
           return;
         }
@@ -68,6 +72,7 @@ export function LinkForm(props: {
         else setUrl(null);
       } catch (error) {
         if (!signal.aborted && !(error instanceof DOMException && error.name === "AbortError")) {
+          onDraftChange?.({ state, pending: false, valid: false });
           setSaveError(
             error instanceof Error
               ? error.message
@@ -94,6 +99,7 @@ export function LinkForm(props: {
           autoCorrect="off"
           onChange={(event) => {
             const value = event.currentTarget.value;
+            onDraftChange?.({ state, pending: true, valid: false });
             setUrl(value);
             setValidationError(undefined);
             setSaveError(undefined);

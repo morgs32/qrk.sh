@@ -1,18 +1,20 @@
 import { Schema } from "effect";
-import { useContext } from "react";
 import { imagePreviewState } from "../definition/imagePreviewState";
 import { ImagePlaceholder } from "./ImagePlaceholder";
 import { makeModuleView } from "../../react/makeModuleView";
-import { BrickDetailsContext, BrickDetailsTrigger } from "../../../components/BrickDetailsTrigger";
-import { useAfterBrickInserted } from "../../react/useAfterBrickInserted";
+import { BrickDetailsTrigger } from "../../../components/BrickDetailsTrigger";
 import { registry } from "./generator/ImageJsonRenderRegistry";
-import { imageStateSchema, imageV2 } from "../definition/imageV2";
+import { imageStateSchemaV3, imageV3 } from "../definition/imageV3";
 import { ImageForm } from "./ImageForm";
 import { ImageLineIcon } from "./ImageLineIcon";
 
-const image = makeModuleView(imageV2, {
+const image = makeModuleView(imageV3, {
   categoryIds: ["tools"],
-  defaultState: imagePreviewState,
+  defaultState: { imageUrl: imagePreviewState.imageUrl, altText: imagePreviewState.title, caption: imagePreviewState.title, crop: imagePreviewState.crop },
+  previewStates: {
+    captionless: { imageUrl: imagePreviewState.imageUrl, altText: imagePreviewState.title, caption: "", crop: imagePreviewState.crop },
+    captioned: { imageUrl: imagePreviewState.imageUrl, altText: imagePreviewState.title, caption: imagePreviewState.title, crop: imagePreviewState.crop },
+  },
   LineIcon: ImageLineIcon,
   form: ImageForm,
   variants: {
@@ -23,35 +25,18 @@ const image = makeModuleView(imageV2, {
   },
 });
 
-const decodeState = Schema.decodeUnknownSync(imageStateSchema);
-
 export const imageView = {
   ...image,
-  Form(props: Parameters<NonNullable<typeof image.Form>>[0]) {
-    const { state, onSave, previewWidth, measureFrame } = props;
-    const Form = image.Form;
-    if (Form === undefined) return null;
-    return (
-      <Form
-        state={state === null ? null : decodeState(state)}
-        onSave={onSave}
-        previewWidth={previewWidth}
-        measureFrame={measureFrame}
-      />
-    );
-  },
   Render(props: Parameters<typeof image.Render>[0]) {
     const { state, spec, variantId } = props;
-    const openDetails = useContext(BrickDetailsContext);
-
-    useAfterBrickInserted(() => {
-      openDetails?.();
-    });
+    if (state !== null && Schema.is(imageStateSchemaV3)(state) && state.imageUrl.trim() === "") {
+      return <ImagePlaceholder />;
+    }
 
     return (
       <BrickDetailsTrigger label={`Edit ${image.label}`}>
         <image.Render
-          state={state === null ? null : decodeState(state)}
+          state={state}
           spec={spec}
           variantId={variantId}
         />

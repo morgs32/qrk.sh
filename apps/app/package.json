@@ -12,9 +12,9 @@
     "preview": "vp preview --config vite.preview.config.ts --host 127.0.0.1 --port ${PORT:-10010} --strictPort"
   },
   "dependencies": {
-    "@base-ui/react": "^1.6.0",
     "@atlaskit/pragmatic-drag-and-drop": "4.0.0",
     "@atlaskit/pragmatic-drag-and-drop-hitbox": "3.0.0",
+    "@base-ui/react": "^1.6.0",
     "@clerk/react": "6.17.8",
     "@fontsource/silkscreen": "^5.2.7",
     "@json-render/core": "^0.20.0",
@@ -44,6 +44,8 @@
     "framer-motion": "13.2.0",
     "frimousse": "^0.3.0",
     "lucide-react": "^1.7.0",
+    "motion": "14.1.0",
+    "motion-plus": "npm:@motionplus/core@^4.3.0",
     "qrcode": "^1.5.4",
     "react": "19.2.7",
     "react-colorful": "^5.8.1",

@@ -2,7 +2,7 @@
 
 import type { IResult } from "@zerospin/error";
 import type { IInferDecodedRow } from "@zerospin/shapes";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Button } from "../../../components/button";
 import { FieldGroup } from "../../../components/field";
@@ -16,13 +16,25 @@ export function BuyMeACoffeeForm(props: {
   onSave: (
     state: IInferDecodedRow<typeof buyMeACoffeeV1.stateShape>,
   ) => IResult<unknown, { message: string }>;
+  onDraftChange?: (draft: { state: unknown; pending: boolean; valid: boolean }) => void;
 }) {
-  const { state, onSave } = props;
+  const { state, onSave, onDraftChange } = props;
   const [urlDraft, setUrl] = useState<string>();
   const [messageDraft, setMessage] = useState<string>();
   const [error, setError] = useState<string>();
   const url = urlDraft ?? state?.payload.url ?? "";
   const message = messageDraft ?? state?.payload.message ?? "";
+  useEffect(() => {
+    const normalized = normalizeCoffeeUrl(url);
+    onDraftChange?.({
+      state:
+        normalized === undefined
+          ? state
+          : { payload: { url: normalized, message: message.trim() } },
+      pending: false,
+      valid: normalized !== undefined && message.trim().length <= 160 && error === undefined,
+    });
+  }, [onDraftChange, state, url, message, error]);
   useWarnBeforeUnload(urlDraft !== undefined || messageDraft !== undefined);
   return (
     <form
@@ -51,6 +63,7 @@ export function BuyMeACoffeeForm(props: {
           value={url}
           error={error}
           onChange={(event) => {
+            onDraftChange?.({ state, pending: false, valid: false });
             setUrl(event.currentTarget.value);
             setError(undefined);
           }}
@@ -60,7 +73,10 @@ export function BuyMeACoffeeForm(props: {
           orientation="vertical"
           value={message}
           maxLength={160}
-          onChange={(event) => setMessage(event.currentTarget.value)}
+          onChange={(event) => {
+            onDraftChange?.({ state, pending: false, valid: false });
+            setMessage(event.currentTarget.value);
+          }}
         />
         <Button type="submit">Save</Button>
       </FieldGroup>

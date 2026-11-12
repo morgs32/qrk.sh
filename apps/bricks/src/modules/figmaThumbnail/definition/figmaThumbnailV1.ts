@@ -1,3 +1,4 @@
+import { normalizeFigmaThumbnailInput } from "./normalizeFigmaThumbnailInput";
 import { defaultSpec } from "./generator/defaultSpec";
 
 import { Schema } from "effect";
@@ -62,3 +63,9 @@ export const figmaThumbnailV1 = makeModuleVersion(figmaThumbnail, {
     data: primitives.json({ nullable: true, schema: makeEffectSchema(dataShape) }),
   },
 });
+
+export const completeStateSchema = Schema.toType(makeEffectSchema(figmaThumbnailV1.stateShape)).check(
+  Schema.makeFilter((state) =>
+    (state.data !== null && normalizeFigmaThumbnailInput(state.payload.url) === state.payload.url) || "A configured source and content are required",
+  ),
+);

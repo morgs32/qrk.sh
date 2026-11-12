@@ -36,7 +36,7 @@ import {
   type CSSProperties,
   type MouseEvent,
 } from "react";
-import { brickV4 } from "@qrk.sh/zerospin/src/aggregates/user/models/brick/BrickV4";
+import { brickV6 } from "@qrk.sh/zerospin/src/aggregates/user/models/brick/BrickV6";
 import { wallV3 } from "@qrk.sh/zerospin/src/aggregates/user/models/wall/WallV3";
 import { useLiveQuery, useSession } from "@zerospin/react";
 import { Result, Schema } from "effect";
@@ -79,7 +79,8 @@ import {
 
 const CatalogBrickData = Schema.Struct({
   type: Schema.Literal("catalog-brick"),
-  moduleId: brickV4.attributesSchema.fields.moduleId,
+  moduleId: brickV6.attributesSchema.fields.moduleId,
+  layoutId: Schema.String,
   state: Schema.Unknown,
 });
 
@@ -114,7 +115,7 @@ export function WallEditor(props: {
   const wallRef = useRef<HTMLDivElement>(null);
   const deleteReturnFocus = useRef<HTMLElement | null>(null);
   const deleteCancelRef = useRef<HTMLButtonElement>(null);
-  const [brickToDelete, setBrickToDelete] = useState<IInferModelRow<typeof brickV4>["id"] | null>(
+  const [brickToDelete, setBrickToDelete] = useState<IInferModelRow<typeof brickV6>["id"] | null>(
     null,
   );
   const [stackToDelete, setStackToDelete] = useState<{
@@ -459,9 +460,10 @@ export function WallEditor(props: {
         session,
         contractName: "addBrick",
         payload: {
-          id: session.runSync(makeId(brickV4)),
+          id: session.runSync(makeId(brickV6)),
           pageId: wall.pageId,
           moduleId: data.success.moduleId,
+          layoutId: data.success.layoutId,
           state: data.success.state,
           target: target.success,
         },
@@ -577,7 +579,7 @@ export function WallEditor(props: {
             !source.element.isConnected
           )
             return;
-          const id = session.runSync(makeId(brickV4));
+          const id = session.runSync(makeId(brickV6));
           const result = stageAggregateSessionCommand({
             session,
             contractName: "addBrick",
@@ -585,11 +587,13 @@ export function WallEditor(props: {
               id,
               pageId: wall.pageId,
               moduleId: data.success.moduleId,
+              layoutId: data.success.layoutId,
               state: data.success.state,
               target: target.success,
             },
           });
           if (result._tag !== "Success") return;
+          if (typeof source.data.onPlaced === "function") source.data.onPlaced();
           let handled = false;
           setPendingInsertion({
             brickId: id,
@@ -947,10 +951,10 @@ export function WallEditor(props: {
     <>
       <div
         ref={wallRef}
-        data-wall-resizing={resize.preview?.kind}
+        data-wall-resizing={resize.stackPreview === null ? resize.preview?.kind : "stack-width"}
         data-wall-resize-disabled={resizeDisabled ? "true" : undefined}
         onDragStartCapture={(event) => {
-          if (resize.preview !== null) event.preventDefault();
+          if (resize.preview !== null || resize.stackPreview !== null) event.preventDefault();
         }}
         tabIndex={-1}
         className={`wall-editor relative flex min-w-0 flex-1 flex-col outline-none ${wall.page.site.stickyNavbar ? "[--wall-actions-sticky-top:7rem]" : "[--wall-actions-sticky-top:3rem]"}`}
@@ -979,14 +983,21 @@ export function WallEditor(props: {
                 const stackWidths = allocateStackWidths({
                   minimumWidths: sizing.stackMinimums,
                   availableWidth: wallBreakpointWidths[wall.breakpoint] + brickGap,
+                  weights: section.stacks.map((stack) => stack.widthWeight),
                 });
+                const displayedStackWidths =
+                  resize.stackPreview?.sectionId === section.id
+                    ? resize.stackPreview.widths
+                    : stackWidths;
                 return (
                   <section
                     key={section.id}
                     data-wall-section-id={section.id}
                     className="relative grid"
                     style={{
-                      gridTemplateColumns: stackWidths.map((width) => `${width}px`).join(" "),
+                      gridTemplateColumns: displayedStackWidths
+                        .map((width) => `${width}px`)
+                        .join(" "),
                     }}
                   >
                     {section.stacks.map((stack, stackIndex) => {
@@ -1146,7 +1157,7 @@ export function WallEditor(props: {
                                       : 45,
                                   ),
                             );
-                            const stackWidth = stackWidths[stackIndex] - brickGap;
+                            const stackWidth = displayedStackWidths[stackIndex] - brickGap;
                             const minimums = variants.map((variant) => variant.minWidth);
                             const weights = rowPlacements.map((placement) => placement.widthWeight);
                             if (incomingVariant !== null) {
@@ -1250,6 +1261,11 @@ export function WallEditor(props: {
                                             selected={
                                               brick.id === selectedBrickId ||
                                               (canEditInline && brick.id === selectedWallId)
+                                            }
+                                            onRequestEditBrick={
+                                              module.Form === undefined
+                                                ? undefined
+                                                : () => onEditBrick(brick.id)
                                             }
                                             onRequestDeleteBrick={(trigger) => {
                                               deleteReturnFocus.current = trigger;
@@ -1475,6 +1491,47 @@ export function WallEditor(props: {
                             dropFeedback?.ownerRowId === null &&
                             dropTarget.beforeRowId === null &&
                             shadow}
+                          {section.stacks[stackIndex + 1] !== undefined && (
+                            <span
+                              role="separator"
+                              aria-label="Resize Stack width"
+                              aria-orientation="vertical"
+                              data-wall-stack-width-resize-handle
+                              data-section-id={section.id}
+                              data-left-stack-id={stack.id}
+                              data-right-stack-id={section.stacks[stackIndex + 1].id}
+                              data-wall-resize-active={
+                                resize.stackPreview?.sectionId === section.id &&
+                                resize.stackPreview.leftStackId === stack.id
+                                  ? ""
+                                  : undefined
+                              }
+                              className="wall-resize-grip wall-stack-width-resize-grip z-30"
+                              draggable={false}
+                              onPointerDown={(event) =>
+                                resize.startStackWidthResize({
+                                  event,
+                                  sectionId: section.id,
+                                  leftStackId: stack.id,
+                                  rightStackId: section.stacks[stackIndex + 1].id,
+                                  widths: stackWidths,
+                                  minimums: sizing.stackMinimums,
+                                })
+                              }
+                              onDragStart={(event) => event.preventDefault()}
+                              onClick={(event) => {
+                                event.preventDefault();
+                                event.stopPropagation();
+                              }}
+                            >
+                              {resize.stackPreview?.sectionId === section.id &&
+                                resize.stackPreview.leftStackId === stack.id && (
+                                  <span data-wall-resize-readout className="wall-resize-readout">
+                                    {`${Math.round(displayedStackWidths[stackIndex] - brickGap)} px | ${Math.round(displayedStackWidths[stackIndex + 1] - brickGap)} px`}
+                                  </span>
+                                )}
+                            </span>
+                          )}
                         </div>
                       );
                     })}

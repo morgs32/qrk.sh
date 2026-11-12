@@ -19,17 +19,25 @@ function Tabs(props: React.ComponentProps<typeof TabsPrimitive.Root>) {
 }
 
 function TabsList(
-  props: React.ComponentProps<typeof TabsPrimitive.List> & { variant?: "default" | "line" },
+  props: React.ComponentProps<typeof TabsPrimitive.List> & {
+    variant?: "default" | "line";
+    size?: "default" | "sm";
+  },
 ) {
-  const { className, variant = "default", ...listProps } = props;
+  const { className, variant = "default", size = "default", ...listProps } = props;
   return (
     <TabsPrimitive.List
       data-slot="tabs-list"
       data-variant={variant}
+      data-size={size}
       className={(state) =>
         cn(
-          "group/tabs-list inline-flex h-9 items-center justify-center border border-zinc-200 text-muted-foreground dark:border-zinc-800",
-          variant === "line" ? "gap-3" : "rounded-full bg-muted p-1",
+          "group/tabs-list inline-flex items-center text-muted-foreground",
+          size === "sm" ? "[--tabs-row-height:1.75rem]" : "[--tabs-row-height:2.25rem]",
+          variant === "line"
+            ? "h-auto w-full min-w-0 flex-nowrap justify-start gap-3 overflow-x-auto border-b border-sidebar-border"
+            : "h-[var(--tabs-row-height)] justify-center rounded-lg border border-zinc-200 bg-muted dark:border-zinc-800",
+          variant === "default" && (size === "sm" ? "p-[2px]" : "p-[3px]"),
           typeof className === "function" ? className(state) : className,
         )
       }
@@ -46,7 +54,7 @@ function TabsTrigger(props: React.ComponentProps<typeof TabsPrimitive.Tab>) {
       className={(state) =>
         cn(
           "inline-flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-md border-0 px-2 py-1 text-sm font-normal whitespace-nowrap text-muted-foreground outline-none transition-[color,box-shadow] focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 data-active:bg-background data-active:text-foreground data-active:shadow-sm dark:data-active:bg-background [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
-          "group-data-[variant=line]/tabs-list:relative group-data-[variant=line]/tabs-list:h-full group-data-[variant=line]/tabs-list:flex-none group-data-[variant=line]/tabs-list:rounded-none group-data-[variant=line]/tabs-list:after:absolute group-data-[variant=line]/tabs-list:after:inset-x-0 group-data-[variant=line]/tabs-list:after:bottom-0 group-data-[variant=line]/tabs-list:after:h-0.5 group-data-[variant=line]/tabs-list:data-active:bg-transparent group-data-[variant=line]/tabs-list:data-active:shadow-none group-data-[variant=line]/tabs-list:data-active:after:bg-current dark:group-data-[variant=line]/tabs-list:data-active:bg-transparent",
+          "group-data-[size=sm]/tabs-list:text-xs group-data-[variant=line]/tabs-list:relative group-data-[variant=line]/tabs-list:h-[var(--tabs-row-height)] group-data-[variant=line]/tabs-list:flex-none group-data-[variant=line]/tabs-list:rounded-none group-data-[variant=line]/tabs-list:after:absolute group-data-[variant=line]/tabs-list:after:inset-x-0 group-data-[variant=line]/tabs-list:after:bottom-0 group-data-[variant=line]/tabs-list:after:h-0.5 group-data-[variant=line]/tabs-list:data-active:bg-transparent group-data-[variant=line]/tabs-list:data-active:shadow-none group-data-[variant=line]/tabs-list:data-active:after:bg-current dark:group-data-[variant=line]/tabs-list:data-active:bg-transparent group-data-[variant=default]/tabs-list:h-full",
           typeof className === "function" ? className(state) : className,
         )
       }

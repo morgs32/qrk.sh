@@ -20,8 +20,9 @@ export function BehanceForm(props: {
   onSave: (
     state: IInferDecodedRow<typeof behanceV1.stateShape>,
   ) => IResult<unknown, { message: string }>;
+  onDraftChange?: (draft: { state: unknown; pending: boolean; valid: boolean }) => void;
 }) {
-  const { state, onSave } = props;
+  const { state, onSave, onDraftChange } = props;
   const [urlDraft, setUrlDraft] = useState<string>();
   const url = urlDraft ?? state?.payload.url ?? "";
   const [imported, setImported] = useState<typeof behanceImportSchema.Type>();
@@ -32,6 +33,30 @@ export function BehanceForm(props: {
 
   const candidates = imported?.projects ?? state?.data.projects ?? [];
   const selected = selectedIds ?? state?.data.projects.map((project) => project.id) ?? [];
+  useEffect(() => {
+    const profile =
+      imported ?? (state === null ? undefined : { ...state.data, url: state.payload.url });
+    const ids = selectedIds ?? state?.data.projects.map((project) => project.id) ?? [];
+    const next =
+      profile === undefined
+        ? null
+        : {
+            payload: { url: profile.url },
+            data: {
+              displayName: profile.displayName,
+              projects: profile.projects.filter((project) => ids.includes(project.id)),
+            },
+          };
+    onDraftChange?.({
+      state: next,
+      pending: importing,
+      valid:
+        next !== null &&
+        next.payload.url === normalizeBehanceProfile(url) &&
+        next.data.projects.length > 0 &&
+        error === undefined,
+    });
+  }, [onDraftChange, state, imported, selectedIds, url, importing, error]);
   useWarnBeforeUnload(
     importing ||
       url !== (state?.payload.url ?? "") ||
@@ -47,6 +72,7 @@ export function BehanceForm(props: {
       return;
     }
 
+    onDraftChange?.({ state, pending: true, valid: false });
     activeRequest.current?.abort();
     const request = new AbortController();
     activeRequest.current = request;
@@ -122,6 +148,7 @@ export function BehanceForm(props: {
           error={error}
           status={importing ? "Importing projects…" : undefined}
           onChange={(event) => {
+            onDraftChange?.({ state, pending: false, valid: false });
             activeRequest.current?.abort();
             activeRequest.current = null;
             setUrlDraft(event.currentTarget.value);
@@ -152,6 +179,7 @@ export function BehanceForm(props: {
                     checked={selected.includes(project.id)}
                     disabled={!selected.includes(project.id) && selected.length >= 4}
                     onCheckedChange={(checked) => {
+                      onDraftChange?.({ state, pending: false, valid: false });
                       setSelectedIds(
                         checked
                           ? [...selected, project.id]

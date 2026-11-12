@@ -129,6 +129,7 @@ export function PublishSiteDialog(props: { siteId: `sit_${string}` }) {
               contractName: "publishSite",
               payload: {
                 preferredRowSizing: true,
+                preferredStackSizing: true,
                 siteId,
                 pages: pages
                   .filter((page) => page.id === rootPage.id || selectedPageIds.includes(page.id))

@@ -45,6 +45,8 @@ export function makeModuleView<
   view: {
     categoryIds: readonly (typeof categories)[number]["id"][];
     defaultState: IInferDecodedRow<MODULE["stateShape"]>;
+    previewStates?: Record<string, IInferDecodedRow<MODULE["stateShape"]>>;
+    initialDraft?: IInferDecodedRow<MODULE["stateShape"]> | "preview";
     LineIcon: ComponentType<SVGProps<SVGSVGElement>>;
     variants: {
       default: {
@@ -65,6 +67,7 @@ export function makeModuleView<
           onSave: (
             state: IInferDecodedRow<MODULE["stateShape"]>,
           ) => IResult<unknown, { message: string }>;
+          onDraftChange?: (draft: { state: unknown; pending: boolean; valid: boolean }) => void;
           previewWidth?: number;
           measureFrame?: (selector: string) => number | undefined;
         }) => ReactNode;
@@ -126,13 +129,18 @@ export function makeModuleView<
   });
 
   function Form(props: Parameters<NonNullable<IModule<string>["Form"]>>[0]) {
-    const { state, onSave, previewWidth, measureFrame } = props;
+    const { state, onSave, onDraftChange, previewWidth, measureFrame } = props;
     if (EditorForm === undefined) return null;
     const decoded = state === null ? null : decodeState(state, { onExcessProperty: "ignore" });
     return (
       <EditorForm
         state={decoded}
-        onSave={onSave}
+        onSave={(next) => {
+          const result = onSave(next);
+          onDraftChange?.({ state: next, pending: false, valid: result._tag !== "Failure" });
+          return result;
+        }}
+        onDraftChange={onDraftChange}
         previewWidth={previewWidth}
         measureFrame={measureFrame}
       />
@@ -172,6 +180,10 @@ export function makeModuleView<
     LineIcon: view.LineIcon,
     stateShape: module.stateShape,
     defaultState,
+    previewStates: view.previewStates === undefined
+      ? undefined
+      : mapValues(view.previewStates, (state) => decodeState(state, { onExcessProperty: "ignore" })),
+    initialDraft: view.initialDraft ?? null,
     def,
     variants,
     ...(EditorForm === undefined ? {} : { Form }),

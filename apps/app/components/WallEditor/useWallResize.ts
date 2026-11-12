@@ -9,10 +9,16 @@ import {
 } from "react";
 import { useSession } from "@zerospin/react";
 import { stageAggregateSessionCommand } from "@zerospin/sdk/browser";
+import { toast } from "sonner";
+import { allocateStackWidths } from "@qrk.sh/zerospin/src/aggregates/user/layout/wallSizing";
 import type { IInferModelRow } from "@zerospin/core/models/types";
 import type { wallV3 } from "@qrk.sh/zerospin/src/aggregates/user/models/wall/WallV3";
 import type { placementV2 } from "@qrk.sh/zerospin/src/aggregates/user/models/placement/PlacementV2";
-import type { rowIdSchema } from "@qrk.sh/zerospin/src/aggregates/user/layout/wallLayoutSchema";
+import type {
+  rowIdSchema,
+  sectionIdSchema,
+  stackIdSchema,
+} from "@qrk.sh/zerospin/src/aggregates/user/layout/wallLayoutSchema";
 import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
 import { modulesHash } from "../../modules/modulesHash";
 import type { makeWallLayoutView } from "./makeWallLayoutView";
@@ -29,6 +35,30 @@ export function useWallResize(props: {
   const session = useSession(userSessionDefinition);
   const latest = useRef({ wallId, sections, brickGap, disabled });
   const frame = useRef<number | null>(null);
+  const stackGesture = useRef<{
+    wallId: typeof wallId;
+    sectionId: typeof sectionIdSchema.Type;
+    weights: number[];
+    widths: number[];
+    minimums: number[];
+    anchorWidth: number;
+    anchorWeight: number;
+    signature: string;
+    brickGap: number;
+    section: HTMLElement;
+    sectionWidth: number;
+    target: HTMLSpanElement;
+    pointerId: number;
+    startX: number;
+    activated: boolean;
+    cleanup: () => void;
+  } | null>(null);
+  const [stackPreview, setStackPreview] = useState<{
+    sectionId: typeof sectionIdSchema.Type;
+    leftStackId: typeof stackIdSchema.Type;
+    rightStackId: typeof stackIdSchema.Type;
+    widths: number[];
+  } | null>(null);
   const lastHeightTap = useRef<{
     rowId: typeof rowIdSchema.Type;
     wallId: typeof wallId;
@@ -109,20 +139,41 @@ export function useWallResize(props: {
         widthWeight: placement.widthWeight,
       })),
     });
+  const sectionSizingSignature = (section: (typeof sections)[number]) =>
+    JSON.stringify(
+      section.stacks.map((stack) => ({
+        id: stack.id,
+        widthWeight: stack.widthWeight,
+        rows: stack.rows.map((row) => ({
+          id: row.id,
+          placements: row.placements.map((placement) => ({
+            id: placement.id,
+            moduleId: placement.brick.moduleId,
+            variantId: placement.variantId,
+          })),
+        })),
+      })),
+    );
 
   const clearGesture = useCallback(() => {
     const current = gesture.current;
+    const currentStack = stackGesture.current;
     gesture.current = null;
+    stackGesture.current = null;
     lastHeightTap.current = null;
     if (frame.current !== null) {
       cancelAnimationFrame(frame.current);
       frame.current = null;
     }
     current?.cleanup();
+    currentStack?.cleanup();
     if (current?.target.hasPointerCapture(current.pointerId))
       current.target.releasePointerCapture(current.pointerId);
+    if (currentStack?.target.hasPointerCapture(currentStack.pointerId))
+      currentStack.target.releasePointerCapture(currentStack.pointerId);
     setDraft(null);
     setMeasuredReadout(null);
+    setStackPreview(null);
   }, []);
 
   const updatePreview = (current: NonNullable<typeof gesture.current>) => {
@@ -215,6 +266,22 @@ export function useWallResize(props: {
 
   useLayoutEffect(() => {
     latest.current = { wallId, sections, brickGap, disabled };
+    const currentStack = stackGesture.current;
+    if (currentStack !== null) {
+      const section = sections.find((entry) => entry.id === currentStack.sectionId);
+      if (
+        disabled ||
+        wallId !== currentStack.wallId ||
+        brickGap !== currentStack.brickGap ||
+        section === undefined ||
+        sectionSizingSignature(section) !== currentStack.signature ||
+        !currentStack.target.isConnected ||
+        Math.abs(currentStack.section.getBoundingClientRect().width - currentStack.sectionWidth) >
+          0.5
+      )
+        clearGesture();
+      return;
+    }
     const current = gesture.current;
     if (current === null) return;
     const row = findRow(current.rowId);
@@ -295,6 +362,7 @@ export function useWallResize(props: {
     if (
       latest.current.disabled ||
       gesture.current !== null ||
+      stackGesture.current !== null ||
       event.button !== 0 ||
       !event.isPrimary
     )
@@ -485,6 +553,193 @@ export function useWallResize(props: {
     const { event, rowId, leftPlacementId, rightPlacementId } = props;
     start({ event, rowId, kind: "width", leftPlacementId, rightPlacementId });
   };
+  const startStackWidthResize = (props: {
+    event: PointerEvent<HTMLSpanElement>;
+    sectionId: typeof sectionIdSchema.Type;
+    leftStackId: typeof stackIdSchema.Type;
+    rightStackId: typeof stackIdSchema.Type;
+    widths: number[];
+    minimums: number[];
+  }) => {
+    const { event, sectionId, leftStackId, rightStackId, widths, minimums } = props;
+    if (
+      latest.current.disabled ||
+      gesture.current !== null ||
+      stackGesture.current !== null ||
+      event.button !== 0 ||
+      !event.isPrimary
+    )
+      return;
+    const section = latest.current.sections.find((entry) => entry.id === sectionId);
+    const target = event.currentTarget;
+    const sectionElement = target.closest<HTMLElement>("[data-wall-section-id]");
+    const leftIndex = section?.stacks.findIndex((entry) => entry.id === leftStackId) ?? -1;
+    if (
+      section === undefined ||
+      sectionElement === null ||
+      wallRef.current === null ||
+      !wallRef.current.contains(target) ||
+      leftIndex < 0 ||
+      section.stacks[leftIndex + 1]?.id !== rightStackId ||
+      widths.length !== section.stacks.length ||
+      minimums.length !== widths.length
+    )
+      return;
+    const weights = section.stacks.map((stack) => stack.widthWeight);
+    const freeIndex = widths.findIndex((width, index) => width > minimums[index] + 0.001);
+    if (freeIndex < 0) return;
+    const current: NonNullable<(typeof stackGesture)["current"]> = {
+      wallId: latest.current.wallId,
+      sectionId,
+      weights,
+      widths: [...widths],
+      minimums: [...minimums],
+      anchorWidth: widths[freeIndex],
+      anchorWeight: weights[freeIndex],
+      signature: sectionSizingSignature(section),
+      brickGap: latest.current.brickGap,
+      section: sectionElement,
+      sectionWidth: sectionElement.getBoundingClientRect().width,
+      target,
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      activated: false,
+      cleanup: () => {},
+    };
+    let latestX = current.startX;
+    const move = (pointer: globalThis.PointerEvent) => {
+      if (stackGesture.current !== current || pointer.pointerId !== current.pointerId) return;
+      latestX = pointer.clientX;
+      const movement = latestX - current.startX;
+      if (!current.activated && Math.abs(movement) < 3) return;
+      current.activated = true;
+      if (frame.current !== null) return;
+      frame.current = requestAnimationFrame(() => {
+        frame.current = null;
+        if (stackGesture.current !== current) return;
+        const delta = Math.max(
+          current.minimums[leftIndex] - current.widths[leftIndex],
+          Math.min(
+            current.widths[leftIndex + 1] - current.minimums[leftIndex + 1],
+            latestX - current.startX,
+          ),
+        );
+        const nextWidths = [...current.widths];
+        nextWidths[leftIndex] += delta;
+        nextWidths[leftIndex + 1] -= delta;
+        setStackPreview({ sectionId, leftStackId, rightStackId, widths: nextWidths });
+      });
+    };
+    const finish = (pointer: globalThis.PointerEvent) => {
+      if (stackGesture.current !== current || pointer.pointerId !== current.pointerId) return;
+      const movement = pointer.clientX - current.startX;
+      const delta = Math.max(
+        current.minimums[leftIndex] - current.widths[leftIndex],
+        Math.min(current.widths[leftIndex + 1] - current.minimums[leftIndex + 1], movement),
+      );
+      if ((!current.activated && Math.abs(movement) < 3) || Math.abs(delta) <= 0.5) {
+        clearGesture();
+        return;
+      }
+      const leftWidth = current.widths[leftIndex] + delta;
+      const rightWidth = current.widths[leftIndex + 1] - delta;
+      const targetLeftWeight = current.anchorWeight * (leftWidth / current.anchorWidth);
+      const targetRightWeight = current.anchorWeight * (rightWidth / current.anchorWidth);
+      const leftWeight =
+        leftWidth <= current.minimums[leftIndex] + 0.001 &&
+        current.weights[leftIndex] <= targetLeftWeight
+          ? current.weights[leftIndex]
+          : targetLeftWeight;
+      const rightWeight =
+        rightWidth <= current.minimums[leftIndex + 1] + 0.001 &&
+        current.weights[leftIndex + 1] <= targetRightWeight
+          ? current.weights[leftIndex + 1]
+          : targetRightWeight;
+      const nextWeights = [...current.weights];
+      nextWeights[leftIndex] = leftWeight;
+      nextWeights[leftIndex + 1] = rightWeight;
+      const totalWeight = nextWeights.reduce((sum, weight) => sum + weight, 0);
+      const validWeights = nextWeights.every((weight) => Number.isFinite(weight) && weight > 0);
+      if (!validWeights || !Number.isFinite(totalWeight)) {
+        clearGesture();
+        toast.error("Stack width could not be saved.");
+        return;
+      }
+      const availableWidth = Math.max(
+        current.widths.reduce((sum, width) => sum + width, 0),
+        current.minimums.reduce((sum, width) => sum + width, 0),
+      );
+      const committedWidths = allocateStackWidths({
+        minimumWidths: current.minimums,
+        availableWidth,
+        weights: nextWeights,
+      });
+      const targetWidths = [...current.widths];
+      targetWidths[leftIndex] = leftWidth;
+      targetWidths[leftIndex + 1] = rightWidth;
+      if (committedWidths.some((width, index) => Math.abs(width - targetWidths[index]) > 0.5)) {
+        clearGesture();
+        toast.error("Stack width could not be saved.");
+        return;
+      }
+      clearGesture();
+      const result = stageAggregateSessionCommand({
+        session,
+        contractName: "setStackWidthWeights",
+        payload: {
+          wallId: current.wallId,
+          sectionId,
+          leftStackId,
+          rightStackId,
+          leftWeight,
+          rightWeight,
+        },
+      });
+      if (result._tag === "Failure") toast.error("Stack width could not be saved.");
+    };
+    const canceled = (pointer: globalThis.PointerEvent) => {
+      if (stackGesture.current === current && pointer.pointerId === current.pointerId)
+        clearGesture();
+    };
+    const keydown = (keyboard: KeyboardEvent) => {
+      if (keyboard.key !== "Escape" || stackGesture.current !== current) return;
+      keyboard.preventDefault();
+      keyboard.stopPropagation();
+      clearGesture();
+    };
+    const resized = new ResizeObserver(() => {
+      if (
+        stackGesture.current === current &&
+        Math.abs(sectionElement.getBoundingClientRect().width - current.sectionWidth) > 0.5
+      )
+        clearGesture();
+    });
+    current.cleanup = () => {
+      target.removeEventListener("pointermove", move);
+      target.removeEventListener("pointerup", finish);
+      target.removeEventListener("pointercancel", canceled);
+      target.removeEventListener("lostpointercapture", canceled);
+      window.removeEventListener("keydown", keydown, true);
+      window.removeEventListener("blur", clearGesture);
+      resized.disconnect();
+    };
+    stackGesture.current = current;
+    event.preventDefault();
+    event.stopPropagation();
+    target.addEventListener("pointermove", move);
+    target.addEventListener("pointerup", finish);
+    target.addEventListener("pointercancel", canceled);
+    target.addEventListener("lostpointercapture", canceled);
+    window.addEventListener("keydown", keydown, true);
+    window.addEventListener("blur", clearGesture);
+    resized.observe(sectionElement);
+    try {
+      target.setPointerCapture(event.pointerId);
+    } catch (error) {
+      clearGesture();
+      throw error;
+    }
+  };
   const startHeightResize = (props: {
     event: PointerEvent<HTMLSpanElement>;
     rowId: typeof rowIdSchema.Type;
@@ -517,6 +772,8 @@ export function useWallResize(props: {
   return {
     preview,
     readout,
+    stackPreview,
+    startStackWidthResize,
     startWidthResize,
     startHeightResize,
     resetHeight,

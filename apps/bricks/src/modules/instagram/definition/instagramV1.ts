@@ -1,3 +1,4 @@
+import { normalizeInstagramInput } from "./normalizeInstagramInput";
 import { defaultSpec } from "./generator/defaultSpec";
 
 import { makeEffectSchema, primitives } from "@zerospin/shapes";
@@ -63,3 +64,9 @@ export const instagramV1 = makeModuleVersion(instagram, {
     data: primitives.json({ nullable: true, schema: makeEffectSchema(dataShape) }),
   },
 });
+
+export const completeStateSchema = Schema.toType(makeEffectSchema(instagramV1.stateShape)).check(
+  Schema.makeFilter((state) =>
+    (state.data !== null && normalizeInstagramInput(state.payload.url) === state.payload.url) || "A configured source and content are required",
+  ),
+);

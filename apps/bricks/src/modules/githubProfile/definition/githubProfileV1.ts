@@ -1,3 +1,4 @@
+import { normalizeGithubProfileInput } from "./normalizeGithubProfileInput";
 import { defaultSpec } from "./generator/defaultSpec";
 
 import { Schema } from "effect";
@@ -76,3 +77,9 @@ export const githubProfileV1 = makeModuleVersion(githubProfile, {
     data: primitives.json({ nullable: true, schema: makeEffectSchema(dataShape) }),
   },
 });
+
+export const completeStateSchema = Schema.toType(makeEffectSchema(githubProfileV1.stateShape)).check(
+  Schema.makeFilter((state) =>
+    (state.data !== null && normalizeGithubProfileInput(state.payload.url) === state.payload.url) || "A configured source and content are required",
+  ),
+);

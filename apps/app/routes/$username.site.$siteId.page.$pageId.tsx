@@ -1,6 +1,6 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
 import { makeIdSchema } from "@zerospin/sdk/browser";
-import { brickV4 } from "@qrk.sh/zerospin/src/aggregates/user/models/brick/BrickV4";
+import { brickV6 } from "@qrk.sh/zerospin/src/aggregates/user/models/brick/BrickV6";
 import {
   rowIdSchema,
   stackIdSchema,
@@ -9,7 +9,7 @@ import { Schema } from "effect";
 import PageLayout from "@/app/[username]/site/[siteId]/page/[pageId]/layout";
 
 const isWallSelectionId = Schema.is(
-  Schema.Union([rowIdSchema, stackIdSchema, makeIdSchema(brickV4)]),
+  Schema.Union([rowIdSchema, stackIdSchema, makeIdSchema(brickV6)]),
 );
 
 export const Route = createFileRoute("/$username/site/$siteId/page/$pageId")({

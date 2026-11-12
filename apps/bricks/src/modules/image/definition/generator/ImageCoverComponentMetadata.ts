@@ -10,5 +10,5 @@ export const imageCoverComponentMetadata = defineComponentMetadata({
     imagePosition: primitives.text(),
   },
   description:
-    'Cover image band. Bind imageUrl with { "$state": "/imageUrl" }, title with { "$state": "/title" }, and imagePosition with { "$state": "/imagePosition" }.',
+    "Cover image band. Bind imageUrl to the image source and title to the state's descriptive alt text. Use a literal imagePosition such as center.",
 });

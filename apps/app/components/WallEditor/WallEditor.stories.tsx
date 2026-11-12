@@ -17,7 +17,7 @@ import { Laptop, Monitor, MoveVertical, Smartphone, Tablet } from "lucide-react"
 
 import { WorkspaceSidebar } from "../../app/[username]/site/[siteId]/page/[pageId]/WorkspaceSidebar";
 import { ModuleFilmstrip } from "../../app/[username]/site/[siteId]/page/[pageId]/Modules/ModuleFilmstrip";
-import { ModulePreview } from "../../app/[username]/site/[siteId]/page/[pageId]/Modules/ModulePreview";
+import { ModuleConfiguration } from "../../app/[username]/site/[siteId]/page/[pageId]/Modules/ModuleConfiguration";
 import { SiteHeader } from "../../app/[username]/site/[siteId]/SiteHeader";
 import { BrowserChrome } from "../PagePreview/BrowserChrome";
 import { WallEditor } from "./WallEditor";
@@ -430,6 +430,7 @@ function WallEditorStory(props: {
   crossRowFixture: boolean;
   sizingFixture: boolean;
   resizeFixture: boolean;
+  equalHeightFixture: boolean;
 }) {
   const {
     emptyWall,
@@ -443,6 +444,7 @@ function WallEditorStory(props: {
     crossRowFixture,
     sizingFixture,
     resizeFixture,
+    equalHeightFixture,
   } = props;
   const [shadowVisible, setShadowVisible] = useState(false);
   const [editorVisible, setEditorVisible] = useState(true);
@@ -645,14 +647,45 @@ function WallEditorStory(props: {
                 </div>
               }
             >
-              {fixture === "default" ? (
+              {equalHeightFixture ? (
+                <>
+                  <ModuleConfiguration
+                    moduleId="figma-thumbnail"
+                    layoutId="default"
+                    initialState={{
+                      payload: { url: "https://www.figma.com/design/1234567890123456789012" },
+                      data: {
+                        title: "Figma Thumbnail",
+                        url: "https://www.figma.com/design/1234567890123456789012",
+                        thumbnail_url: null,
+                        thumbnail_width: 789,
+                        thumbnail_height: 450,
+                      },
+                    }}
+                    breakpoint={breakpoint.id}
+                    cardStyle={cardStyle}
+                    onClose={() => {}}
+                  />
+                  <ModuleConfiguration
+                    moduleId="swatch-and-icon"
+                    layoutId="default"
+                    initialState={swatchAndIconPreviewState}
+                    breakpoint={breakpoint.id}
+                    cardStyle={cardStyle}
+                    onClose={() => {}}
+                  />
+                </>
+              ) : fixture === "default" ? (
                 <ModuleFilmstrip breakpoint={breakpoint.id} cardStyle={cardStyle} />
               ) : (
-                <ModulePreview
-                  brickModule={modulesHash[fixture]}
+                <ModuleConfiguration
+                  moduleId={fixture}
+                  layoutId="default"
+                  initialState={modulesHash[fixture].def.state}
                   breakpoint={breakpoint.id}
                   cardStyle={cardStyle}
-                  moduleAction={() => (
+                  onClose={() => {}}
+                  moduleAction={(
                     <Button
                       type="button"
                       aria-label="Preview brick action"
@@ -709,6 +742,7 @@ const meta = {
     const crossRowFixture = context.id.includes("--cross-row-");
     const sizingFixture = context.id.includes("--sizing-foundation");
     const resizeFixture = context.id.includes("--pointer-resize");
+    const equalHeightFixture = context.id.includes("--equal-height-rows");
     const populatedFixture =
       context.id.endsWith("--preview-brick") || context.id.endsWith("--placement-brick");
     return (
@@ -725,6 +759,7 @@ const meta = {
         crossRowFixture={crossRowFixture}
         sizingFixture={sizingFixture}
         resizeFixture={resizeFixture}
+        equalHeightFixture={equalHeightFixture}
       />
     );
   },

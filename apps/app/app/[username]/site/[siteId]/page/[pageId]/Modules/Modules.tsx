@@ -35,7 +35,7 @@ export function Modules() {
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-      <div className="min-h-0 flex-1 font-mono text-sm leading-5 text-zinc-900">
+      <div className="min-h-0 flex-1 text-sm leading-5 text-zinc-900">
         <ModuleFilmstrip breakpoint={breakpoint.id} cardStyle={site.cardStyle} />
       </div>
     </div>

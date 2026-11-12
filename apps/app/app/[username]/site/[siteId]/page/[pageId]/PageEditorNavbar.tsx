@@ -14,7 +14,7 @@ export function PageEditorNavbar(props: {
   const { username, siteId, isPublished } = props;
 
   return (
-    <header className="sticky top-0 z-50 h-14 shrink-0 @container border-b border-border bg-background">
+    <header className="sticky top-0 z-50 col-span-2 h-14 shrink-0 @container border-b border-border bg-background">
       <div className="qrk-responsive-insets grid h-full w-full grid-cols-[auto_1fr_auto] items-center gap-1 [padding-inline:var(--qrk-inset-inline)] sm:grid-cols-[1fr_auto_1fr]">
         <Button
           variant="ghost"

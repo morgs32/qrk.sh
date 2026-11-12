@@ -9,9 +9,9 @@ import illustrationUrl from "../story-illustration.svg?url";
 const meta = {
   title: "Modules/Link/Scripted",
   render: function RenderForm(
-    props: Pick<ComponentProps<typeof LinkForm>, "onSave" | "lookupLinkPreview">,
+    props: Pick<ComponentProps<typeof LinkForm>, "onSave" | "lookupLinkPreview" | "onDraftChange">,
   ) {
-    const { onSave, lookupLinkPreview } = props;
+    const { onSave, lookupLinkPreview, onDraftChange } = props;
     const [state, setState] = useState<ComponentProps<typeof LinkForm>["state"]>(null);
     const [open, setOpen] = useState(true);
 
@@ -22,6 +22,7 @@ const meta = {
           <LinkForm
             state={state}
             lookupLinkPreview={lookupLinkPreview}
+            onDraftChange={onDraftChange}
             onSave={(next) => {
               const result = onSave(next);
               if (result._tag === "Success") setState(next);
@@ -41,8 +42,11 @@ const meta = {
       success: undefined,
     })),
     lookupLinkPreview: fn<ComponentProps<typeof LinkForm>["lookupLinkPreview"]>(),
+    onDraftChange: fn<NonNullable<ComponentProps<typeof LinkForm>["onDraftChange"]>>(),
   },
-} satisfies Meta<Pick<ComponentProps<typeof LinkForm>, "onSave" | "lookupLinkPreview">>;
+} satisfies Meta<
+  Pick<ComponentProps<typeof LinkForm>, "onSave" | "lookupLinkPreview" | "onDraftChange">
+>;
 
 export default meta;
 
@@ -80,6 +84,11 @@ export const Autosave: StoryObj<typeof meta> = {
 
     await userEvent.clear(field);
     await userEvent.paste("https://stale.example/");
+    expect(args.onDraftChange).toHaveBeenLastCalledWith({
+      state: null,
+      pending: true,
+      valid: false,
+    });
     await waitFor(() => expect(lookup).toHaveBeenCalledTimes(1), { timeout: 2000 });
     await userEvent.keyboard("{Enter}");
     await userEvent.tab();
@@ -91,6 +100,11 @@ export const Autosave: StoryObj<typeof meta> = {
     stale.resolve({ _tag: "Right", right: { ...preview, url: "https://stale.example/" } });
     await userEvent.tab();
     expect(await canvas.findByRole("alert")).toHaveTextContent("Preview unavailable.");
+    expect(args.onDraftChange).toHaveBeenLastCalledWith({
+      state: null,
+      pending: false,
+      valid: false,
+    });
     expect(save).not.toHaveBeenCalled();
     expect(field).toHaveValue(url);
 

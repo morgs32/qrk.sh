@@ -19,8 +19,9 @@ export function SwatchAndIconForm(props: {
   onSave: (
     state: IInferDecodedRow<typeof swatchAndIconV1.stateShape>,
   ) => IResult<unknown, { message: string }>;
+  onDraftChange?: (draft: { state: unknown; pending: boolean; valid: boolean }) => void;
 }) {
-  const { state, onSave } = props;
+  const { state, onSave, onDraftChange } = props;
   if (state === null) throw new Error("Swatch and Icon requires configured state");
   const { hash, color } = state.payload;
   const { name, svg } = state.data;
@@ -65,12 +66,24 @@ export function SwatchAndIconForm(props: {
             : color
         }
         onChange={(value) => {
+          const valid = hexColorPattern.test(value);
+          onDraftChange?.({
+            state: valid
+              ? {
+                  ...accepted.current,
+                  payload: { ...accepted.current.payload, color: `#${value.replace(/^#/, "")}` },
+                }
+              : accepted.current,
+            pending: true,
+            valid: valid && draftIcon === null,
+          });
           setDraftColor(value);
           setColorError(undefined);
         }}
         onCommit={(value) => {
           if (!hexColorPattern.test(value)) {
             setColorError("Enter a complete hex color, such as #4A7C59.");
+            onDraftChange?.({ state: accepted.current, pending: false, valid: false });
             return;
           }
           const nextColor = `#${value.replace(/^#/, "")}`;
@@ -88,6 +101,11 @@ export function SwatchAndIconForm(props: {
                 });
           setColorError(error);
           setDraftColor(error === undefined ? null : value);
+          onDraftChange?.({
+            state: accepted.current,
+            pending: false,
+            valid: error === undefined && draftIcon === null,
+          });
         }}
       />
       <MaterialSymbolsIconLookup
@@ -106,6 +124,21 @@ export function SwatchAndIconForm(props: {
                 });
           setIconError(error);
           setDraftIcon(error === undefined ? null : icon);
+          const validColor = draftColor === null || hexColorPattern.test(draftColor);
+          onDraftChange?.({
+            state:
+              draftColor !== null && validColor
+                ? {
+                    ...accepted.current,
+                    payload: {
+                      ...accepted.current.payload,
+                      color: `#${draftColor.replace(/^#/, "")}`,
+                    },
+                  }
+                : accepted.current,
+            pending: draftColor !== null,
+            valid: error === undefined && validColor,
+          });
         }}
       />
     </FieldGroup>

@@ -29,6 +29,8 @@ export declare class BricksApi extends RpcTarget {
 
   getOmniLinkData(url: string): Promise<IRpcEither<string>>;
 
+  resolveSpotifyLink(url: string): Promise<IRpcEither<string>>;
+
   getInstagramProfile(url: string): Promise<IRpcEither<IInstagramScrapePayload>>;
 
   getGitHubProfile(url: string): Promise<IRpcEither<IGitHubScrapePayload>>;

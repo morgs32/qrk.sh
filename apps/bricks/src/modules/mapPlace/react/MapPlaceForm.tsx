@@ -7,7 +7,7 @@ import { makeEffectSchema, type IInferDecodedRow } from "@zerospin/shapes";
 import { newSyncRpcSession } from "@zerospin/core/utils/getApi/newSyncRpcSession/newSyncRpcSession";
 import { Schema } from "effect";
 import type { BricksApi } from "@qrk.sh/bricks/rpc";
-import { useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import { FieldGroup } from "../../../components/field";
 import { GooglePlaceLookup } from "./GooglePlaceLookup";
@@ -19,12 +19,24 @@ export function MapPlaceForm(props: {
   onSave: (
     state: IInferDecodedRow<typeof mapPlaceV1.stateShape>,
   ) => IResult<unknown, { message: string }>;
+  onDraftChange?: (draft: { state: unknown; pending: boolean; valid: boolean }) => void;
 }) {
-  const { state, onSave } = props;
+  const { state, onSave, onDraftChange } = props;
   const [googlePlaceIdDraft, setGooglePlaceId] = useState<string | null>(null);
   const googlePlaceId = googlePlaceIdDraft ?? state?.payload.googlePlaceId ?? "";
   const [saveError, setSaveError] = useState<string>();
   const [isSaving, setIsSaving] = useState(false);
+  useEffect(() => {
+    onDraftChange?.({
+      state,
+      pending: isSaving,
+      valid:
+        googlePlaceIdDraft === null &&
+        state !== null &&
+        state.data !== null &&
+        saveError === undefined,
+    });
+  }, [onDraftChange, state, googlePlaceIdDraft, isSaving, saveError]);
   useWarnBeforeUnload(googlePlaceId !== (state?.payload.googlePlaceId ?? "") || isSaving);
   const activeSubmission = useRef<AbortController | null>(null);
   useLayoutEffect(() => {
@@ -37,6 +49,7 @@ export function MapPlaceForm(props: {
   async function selectPlace(value: string) {
     const normalizedPlaceId = normalizeMapPlaceInput(value);
     if (activeSubmission.current !== null) return;
+    onDraftChange?.({ state, pending: normalizedPlaceId !== undefined, valid: false });
     setGooglePlaceId(value);
     if (
       normalizedPlaceId === undefined ||
@@ -45,6 +58,8 @@ export function MapPlaceForm(props: {
         saveError === undefined)
     ) {
       setSaveError(undefined);
+      if (normalizedPlaceId !== undefined && normalizedPlaceId === state?.payload.googlePlaceId)
+        setGooglePlaceId(null);
       return;
     }
 

@@ -5,7 +5,9 @@ import { useNavigate, useSearch } from "@tanstack/react-router";
 import { BREAKPOINTS, PREVIEW_BORDER_WIDTH } from "../../../../../../lib/breakpoints";
 
 /** Choose an initial breakpoint when the URL has no valid selection. */
-export function useBreakpointGuard(previewGutter: number) {
+export function useBreakpointGuard(
+  previewGutters: Record<(typeof BREAKPOINTS)[number]["id"], number>,
+) {
   const { breakpoint: requestedBreakpoint } = useSearch({
     from: "/$username/site/$siteId/page/$pageId",
   });
@@ -15,7 +17,7 @@ export function useBreakpointGuard(previewGutter: number) {
   const previewRef = useCallback(
     (element: HTMLElement | null) => {
       if (element === null || breakpoint !== undefined) return;
-      const measure = () => setAvailableWidth(Math.max(0, element.clientWidth - 2 * previewGutter));
+      const measure = () => setAvailableWidth(element.clientWidth);
       measure();
       const observer = new ResizeObserver(measure);
       observer.observe(element);
@@ -24,14 +26,16 @@ export function useBreakpointGuard(previewGutter: number) {
         setAvailableWidth(null);
       };
     },
-    [breakpoint, previewGutter],
+    [breakpoint],
   );
 
   useEffect(() => {
     if (breakpoint !== undefined || availableWidth === null || availableWidth === 0) return;
     const largestFitting =
       BREAKPOINTS.findLast(
-        (entry) => entry.previewWidth + 2 * PREVIEW_BORDER_WIDTH <= availableWidth,
+        (entry) =>
+          entry.previewWidth + 2 * PREVIEW_BORDER_WIDTH + 2 * previewGutters[entry.id] <=
+          availableWidth,
       ) ?? BREAKPOINTS[0];
     void navigate({
       to: ".",
@@ -42,7 +46,7 @@ export function useBreakpointGuard(previewGutter: number) {
         breakpoint: largestFitting.id,
       }),
     });
-  }, [availableWidth, breakpoint, navigate]);
+  }, [availableWidth, breakpoint, navigate, previewGutters]);
 
   return { breakpoint, previewRef };
 }

@@ -213,6 +213,33 @@ export const PublishedSnapshot = {
   },
 } satisfies StoryObj<typeof meta>;
 
+export const WeightedStacks = {
+  args: {
+    snapshot: {
+      ...snapshot,
+      walls: snapshot.walls.map((wall) => ({
+        ...wall,
+        sections: wall.sections.map((section) => ({
+          ...section,
+          stacks: section.stacks.map((stack) => ({
+            ...stack,
+            widthWeight: stack.id === "stk_swatches" ? 2 : 1,
+          })),
+        })),
+      })),
+    },
+  },
+  play: async ({ canvasElement }) => {
+    const first = canvasElement.querySelector('[data-wall-stack-id="stk_swatches"]');
+    const second = canvasElement.querySelector('[data-wall-stack-id="stk_empty"]');
+    await expect(first).not.toBeNull();
+    await expect(second).not.toBeNull();
+    if (first === null || second === null) throw new Error("Missing Stack fixture");
+    await expect(first.getBoundingClientRect().width).toBeCloseTo(1096 * 2 / 3 - 16, 1);
+    await expect(second.getBoundingClientRect().width).toBeCloseTo(1096 / 3 - 16, 1);
+  },
+} satisfies StoryObj<typeof meta>;
+
 
 export const PortfolioSnapshot = {
   args: {

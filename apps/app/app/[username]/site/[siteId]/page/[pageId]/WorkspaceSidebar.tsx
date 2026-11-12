@@ -13,7 +13,9 @@ export function WorkspaceSidebar(props: {
     const opener = document.activeElement;
     return () => {
       if (!sidebar.contains(document.activeElement)) return;
-      const wall = sidebar.parentElement?.querySelector<HTMLElement>(".wall-editor");
+      const wall = (
+        sidebar.closest("[data-page-editor]") ?? sidebar.parentElement
+      )?.querySelector<HTMLElement>(".wall-editor");
       queueMicrotask(() => {
         if (sidebar.isConnected || document.activeElement !== document.body) return;
         const target =

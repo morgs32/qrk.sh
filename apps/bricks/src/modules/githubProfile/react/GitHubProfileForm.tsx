@@ -17,11 +17,12 @@ import { useWarnBeforeUnload } from "../../react/useWarnBeforeUnload";
 
 export function GitHubProfileForm(props: {
   state: IInferDecodedRow<typeof githubProfileV1.stateShape> | null;
+  onDraftChange?: ((draft: { state: unknown; pending: boolean; valid: boolean }) => void) | undefined;
   onSave: (
     state: IInferDecodedRow<typeof githubProfileV1.stateShape>,
   ) => IResult<unknown, { message: string }>;
 }) {
-  const { state, onSave } = props;
+  const { state, onSave, onDraftChange } = props;
   const [profileDraft, setProfile] = useState<string | null>(null);
   const profile = profileDraft ?? state?.payload.url ?? "";
   const [validationError, setValidationError] = useState<string>();
@@ -34,6 +35,7 @@ export function GitHubProfileForm(props: {
       if (profileDraft === null) return;
       const normalizedUrl = normalizeGithubProfileInput(draft);
       if (normalizedUrl === undefined) {
+        onDraftChange?.({ state, pending: false, valid: false });
         if (explicit && (draft.trim() !== "" || state !== null))
           setValidationError("Enter a valid GitHub username or profile URL.");
         return;
@@ -41,6 +43,7 @@ export function GitHubProfileForm(props: {
       setValidationError(undefined);
       if (normalizedUrl === state?.payload.url && state.data !== null && saveError === undefined) {
         setProfile(null);
+        onDraftChange?.({ state, pending: false, valid: true });
         return;
       }
 
@@ -54,6 +57,7 @@ export function GitHubProfileForm(props: {
           const response = await api.getGitHubProfile(normalizedUrl);
           if (signal.aborted) return;
           if (response._tag === "Left") {
+            onDraftChange?.({ state, pending: false, valid: false });
             setSaveError(response.left.message);
             return;
           }
@@ -81,6 +85,7 @@ export function GitHubProfileForm(props: {
         }
       } catch (error) {
         if (!signal.aborted && !(error instanceof DOMException && error.name === "AbortError")) {
+          onDraftChange?.({ state, pending: false, valid: false });
           setSaveError(
             error instanceof Error
               ? error.message
@@ -107,6 +112,7 @@ export function GitHubProfileForm(props: {
           autoCorrect="off"
           onChange={(event) => {
             const value = event.currentTarget.value;
+            onDraftChange?.({ state, pending: true, valid: false });
             setProfile(value);
             setValidationError(undefined);
             setSaveError(undefined);

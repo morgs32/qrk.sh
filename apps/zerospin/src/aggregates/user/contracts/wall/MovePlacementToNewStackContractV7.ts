@@ -1,0 +1,118 @@
+import { upgradeAggregateContractRelease, findFirst, findMany } from "@zerospin/sdk/browser";
+import { Effect, Result } from "effect";
+import { wallV4 as wall } from "../../models/wall/WallV4";
+import { backendLibrary } from "@qrk.sh/bricks/modules/backendLibrary";
+import { measureWallFit, wallBreakpointWidths } from "../../layout/wallSizing";
+import { movePlacementToNewStackInLayout } from "../../layout/wallLayoutV4";
+import { movePlacementToNewStackV6 } from "./MovePlacementToNewStackContractV6";
+
+export const movePlacementToNewStackV7 = upgradeAggregateContractRelease(
+  movePlacementToNewStackV6,
+  {
+    version: 7,
+    payload: {},
+    models: { wall },
+    operations: { updateWall: wall.operations.update },
+    down: Effect.fn("movePlacementToNewStackV7.down")(function* (props) {
+      const { payload } = props;
+      return payload;
+    }),
+    program: Effect.fn("movePlacementToNewStack.program")(function* (props) {
+      const { db, payload, operations, failures, claims } = props;
+      if (claims === null)
+        return yield* failures.invalidLayout.make({
+          message: "Moving a Placement requires an authenticated user",
+          status: 403,
+        });
+      const moving = yield* findFirst({
+        db,
+        model: db.models.placement,
+        where: { id: { eq: payload.placementId } },
+      });
+      if (moving === undefined)
+        return yield* failures.invalidLayout.make({
+          message: "The Placement no longer exists",
+          status: 404,
+        });
+      const wallRow = yield* findFirst({
+        db,
+        model: db.models.wall,
+        where: { id: { eq: moving.wallId } },
+      });
+      if (wallRow === undefined)
+        return yield* failures.invalidLayout.make({
+          message: "The Placement's Wall no longer exists",
+          status: 404,
+        });
+      const pageRow = yield* findFirst({
+        db,
+        model: db.models.page,
+        where: { id: { eq: wallRow.pageId } },
+      });
+      const siteRow =
+        pageRow === undefined
+          ? undefined
+          : yield* findFirst({
+              db,
+              model: db.models.site,
+              where: { id: { eq: pageRow.siteId } },
+            });
+      const userRow =
+        siteRow === undefined
+          ? undefined
+          : yield* findFirst({
+              db,
+              model: db.models.user,
+              where: { id: { eq: siteRow.userId } },
+            });
+      if (
+        siteRow === undefined ||
+        userRow === undefined ||
+        userRow.clerkUserId !== claims.clerkUserId
+      )
+        return yield* failures.invalidLayout.make({
+          message: "This Page is unavailable",
+          status: 403,
+        });
+      const changed = movePlacementToNewStackInLayout({
+        layout: wallRow.layout,
+        placementId: moving.id,
+        sectionId: payload.sectionId,
+        newStackId: payload.newStackId,
+        newRowId: payload.newRowId,
+      });
+      if (Result.isFailure(changed))
+        return yield* failures.invalidLayout.make({ message: changed.failure, status: 409 });
+      if (changed.success === wallRow.layout) return;
+      const placements = yield* findMany({
+        db,
+        model: db.models.placement,
+        where: { wallId: { eq: wallRow.id } },
+        with: { brick: true },
+      });
+      if (placements.some((entry) => entry.brick.pageId !== wallRow.pageId))
+        throw new Error("The Wall contains a Placement from another Page");
+      const fit = measureWallFit({
+        layout: changed.success,
+        placementMinimumWidths: new Map(
+          placements.map((entry) => [
+            entry.id,
+            backendLibrary[entry.brick.moduleId].variants[entry.variantId].minWidth,
+          ]),
+        ),
+        wallWidth: wallBreakpointWidths[wallRow.breakpoint],
+        brickGap: siteRow.brickGap,
+      });
+      if (fit.some((section) => !section.fits))
+        return yield* failures.invalidLayout.make({
+          message: "Not enough space in this Section",
+          status: 409,
+        });
+
+      yield* operations.updateWall({
+        resourceId: wallRow.id,
+        attributes: { layout: changed.success },
+      });
+    }),
+  },
+);

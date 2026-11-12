@@ -46,6 +46,62 @@ it("shares width equally until Stack minimums constrain the allocation", () => {
   expect(fractional.reduce((sum, width) => sum + width, 0)).toBeCloseTo(1000);
 });
 
+it("shares Stack width by saved weights and restores proportions after constraints", () => {
+  const weights = [1, 2, 1.5];
+  expect(
+    allocateStackWidths({ minimumWidths: [160, 160, 160], availableWidth: 900, weights }),
+  ).toEqual([200, 400, 300]);
+  const constrained = allocateStackWidths({
+    minimumWidths: [300, 160, 160],
+    availableWidth: 900,
+    weights,
+  });
+  expect(constrained[0]).toBe(300);
+  expect(constrained[1]).toBeCloseTo(1200 / 3.5);
+  expect(constrained[2]).toBeCloseTo(900 / 3.5);
+  expect(
+    allocateStackWidths({ minimumWidths: [160, 160, 160], availableWidth: 900, weights }),
+  ).toEqual([200, 400, 300]);
+  expect(
+    allocateStackWidths({
+      minimumWidths: [350, 300, 160],
+      availableWidth: 1000,
+      weights: [1, 1, 3],
+    }),
+  ).toEqual([350, 300, 350]);
+});
+
+it("reproduces a divider preview after a Stack leaves its minimum", () => {
+  expect(
+    allocateStackWidths({
+      minimumWidths: [400, 0, 0],
+      availableWidth: 900,
+      weights: [1, 1, 1],
+    }),
+  ).toEqual([400, 250, 250]);
+  const widths = allocateStackWidths({
+    minimumWidths: [400, 0, 0],
+    availableWidth: 900,
+    weights: [1.7, 0.9, 1],
+  });
+  expect(widths[0]).toBeCloseTo(425);
+  expect(widths[1]).toBeCloseTo(225);
+  expect(widths[2]).toBeCloseTo(250);
+});
+
+it("allocates large Stack weights without overflow and rejects Sections that cannot fit", () => {
+  expect(
+    allocateStackWidths({
+      minimumWidths: [160, 160],
+      availableWidth: 900,
+      weights: [1e308, 1e308],
+    }),
+  ).toEqual([450, 450]);
+  expect(() =>
+    allocateStackWidths({ minimumWidths: [320, 160], availableWidth: 479, weights: [1, 1] }),
+  ).toThrow("The Section's Stacks cannot fit their available width");
+});
+
 it("counts the widest Row, empty Stack floor, and existing half-gap allowances", () => {
   const layout = Schema.decodeUnknownSync(wallLayoutSchemaV2)({
     sections: [

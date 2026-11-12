@@ -18,11 +18,12 @@ import { useWarnBeforeUnload } from "../../react/useWarnBeforeUnload";
 
 export function FigmaThumbnailForm(props: {
   state: IInferDecodedRow<typeof figmaThumbnailV1.stateShape> | null;
+  onDraftChange?: ((draft: { state: unknown; pending: boolean; valid: boolean }) => void) | undefined;
   onSave: (
     state: IInferDecodedRow<typeof figmaThumbnailV1.stateShape>,
   ) => IResult<unknown, { message: string }>;
 }) {
-  const { state, onSave } = props;
+  const { state, onSave, onDraftChange } = props;
   const [documentUrlDraft, setDocumentUrl] = useState<string | null>(null);
   const documentUrl = documentUrlDraft ?? state?.payload.url ?? "";
   const [validationError, setValidationError] = useState<string>();
@@ -35,6 +36,7 @@ export function FigmaThumbnailForm(props: {
       if (documentUrlDraft === null) return;
       const normalizedUrl = normalizeFigmaThumbnailInput(draft);
       if (normalizedUrl === undefined) {
+        onDraftChange?.({ state, pending: false, valid: false });
         if (explicit && (draft.trim() !== "" || state !== null))
           setValidationError("Enter a valid HTTPS Figma document URL.");
         return;
@@ -42,6 +44,7 @@ export function FigmaThumbnailForm(props: {
       setValidationError(undefined);
       if (normalizedUrl === state?.payload.url && state.data !== null && saveError === undefined) {
         setDocumentUrl(null);
+        onDraftChange?.({ state, pending: false, valid: true });
         return;
       }
 
@@ -55,6 +58,7 @@ export function FigmaThumbnailForm(props: {
           const response = await api.figmaBackend().getThumbnail(normalizedUrl);
           if (signal.aborted) return;
           if (response._tag === "Left") {
+            onDraftChange?.({ state, pending: false, valid: false });
             setSaveError(response.left.message);
             return;
           }
@@ -79,6 +83,7 @@ export function FigmaThumbnailForm(props: {
         }
       } catch (error) {
         if (!signal.aborted && !(error instanceof DOMException && error.name === "AbortError")) {
+          onDraftChange?.({ state, pending: false, valid: false });
           setSaveError(
             error instanceof Error
               ? error.message
@@ -106,6 +111,7 @@ export function FigmaThumbnailForm(props: {
           autoCorrect="off"
           onChange={(event) => {
             const value = event.currentTarget.value;
+            onDraftChange?.({ state, pending: true, valid: false });
             setDocumentUrl(value);
             setValidationError(undefined);
             setSaveError(undefined);

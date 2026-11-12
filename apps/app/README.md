@@ -4,6 +4,8 @@ App serves the editor at <https://app.qrk.localhost/>.
 
 The site navbar uses 16px side padding in the sm preview and 24px from the md
 preview upward, based on the preview container's 720px threshold.
+The space around the preview frame is 32px at `sm`, 40px at `md`, 60px at
+`lg`, and 80px at `xl`.
 
 The Page settings and Site settings sidebars are 300px wide. The Bricks and
 Edit brick sidebars are 300px wide for the `sm` preview and half the authored
@@ -23,21 +25,22 @@ route and sidebar state alone.
 The Bricks pane keeps its line-style category tabs visible above the scrolling
 previews. All is selected initially; categories without matching Bricks are
 hidden. Arrow keys move between tabs and select the focused category.
+Multi-preview rows use Motion+ Carousel for dragging, wheel and keyboard
+navigation. Previews overlap, tilt, and scale based on their position, with a
+shadow beneath each preview. Reduced motion keeps previews flat.
 
 Close and Escape keep the current breakpoint. Open menus, popovers, dialogs,
 and Article body text selection consume Escape first. When Escape dismisses the
 sidebar from an inline Article field, it blurs the field and deselects the Brick.
 Settings and manual Brick editors provide Save and Cancel inside their forms.
 Exit sits at the left edge of the editor navbar, with the breakpoint tabs in
-the center. The breakpoint controls use the small 32px toolbar size; page
-controls use the default 36px size. Changing the preview width keeps the current
-sidebar section open.
-The floating toolbar stays
-visible on desktop while the sidebar is open and highlights the current
-section when it has a toolbar item. Edit brick leaves the items unhighlighted.
-Its page controls use Nova Tabs styling and remain still while
-pressed. Below `lg`, it hides while the sidebar is open and returns when it
-closes.
+the center. The breakpoint tabs use the small 28px size; Page controls use the
+default 36px size. Arrow keys move focus between tabs, and Enter or Space
+selects a breakpoint or Page section. Changing the preview width keeps the
+current sidebar section open.
+The floating Page tabs stay visible on desktop while the sidebar is open and
+highlight the current section. Edit brick leaves the tabs unselected. Below
+`lg`, the tabs hide while the sidebar is open and return when it closes.
 
 For unpublished sites, the editor navbar shows Publish beside the account
 menu. The button uses 28px height and 8px horizontal padding. Site settings

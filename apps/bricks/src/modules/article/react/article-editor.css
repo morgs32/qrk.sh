@@ -105,15 +105,6 @@
   width: calc(100% - 2 * var(--qrk-inset-inline));
   margin: 0 var(--qrk-inset-inline);
   padding: var(--qrk-inset-block) 0;
-  font-family:
-    "SF Pro Display",
-    system-ui,
-    -apple-system,
-    "Segoe UI",
-    Roboto,
-    Helvetica,
-    Arial,
-    sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;

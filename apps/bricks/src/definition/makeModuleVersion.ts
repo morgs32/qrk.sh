@@ -30,7 +30,7 @@ export function makeModuleVersion<
         /** Preferred height in pixels; null follows content and requires an exclusive Row. */
         defaultHeight: 45 | 90 | 180 | 360 | 720 | null;
         /** Optional minimum above the shared 45px floor. */
-        minHeight?: 90 | 180 | 360 | 720;
+        minHeight?: 90 | 180 | 200 | 360 | 720;
       };
     };
     defaultSpec: Spec;

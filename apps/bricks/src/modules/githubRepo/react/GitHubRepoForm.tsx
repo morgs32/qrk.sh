@@ -17,11 +17,12 @@ import { useWarnBeforeUnload } from "../../react/useWarnBeforeUnload";
 
 export function GitHubRepoForm(props: {
   state: IInferDecodedRow<typeof githubRepoV1.stateShape> | null;
+  onDraftChange?: ((draft: { state: unknown; pending: boolean; valid: boolean }) => void) | undefined;
   onSave: (
     state: IInferDecodedRow<typeof githubRepoV1.stateShape>,
   ) => IResult<unknown, { message: string }>;
 }) {
-  const { state, onSave } = props;
+  const { state, onSave, onDraftChange } = props;
   const [repositoryDraft, setRepository] = useState<string | null>(null);
   const repository = repositoryDraft ?? state?.payload.url ?? "";
   const [validationError, setValidationError] = useState<string>();
@@ -34,6 +35,7 @@ export function GitHubRepoForm(props: {
       if (repositoryDraft === null) return;
       const normalizedUrl = normalizeGithubRepoInput(draft);
       if (normalizedUrl === undefined) {
+        onDraftChange?.({ state, pending: false, valid: false });
         if (explicit && (draft.trim() !== "" || state !== null))
           setValidationError("Enter a valid GitHub repository.");
         return;
@@ -41,6 +43,7 @@ export function GitHubRepoForm(props: {
       setValidationError(undefined);
       if (normalizedUrl === state?.payload.url && state.data !== null && saveError === undefined) {
         setRepository(null);
+        onDraftChange?.({ state, pending: false, valid: true });
         return;
       }
 
@@ -54,6 +57,7 @@ export function GitHubRepoForm(props: {
           const response = await api.getGitHubRepo(normalizedUrl);
           if (signal.aborted) return;
           if (response._tag === "Left") {
+            onDraftChange?.({ state, pending: false, valid: false });
             setSaveError(response.left.message);
             return;
           }
@@ -76,6 +80,7 @@ export function GitHubRepoForm(props: {
         }
       } catch (error) {
         if (!signal.aborted && !(error instanceof DOMException && error.name === "AbortError")) {
+          onDraftChange?.({ state, pending: false, valid: false });
           setSaveError(
             error instanceof Error
               ? error.message
@@ -102,6 +107,7 @@ export function GitHubRepoForm(props: {
           autoCorrect="off"
           onChange={(event) => {
             const value = event.currentTarget.value;
+            onDraftChange?.({ state, pending: true, valid: false });
             setRepository(value);
             setValidationError(undefined);
             setSaveError(undefined);

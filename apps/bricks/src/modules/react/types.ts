@@ -29,6 +29,7 @@ export type IModule<MODULE extends string> = {
   Form?: (props: {
     state: unknown;
     onSave: (state: unknown) => IResult<unknown, { message: string }>;
+    onDraftChange?: (draft: { state: unknown; pending: boolean; valid: boolean }) => void;
     previewWidth?: number;
     measureFrame?: (selector: string) => number | undefined;
   }) => ReactNode;
@@ -50,6 +51,10 @@ export type IModule<MODULE extends string> = {
   };
   stateShape: IShape;
   defaultState: unknown;
+  /** Optional sample states for specific starting layouts. */
+  previewStates?: Record<string, unknown>;
+  /** Initial configuration, or "preview" to capture the selected preview state. */
+  initialDraft: unknown;
 };
 
 /** Serializable module row: module identity, no React component. */

@@ -23,7 +23,7 @@ export function DialogContent(
       <DialogPrimitive.Popup
         data-slot="dialog-content"
         className={cn(
-          "qrk-bricks fixed top-1/2 left-1/2 z-50 grid w-md max-w-[calc(100vw-2rem)] -translate-x-1/2 -translate-y-1/2 gap-3 rounded-lg bg-background p-4 text-xs text-foreground shadow-lg outline-none",
+          "fixed top-1/2 left-1/2 z-50 grid w-md max-w-[calc(100vw-2rem)] -translate-x-1/2 -translate-y-1/2 gap-3 rounded-lg bg-background p-4 text-xs text-foreground shadow-lg outline-none",
           className,
         )}
         {...popupProps}

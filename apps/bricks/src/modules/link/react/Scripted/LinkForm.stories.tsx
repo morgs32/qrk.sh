@@ -16,7 +16,7 @@ const meta = {
     const [open, setOpen] = useState(true);
 
     return (
-      <div className="qrk-bricks grid gap-3">
+      <div className="grid gap-3">
         <img src={illustrationUrl} alt="" width={264} height={168} className="h-auto max-w-full" />
         {open ? (
           <LinkForm

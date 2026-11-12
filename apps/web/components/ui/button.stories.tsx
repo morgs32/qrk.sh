@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import Link from "next/link";
 
-import { Button } from "./button";
+import { Button } from "@qrk.sh/bricks/components/button";
 
 const meta = {
   title: "Web/Button Links",
@@ -11,7 +11,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "Reusable `Button` from `components/ui/button.tsx`. Use `asChild` with Next.js `Link` for navigation with button styles.",
+          "Render a Next.js Link with `role=\"link\"` and set `nativeButton={false}` on the Bricks Button.",
       },
     },
   },
@@ -30,13 +30,13 @@ const meta = {
       options: ["default", "sm", "lg", "icon"],
     },
     children: { control: "text" },
-    asChild: { table: { disable: true } },
+    render: { table: { disable: true } },
   },
   render: (props) => {
     const { children, ...buttonProps } = props;
     return (
-      <Button {...buttonProps} asChild>
-        <Link href="/replace">{children}</Link>
+      <Button {...buttonProps} nativeButton={false} render={<Link href="/replace" role="link" />
+        }>{children}
       </Button>
     );
   },
@@ -50,26 +50,26 @@ export const AllVariants = {
       source: {
         language: "tsx",
         code: `import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { Button } from "@qrk.sh/bricks/components/button";
 
 <div className="flex flex-wrap items-center gap-4">
-  <Button asChild>
-    <Link href="/replace">Default</Link>
+  <Button nativeButton={false} render={<Link href="/replace" role="link" />
+    }>Default
   </Button>
-  <Button asChild variant="destructive">
-    <Link href="/replace">Destructive</Link>
+  <Button nativeButton={false} variant="destructive" render={<Link href="/replace" role="link" />
+    }>Destructive
   </Button>
-  <Button asChild variant="outline">
-    <Link href="/replace">Outline</Link>
+  <Button nativeButton={false} variant="outline" render={<Link href="/replace" role="link" />
+    }>Outline
   </Button>
-  <Button asChild variant="secondary">
-    <Link href="/replace">Secondary</Link>
+  <Button nativeButton={false} variant="secondary" render={<Link href="/replace" role="link" />
+    }>Secondary
   </Button>
-  <Button asChild variant="ghost">
-    <Link href="/replace">Ghost</Link>
+  <Button nativeButton={false} variant="ghost" render={<Link href="/replace" role="link" />
+    }>Ghost
   </Button>
-  <Button asChild variant="link">
-    <Link href="/replace">Link</Link>
+  <Button nativeButton={false} variant="link" render={<Link href="/replace" role="link" />
+    }>Link
   </Button>
 </div>`,
       },
@@ -77,23 +77,23 @@ import { Button } from "@/components/ui/button";
   },
   render: () => (
     <div className="flex flex-wrap items-center gap-4">
-      <Button asChild>
-        <Link href="/replace">Default</Link>
+      <Button nativeButton={false} render={<Link href="/replace" role="link" />
+        }>Default
       </Button>
-      <Button asChild variant="destructive">
-        <Link href="/replace">Destructive</Link>
+      <Button nativeButton={false} variant="destructive" render={<Link href="/replace" role="link" />
+        }>Destructive
       </Button>
-      <Button asChild variant="outline">
-        <Link href="/replace">Outline</Link>
+      <Button nativeButton={false} variant="outline" render={<Link href="/replace" role="link" />
+        }>Outline
       </Button>
-      <Button asChild variant="secondary">
-        <Link href="/replace">Secondary</Link>
+      <Button nativeButton={false} variant="secondary" render={<Link href="/replace" role="link" />
+        }>Secondary
       </Button>
-      <Button asChild variant="ghost">
-        <Link href="/replace">Ghost</Link>
+      <Button nativeButton={false} variant="ghost" render={<Link href="/replace" role="link" />
+        }>Ghost
       </Button>
-      <Button asChild variant="link">
-        <Link href="/replace">Link</Link>
+      <Button nativeButton={false} variant="link" render={<Link href="/replace" role="link" />
+        }>Link
       </Button>
     </div>
   ),
@@ -105,43 +105,39 @@ export const Sizes = {
       source: {
         language: "tsx",
         code: `import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { Button } from "@qrk.sh/bricks/components/button";
 
 <div className="flex flex-wrap items-center gap-4">
-  <Button asChild size="sm">
-    <Link href="/replace">Small</Link>
+  <Button nativeButton={false} size="sm" render={<Link href="/replace" role="link" />
+    }>Small
   </Button>
-  <Button asChild>
-    <Link href="/replace">Default</Link>
+  <Button nativeButton={false} render={<Link href="/replace" role="link" />
+    }>Default
   </Button>
-  <Button asChild size="lg">
-    <Link href="/replace">Large</Link>
+  <Button nativeButton={false} size="lg" render={<Link href="/replace" role="link" />
+    }>Large
   </Button>
-  <Button asChild size="icon">
-    <Link aria-label="Open Dashboard" href="/replace">
+  <Button nativeButton={false} size="icon" render={<Link aria-label="Open Dashboard" href="/replace" role="link" />}>
       →
-    </Link>
-  </Button>
+    </Button>
 </div>`,
       },
     },
   },
   render: () => (
     <div className="flex flex-wrap items-center gap-4">
-      <Button asChild size="sm">
-        <Link href="/replace">Small</Link>
+      <Button nativeButton={false} size="sm" render={<Link href="/replace" role="link" />
+        }>Small
       </Button>
-      <Button asChild>
-        <Link href="/replace">Default</Link>
+      <Button nativeButton={false} render={<Link href="/replace" role="link" />
+        }>Default
       </Button>
-      <Button asChild size="lg">
-        <Link href="/replace">Large</Link>
+      <Button nativeButton={false} size="lg" render={<Link href="/replace" role="link" />
+        }>Large
       </Button>
-      <Button asChild size="icon">
-        <Link aria-label="Open Dashboard" href="/replace">
+      <Button nativeButton={false} size="icon" render={<Link aria-label="Open Dashboard" href="/replace" role="link" />}>
           →
-        </Link>
-      </Button>
+        </Button>
     </div>
   ),
 } satisfies StoryObj<typeof meta>;
@@ -152,11 +148,9 @@ export const Playground = {
       source: {
         language: "tsx",
         code: `import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { Button } from "@qrk.sh/bricks/components/button";
 
-<Button asChild variant="default" size="default">
-  <Link href="/replace">Dashboard</Link>
-</Button>`,
+<Button nativeButton={false} variant="default" size="default" render={<Link href="/replace" role="link" />}>Dashboard</Button>`,
       },
     },
   },

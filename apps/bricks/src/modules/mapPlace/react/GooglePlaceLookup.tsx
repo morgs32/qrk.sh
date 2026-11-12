@@ -196,7 +196,7 @@ export function GooglePlaceLookup(props: {
             onChange(next.placeId);
           }}
         >
-          <Combobox.InputGroup render={<InputGroup />}>
+          <Combobox.InputGroup render={<InputGroup variant="sm" />}>
             <Combobox.Input
               id={id}
               render={<InputGroupInput />}

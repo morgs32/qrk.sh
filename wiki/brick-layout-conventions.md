@@ -330,6 +330,17 @@ styles, and their stories. For example, [TextInput](../apps/bricks/src/component
 defines the shared labeled text control. [LinkForm](../apps/bricks/src/modules/link/react/LinkForm.tsx)
 uses it and owns the Link-specific URL workflow.
 
+App, Web, and Storybook load the design system from
+`@qrk.sh/bricks/components/brickStyles.css`. It supplies the shared light and
+dark tokens, Geist, and Geist Mono at document level, including for portaled
+controls. The hosts own Tailwind source scanning and their route layouts.
+
+Use the 36px default `Input` or `InputGroup` in standalone forms and
+`variant="sm"` for the 28px fields in editor sidebars. Both heights use the same
+surface and focus treatment. Set the variant on the group when composing an
+input with a suffix or inline action. Use the shared compact dialog for
+Create Site, Publish Site, and image crop.
+
 The [API Worker](../apps/api/Worker.ts) mounts
 [`BricksApi`](../apps/bricks/worker/BricksApi.ts) at its root and owns uploads
 and asset serving. App and Storybook forward same-origin `/rpc` calls to that

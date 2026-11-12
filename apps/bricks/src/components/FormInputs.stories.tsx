@@ -1,23 +1,30 @@
+import { Dialog } from "@base-ui/react/dialog";
 import { Slider as SliderPrimitive } from "@base-ui/react/slider";
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { expect, userEvent, waitFor, within } from "storybook/test";
 import {
   AlignCenter,
   AlignJustify,
   AlignLeft,
   AlignRight,
   BrickWall,
+  Copy,
   Layers,
   Rows3,
 } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 
 import { BorderInput } from "./BorderInput";
+import { Button } from "./button";
 import { ButtonGroupInput } from "./ButtonGroupInput";
 import { Checkbox } from "./checkbox";
 import { ColorInput } from "./ColorInput";
+import { DialogContent } from "./dialog";
 import { DropdownInput } from "./DropdownInput";
 import { ImageUploadInput } from "./ImageUploadInput";
 import { Field, FieldContent, FieldDescription, FieldGroup, FieldLabel } from "./field";
+import { Input } from "./Input";
+import { InputGroup, InputGroupAddon, InputGroupInput } from "./input-group";
 import { TextInput } from "./TextInput";
 import { NumberInput } from "./NumberInput";
 import { PositionInput } from "./PositionInput";
@@ -288,9 +295,86 @@ export const Catalog: StoryObj<typeof meta> = {
     ];
 
     return (
-      <div className="qrk-bricks flex min-h-svh justify-end bg-white">
+      <div className="flex min-h-svh justify-end bg-white">
         <StudioSidebar label="Form inputs" sections={sections} />
       </div>
     );
+  },
+};
+
+export const FieldHeights: StoryObj<typeof meta> = {
+  render: () => (
+    <div className="grid w-80 gap-3 p-4">
+      <Input aria-label="Name" />
+      <Input variant="sm" aria-label="Compact name" />
+      <InputGroup>
+        <InputGroupInput
+          aria-label="Subdomain"
+          aria-describedby="example-subdomain-suffix"
+          pattern="[a-z0-9]+(?:-[a-z0-9]+)*"
+        />
+        <InputGroupAddon align="inline-end" className="pe-2">
+          <span id="example-subdomain-suffix">.qrk.sh</span>
+        </InputGroupAddon>
+      </InputGroup>
+      <InputGroup variant="sm">
+        <InputGroupInput aria-label="Share URL" value="https://example.qrk.sh" readOnly />
+        <InputGroupAddon align="inline-end">
+          <Button type="button" aria-label="Copy share URL" variant="ghost" size="icon-xs">
+            <Copy aria-hidden />
+          </Button>
+        </InputGroupAddon>
+      </InputGroup>
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const name = canvas.getByRole("textbox", { name: "Name" });
+    const compactName = canvas.getByRole("textbox", { name: "Compact name" });
+    const subdomain = canvas.getByRole("textbox", { name: "Subdomain" });
+    const shareUrl = canvas.getByRole("textbox", { name: "Share URL" });
+    const copy = canvas.getByRole("button", { name: "Copy share URL" });
+
+    await expect(name.getBoundingClientRect().height).toBe(36);
+    await expect(compactName.getBoundingClientRect().height).toBe(28);
+    await expect(subdomain.getBoundingClientRect().height).toBe(36);
+    await expect(shareUrl.getBoundingClientRect().height).toBe(28);
+    await expect(copy.getBoundingClientRect().height).toBe(24);
+    await expect(subdomain).toHaveAccessibleDescription(".qrk.sh");
+    await userEvent.click(canvas.getByText(".qrk.sh"));
+    await expect(subdomain).toHaveFocus();
+    await userEvent.type(subdomain, "invalid slug");
+    await expect(subdomain).toBeInvalid();
+    await userEvent.clear(subdomain);
+    await userEvent.type(subdomain, "valid-slug");
+    await expect(subdomain).toBeValid();
+    await userEvent.click(copy);
+    await expect(copy).toHaveFocus();
+  },
+};
+
+export const CompactDialog: StoryObj<typeof meta> = {
+  render: () => (
+    <Dialog.Root>
+      <Dialog.Trigger render={<Button type="button" />}>Open dialog</Dialog.Trigger>
+      <DialogContent>
+        <Dialog.Title>Site details</Dialog.Title>
+        <Input aria-label="Site name" />
+      </DialogContent>
+    </Dialog.Root>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const documentBody = within(canvasElement.ownerDocument.body);
+    const trigger = canvas.getByRole("button", { name: "Open dialog" });
+    await userEvent.click(trigger);
+    const dialog = await documentBody.findByRole("dialog", { name: "Site details" });
+    await expect(getComputedStyle(dialog).padding).toBe("16px");
+    await waitFor(() =>
+      expect(documentBody.getByRole("textbox", { name: "Site name" })).toHaveFocus(),
+    );
+    await userEvent.keyboard("{Escape}");
+    await waitFor(() => expect(dialog).not.toBeInTheDocument());
+    await waitFor(() => expect(trigger).toHaveFocus());
   },
 };

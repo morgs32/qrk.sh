@@ -9,7 +9,7 @@ const meta = {
   component: StudioSidebar,
   parameters: { layout: "fullscreen" },
   render: (args) => (
-    <div className="qrk-bricks flex min-h-svh justify-end bg-white">
+    <div className="flex min-h-svh justify-end bg-white">
       <StudioSidebar {...args} />
     </div>
   ),
@@ -23,11 +23,11 @@ export const Default = {
     sections: [
       {
         title: "Link",
-        content: <Input aria-label="URL" type="url" defaultValue="https://example.com" />,
+        content: <Input variant="sm" aria-label="URL" type="url" defaultValue="https://example.com" />,
       },
       {
         title: "Display",
-        content: <Input aria-label="Title" defaultValue="Example link" />,
+        content: <Input variant="sm" aria-label="Title" defaultValue="Example link" />,
       },
     ],
   },
@@ -36,7 +36,7 @@ export const Default = {
 export const Embedded: StoryObj<typeof meta> = {
   args: { ...Default.args, embedded: true },
   render: (args) => (
-    <div className="qrk-bricks relative flex h-svh justify-end bg-white">
+    <div className="relative flex h-svh justify-end bg-white">
       <aside
         aria-label="Workspace sidebar"
         className="flex h-full min-h-0 w-[320px] shrink-0 flex-col border-l border-sidebar-border bg-background max-lg:absolute max-lg:inset-y-0 max-lg:right-0 max-lg:z-[79] max-lg:max-w-[75vw] max-lg:shadow-xl"

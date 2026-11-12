@@ -45,7 +45,7 @@ export function ColorInput(props: {
       <FieldLabel htmlFor={id}>{label}</FieldLabel>
       <FieldContent>
         <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_28px] gap-1">
-          <InputGroup>
+          <InputGroup variant="sm">
             <InputGroupInput
               id={id}
               aria-invalid={invalid || undefined}

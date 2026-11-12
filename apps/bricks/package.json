@@ -26,7 +26,11 @@
     "./components/TextboxInput": "./src/components/TextboxInput.tsx",
     "./components/ImageUploadInput": "./src/components/ImageUploadInput.tsx",
     "./components/checkbox": "./src/components/checkbox.tsx",
+    "./components/dialog": "./src/components/dialog.tsx",
+    "./components/input-group": "./src/components/input-group.tsx",
+    "./components/select": "./src/components/select.tsx",
     "./components/field": "./src/components/field.tsx",
+    "./components/skeleton": "./src/components/skeleton.tsx",
     "./components/slider": "./src/components/slider.tsx",
     "./components/StudioSidebar": "./src/components/StudioSidebar.tsx",
     "./modules/react/useWarnBeforeUnload": "./src/modules/react/useWarnBeforeUnload.ts",
@@ -81,6 +85,7 @@
   "dependencies": {
     "@base-ui/react": "^1.6.0",
     "@cloudflare/puppeteer": "^1.1.0",
+    "@fontsource-variable/geist": "^5.2.8",
     "@fontsource-variable/geist-mono": "5.3.0",
     "@json-render/core": "^0.20.0",
     "@json-render/react": "^0.20.0",
@@ -111,7 +116,6 @@
     "system-worker": "44.0.2"
   },
   "devDependencies": {
-    "@fontsource-variable/geist": "^5.2.8",
     "@storybook/addon-a11y": "^10.6.0",
     "@storybook/addon-docs": "^10.6.0",
     "@storybook/react-vite": "^10.6.0",

@@ -36,7 +36,7 @@ export function ShadowInput(props: {
       <Field orientation="horizontal" data-invalid={error !== undefined || undefined}>
         <FieldLabel htmlFor={id}>Shadow</FieldLabel>
         <FieldContent>
-          <InputGroup>
+          <InputGroup variant="sm">
             <InputGroupInput
               id={id}
               aria-invalid={error !== undefined || undefined}

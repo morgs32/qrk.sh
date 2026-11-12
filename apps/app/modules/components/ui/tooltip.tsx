@@ -32,7 +32,7 @@ function TooltipContent({
         alignOffset={alignOffset}
         side={side}
         sideOffset={sideOffset}
-        className="qrk-bricks isolate z-90"
+        className="isolate z-90"
       >
         <TooltipPrimitive.Popup
           data-slot="tooltip-content"

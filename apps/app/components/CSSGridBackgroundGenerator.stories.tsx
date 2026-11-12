@@ -3,8 +3,8 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useMemo, useState } from "react";
 import { Check, Clipboard, Sparkles } from "lucide-react";
 
-import { Button } from "./ui/button";
-import { Input } from "./ui/input";
+import { Button } from "@qrk.sh/bricks/components/button";
+import { Input } from "@qrk.sh/bricks/components/Input";
 
 const accentCells = [2, 5, 9, 14, 18, 21, 26, 30, 33, 38, 42, 47, 51];
 const motifSize = 8;

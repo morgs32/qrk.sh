@@ -15,7 +15,7 @@ export function BrickWrapper(
     <div
       {...divProps}
       className={cn(
-        "qrk-bricks brick-hover-surface relative h-auto min-h-0 min-w-0 w-full overflow-visible [&_svg]:select-none",
+        "brick-hover-surface relative h-auto min-h-0 min-w-0 w-full overflow-visible [&_svg]:select-none",
         className,
       )}
     >

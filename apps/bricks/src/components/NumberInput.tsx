@@ -58,7 +58,7 @@ export function NumberInput(props: {
           {label}
         </FieldLabel>
       )}
-      <NumberField.Group render={<InputGroup />}>
+      <NumberField.Group render={<InputGroup variant="sm" />}>
         <NumberField.Input
           render={<InputGroupInput />}
           aria-label={prefix === undefined ? undefined : label}

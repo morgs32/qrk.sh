@@ -44,9 +44,9 @@ export function TextInput(
       </FieldLabel>
       <FieldContent>
         {leadingIcon == null ? (
-          <Input {...controlProps} />
+          <Input variant="sm" {...controlProps} />
         ) : (
-          <InputGroup>
+          <InputGroup variant="sm">
             <InputGroupInput {...controlProps} />
             <InputGroupAddon aria-hidden="true">{leadingIcon}</InputGroupAddon>
           </InputGroup>

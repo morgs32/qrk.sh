@@ -10,7 +10,7 @@ const meta = {
   tags: ["autodocs", "!dev"],
   decorators: [
     (Story) => (
-      <div className="qrk-bricks max-w-full p-3">
+      <div className="max-w-full p-3">
         <Story />
       </div>
     ),

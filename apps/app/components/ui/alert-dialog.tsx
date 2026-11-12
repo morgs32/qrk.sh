@@ -3,7 +3,7 @@
 import { AlertDialog as AlertDialogPrimitive } from "@base-ui/react/alert-dialog";
 import { cn } from "cn";
 
-import { Button } from "./button";
+import { Button } from "@qrk.sh/bricks/components/button";
 
 // shadcn Base UI Alert Dialog with independent backdrop and popup styling.
 export function AlertDialogContent(

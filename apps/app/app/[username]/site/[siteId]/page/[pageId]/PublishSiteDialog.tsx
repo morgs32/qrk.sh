@@ -7,17 +7,9 @@ import { makeId, stageAggregateSessionCommand } from "@zerospin/sdk/browser";
 import { pageSnapshotV5 as PageSnapshot } from "@qrk.sh/zerospin/src/aggregates/user/models/pageSnapshot/PageSnapshotV5";
 
 import { SiteTree, type ISiteTreeNode } from "@/components/SiteTree";
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { Button } from "@qrk.sh/bricks/components/button";
+import { Dialog } from "@base-ui/react/dialog";
+import { DialogContent } from "@qrk.sh/bricks/components/dialog";
 import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
 import { useWarnBeforeUnload } from "@qrk.sh/bricks/modules/react/useWarnBeforeUnload";
 import { BrickAutosaveContext } from "./BrickAutosaveContext";
@@ -91,7 +83,7 @@ export function PublishSiteDialog(props: { siteId: `sit_${string}` }) {
   }
 
   return (
-    <Dialog
+    <Dialog.Root
       open={open}
       onOpenChange={(nextOpen) => {
         if (nextOpen) {
@@ -104,7 +96,7 @@ export function PublishSiteDialog(props: { siteId: `sit_${string}` }) {
         setOpen(nextOpen);
       }}
     >
-      <DialogTrigger
+      <Dialog.Trigger
         render={
           <Button
             type="button"
@@ -116,12 +108,12 @@ export function PublishSiteDialog(props: { siteId: `sit_${string}` }) {
         }
       />
       <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Publish Site</DialogTitle>
-          <DialogDescription>
+        <div className="grid gap-2 pe-8">
+          <Dialog.Title className="text-sm font-medium">Publish Site</Dialog.Title>
+          <Dialog.Description className="text-muted-foreground">
             Choose saved pages to publish. The root page (/) is required.
-          </DialogDescription>
-        </DialogHeader>
+          </Dialog.Description>
+        </div>
         <form
           autoComplete="off"
           className="flex min-h-0 flex-col gap-4"
@@ -167,8 +159,8 @@ export function PublishSiteDialog(props: { siteId: `sit_${string}` }) {
               />
             </div>
           )}
-          <DialogFooter>
-            <DialogClose
+          <div className="flex flex-wrap justify-end gap-2">
+            <Dialog.Close
               render={
                 <Button type="button" variant="outline">
                   Cancel
@@ -178,9 +170,9 @@ export function PublishSiteDialog(props: { siteId: `sit_${string}` }) {
             <Button type="submit" disabled={rootPage === undefined}>
               Publish Site
             </Button>
-          </DialogFooter>
+          </div>
         </form>
       </DialogContent>
-    </Dialog>
+    </Dialog.Root>
   );
 }

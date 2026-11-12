@@ -61,7 +61,7 @@ import { modulesHash } from "../../modules/modulesHash";
 import { makeWallLayoutView } from "./makeWallLayoutView";
 import { useWallResize } from "./useWallResize";
 import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
-import { Button } from "@/components/ui/button";
+import { Button } from "@qrk.sh/bricks/components/button";
 import { Button as BricksButton } from "@qrk.sh/bricks/components/button";
 import {
   AlertDialogCancel,
@@ -793,7 +793,7 @@ export function WallEditor(props: {
                     render: ({ container }) => {
                       const appearance = getComputedStyle(surface);
                       const rect = surface.getBoundingClientRect();
-                      container.classList.add("qrk-bricks", "brick-drag-preview");
+                      container.classList.add("brick-drag-preview");
                       container.classList.toggle("dark", surface.closest(".dark") !== null);
                       container.style.font = appearance.font;
                       container.style.color = appearance.color;

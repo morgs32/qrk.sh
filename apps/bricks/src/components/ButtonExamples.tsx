@@ -42,7 +42,7 @@ export function ButtonExamples() {
         </Button>
       </section>
       <section aria-label="Input group button" className="w-[260px] max-w-full">
-        <InputGroup>
+        <InputGroup variant="sm">
           <InputGroupInput
             aria-label="Search"
             placeholder="Search"

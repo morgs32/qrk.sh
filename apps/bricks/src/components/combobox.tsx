@@ -12,7 +12,7 @@ export function ComboboxContent(
         <Combobox.Popup
           data-slot="combobox-content"
           className={cn(
-            "qrk-bricks group/combobox-content relative max-h-(--available-height) w-(--anchor-width) max-w-(--available-width) origin-(--transform-origin) overflow-hidden rounded-md border border-border bg-background text-xs text-foreground shadow-lg",
+            "group/combobox-content relative max-h-(--available-height) w-(--anchor-width) max-w-(--available-width) origin-(--transform-origin) overflow-hidden rounded-md border border-border bg-background text-xs text-foreground shadow-lg",
             className,
           )}
           {...popupProps}

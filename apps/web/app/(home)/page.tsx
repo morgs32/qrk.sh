@@ -1,14 +1,8 @@
-import { Space_Mono } from "next/font/google";
 import Link from "next/link";
 import { Show } from "@clerk/nextjs";
 
 import { UnderlinedLink } from "@/components/UnderlinedLink";
 import { Wordmark } from "@/components/Wordmark";
-
-const spaceMono = Space_Mono({
-  subsets: ["latin"],
-  weight: "700",
-});
 
 const occupiedPixelCells = [
   // Q
@@ -113,7 +107,7 @@ export default function HomePage() {
           className="pointer-events-none @container z-10 col-start-2 col-end-3 row-start-1 row-end-2"
         >
           <h1
-            className={`${spaceMono.className} flex h-full flex-col justify-center p-4 text-left text-[20cqw] leading-none font-700 tracking-[-0.025em] text-white [word-spacing:-0.1em]`}
+            className="flex h-full flex-col justify-center p-4 text-left text-[20cqw] leading-none font-700 tracking-[-0.025em] text-white [word-spacing:-0.1em]"
             id="home-hero-heading"
           >
             <span>be a</span>

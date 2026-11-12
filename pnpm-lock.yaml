@@ -130,13 +130,7 @@ importers:
       '@clerk/react':
         specifier: 6.17.8
         version: 6.17.8(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
-      '@fontsource-variable/geist':
-        specifier: ^5.2.8
-        version: 5.3.0
       '@fontsource/silkscreen':
-        specifier: ^5.2.7
-        version: 5.3.0
-      '@fontsource/space-mono':
         specifier: ^5.2.7
         version: 5.3.0
       '@json-render/core':
@@ -320,6 +314,9 @@ importers:
       '@cloudflare/puppeteer':
         specifier: ^1.1.0
         version: 1.1.0
+      '@fontsource-variable/geist':
+        specifier: ^5.2.8
+        version: 5.3.0
       '@fontsource-variable/geist-mono':
         specifier: 5.3.0
         version: 5.3.0
@@ -405,9 +402,6 @@ importers:
         specifier: 44.0.2
         version: 44.0.2(@babel/core@7.29.7)(@babel/runtime@8.1.0)(@cloudflare/workers-types@5.20260828.1)(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.10.0))(@types/node@25.5.2)(@types/react@19.2.17)(effect@4.0.2)(jiti@2.7.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass-embedded@1.104.1)(sass@1.104.1)(sql.js@1.15.2)(terser@5.51.2)(typescript@6.0.2)(use-sync-external-store@1.7.0(react@19.2.7))(valibot@1.5.0(typescript@6.0.2))(zod@4.6.6)
     devDependencies:
-      '@fontsource-variable/geist':
-        specifier: ^5.2.8
-        version: 5.3.0
       '@storybook/addon-a11y':
         specifier: ^10.6.0
         version: 10.6.0(storybook@10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.10.0)(@types/node@25.5.2)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(terser@5.51.2)(typescript@6.0.2)(yaml@2.9.1)))
@@ -490,6 +484,9 @@ importers:
       '@clerk/nextjs':
         specifier: ^7.1.0
         version: 7.1.0(next@16.3.4(@babel/core@7.29.7)(@opentelemetry/api@1.10.0)(@types/node@25.5.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass@1.104.1))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      '@fontsource/silkscreen':
+        specifier: ^5.2.7
+        version: 5.3.0
       '@qrk.sh/bricks':
         specifier: workspace:*
         version: link:../bricks
@@ -521,12 +518,6 @@ importers:
         specifier: 19.2.7
         version: 19.2.7(react@19.2.7)
     devDependencies:
-      '@fontsource/silkscreen':
-        specifier: ^5.2.7
-        version: 5.3.0
-      '@fontsource/space-mono':
-        specifier: ^5.2.7
-        version: 5.3.0
       '@storybook/addon-docs':
         specifier: ^10.6.0
         version: 10.6.0(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(storybook@10.6.0(@types/react@19.2.17)(prettier@3.9.10)(react@19.2.7)(vite-plus@1.0.0(@opentelemetry/api@1.10.0)(@types/node@25.5.2)(@vitest/ui@5.0.1(vitest@5.0.1))(esbuild@0.28.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(terser@5.51.2)(typescript@6.0.2)(yaml@2.9.1)))
@@ -2019,9 +2010,6 @@ packages:
 
   '@fontsource/silkscreen@5.3.0':
     resolution: {integrity: sha512-M1NQ3LQH0LFNvyFPd/piHEGMImPPtpLglNnLC6Vdcq9kL0jNIOtTQmksAWCc4enbDnw1OnIpZtjNEfRqYm/QmA==}
-
-  '@fontsource/space-mono@5.3.0':
-    resolution: {integrity: sha512-FrpBMOVWn3PRdRHlrZWC55X3kZG/2BTH7SM5ZyS/bky3iKya2BturI5lk+t0RoDQL2JyHzURsVq/EisCsxpI5A==}
 
   '@hono/node-server@1.19.18':
     resolution: {integrity: sha512-609kppIP9GITS+EwPyB6Kiq8z2yXONaYD1VHpo7MMP9celRJYbkFr9KakJncHwK0EK/XYtlogqmrLchDv5HX5w==}
@@ -10734,8 +10722,6 @@ snapshots:
   '@fontsource-variable/geist@5.3.0': {}
 
   '@fontsource/silkscreen@5.3.0': {}
-
-  '@fontsource/space-mono@5.3.0': {}
 
   '@hono/node-server@1.19.18(hono@4.13.16)':
     dependencies:

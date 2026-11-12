@@ -3,14 +3,9 @@
 import { useContext, useEffect, useState, type ReactNode } from "react";
 import { useMatches, useNavigate } from "@tanstack/react-router";
 import { File, Globe, Pencil, Plus, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Button } from "@qrk.sh/bricks/components/button";
+import { Select } from "@base-ui/react/select";
+import { SelectContent, SelectItem, SelectTrigger } from "@qrk.sh/bricks/components/select";
 import { useHotkey } from "@tanstack/react-hotkeys";
 import { Schema } from "effect";
 import { isEqual } from "es-toolkit";
@@ -188,22 +183,18 @@ export default function WorkspacePanelControls(props: {
       controls={
         <>
           {showPageControls ? (
-            <Select items={items} value={tab} onValueChange={selectSection}>
-              <SelectTrigger
-                aria-label="Page controls"
-                size="sm"
-                className={`${compactControlClassName} min-w-0 border-0 bg-secondary text-secondary-foreground hover:bg-secondary/80 data-[size=sm]:h-7 dark:bg-secondary dark:hover:bg-secondary/80 [&>svg]:size-3.5`}
-              >
-                <SelectValue />
+            <Select.Root items={items} value={tab} onValueChange={selectSection}>
+              <SelectTrigger aria-label="Page controls" className="w-fit">
+                <Select.Value />
               </SelectTrigger>
               <SelectContent alignItemWithTrigger={false} align="start">
                 {items.map(({ value, label }) => (
-                  <SelectItem key={value} value={value} className="text-xs">
+                  <SelectItem key={value} value={value}>
                     {label}
                   </SelectItem>
                 ))}
               </SelectContent>
-            </Select>
+            </Select.Root>
           ) : (
             <h2 className="hidden text-xs font-medium lg:block">
               {sections.find(({ value }) => value === tab)?.label}

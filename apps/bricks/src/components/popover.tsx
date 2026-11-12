@@ -17,7 +17,7 @@ export function PopoverContent(props: ComponentProps<typeof Popover.Popup>) {
         <Popover.Popup
           data-slot="popover-content"
           className={cn(
-            "qrk-bricks w-64 max-w-[calc(100vw-16px)] rounded-[10px] bg-white text-xs text-neutral-950 shadow-lg",
+            "w-64 max-w-[calc(100vw-16px)] rounded-[10px] bg-popover text-xs text-popover-foreground shadow-lg",
             className,
           )}
           {...popupProps}

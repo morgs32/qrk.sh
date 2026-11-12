@@ -31,4 +31,5 @@
 | Selected Brick          | A Brick with a persistent Wall outline. Clicking an Article selects it while leaving it editable in its Placement. Selecting a sidebar-backed Brick opens Edit Brick. |
 | Active                  | DOM focus, including keyboard focus, within the wall editor.                                                                                                                                                                                                                           |
 | Breakpoint Previews     | A Storybook view that compares a module's JSX sketch and JSON Render at the four Breakpoints using one example state and one active spec. |
+| QRK design system | The shared UI controls and visual defaults that Bricks supplies to QRK App, Web, and Storybook. |
 | Item (historical)       | The earlier tree prototype's content row. Current editor terminology uses Placement inside a Row.                                                                                                                                                                                      |

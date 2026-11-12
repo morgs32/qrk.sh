@@ -5,30 +5,34 @@ import type { ComponentProps } from "react";
 import { Button } from "./button";
 import { Input } from "./Input";
 
-// Adapted from shadcn's Base UI Input Group for the compact Brick controls.
+// Adapted from shadcn's Base UI Input Group for Bricks fields.
 const inputGroupClassName =
-  "flex h-(--spacing-form-input) w-full min-w-0 items-center rounded-(--radius-form-input) bg-form-input has-[[data-slot=input-group-control]:focus-visible]:ring-[3px] has-[[data-slot=input-group-control]:focus-visible]:ring-ring/50 has-[[data-slot=input-group-control][aria-invalid=true]]:ring-[3px] has-[[data-slot=input-group-control][aria-invalid=true]]:ring-destructive/20 dark:has-[[data-slot=input-group-control][aria-invalid=true]]:ring-destructive/40";
+  "flex w-full min-w-0 items-center rounded-(--radius-form-input) bg-form-input has-[[data-slot=input-group-control]:focus-visible]:ring-[3px] has-[[data-slot=input-group-control]:focus-visible]:ring-ring/50 has-[[data-slot=input-group-control][aria-invalid=true]]:ring-[3px] has-[[data-slot=input-group-control][aria-invalid=true]]:ring-destructive/20 dark:has-[[data-slot=input-group-control][aria-invalid=true]]:ring-destructive/40";
 
-export function InputGroup(props: ComponentProps<"div">) {
-  const { className, ...groupProps } = props;
+export function InputGroup(props: ComponentProps<"div"> & { variant?: "default" | "sm" }) {
+  const { className, variant = "default", ...groupProps } = props;
   return (
     <div
       role="group"
       data-slot="input-group"
-      className={cn(inputGroupClassName, className)}
+      className={cn(
+        inputGroupClassName,
+        variant === "sm" ? "h-(--spacing-form-input)" : "h-(--spacing-form-input-default)",
+        className,
+      )}
       {...groupProps}
     />
   );
 }
 
-export function InputGroupInput(props: ComponentProps<typeof Input>) {
+export function InputGroupInput(props: Omit<ComponentProps<typeof Input>, "variant">) {
   const { className, ...inputProps } = props;
   return (
     <Input
       {...inputProps}
       data-slot="input-group-control"
       className={cn(
-        "flex-1 rounded-none bg-transparent focus-visible:ring-0 aria-invalid:ring-0",
+        "h-full flex-1 rounded-none bg-transparent focus-visible:ring-0 aria-invalid:ring-0",
         className,
       )}
     />

@@ -14,24 +14,17 @@ import { Check, X } from "lucide-react";
 import { siteV1 as Site } from "@qrk.sh/zerospin/src/aggregates/user/models/site/SiteV1";
 import { pageV1 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV1";
 
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@qrk.sh/bricks/components/button";
+import { Dialog } from "@base-ui/react/dialog";
+import { DialogContent } from "@qrk.sh/bricks/components/dialog";
+import { Field, FieldDescription, FieldLabel } from "@qrk.sh/bricks/components/field";
+import { Input } from "@qrk.sh/bricks/components/Input";
+import { TextboxInput } from "@qrk.sh/bricks/components/TextboxInput";
 import {
   InputGroup,
   InputGroupAddon,
   InputGroupInput,
-  InputGroupText,
-} from "@/components/ui/input-group";
+} from "@qrk.sh/bricks/components/input-group";
 import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
 import { startupTiming } from "@/lib/startupTiming";
@@ -104,15 +97,7 @@ export default function UsernameDashboardPage() {
           <div className="flex items-center justify-between gap-3">
             <h1 className="text-xl font-medium">{username}</h1>
             <div className="flex flex-col items-end gap-2">
-              <Button
-                type="button"
-                onClick={() => {
-                  setCreateSiteOpen(true);
-                }}
-              >
-                Create site
-              </Button>
-              <Dialog
+              <Dialog.Root
                 open={createSiteOpen}
                 onOpenChange={(open) => {
                   setCreateSiteOpen(open);
@@ -123,10 +108,11 @@ export default function UsernameDashboardPage() {
                   }
                 }}
               >
+                <Dialog.Trigger render={<Button type="button" />}>Create site</Dialog.Trigger>
                 <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Create site</DialogTitle>
-                  </DialogHeader>
+                  <div className="grid gap-2 pe-8">
+                    <Dialog.Title className="text-sm font-medium">Create site</Dialog.Title>
+                  </div>
                   <form
                     autoComplete="off"
                     className="flex flex-col gap-4"
@@ -183,7 +169,7 @@ export default function UsernameDashboardPage() {
                     }}
                   >
                     <Field>
-                      <FieldLabel htmlFor="create-site-name" className="text-sm font-medium">
+                      <FieldLabel htmlFor="create-site-name">
                         Name
                       </FieldLabel>
                       <Input
@@ -197,10 +183,10 @@ export default function UsernameDashboardPage() {
                       />
                     </Field>
                     <Field>
-                      <FieldLabel htmlFor="create-site-description" className="text-sm font-medium">
+                      <FieldLabel htmlFor="create-site-description">
                         Description
                       </FieldLabel>
-                      <Textarea
+                      <TextboxInput
                         id="create-site-description"
                         name="description"
                         value={siteDescription}
@@ -212,7 +198,7 @@ export default function UsernameDashboardPage() {
                     </Field>
                     <Field data-invalid={showSlugError || undefined}>
                       <div className="flex items-center gap-2">
-                        <FieldLabel htmlFor="create-site-slug" className="text-sm font-medium">
+                        <FieldLabel htmlFor="create-site-slug">
                           Subdomain
                         </FieldLabel>
                         {slugError === null ? (
@@ -237,8 +223,8 @@ export default function UsernameDashboardPage() {
                           aria-invalid={showSlugError}
                           aria-describedby="create-site-slug-domain create-site-slug-feedback"
                         />
-                        <InputGroupAddon align="inline-end">
-                          <InputGroupText id="create-site-slug-domain">.qrk.sh</InputGroupText>
+                        <InputGroupAddon align="inline-end" className="pe-2">
+                          <span id="create-site-slug-domain">.qrk.sh</span>
                         </InputGroupAddon>
                       </InputGroup>
                       <FieldDescription
@@ -253,8 +239,8 @@ export default function UsernameDashboardPage() {
                             : slugError}
                       </FieldDescription>
                     </Field>
-                    <DialogFooter>
-                      <DialogClose
+                    <div className="flex flex-wrap justify-end gap-2">
+                      <Dialog.Close
                         render={
                           <Button type="button" variant="outline">
                             Cancel
@@ -271,10 +257,10 @@ export default function UsernameDashboardPage() {
                       >
                         Create site
                       </Button>
-                    </DialogFooter>
+                    </div>
                   </form>
                 </DialogContent>
-              </Dialog>
+              </Dialog.Root>
             </div>
           </div>
           {user.sites.length > 0 ? (

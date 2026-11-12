@@ -2,7 +2,7 @@ import { UserButton, useClerk } from "@clerk/react";
 import { useClearSessionAuthentication } from "@zerospin/react/useClearSessionAuthentication";
 import { LogOut } from "lucide-react";
 import { toast } from "sonner";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Skeleton } from "@qrk.sh/bricks/components/skeleton";
 import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
 
 export function AccountMenu() {

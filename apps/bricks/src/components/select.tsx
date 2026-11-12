@@ -25,19 +25,20 @@ export function SelectTrigger(
 }
 
 export function SelectContent(
-  props: Select.Popup.Props & Pick<Select.Positioner.Props, "alignItemWithTrigger" | "sideOffset">,
+  props: Select.Popup.Props & Pick<Select.Positioner.Props, "align" | "alignItemWithTrigger" | "sideOffset">,
 ) {
-  const { alignItemWithTrigger = true, sideOffset = 4, children, ...popupProps } = props;
+  const { align, alignItemWithTrigger = true, sideOffset = 4, children, ...popupProps } = props;
   return (
     <Select.Portal>
       <Select.Positioner
+        align={align}
         alignItemWithTrigger={alignItemWithTrigger}
         sideOffset={sideOffset}
         className="z-50"
       >
         <Select.Popup
           data-slot="select-content"
-          className="qrk-bricks min-w-(--anchor-width) rounded-md border border-border bg-background text-xs text-foreground shadow-md"
+          className="min-w-(--anchor-width) rounded-md border border-border bg-background text-xs text-foreground shadow-md"
           {...popupProps}
         >
           <Select.ScrollUpArrow

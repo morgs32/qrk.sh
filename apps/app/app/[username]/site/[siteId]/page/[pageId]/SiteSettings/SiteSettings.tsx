@@ -15,7 +15,7 @@ import {
   Field as BrickField,
   FieldContent,
   FieldDescription as BrickFieldDescription,
-  FieldError as BrickFieldError,
+  FieldError,
   FieldLabel as BrickFieldLabel,
 } from "@qrk.sh/bricks/components/field";
 import { Input } from "@qrk.sh/bricks/components/Input";
@@ -34,8 +34,7 @@ import useSWR from "swr";
 import { CopyButton } from "./CopyButton";
 
 import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
-import { FieldError } from "@/components/ui/field";
-import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
+import { InputGroup, InputGroupAddon, InputGroupInput } from "@qrk.sh/bricks/components/input-group";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useUsername } from "@/hooks/useUsername";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
@@ -265,6 +264,7 @@ export function SiteSettings(props: {
         <BrickField orientation="horizontal">
           <BrickFieldLabel htmlFor="site-name-and-wordmark">Site name</BrickFieldLabel>
           <Input
+            variant="sm"
             id="site-name-and-wordmark"
             value={fields.name}
             onChange={(event) => setFields({ ...fields, name: event.target.value })}
@@ -273,7 +273,7 @@ export function SiteSettings(props: {
 
         <BrickField orientation="horizontal">
           <BrickFieldLabel htmlFor="site-subdomain">Site subdomain</BrickFieldLabel>
-          <Input id="site-subdomain" value={site.slug ?? ""} placeholder="Not set" readOnly />
+          <Input variant="sm" id="site-subdomain" value={site.slug ?? ""} placeholder="Not set" readOnly />
         </BrickField>
 
         <BrickField orientation="horizontal">
@@ -295,6 +295,7 @@ export function SiteSettings(props: {
               <BrickFieldLabel htmlFor={id}>{label}</BrickFieldLabel>
               <FieldContent>
                 <Input
+                  variant="sm"
                   id={id}
                   type="file"
                   accept={siteImageTypes.join(",")}
@@ -344,7 +345,7 @@ export function SiteSettings(props: {
                   <BrickFieldDescription role="status">Uploading…</BrickFieldDescription>
                 )}
                 {error !== undefined && (
-                  <BrickFieldError id={`${id}-error`}>{error}</BrickFieldError>
+                  <FieldError id={`${id}-error`}>{error}</FieldError>
                 )}
               </FieldContent>
             </BrickField>
@@ -480,13 +481,13 @@ export function SiteSettings(props: {
                         No subdomain set
                       </BrickFieldDescription>
                     ) : (
-                      <InputGroup className="h-8 bg-muted/30 shadow-none">
+                      <InputGroup variant="sm">
                         <InputGroupInput
                           aria-labelledby="site-domains-label"
                           title={siteDomain}
                           value={siteDomain}
                           readOnly
-                          className="h-full truncate px-2 font-mono text-xs md:text-xs"
+                          className="truncate font-mono"
                         />
                         <InputGroupAddon align="inline-end" className="shrink-0 gap-0 py-0">
                           <TooltipProvider delay={0}>
@@ -521,13 +522,13 @@ export function SiteSettings(props: {
                   >
                     Share URL
                   </span>
-                  <InputGroup className="h-8 bg-muted/30 shadow-none">
+                  <InputGroup variant="sm">
                     <InputGroupInput
                       aria-labelledby="site-share-url-label"
                       title={publishedUrl}
                       value={publishedUrl}
                       readOnly
-                      className="h-full truncate px-2 font-mono text-xs md:text-xs"
+                      className="truncate font-mono"
                     />
                     <InputGroupAddon align="inline-end" className="shrink-0 gap-0 py-0">
                       <TooltipProvider delay={0}>

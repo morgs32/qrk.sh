@@ -1,5 +1,5 @@
 import { useId } from "react";
-import { Checkbox } from "./ui/checkbox";
+import { Checkbox } from "@qrk.sh/bricks/components/checkbox";
 
 export type ISiteTreeNode = {
   label: string;

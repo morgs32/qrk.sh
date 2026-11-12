@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { Button } from "./button";
+import { Button } from "@qrk.sh/bricks/components/button";
 
 const meta = {
   title: "Components/Button",

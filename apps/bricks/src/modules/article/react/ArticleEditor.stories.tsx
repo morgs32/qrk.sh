@@ -23,7 +23,7 @@ const meta = {
     const { state, onSave, registerFlush } = props;
     const [savedState, setSavedState] = useState(state);
     return (
-      <main className="qrk-bricks mx-auto min-h-screen w-full max-w-3xl bg-zinc-50 p-4 sm:p-8">
+      <main className="mx-auto min-h-screen w-full max-w-3xl bg-zinc-50 p-4 sm:p-8">
         <img src={illustrationUrl} alt="" width={264} height={168} className="mb-4 h-auto max-w-full" />
         <BrickWrapper>
           <ArticleEditor

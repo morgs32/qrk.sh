@@ -13,8 +13,7 @@ import { Schema } from "effect";
 import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
 import { Button } from "@qrk.sh/bricks/components/button";
 
-import { FieldError } from "@/components/ui/field";
-import { Field, FieldLabel } from "@qrk.sh/bricks/components/field";
+import { Field, FieldError, FieldLabel } from "@qrk.sh/bricks/components/field";
 import { Input } from "@qrk.sh/bricks/components/Input";
 import { StudioSidebar } from "@qrk.sh/bricks/components/StudioSidebar";
 import { TextboxInput } from "@qrk.sh/bricks/components/TextboxInput";
@@ -90,6 +89,7 @@ export function PageSettings(props: {
         <Field orientation="horizontal">
           <FieldLabel htmlFor="page-title">Title</FieldLabel>
           <Input
+            variant="sm"
             id="page-title"
             placeholder={page.site.name ?? undefined}
             value={fields.title}

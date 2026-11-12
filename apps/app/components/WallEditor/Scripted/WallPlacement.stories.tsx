@@ -60,7 +60,7 @@ const meta = {
     const { placement, brickGap, brickLabel, selected, onRequestDeleteBrick } = props;
     const [isSelected, setSelected] = useState(selected);
     return (
-      <div className="qrk-bricks wall-story flex w-96 p-4">
+      <div className="wall-story flex w-96 p-4">
         <WallPlacement
           placement={{
             ...placement,

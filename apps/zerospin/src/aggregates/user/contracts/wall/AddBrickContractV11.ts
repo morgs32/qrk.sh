@@ -1,3 +1,6 @@
+import type { IRecordingOperations } from "@zerospin/core/contracts/operationDescriptor";
+import { brickV6 } from "../../models/brick/BrickV6";
+import type { IContractProgramInput } from "@zerospin/core/contracts/types";
 import {
   upgradeAggregateContractRelease,
   findFirst,
@@ -33,7 +36,39 @@ export const addBrickV11 = upgradeAggregateContractRelease(addBrickV10, {
     if (layoutId !== "default" || payload.moduleId === "image") return DownAdapterRefused;
     return previousPayload;
   }),
-  program: Effect.fn("addBrick.program")(function* (props) {
+  program: makeAddBrickProgram(candidateLibrary),
+});
+
+export function makeAddBrickProgram(library: typeof candidateLibrary) {
+  return Effect.fn("addBrick.program")(function* <MODULE extends keyof typeof candidateLibrary>(props: IContractProgramInput<
+    Omit<Parameters<typeof addBrickV10.evaluate>[0], "db" | "payload" | "externalOutcome"> & {
+      db: Omit<Parameters<typeof addBrickV10.evaluate>[0]["db"], "models"> & {
+        models: Omit<typeof addBrickV10.models, "wall" | "brick" | "placement"> & {
+          wall: typeof wall;
+          brick: typeof addBrickV10.models.brick | typeof brickV6;
+          placement: typeof placement;
+        };
+      };
+      payload: Omit<Parameters<typeof addBrickV10.evaluate>[0]["payload"], "moduleId"> & {
+        layoutId: string;
+        moduleId: MODULE;
+      };
+      failures: typeof addBrickV10.failures;
+    },
+    {
+      createPlacement: typeof placement.operations.create;
+      updateWall: typeof wall.operations.update;
+    }
+  > & {
+    operations: {
+      createBrick: (input: {
+        resourceId: Parameters<typeof addBrickV10.evaluate>[0]["payload"]["id"];
+        attributes: Omit<Parameters<typeof brickV6.operations.create.make>[0]["attributes"], "moduleId"> & {
+          moduleId: MODULE;
+        };
+      }) => ReturnType<IRecordingOperations<{ createBrick: typeof brickV6.operations.create }>["createBrick"]>;
+    };
+  }) {
     const { db, payload, operations, failures, claims } = props;
     const { pageId, target } = payload;
     const pageRow = yield* findFirst({ db, model: db.models.page, where: { id: { eq: pageId } } });
@@ -62,7 +97,7 @@ export const addBrickV11 = upgradeAggregateContractRelease(addBrickV10, {
         message: "The Wall does not belong to this Page",
         status: 409,
       });
-    const candidate = candidateLibrary[payload.moduleId];
+    const candidate = library[payload.moduleId];
     const { module } = candidate;
     const spec = candidate.layouts[payload.layoutId];
     if (!Object.hasOwn(candidate.layouts, payload.layoutId) || spec === undefined)
@@ -256,5 +291,5 @@ export const addBrickV11 = upgradeAggregateContractRelease(addBrickV10, {
         },
       });
     }
-  }),
-});
+  });
+}

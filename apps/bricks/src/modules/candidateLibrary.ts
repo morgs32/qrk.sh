@@ -1,6 +1,7 @@
 import type { Spec } from "@json-render/core";
 import type { Schema } from "effect";
 import { backendLibrary } from "./backendLibrary";
+import { completeImageStateSchemaV4, imageV4 } from "./image/definition/imageV4";
 import { imageV3, imageLayouts, completeImageStateSchema } from "./image/definition/imageV3";
 import { completeStateSchema as swatchAndIconStateSchema } from "./swatchAndIcon/definition/swatchAndIconV1";
 import { completeStateSchema as githubActivityStateSchema } from "./githubActivity/definition/githubActivityV1";
@@ -20,7 +21,7 @@ import { completeStateSchema as buyMeACoffeeStateSchema } from "./buyMeACoffee/d
 export const candidateLibrary: Record<
   keyof typeof backendLibrary,
   {
-    module: (typeof backendLibrary)[keyof typeof backendLibrary] | typeof imageV3;
+    module: (typeof backendLibrary)[keyof typeof backendLibrary] | typeof imageV3 | typeof imageV4;
     layouts: Record<string, Spec>;
     completeStateSchema: Schema.Codec<unknown>;
   }
@@ -96,4 +97,9 @@ export const candidateLibrary: Record<
     layouts: { default: backendLibrary["buy-me-a-coffee"].defaultSpec },
     completeStateSchema: buyMeACoffeeStateSchema,
   },
+};
+
+export const candidateLibraryV20: typeof candidateLibrary = {
+  ...candidateLibrary,
+  image: { module: imageV4, layouts: imageLayouts, completeStateSchema: completeImageStateSchemaV4 },
 };

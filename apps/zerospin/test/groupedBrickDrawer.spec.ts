@@ -8,10 +8,15 @@ import { makeContractReadDb } from "@zerospin/core/contracts/make/makeContractRe
 import { makeResourceDbConfig } from "@zerospin/core/drizzle/make/makeDbConfig/makeDbConfig";
 import { makeTx } from "@zerospin/core/drizzle/make/makeTx";
 import { openHarnessDb } from "@zerospin/core/testing/systemHarness/openHarnessDb";
-import { DownAdapterRefused, findMany } from "@zerospin/sdk/browser";
+import { DownAdapterRefused, findFirst, findMany } from "@zerospin/sdk/browser";
 import { Effect, Schema } from "effect";
 import { expect } from "vitest";
 import { userAggregateV18 } from "../src/aggregates/user/UserV18";
+import { userAggregateV20 } from "../src/aggregates/user/UserV20";
+import { updateBrickV14 } from "../src/aggregates/user/contracts/brick/UpdateBrickV14";
+import { updateBrickV13 } from "../src/aggregates/user/contracts/brick/UpdateBrickV13";
+import { addBrickV13 } from "../src/aggregates/user/contracts/wall/AddBrickContractV13";
+import { addBrickV12 } from "../src/aggregates/user/contracts/wall/AddBrickContractV12";
 import { updateBrickV12 } from "../src/aggregates/user/contracts/brick/UpdateBrickV12";
 import { addBrickV11 } from "../src/aggregates/user/contracts/wall/AddBrickContractV11";
 import { addBrickV10 } from "../src/aggregates/user/contracts/wall/AddBrickContractV10";
@@ -27,7 +32,7 @@ it.effect("requires a complete swatch while allowing the default empty hash", ()
 
 it.effect("creates four chosen layouts and rejects incomplete creation and updates", () =>
   Effect.gen(function* () {
-    const config = makeResourceDbConfig({ models: userAggregateV18.models });
+    const config = makeResourceDbConfig({ models: userAggregateV20.models });
     const db = yield* openHarnessDb(config);
     const readDb = makeContractReadDb({ db, models: userAggregateV18.models });
     const recordedAt = new Date("2026-11-12T00:00:00Z");
@@ -86,13 +91,24 @@ it.effect("creates four chosen layouts and rejects incomplete creation and updat
     const invalidLayout = yield* invoke({ ...payload, layoutId: "toString" }).pipe(Effect.flip);
     expect(invalidLayout).toMatchObject({ code: "add-brick-invalid-layout" });
 
-    const created = yield* invoke(payload);
-    for (const operation of created.operations) {
-      yield* makeTx("drawer.replay")(function* (tx) {
+    const roundState = { ...state, round: true, caption: "  " };
+    const currentDb = makeContractReadDb({ db, models: userAggregateV20.models });
+    const context = { aggregateId: "acct_drawer", claims, db: currentDb };
+    const rejected = yield* addBrickV13.evaluate({
+      ...context,
+      payload: { ...payload, state: { ...roundState, caption: "A caption" } },
+    }).pipe(Effect.flip);
+    expect(rejected).toMatchObject({ code: "add-brick-invalid-state" });
+
+    const created = yield* addBrickV13.evaluate({ ...context, payload: { ...payload, state: roundState } });
+    yield* makeTx("drawer.create")(function* (tx) {
+      for (const operation of created.operations) {
         yield* applyOperationTx({ tx, operation, appliedAt: recordedAt });
-      })(db);
-    }
-    const placements = yield* findMany({ db: readDb, model: readDb.models.placement, where: { brickId: { eq: payload.id } } });
+      }
+    })(db);
+    expect(yield* findFirst({ db: currentDb, model: currentDb.models.brick, where: { id: { eq: payload.id } } }))
+      .toMatchObject({ state: roundState });
+    const placements = yield* findMany({ db: currentDb, model: currentDb.models.placement, where: { brickId: { eq: payload.id } } });
     expect(placements).toHaveLength(4);
     for (const placement of placements) expect(placement.spec).toEqual(candidateLibrary.image.layouts.captionless);
 
@@ -101,6 +117,43 @@ it.effect("creates four chosen layouts and rejects incomplete creation and updat
       payload: { brickId: payload.id, moduleId: "image", state: { ...state, altText: "" } },
     }).pipe(Effect.flip);
     expect(invalidUpdate).toMatchObject({ code: "update-brick-invalid-state" });
+
+    const update = { brickId: payload.id, moduleId: payload.moduleId, state };
+    const rejectedUpdate = yield* updateBrickV14.evaluate({
+      ...context, payload: { ...update, state: { ...roundState, caption: "A caption" } },
+    }).pipe(Effect.flip);
+    expect(rejectedUpdate).toMatchObject({ code: "update-brick-invalid-state" });
+
+    // A pre-V20 update has no round field and must still save as rectangular.
+    const legacyUpdate = yield* encodePayload(updateBrickV13, { version: 13, payload: update });
+    const adaptedUpdate = yield* decodeAndAdaptPayload(updateBrickV14, {
+      command: { commandName: "updateBrick", contractVersion: 13, payload: legacyUpdate },
+    });
+    const updated = yield* updateBrickV14.evaluate({ ...context, payload: adaptedUpdate });
+    yield* makeTx("drawer.update")(function* (tx) {
+      for (const operation of updated.operations) {
+        yield* applyOperationTx({ tx, operation, appliedAt: recordedAt });
+      }
+    })(db);
+    expect(yield* findFirst({ db: currentDb, model: currentDb.models.brick, where: { id: { eq: payload.id } } }))
+      .toMatchObject({ state: { ...state, round: false } });
+    const afterUpdate = yield* findMany({ db: currentDb, model: currentDb.models.placement, where: { brickId: { eq: payload.id } } });
+    expect(afterUpdate.map((placement) => placement.spec)).toEqual(placements.map((placement) => placement.spec));
+
+    const roundAdd = yield* encodePayload(addBrickV13, { version: 13, payload: { ...payload, state: roundState } });
+    expect(yield* decodeAndAdaptPayload(addBrickV12, {
+      command: { commandName: "addBrick", contractVersion: 13, payload: roundAdd },
+    }).pipe(Effect.flip)).toBe(DownAdapterRefused);
+    const roundUpdate = yield* encodePayload(updateBrickV14, { version: 14, payload: { ...update, state: roundState } });
+    expect(yield* decodeAndAdaptPayload(updateBrickV13, {
+      command: { commandName: "updateBrick", contractVersion: 14, payload: roundUpdate },
+    }).pipe(Effect.flip)).toBe(DownAdapterRefused);
+    const rectangularUpdate = yield* encodePayload(updateBrickV14, {
+      version: 14, payload: { ...update, state: { ...state, round: false } },
+    });
+    expect(yield* decodeAndAdaptPayload(updateBrickV13, {
+      command: { commandName: "updateBrick", contractVersion: 14, payload: rectangularUpdate },
+    })).toEqual(update);
   }),
 );
 

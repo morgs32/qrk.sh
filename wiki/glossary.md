@@ -29,6 +29,7 @@
 | Brick category          | A curated grouping used to filter Brick choices in the editor's drawer. A Brick module can belong to multiple categories. |
 | Brick drawer row        | A curated set of related Brick previews displayed together in the editor's drawer. Each preview offers a starting layout and example content. |
 | Image crop              | The focal point and zoom of an Image Brick’s original photo. Every Placement of that Brick frames the same photo in its own dimensions. |
+| Round Image             | An Image Brick shown as a circle at each breakpoint. The drawer preset starts with Round checked. A round image has a blank caption. |
 | Spotify Brick           | A Brick that presents a creator-selected Spotify track, album, playlist, artist, show, or episode in Spotify's player. |
 | YouTube Brick           | A Brick that presents a creator-selected YouTube video or playlist in YouTube's player. |
 | Selected Brick          | A Brick with a persistent Wall outline. Clicking an Article selects it while leaving it editable in its Placement. Selecting a sidebar-backed Brick opens Edit Brick. |

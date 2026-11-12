@@ -6,7 +6,7 @@ import { pageV1 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page
 import { pageSnapshotV9 as PageSnapshot } from "@qrk.sh/zerospin/src/aggregates/user/models/pageSnapshot/PageSnapshotV9";
 import { siteV1 as Site } from "@qrk.sh/zerospin/src/aggregates/user/models/site/SiteV1";
 import { userV1 as User } from "@qrk.sh/zerospin/src/aggregates/user/models/user/UserV1";
-import { addBrickV12 as addBrick } from "@qrk.sh/zerospin/src/aggregates/user/contracts/wall/AddBrickContractV12";
+import { addBrickV13 as addBrick } from "@qrk.sh/zerospin/src/aggregates/user/contracts/wall/AddBrickContractV13";
 import { addWallSectionV4 as addWallSection } from "@qrk.sh/zerospin/src/aggregates/user/contracts/wall/AddWallSectionContractV4";
 import { movePlacementToRowV10 as movePlacementToRow } from "@qrk.sh/zerospin/src/aggregates/user/contracts/wall/MovePlacementToRowContractV10";
 import { movePlacementToNewRowV9 as movePlacementToNewRow } from "@qrk.sh/zerospin/src/aggregates/user/contracts/wall/MovePlacementToNewRowContractV9";
@@ -16,7 +16,7 @@ import { moveStackV9 as moveStack } from "@qrk.sh/zerospin/src/aggregates/user/c
 import { renameStackV4 as renameStack } from "@qrk.sh/zerospin/src/aggregates/user/contracts/wall/RenameStackContractV4";
 import { deleteBrickV9 as deleteBrick } from "@qrk.sh/zerospin/src/aggregates/user/contracts/wall/DeleteBrickContractV9";
 import { deleteStackV6 as deleteStack } from "@qrk.sh/zerospin/src/aggregates/user/contracts/wall/DeleteStackContractV6";
-import { updateBrickV13 as updateBrick } from "@qrk.sh/zerospin/src/aggregates/user/contracts/brick/UpdateBrickV13";
+import { updateBrickV14 as updateBrick } from "@qrk.sh/zerospin/src/aggregates/user/contracts/brick/UpdateBrickV14";
 import { generateBrickSpecV9 as generateBrickSpec } from "@qrk.sh/zerospin/src/aggregates/user/contracts/brick/GenerateBrickSpecV9";
 import { publishSiteV9 as publishSite } from "@qrk.sh/zerospin/src/aggregates/user/contracts/publishSite/PublishSiteV9";
 import { publishPageV9 as publishPage } from "@qrk.sh/zerospin/src/aggregates/user/contracts/publishPage/PublishPageV9";
@@ -40,8 +40,8 @@ export const userSessionDefinition = makeAggregateSessionDefinition({
   aggregateName: "user",
   sessionName: "userSession",
   actorName: "web",
-  actorVersion: 19,
-  aggregateVersion: 19,
+  actorVersion: 20,
+  aggregateVersion: 20,
   models: {
     wall: Wall,
     brick: Brick,

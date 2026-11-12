@@ -1,3 +1,4 @@
+import { useStateValue } from "@json-render/react";
 import { MediaFooter } from "../../../components/MediaFooter";
 import { makeComponentView } from "../../react/makeComponentView";
 import { mediaFooterComponentMetadata } from "../definition/generator/MediaFooterComponentMetadata";
@@ -16,3 +17,8 @@ export const mediaFooterView = makeComponentView(mediaFooterComponentMetadata, {
     );
   },
 });
+
+export function ImageMediaFooterRegistry(props: Parameters<typeof mediaFooterView.RegistryComponent>[0]) {
+  const round = useStateValue<boolean>("/round") === true;
+  return round ? null : <mediaFooterView.RegistryComponent {...props} />;
+}

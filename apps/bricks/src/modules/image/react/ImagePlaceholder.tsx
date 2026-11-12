@@ -1,6 +1,15 @@
 import { Skeleton } from "../../../components/skeleton";
 
-export function ImagePlaceholder() {
+export function ImagePlaceholder(props: { round?: boolean } = {}) {
+  const { round = false } = props;
+  if (round) {
+    return (
+      <div aria-hidden="true" data-image-placeholder className="grid min-h-[200px] w-full place-items-center">
+        <Skeleton className="size-[200px] max-w-full rounded-full motion-reduce:animate-none" />
+      </div>
+    );
+  }
+
   return (
     <div
       aria-hidden="true"

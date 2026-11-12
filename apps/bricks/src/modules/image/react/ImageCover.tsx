@@ -10,16 +10,19 @@ export const imageCoverView = makeComponentView(
   {
     propsShape: {
       ...imageCoverComponentMetadata.propsShape,
+      round: primitives.boolean(),
       crop: primitives.json({ schema: imageCropSchema, nullable: true }),
     },
   },
   {
     component(props) {
-      const { imageUrl, title, imagePosition, crop } = props;
-      return (
+      const { imageUrl, title, imagePosition, crop, round } = props;
+      const photo = (
         <div
           data-image-cover
-          className="relative min-h-[200px] min-w-[200px] flex-1 overflow-hidden"
+          className={round
+            ? "absolute left-1/2 top-1/2 size-[min(100cqw,100cqh)] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-full"
+            : "relative min-h-[200px] min-w-[200px] flex-1 overflow-hidden"}
         >
           {crop !== null ? (
             <CroppedImage key={imageUrl} src={imageUrl} alt={title} crop={crop} />
@@ -35,6 +38,11 @@ export const imageCoverView = makeComponentView(
           )}
         </div>
       );
+      return round ? (
+        <div className="relative min-h-[200px] min-w-[200px] flex-1 [container-type:size]">
+          {photo}
+        </div>
+      ) : photo;
     },
   },
 );
@@ -42,8 +50,9 @@ export const imageCoverView = makeComponentView(
 export function ImageCoverRegistry(props: Parameters<typeof imageCoverView.RegistryComponent>[0]) {
   const { props: resolvedProps, children } = props;
   const crop = useStateValue<typeof imageCropSchema.Type | null>("/crop") ?? null;
+  const round = useStateValue<boolean>("/round") === true;
   return (
-    <imageCoverView.RegistryComponent {...props} props={{ ...(resolvedProps ?? {}), crop }}>
+    <imageCoverView.RegistryComponent {...props} props={{ ...(resolvedProps ?? {}), crop, round }}>
       {children}
     </imageCoverView.RegistryComponent>
   );

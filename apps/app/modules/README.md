@@ -204,13 +204,19 @@ precedes Meowdown rules and utilities remain last.
 
 `ModuleFilmstrip` displays curated horizontal rows of selectable previews, with
 category tabs filtering their modules. GitHub modules share a row; Image's
-captioned and captionless layouts share a row with Image Carousel. Other modules
-have their own rows. Each preview has a module-owned example state and a layout
+captioned and captionless layouts share a row with the Round Image preset and
+Image Carousel. Other modules have their own rows. Each preview has a module-owned example state and a layout
 ID; the example is not normally the new Brick's content.
 
+Round Image starts with an empty source and alt text and with Round checked.
+Round is saved on the Image Brick and applies at every breakpoint. It requires
+a blank caption, disables Caption while checked, and uses a square crop frame.
+Turning Round off makes Caption editable again.
+
 Selection opens a configuration view with a live draft and form. Modules choose
-their initial draft: Article starts blank and Swatch and Icon captures the
-current animated preview. Other modules start unconfigured. Form drafts report
+their initial draft. Article starts blank, Swatch and Icon captures the current
+animated preview, and Round Image starts with Round checked. Other choices
+start unconfigured. Form drafts report
 pending and invalid work so an incomplete or stale value cannot be dragged.
 A successful local insertion returns to the catalog; cancellation leaves the
 draft open. The chosen layout and complete state travel with the drag, and the

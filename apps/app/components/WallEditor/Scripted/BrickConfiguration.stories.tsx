@@ -64,6 +64,19 @@ export const ConfigureBrick: StoryObj<typeof meta> = {
     await userEvent.click(canvas.getByRole("tab", { name: "Music" }));
     expect(canvas.queryByRole("region", { name: "Images" })).toBeNull();
     await userEvent.click(canvas.getByRole("tab", { name: "All" }));
+    await userEvent.click(canvas.getByRole("button", { name: "Choose Round Image" }));
+    const round = canvas.getByRole("checkbox", { name: "Round" });
+    const roundCaption = canvas.getByRole("textbox", { name: "Caption" });
+    expect(round).toBeChecked();
+    expect(roundCaption).toBeVisible();
+    expect(roundCaption).toBeDisabled();
+    expect(canvas.getByRole("textbox", { name: "Alt text" })).toHaveValue("");
+    expect(canvas.getByText("Complete the configuration before dragging.")).toBeVisible();
+    await userEvent.click(round);
+    expect(roundCaption).toBeEnabled();
+    await userEvent.type(roundCaption, "A caption");
+    expect(round).toHaveAttribute("aria-disabled", "true");
+    await userEvent.click(canvas.getByRole("button", { name: "Back" }));
     await userEvent.click(canvas.getByRole("button", { name: "Choose Image with caption" }));
     expect(canvas.getByText("Complete the configuration before dragging.")).toBeVisible();
     expect(

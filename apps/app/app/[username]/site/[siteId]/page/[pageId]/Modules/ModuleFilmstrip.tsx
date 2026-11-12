@@ -45,6 +45,12 @@ export function ModuleFilmstrip(props: {
       label: "Images",
       items: [
         { brickModule: modulesHash.image, layoutId: "captionless", label: "Image" },
+        {
+          brickModule: modulesHash.image,
+          layoutId: "captionless",
+          previewId: "round",
+          label: "Round Image",
+        },
         { brickModule: modulesHash.image, layoutId: "captioned", label: "Image with caption" },
         {
           brickModule: modulesHash["image-carousel"],
@@ -138,27 +144,35 @@ export function ModuleFilmstrip(props: {
                       gap={0}
                       itemSize="manual"
                       safeMargin={items.length > 1 ? 200 : 0}
-                      items={items.map(({ brickModule, layoutId, label }) => (
-                        <ModulePreview
-                          key={`${brickModule.id}:${layoutId}`}
-                          brickModule={brickModule}
-                          breakpoint={breakpoint}
-                          cardStyle={cardStyle}
-                          label={label}
-                          sampleState={brickModule.previewStates?.[layoutId]}
-                          spec={candidateLibrary[brickModule.id].layouts[layoutId]}
-                          onSelect={(state) =>
-                            setSelected({
-                              moduleId: brickModule.id,
-                              layoutId,
-                              state:
-                                brickModule.initialDraft === "preview"
-                                  ? state
-                                  : structuredClone(brickModule.initialDraft),
-                            })
-                          }
-                        />
-                      ))}
+                      items={items.map(({ brickModule, layoutId, label, ...item }) => {
+                        const previewId =
+                          "previewId" in item && typeof item.previewId === "string"
+                            ? item.previewId
+                            : layoutId;
+                        return (
+                          <ModulePreview
+                            key={`${brickModule.id}:${previewId}`}
+                            brickModule={brickModule}
+                            breakpoint={breakpoint}
+                            cardStyle={cardStyle}
+                            label={label}
+                            sampleState={brickModule.previewStates?.[previewId]}
+                            spec={candidateLibrary[brickModule.id].layouts[layoutId]}
+                            onSelect={(state) =>
+                              setSelected({
+                                moduleId: brickModule.id,
+                                layoutId,
+                                state:
+                                  brickModule.initialDraft === "preview"
+                                    ? state
+                                    : structuredClone(
+                                        brickModule.initialDrafts?.[previewId] ?? brickModule.initialDraft,
+                                      ),
+                              })
+                            }
+                          />
+                        );
+                      })}
                     />
                   </div>
                 </section>

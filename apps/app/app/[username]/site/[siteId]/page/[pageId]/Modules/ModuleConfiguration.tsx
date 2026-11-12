@@ -3,7 +3,7 @@ import { pointerOutsideOfPreview } from "@atlaskit/pragmatic-drag-and-drop/utils
 import { setCustomNativeDragPreview } from "@atlaskit/pragmatic-drag-and-drop/utils/set-custom-native-drag-preview";
 import { BrickWrapper } from "@qrk.sh/bricks/components/BrickWrapper";
 import { Button } from "@qrk.sh/bricks/components/button";
-import { candidateLibrary } from "@qrk.sh/bricks/modules/candidateLibrary";
+import { candidateLibraryV20 } from "@qrk.sh/bricks/modules/candidateLibrary";
 import { makeEffectSchema } from "@zerospin/shapes";
 import { Schema } from "effect";
 import { isEqual } from "es-toolkit";
@@ -23,7 +23,7 @@ export function ModuleConfiguration(props: {
 }) {
   const { moduleId, layoutId, initialState, breakpoint, cardStyle, onClose, moduleAction } = props;
   const brickModule = modulesHash[moduleId];
-  const candidate = candidateLibrary[moduleId];
+  const candidate = candidateLibraryV20[moduleId];
   const previewRef = useRef<HTMLDivElement>(null);
   const [state, setState] = useState(initialState);
   const [{ state: draft, revision }, setFrame] = useState(() => ({

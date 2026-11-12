@@ -2,27 +2,30 @@
 
 import type { IResult } from "@zerospin/error";
 import { Schema } from "effect";
-import { useLayoutEffect, useRef, useState } from "react";
+import { useId, useLayoutEffect, useRef, useState } from "react";
 import { useSWRConfig } from "swr";
-import { FieldGroup } from "../../../components/field";
+import { Checkbox } from "../../../components/checkbox";
+import { Field, FieldGroup, FieldLabel } from "../../../components/field";
 import { ImageUploadInput } from "../../../components/ImageUploadInput";
 import { TextInput } from "../../../components/TextInput";
 import { useTextCommit } from "../../react/useTextCommit";
 import { useWarnBeforeUnload } from "../../react/useWarnBeforeUnload";
-import { completeImageStateSchema, imageStateSchemaV3, imageV3 } from "../definition/imageV3";
+import { completeImageStateSchemaV4, imageStateSchemaV4, imageV4 } from "../definition/imageV4";
 import type {} from "./ImageUploadSWR";
 
-const blankImage = { imageUrl: "", altText: "", caption: "", crop: null };
+const isCompleteImage = Schema.is(Schema.toType(completeImageStateSchemaV4));
+const blankImage = { imageUrl: "", altText: "", caption: "", crop: null, round: false };
 
 export function ImageForm(props: {
-  state: typeof imageStateSchemaV3.Type | null;
-  onSave: (state: typeof imageStateSchemaV3.Type) => IResult<unknown, { message: string }>;
+  state: typeof imageStateSchemaV4.Type | null;
+  onSave: (state: typeof imageStateSchemaV4.Type) => IResult<unknown, { message: string }>;
   onDraftChange?: (draft: { state: unknown; pending: boolean; valid: boolean }) => void;
   previewWidth?: number;
   measureFrame?: (selector: string) => number | undefined;
 }) {
   const { state, onSave, onDraftChange, previewWidth, measureFrame } = props;
   const { uploadImage } = useSWRConfig();
+  const roundId = useId();
   const working = useRef(state ?? blankImage);
   const [draft, setDraft] = useState(state ?? blankImage);
   const [error, setError] = useState<string>();
@@ -30,7 +33,7 @@ export function ImageForm(props: {
   const uploadPendingRef = useRef(false);
   const saveFailed = useRef(false);
   const isEditing = useRef(false);
-  const { defaultWidth, defaultHeight, minWidth } = imageV3.variants.default;
+  const { defaultWidth, defaultHeight, minWidth } = imageV4.variants.default;
 
   useLayoutEffect(() => {
     if (!isEditing.current) {
@@ -40,10 +43,10 @@ export function ImageForm(props: {
   }, [state]);
   useWarnBeforeUnload(isEditing.current || uploadPending);
 
-  function save(next: typeof imageStateSchemaV3.Type) {
+  function save(next: typeof imageStateSchemaV4.Type) {
     working.current = next;
     setDraft(next);
-    const valid = Schema.is(completeImageStateSchema)(next);
+    const valid = isCompleteImage(next);
     if (!valid) {
       isEditing.current = true;
       saveFailed.current = false;
@@ -69,15 +72,17 @@ export function ImageForm(props: {
         imageUrl={draft.imageUrl}
         crop={draft.crop}
         uploadImage={uploadImage}
-        getFrameAspectRatio={() =>
-          measureFrame?.("[data-image-cover]") ??
-          Math.max(minWidth, Math.min(defaultWidth, previewWidth ?? defaultWidth)) /
-            (defaultHeight === null ? 200 : defaultHeight - 56)
-        }
+        getFrameAspectRatio={() => {
+          if (working.current.round) return 1;
+          const frame = measureFrame?.("[data-image-cover]");
+          return frame ??
+            Math.max(minWidth, Math.min(defaultWidth, previewWidth ?? defaultWidth)) /
+              (defaultHeight === null ? 200 : defaultHeight - 56);
+        }}
         onPendingChange={(pending) => {
           uploadPendingRef.current = pending;
           setUploadPending(pending);
-          onDraftChange?.({ state: working.current, pending: pending || isEditing.current, valid: !saveFailed.current && Schema.is(completeImageStateSchema)(working.current) });
+          onDraftChange?.({ state: working.current, pending: pending || isEditing.current, valid: !saveFailed.current && isCompleteImage(working.current) });
         }}
         onApply={(source) => save({ ...working.current, ...source })}
       />
@@ -89,7 +94,7 @@ export function ImageForm(props: {
           working.current = next;
           setDraft(next);
           isEditing.current = true;
-          onDraftChange?.({ state: next, pending: true, valid: Schema.is(completeImageStateSchema)(next) });
+          onDraftChange?.({ state: next, pending: true, valid: isCompleteImage(next) });
           altCommit.schedule(event);
         }}
         onBlur={altCommit.onBlur}
@@ -98,19 +103,30 @@ export function ImageForm(props: {
       />
       <TextInput
         label="Caption"
+        disabled={draft.round}
         value={draft.caption}
         onChange={(event) => {
           const next = { ...working.current, caption: event.currentTarget.value };
           working.current = next;
           setDraft(next);
           isEditing.current = true;
-          onDraftChange?.({ state: next, pending: true, valid: Schema.is(completeImageStateSchema)(next) });
+          onDraftChange?.({ state: next, pending: true, valid: isCompleteImage(next) });
           captionCommit.schedule(event);
         }}
         onBlur={captionCommit.onBlur}
         onKeyDown={captionCommit.onKeyDown}
         onCompositionEnd={captionCommit.onCompositionEnd}
       />
+      <Field orientation="horizontal">
+        <FieldLabel id={`${roundId}-label`} htmlFor={roundId}>Round</FieldLabel>
+        <Checkbox
+          id={roundId}
+          aria-labelledby={`${roundId}-label`}
+          checked={draft.round}
+          disabled={draft.caption.trim() !== ""}
+          onCheckedChange={(round) => save({ ...working.current, round })}
+        />
+      </Field>
     </FieldGroup>
   );
 }

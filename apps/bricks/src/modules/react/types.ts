@@ -55,6 +55,7 @@ export type IModule<MODULE extends string> = {
   previewStates?: Record<string, unknown>;
   /** Initial configuration, or "preview" to capture the selected preview state. */
   initialDraft: unknown;
+  initialDrafts?: Record<string, unknown>;
 };
 
 /** Serializable module row: module identity, no React component. */

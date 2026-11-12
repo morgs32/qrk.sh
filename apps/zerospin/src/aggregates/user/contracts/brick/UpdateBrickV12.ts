@@ -1,3 +1,5 @@
+import type { IContractProgramInput } from "@zerospin/core/contracts/types";
+import { brickV6 } from "../../models/brick/BrickV6";
 import { candidateLibrary } from "@qrk.sh/bricks/modules/candidateLibrary";
 import { mapParseError } from "@zerospin/error";
 import { DownAdapterRefused, findFirst, upgradeAggregateContractRelease } from "@zerospin/sdk/browser";
@@ -13,7 +15,27 @@ export const updateBrickV12 = upgradeAggregateContractRelease(updateBrickV11, {
   version: 12,
   payload: {},
   operations: { updateBrick: brick.operations.update, updatePlacement: placement.operations.update },
-  guard: Effect.fn("updateBrickV12.guard")(function* (props) {
+  guard: makeUpdateBrickGuard(candidateLibrary),
+  down: Effect.fn("updateBrickV12.down")(function* (props) {
+    const { payload } = props;
+    if (payload.moduleId === "image") return DownAdapterRefused;
+    return payload;
+  }),
+  program: makeUpdateBrickProgram(candidateLibrary),
+});
+
+export function makeUpdateBrickGuard(library: typeof candidateLibrary) {
+  return Effect.fn("updateBrick.guard")(function* (props: Omit<
+    Parameters<typeof updateBrickV11.evaluate>[0], "payload" | "db" | "externalOutcome"
+  > & {
+    payload: Omit<Parameters<typeof updateBrickV11.evaluate>[0]["payload"], "moduleId"> & {
+      moduleId: keyof typeof candidateLibrary;
+    };
+    db: Omit<Parameters<typeof updateBrickV11.evaluate>[0]["db"], "models"> & {
+      models: Omit<typeof updateBrickV11.models, "brick"> & { brick: typeof brick | typeof brickV6 };
+    };
+    failures: typeof updateBrickV11.failures;
+  }) {
     const { failures, db, payload } = props;
     const brickRow = yield* findFirst({
       db: db,
@@ -35,7 +57,7 @@ export const updateBrickV12 = upgradeAggregateContractRelease(updateBrickV11, {
       });
     }
 
-    const candidate = candidateLibrary[brickRow.moduleId];
+    const candidate = library[brickRow.moduleId];
     const state = Schema.decodeUnknownResult(candidate.completeStateSchema)(payload.state, {
       onExcessProperty: "ignore",
     });
@@ -75,13 +97,14 @@ export const updateBrickV12 = upgradeAggregateContractRelease(updateBrickV11, {
         });
       }
     }
-  }),
-  down: Effect.fn("updateBrickV12.down")(function* (props) {
-    const { payload } = props;
-    if (payload.moduleId === "image") return DownAdapterRefused;
-    return payload;
-  }),
-  program: Effect.fn("updateBrickV12.program")(function* (props) {
+  });
+}
+
+export function makeUpdateBrickProgram(library: typeof candidateLibrary) {
+  return Effect.fn("updateBrick.program")(function* (props: IContractProgramInput<
+    Parameters<ReturnType<typeof makeUpdateBrickGuard>>[0],
+    { updateBrick: typeof brick.operations.update; updatePlacement: typeof placement.operations.update }
+  >) {
     const { operations, payload, db } = props;
     const currentBrick = yield* findFirst({
       db,
@@ -89,7 +112,7 @@ export const updateBrickV12 = upgradeAggregateContractRelease(updateBrickV11, {
       where: { id: { eq: payload.brickId } },
     });
     if (currentBrick === undefined) return;
-    const candidate = candidateLibrary[payload.moduleId];
+    const candidate = library[payload.moduleId];
     const decodedState = yield* Schema.decodeUnknownEffect(candidate.completeStateSchema)(
       payload.state,
       { onExcessProperty: "ignore" },
@@ -123,5 +146,5 @@ export const updateBrickV12 = upgradeAggregateContractRelease(updateBrickV11, {
         },
       });
     }
-  }),
-});
+  });
+}

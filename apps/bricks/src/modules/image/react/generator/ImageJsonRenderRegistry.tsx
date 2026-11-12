@@ -2,9 +2,9 @@ import { defineRegistry } from "@json-render/react";
 import { makeCatalogFromComponentMetadata } from "../../../../definition/makeCatalogFromComponentMetadata";
 
 import { layoutRegistryComponents } from "../../../react/layoutRegistryComponents";
-import { imageCardView } from "../ImageCard";
+import { ImageCardRegistry } from "../ImageCard";
 import { ImageCoverRegistry } from "../ImageCover";
-import { mediaFooterView } from "../MediaFooter";
+import { ImageMediaFooterRegistry } from "../MediaFooter";
 import { imageV1 } from "../../definition/imageV1";
 
 export const { registry } = defineRegistry(
@@ -12,9 +12,9 @@ export const { registry } = defineRegistry(
   {
     components: {
       ...layoutRegistryComponents,
-      ImageCard: imageCardView.RegistryComponent,
+      ImageCard: ImageCardRegistry,
       ImageCover: ImageCoverRegistry,
-      MediaFooter: mediaFooterView.RegistryComponent,
+      MediaFooter: ImageMediaFooterRegistry,
     },
   },
 );

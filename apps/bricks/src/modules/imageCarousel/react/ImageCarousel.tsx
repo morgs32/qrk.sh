@@ -10,8 +10,8 @@ import type { imageCarouselSlidesSchema } from "../definition/imageCarouselV1";
 
 export function ImageCarousel() {
   const slides =
-    useStateValue<typeof imageCarouselSlidesSchema.Type>("/slides") ?? [];
-  const interval = useStateValue<number>("/interval") ?? 5;
+    useStateValue<typeof imageCarouselSlidesSchema.Type>("/brickState/slides") ?? [];
+  const interval = useStateValue<number>("/brickState/interval") ?? 5;
   const [viewportRef, api] = useEmblaCarousel({ loop: true });
   const [selected, setSelected] = useState(0);
   const [playing, setPlaying] = useState(false);

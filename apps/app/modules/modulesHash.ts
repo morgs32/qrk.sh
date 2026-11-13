@@ -8,6 +8,7 @@ import { imageView } from "@qrk.sh/bricks/modules/image/view";
 import { imageCarouselView } from "@qrk.sh/bricks/modules/imageCarousel/view";
 import { spotifyView } from "@qrk.sh/bricks/modules/spotify/view";
 import { youtubeView } from "@qrk.sh/bricks/modules/youtube/view";
+import { textView } from "@qrk.sh/bricks/modules/text/view";
 import { instagramView } from "@qrk.sh/bricks/modules/instagram/view";
 import { linkView } from "./link/linkView";
 import { mapPlaceView } from "@qrk.sh/bricks/modules/mapPlace/view";
@@ -27,6 +28,7 @@ export const modulesHash = makeModuleViewLibrary<IBackendLibrary>(backendLibrary
   "image-carousel": imageCarouselView,
   spotify: spotifyView,
   youtube: youtubeView,
+  text: textView,
   instagram: instagramView,
   link: linkView,
   "map-place": mapPlaceView,

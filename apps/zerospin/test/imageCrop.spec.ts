@@ -1,24 +1,23 @@
 import { it } from "@effect/vitest";
-import { imageStateSchema } from "@qrk.sh/bricks/modules/image/definition/v2";
 import { makeQueryDbVersion, NanoIdFactory } from "@zerospin/sdk";
 import { makeSystemHarness } from "@zerospin/sdk/testing";
-import { Effect, Schema } from "effect";
+import { Effect } from "effect";
 import { expect } from "vitest";
 
-import { userAggregateV11 } from "../src/aggregates/user/UserV11";
+import { userAggregateV1 } from "../src/fresh/userAggregateV1";
 import { system } from "../src/system";
 
-it.effect("stores one validated Image crop on the Brick and leaves Placement specs intact", () =>
+it.effect("stores one validated Image crop on the Brick and leaves Placement layouts and state intact", () =>
   Effect.gen(function* () {
     const harness = yield* makeSystemHarness({ system });
-    const owner = { release: userAggregateV11, aggregateId: "acct_image_crop" };
-    const db = makeQueryDbVersion({ models: userAggregateV11.models });
+    const owner = { release: userAggregateV1, aggregateId: "acct_image_crop" };
+    const db = makeQueryDbVersion({ models: userAggregateV1.models });
     const actor = {
-      aggregateName: userAggregateV11.name,
-      aggregateVersion: userAggregateV11.version,
+      aggregateName: userAggregateV1.name,
+      aggregateVersion: userAggregateV1.version,
       aggregateId: owner.aggregateId,
       actorName: "web",
-      actorVersion: 11,
+      actorVersion: 1,
       claims: { aggregateId: owner.aggregateId, clerkUserId: "user_image_crop" },
       externalOutcome: null,
       nodeId: "node_image_crop",
@@ -60,7 +59,7 @@ it.effect("stores one validated Image crop on the Brick and leaves Placement spe
       kind: "actor",
       id: "cmd_image_crop_create_page",
       commandName: "createPage",
-      contractVersion: 3,
+      contractVersion: 1,
       pushIndex: 2,
       payload: {
         id: "pag_image_crop",
@@ -70,43 +69,39 @@ it.effect("stores one validated Image crop on the Brick and leaves Placement spe
         description: null,
       },
     });
-    const image = { imageUrl: "https://example.com/image.png", title: "Photo" };
+    const image = { imageUrl: "https://example.com/image.png", altText: "Photo", caption: "", crop: null, round: false };
     yield* harness.push({
       ...actor,
       kind: "actor",
       id: "cmd_image_crop_add",
-      commandName: "addBrick",
-      contractVersion: 6,
+      commandName: "addImageBrick",
+      contractVersion: 1,
       pushIndex: 3,
       payload: {
-        id: "brk_image_crop",
+        brickId: "brk_image_crop",
         pageId: "pag_image_crop",
-        moduleId: "image",
+        layoutId: "default",
         state: image,
         target: { kind: "wall", wallId: "wal_pag_image_crop_lg", beforeSectionId: null },
       },
     });
     yield* harness.flush();
     const brickQuery = db.query.brick.findFirst({ where: { id: { eq: "brk_image_crop" } } });
-    const readState = Schema.decodeUnknownSync(imageStateSchema);
-    expect(readState((yield* harness.query(owner, brickQuery))?.state)).toEqual({
-      ...image,
-      crop: null,
-    });
+    expect((yield* harness.query(owner, brickQuery))?.state).toEqual(image);
     const placements = yield* harness.query(owner, db.query.placement.findMany({}));
     expect(placements).toHaveLength(4);
     const update = {
       ...actor,
       kind: "actor" as const,
-      commandName: "updateBrick" as const,
-      contractVersion: 6,
+      commandName: "updateImageBrick" as const,
+      contractVersion: 1,
     };
     const crop = { x: 0.62, y: 0.41, zoom: 1.4 };
     yield* harness.push({
       ...update,
       id: "cmd_image_crop_save",
       pushIndex: 4,
-      payload: { brickId: "brk_image_crop", moduleId: "image", state: { ...image, crop } },
+      payload: { brickId: "brk_image_crop", state: { ...image, crop } },
     });
     yield* harness.flush();
     expect((yield* harness.query(owner, brickQuery))?.state).toEqual({ ...image, crop });
@@ -118,7 +113,6 @@ it.effect("stores one validated Image crop on the Brick and leaves Placement spe
         pushIndex: 5,
         payload: {
           brickId: "brk_image_crop",
-          moduleId: "image",
           state: { ...image, crop: { ...crop, x: 2 } },
         },
       })

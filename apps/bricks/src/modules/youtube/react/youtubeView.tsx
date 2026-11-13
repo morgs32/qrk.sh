@@ -1,3 +1,4 @@
+import { addBrick, updateBrick } from "../commands/brickActions";
 import { defineRegistry } from "@json-render/react";
 import { Video } from "lucide-react";
 import { BrickDetailsTrigger } from "../../../components/BrickDetailsTrigger";
@@ -9,6 +10,9 @@ import { YoutubePlayer } from "./YoutubePlayer";
 
 const { registry } = defineRegistry(makeCatalogFromComponentMetadata(youtubeV1.componentMetadata), { components: { YoutubePlayer } });
 const view = makeModuleView(youtubeV1, {
+  defaultPlacementState: {},
+  add: addBrick,
+  update: updateBrick,
   categoryIds: ["social"],
   defaultState: { content: null },
   LineIcon: Video,
@@ -19,7 +23,7 @@ const view = makeModuleView(youtubeV1, {
 export const youtubeView = {
   ...view,
   Render(props: Parameters<typeof view.Render>[0]) {
-    const { state, spec, variantId } = props;
-    return <BrickDetailsTrigger label="Edit YouTube"><view.Render state={state} spec={spec} variantId={variantId} /></BrickDetailsTrigger>;
+    const { brickState, placementState, layoutId, spec } = props;
+    return <BrickDetailsTrigger label="Edit YouTube"><view.Render brickState={brickState} placementState={placementState} spec={spec} layoutId={layoutId} /></BrickDetailsTrigger>;
   },
 };

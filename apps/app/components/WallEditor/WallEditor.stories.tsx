@@ -23,7 +23,7 @@ import { BrowserChrome } from "../PagePreview/BrowserChrome";
 import { WallEditor } from "./WallEditor";
 import { Button } from "@qrk.sh/bricks/components/button";
 import { BREAKPOINTS, PREVIEW_BORDER_WIDTH } from "../../lib/breakpoints";
-import { makePlacementId } from "@qrk.sh/zerospin/src/aggregates/user/layout/makePlacementId";
+import { makePlacementId } from "@qrk.sh/bricks/zerospin/wall/makePlacementId";
 import { swatchAndIconV1 } from "@qrk.sh/bricks/modules/swatchAndIcon/definition";
 import { modulesHash } from "../../modules/modulesHash";
 import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
@@ -73,7 +73,6 @@ function makeResources(
                 ? "swatch-and-icon"
                 : fixture,
           borderWidth,
-          stateRevision: 0,
           state:
             ((crossRowFixture || resizeFixture) && position === 4) ||
             (sizingFixture && position === 3)
@@ -275,14 +274,12 @@ function makeResources(
           id: makePlacementId(entry.id, id),
           brickId: entry.id,
           wallId: prefixId(wall, `story-${id}`),
-          variantId: "default",
+          layoutId: "default",
           widthWeight:
             sizingFixture && index === 0
               ? 480
               : modulesHash[entry.moduleId].variants.default.defaultWidth,
-          specRevision: 0,
-          generation: null,
-          spec: modulesHash[entry.moduleId].variants.default.spec,
+          state: structuredClone(modulesHash[entry.moduleId].defaultPlacementState),
         }),
       ),
     ),

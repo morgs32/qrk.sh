@@ -1,3 +1,4 @@
+import { addBrick, updateBrick } from "../commands/brickActions";
 import { githubActivityPreviewState } from "../definition/githubActivityPreviewState";
 import { makeModuleView } from "../../react/makeModuleView";
 import { BrickDetailsTrigger } from "../../../components/BrickDetailsTrigger";
@@ -8,6 +9,9 @@ import { GitHubActivityPlaceholder } from "./GitHubActivityPlaceholder";
 import { GitHubActivityLineIcon } from "./GitHubActivityLineIcon";
 
 const githubActivity = makeModuleView(githubActivityV1, {
+  defaultPlacementState: {},
+  add: addBrick,
+  update: updateBrick,
   categoryIds: ["tools"],
   defaultState: githubActivityPreviewState,
   LineIcon: GitHubActivityLineIcon,
@@ -25,10 +29,10 @@ const githubActivity = makeModuleView(githubActivityV1, {
 export const githubActivityView = {
   ...githubActivity,
   Render(props: Parameters<typeof githubActivity.Render>[0]) {
-    const { state, spec, variantId } = props;
+    const { brickState, placementState, layoutId, spec } = props;
     return (
       <BrickDetailsTrigger label={`Edit ${githubActivity.label}`}>
-        <githubActivity.Render state={state} spec={spec} variantId={variantId} />
+        <githubActivity.Render brickState={brickState} placementState={placementState} spec={spec} layoutId={layoutId} />
       </BrickDetailsTrigger>
     );
   },

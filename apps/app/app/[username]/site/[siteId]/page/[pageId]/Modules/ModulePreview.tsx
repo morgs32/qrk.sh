@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { motion, useTransform } from "motion/react";
 import { useTickerItem } from "motion-plus/react";
-import type { Spec } from "@json-render/core";
+import { resolveBrickLayout } from "@qrk.sh/bricks/modules/freshLibrary";
 import { BrickWrapper } from "@qrk.sh/bricks/components/BrickWrapper";
 import { Button } from "@qrk.sh/bricks/components/button";
 import { FieldLabel } from "@qrk.sh/bricks/components/field";
@@ -14,12 +14,12 @@ export function ModulePreview(props: {
   breakpoint: (typeof BREAKPOINTS)[number]["id"];
   cardStyle: boolean;
   label?: string;
-  spec?: Spec;
+  layoutId: string;
   sampleState?: unknown;
   onSelect?: (state: unknown) => void;
   moduleAction?: (state: unknown) => ReactNode;
 }) {
-  const { brickModule, breakpoint, cardStyle, label, spec, sampleState, onSelect, moduleAction } =
+  const { brickModule, breakpoint, cardStyle, label, layoutId, sampleState, onSelect, moduleAction } =
     props;
   const previewRef = useRef<HTMLDivElement>(null);
   const { offset, props: itemProps, cloneIndex } = useTickerItem();
@@ -66,9 +66,10 @@ export function ModulePreview(props: {
   const renderedPreview = (
     <Render
       key={previewRevision}
-      state={previewState}
-      variantId="default"
-      spec={spec ?? view.spec}
+      brickState={previewState}
+      placementState={brickModule.defaultPlacementState}
+      layoutId={layoutId}
+      spec={resolveBrickLayout({ moduleId: brickModule.id, layoutId, brickState: previewState })}
     />
   );
 

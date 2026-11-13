@@ -3,7 +3,7 @@
 import { useStateValue } from "@json-render/react";
 
 export function SpotifyPlayer() {
-  const url = useStateValue<string | null>("/url");
+  const url = useStateValue<string | null>("/brickState/url");
   if (url == null) {
     return (
       <div className="grid min-h-[180px] w-full flex-1 place-items-center bg-muted p-3 text-center text-sm text-muted-foreground">

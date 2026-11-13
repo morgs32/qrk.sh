@@ -7,6 +7,7 @@ import { imageV1 } from "./image/definition/imageV1";
 import { imageCarouselV1 } from "./imageCarousel/definition/imageCarouselV1";
 import { spotifyV1 } from "./spotify/definition/spotifyV1";
 import { youtubeV1 } from "./youtube/definition/youtubeV1";
+import { textV1 } from "./text/definition/textV1";
 import { instagramV1 } from "./instagram/definition/instagramV1";
 import { linkV1 } from "./link/definition/linkV1";
 import { mapPlaceV1 } from "./mapPlace/definition/mapPlaceV1";
@@ -26,6 +27,7 @@ export const backendLibrary = makeBackendLibrary({
   "image-carousel": imageCarouselV1,
   spotify: spotifyV1,
   youtube: youtubeV1,
+  text: textV1,
   instagram: instagramV1,
   link: linkV1,
   "map-place": mapPlaceV1,

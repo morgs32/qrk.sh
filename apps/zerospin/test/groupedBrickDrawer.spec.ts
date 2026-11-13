@@ -1,181 +1,73 @@
-import { it } from "@effect/vitest";
-import { candidateLibrary } from "@qrk.sh/bricks/modules/candidateLibrary";
+import { expect, it } from "@effect/vitest";
+import { freshCandidateLibrary } from "@qrk.sh/bricks/modules/candidateLibrary";
 import { swatchAndIconPreviewState } from "@qrk.sh/bricks/modules/swatchAndIcon/definition/swatchAndIconPreviewState";
-import { decodeAndAdaptPayload } from "@zerospin/core/contracts/decodeAndAdaptPayload/decodeAndAdaptPayload";
-import { encodePayload } from "@zerospin/core/contracts/encodePayload";
-import { applyOperationTx } from "@zerospin/core/contracts/applyOperationTx";
-import { makeContractReadDb } from "@zerospin/core/contracts/make/makeContractReadDb";
-import { makeResourceDbConfig } from "@zerospin/core/drizzle/make/makeDbConfig/makeDbConfig";
-import { makeTx } from "@zerospin/core/drizzle/make/makeTx";
-import { openHarnessDb } from "@zerospin/core/testing/systemHarness/openHarnessDb";
-import { DownAdapterRefused, findFirst, findMany } from "@zerospin/sdk/browser";
+import { makeQueryDbVersion, NanoIdFactory } from "@zerospin/sdk";
+import { makeSystemHarness } from "@zerospin/sdk/testing";
 import { Effect, Schema } from "effect";
-import { expect } from "vitest";
-import { userAggregateV18 } from "../src/aggregates/user/UserV18";
-import { userAggregateV20 } from "../src/aggregates/user/UserV20";
-import { updateBrickV14 } from "../src/aggregates/user/contracts/brick/UpdateBrickV14";
-import { updateBrickV13 } from "../src/aggregates/user/contracts/brick/UpdateBrickV13";
-import { addBrickV13 } from "../src/aggregates/user/contracts/wall/AddBrickContractV13";
-import { addBrickV12 } from "../src/aggregates/user/contracts/wall/AddBrickContractV12";
-import { updateBrickV12 } from "../src/aggregates/user/contracts/brick/UpdateBrickV12";
-import { addBrickV11 } from "../src/aggregates/user/contracts/wall/AddBrickContractV11";
-import { addBrickV10 } from "../src/aggregates/user/contracts/wall/AddBrickContractV10";
+import { system } from "../src/system";
+import { userAggregateV1 } from "../src/fresh/userAggregateV1";
 
 it.effect("requires a complete swatch while allowing the default empty hash", () =>
   Effect.sync(() => {
-    const isComplete = Schema.is(candidateLibrary["swatch-and-icon"].completeStateSchema);
+    const isComplete = Schema.is(freshCandidateLibrary["swatch-and-icon"].completeStateSchema);
     expect(isComplete(swatchAndIconPreviewState)).toBe(true);
     expect(isComplete({ ...swatchAndIconPreviewState, payload: { hash: "", color: "not-a-color" } })).toBe(false);
     expect(isComplete({ ...swatchAndIconPreviewState, data: { name: "", svg: "" } })).toBe(false);
   }),
 );
 
-it.effect("creates four chosen layouts and rejects incomplete creation and updates", () =>
+it.effect("keeps the chosen Image layout across all Placements and rejects invalid Image content", () =>
   Effect.gen(function* () {
-    const config = makeResourceDbConfig({ models: userAggregateV20.models });
-    const db = yield* openHarnessDb(config);
-    const readDb = makeContractReadDb({ db, models: userAggregateV18.models });
-    const recordedAt = new Date("2026-11-12T00:00:00Z");
-    const timestamps = { createdAt: recordedAt, updatedAt: recordedAt };
-    db.transaction((tx) => {
-      tx.insert(config.schema.user).values({
-        ...timestamps, id: "usr_drawer", clerkUserId: "user_drawer", username: null, displayName: null,
-      }).run();
-      tx.insert(config.schema.site).values({
-        ...timestamps, id: "sit_drawer", userId: "usr_drawer", slug: null, name: null,
-        description: null, logoUrl: null, faviconLightUrl: null, faviconDarkUrl: null,
-        isPublished: false, stickyNavbar: true, cardStyle: false, brickGap: 1,
-      }).run();
-      tx.insert(config.schema.page).values({
-        ...timestamps, id: "pag_drawer", siteId: "sit_drawer", slug: null, title: null,
-        description: null, isPublished: false, publishedSnapshotId: null,
-      }).run();
-      for (const breakpoint of ["sm", "md", "lg", "xl"] as const) {
-        tx.insert(config.schema.wall).values({
-          ...timestamps, id: `wal_drawer_${breakpoint}`, pageId: "pag_drawer", breakpoint,
-          layout: JSON.stringify({ sections: [] }),
-        }).run();
-      }
+    const harness = yield* makeSystemHarness({ system });
+    yield* harness.push({
+      kind: "system", id: "cmd_drawer_user", commandName: "createUser", contractVersion: 1,
+      aggregateName: "user", aggregateVersion: 1, aggregateId: "acct_drawer", externalOutcome: null,
+      payload: { id: "usr_drawer", clerkUserId: "user_drawer", username: null, displayName: null },
     });
-
-    const state = { imageUrl: "https://example.test/lake.jpg", altText: "Mountain lake", caption: "", crop: null };
-    const payload = {
-      id: "brk_drawer" as const, pageId: "pag_drawer" as const, moduleId: "image" as const,
-      layoutId: "captionless", state,
-      target: { kind: "wall" as const, wallId: "wal_drawer_lg" as const, beforeSectionId: null },
+    const actor = {
+      kind: "actor" as const, actorName: "web", actorVersion: 1, contractVersion: 1,
+      aggregateName: "user", aggregateVersion: 1, aggregateId: "acct_drawer", nodeId: "node_drawer",
+      sessionName: "userSession", externalOutcome: null, claims: { aggregateId: "acct_drawer", clerkUserId: "user_drawer" },
     };
-    const claims = { clerkUserId: "user_drawer", aggregateId: "acct_drawer" };
-    const invoke = (data: typeof payload) => addBrickV11.evaluate({
-      aggregateId: "acct_drawer", claims, db: readDb, payload: data,
+    yield* harness.push({
+      ...actor, id: "cmd_drawer_site", pushIndex: 1, commandName: "createSite",
+      payload: { id: "sit_drawer", userId: "usr_drawer", slug: "drawer", name: null, description: null },
     });
-    // A retained placeholder cannot become a complete Image merely by adapting its payload.
-    const legacy = {
-      id: payload.id,
-      pageId: payload.pageId,
-      moduleId: payload.moduleId,
-      state: null,
-      target: payload.target,
-    };
-    const legacyEncoded = yield* encodePayload(addBrickV10, { version: 10, payload: legacy });
-    const adapted = yield* decodeAndAdaptPayload(addBrickV11, {
-      command: { commandName: "addBrick", contractVersion: 10, payload: legacyEncoded },
+    yield* harness.push({
+      ...actor, id: "cmd_drawer_page", pushIndex: 2, commandName: "createPage",
+      payload: { id: "pag_drawer", siteId: "sit_drawer", slug: null, title: null, description: null },
     });
-    expect(adapted.layoutId).toBe("default");
-    const legacyRejected = yield* addBrickV11.evaluate({
-      aggregateId: "acct_drawer", claims, db: readDb, payload: adapted,
-    }).pipe(Effect.flip);
-    expect(legacyRejected).toMatchObject({ code: "add-brick-invalid-state" });
-
-    const invalidState = yield* invoke({ ...payload, state: { ...state, altText: "" } }).pipe(Effect.flip);
-    expect(invalidState).toMatchObject({ code: "add-brick-invalid-state" });
-    const invalidLayout = yield* invoke({ ...payload, layoutId: "toString" }).pipe(Effect.flip);
-    expect(invalidLayout).toMatchObject({ code: "add-brick-invalid-layout" });
-
-    const roundState = { ...state, round: true, caption: "  " };
-    const currentDb = makeContractReadDb({ db, models: userAggregateV20.models });
-    const context = { aggregateId: "acct_drawer", claims, db: currentDb };
-    const rejected = yield* addBrickV13.evaluate({
-      ...context,
-      payload: { ...payload, state: { ...roundState, caption: "A caption" } },
-    }).pipe(Effect.flip);
-    expect(rejected).toMatchObject({ code: "add-brick-invalid-state" });
-
-    const created = yield* addBrickV13.evaluate({ ...context, payload: { ...payload, state: roundState } });
-    yield* makeTx("drawer.create")(function* (tx) {
-      for (const operation of created.operations) {
-        yield* applyOperationTx({ tx, operation, appliedAt: recordedAt });
-      }
-    })(db);
-    expect(yield* findFirst({ db: currentDb, model: currentDb.models.brick, where: { id: { eq: payload.id } } }))
-      .toMatchObject({ state: roundState });
-    const placements = yield* findMany({ db: currentDb, model: currentDb.models.placement, where: { brickId: { eq: payload.id } } });
+    const roundState = { imageUrl: "https://example.test/lake.jpg", altText: "Mountain lake", caption: "", crop: null, round: true };
+    yield* harness.push({
+      ...actor, id: "cmd_drawer_image", pushIndex: 3, commandName: "addImageBrick",
+      payload: { brickId: "brk_drawer", pageId: "pag_drawer", layoutId: "captionless", state: roundState,
+        target: { kind: "wall", wallId: "wal_pag_drawer_lg", beforeSectionId: null } },
+    });
+    yield* harness.flush();
+    const db = makeQueryDbVersion({ models: userAggregateV1.models });
+    const owner = { release: userAggregateV1, aggregateId: "acct_drawer" };
+    const placements = yield* harness.query(owner, db.query.placement.findMany({ where: { brickId: { eq: "brk_drawer" } } }));
     expect(placements).toHaveLength(4);
-    for (const placement of placements) expect(placement.spec).toEqual(candidateLibrary.image.layouts.captionless);
-
-    const invalidUpdate = yield* updateBrickV12.evaluate({
-      aggregateId: "acct_drawer", claims, db: readDb,
-      payload: { brickId: payload.id, moduleId: "image", state: { ...state, altText: "" } },
+    expect(placements.every((placement) => placement.layoutId === "captionless")).toBe(true);
+    const invalidRound = yield* harness.push({
+      ...actor, id: "cmd_drawer_invalid_round", pushIndex: 4, commandName: "updateImageBrick",
+      payload: { brickId: "brk_drawer", state: { ...roundState, caption: "Caption" } },
     }).pipe(Effect.flip);
-    expect(invalidUpdate).toMatchObject({ code: "update-brick-invalid-state" });
-
-    const update = { brickId: payload.id, moduleId: payload.moduleId, state };
-    const rejectedUpdate = yield* updateBrickV14.evaluate({
-      ...context, payload: { ...update, state: { ...roundState, caption: "A caption" } },
+    expect(invalidRound).toMatchObject({ code: "encode-command-payload-failed" });
+    const invalidAlt = yield* harness.push({
+      ...actor, id: "cmd_drawer_invalid_alt", pushIndex: 5, commandName: "updateImageBrick",
+      payload: { brickId: "brk_drawer", state: { ...roundState, altText: "" } },
     }).pipe(Effect.flip);
-    expect(rejectedUpdate).toMatchObject({ code: "update-brick-invalid-state" });
-
-    // A pre-V20 update has no round field and must still save as rectangular.
-    const legacyUpdate = yield* encodePayload(updateBrickV13, { version: 13, payload: update });
-    const adaptedUpdate = yield* decodeAndAdaptPayload(updateBrickV14, {
-      command: { commandName: "updateBrick", contractVersion: 13, payload: legacyUpdate },
+    expect(invalidAlt).toMatchObject({ code: "encode-command-payload-failed" });
+    const rectangle = { ...roundState, round: false, caption: "Caption" };
+    yield* harness.push({
+      ...actor, id: "cmd_drawer_update", pushIndex: 6, commandName: "updateImageBrick",
+      payload: { brickId: "brk_drawer", state: rectangle },
     });
-    const updated = yield* updateBrickV14.evaluate({ ...context, payload: adaptedUpdate });
-    yield* makeTx("drawer.update")(function* (tx) {
-      for (const operation of updated.operations) {
-        yield* applyOperationTx({ tx, operation, appliedAt: recordedAt });
-      }
-    })(db);
-    expect(yield* findFirst({ db: currentDb, model: currentDb.models.brick, where: { id: { eq: payload.id } } }))
-      .toMatchObject({ state: { ...state, round: false } });
-    const afterUpdate = yield* findMany({ db: currentDb, model: currentDb.models.placement, where: { brickId: { eq: payload.id } } });
-    expect(afterUpdate.map((placement) => placement.spec)).toEqual(placements.map((placement) => placement.spec));
-
-    const roundAdd = yield* encodePayload(addBrickV13, { version: 13, payload: { ...payload, state: roundState } });
-    expect(yield* decodeAndAdaptPayload(addBrickV12, {
-      command: { commandName: "addBrick", contractVersion: 13, payload: roundAdd },
-    }).pipe(Effect.flip)).toBe(DownAdapterRefused);
-    const roundUpdate = yield* encodePayload(updateBrickV14, { version: 14, payload: { ...update, state: roundState } });
-    expect(yield* decodeAndAdaptPayload(updateBrickV13, {
-      command: { commandName: "updateBrick", contractVersion: 14, payload: roundUpdate },
-    }).pipe(Effect.flip)).toBe(DownAdapterRefused);
-    const rectangularUpdate = yield* encodePayload(updateBrickV14, {
-      version: 14, payload: { ...update, state: { ...state, round: false } },
-    });
-    expect(yield* decodeAndAdaptPayload(updateBrickV13, {
-      command: { commandName: "updateBrick", contractVersion: 14, payload: rectangularUpdate },
-    })).toEqual(update);
-  }),
-);
-
-it.effect("adapts old commands to the default layout and refuses incompatible reverse adaptation", () =>
-  Effect.gen(function* () {
-    const legacy = {
-      id: "brk_drawer", pageId: "pag_drawer", moduleId: "image", state: null,
-      target: { kind: "wall", wallId: "wal_drawer_lg", beforeSectionId: null },
-    } satisfies Parameters<typeof addBrickV10.evaluate>[0]["payload"];
-    const encoded = yield* encodePayload(addBrickV10, { version: 10, payload: legacy });
-    expect(yield* decodeAndAdaptPayload(addBrickV11, {
-      command: { commandName: "addBrick", contractVersion: 10, payload: encoded },
-    })).toEqual({ ...legacy, layoutId: "default" });
-    const selected = yield* encodePayload(addBrickV11, {
-      version: 11,
-      payload: {
-        ...legacy, layoutId: "captionless",
-        state: { imageUrl: "https://example.test/lake.jpg", altText: "Lake", caption: "", crop: null },
-      },
-    });
-    expect(yield* decodeAndAdaptPayload(addBrickV10, {
-      command: { commandName: "addBrick", contractVersion: 11, payload: selected },
-    }).pipe(Effect.flip)).toBe(DownAdapterRefused);
-  }),
+    yield* harness.flush();
+    expect(yield* harness.query(owner, db.query.brick.findFirst({ where: { id: { eq: "brk_drawer" } } })))
+      .toMatchObject({ state: rectangle });
+    const after = yield* harness.query(owner, db.query.placement.findMany({ where: { brickId: { eq: "brk_drawer" } } }));
+    expect(after.map((placement) => placement.layoutId)).toEqual(placements.map((placement) => placement.layoutId));
+  }).pipe(Effect.provide(NanoIdFactory)),
 );

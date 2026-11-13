@@ -49,8 +49,8 @@ export const imageCoverView = makeComponentView(
 
 export function ImageCoverRegistry(props: Parameters<typeof imageCoverView.RegistryComponent>[0]) {
   const { props: resolvedProps, children } = props;
-  const crop = useStateValue<typeof imageCropSchema.Type | null>("/crop") ?? null;
-  const round = useStateValue<boolean>("/round") === true;
+  const crop = useStateValue<typeof imageCropSchema.Type | null>("/brickState/crop") ?? null;
+  const round = useStateValue<boolean>("/brickState/round") === true;
   return (
     <imageCoverView.RegistryComponent {...props} props={{ ...(resolvedProps ?? {}), crop, round }}>
       {children}

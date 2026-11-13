@@ -10,22 +10,22 @@ import {
 import { useSession } from "@zerospin/react";
 import { stageAggregateSessionCommand } from "@zerospin/sdk/browser";
 import { toast } from "sonner";
-import { allocateStackWidths } from "@qrk.sh/zerospin/src/aggregates/user/layout/wallSizing";
+import { allocateStackWidths } from "@qrk.sh/bricks/zerospin/wall/wallSizing";
 import type { IInferModelRow } from "@zerospin/core/models/types";
-import type { wallV3 } from "@qrk.sh/zerospin/src/aggregates/user/models/wall/WallV3";
-import type { placementV2 } from "@qrk.sh/zerospin/src/aggregates/user/models/placement/PlacementV2";
+import type { wallV1 } from "@qrk.sh/bricks/zerospin/models/wall/WallV1";
+import type { placementV1 } from "@qrk.sh/bricks/zerospin/models/placement/PlacementV1";
 import type {
   rowIdSchema,
   sectionIdSchema,
   stackIdSchema,
-} from "@qrk.sh/zerospin/src/aggregates/user/layout/wallLayoutSchema";
+} from "@qrk.sh/bricks/zerospin/models/wall/wallLayoutSchema";
 import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
 import { modulesHash } from "../../modules/modulesHash";
 import type { makeWallLayoutView } from "./makeWallLayoutView";
 
 /** Own one pointer gesture; only its completed visible geometry becomes a command. */
 export function useWallResize(props: {
-  wallId: IInferModelRow<typeof wallV3>["id"];
+  wallId: IInferModelRow<typeof wallV1>["id"];
   sections: ReturnType<typeof makeWallLayoutView>["sections"];
   brickGap: number;
   wallRef: RefObject<HTMLDivElement | null>;
@@ -89,10 +89,10 @@ export function useWallResize(props: {
     activated: boolean;
     previewCommitted: boolean;
     finishing: boolean;
-    leftPlacementId: IInferModelRow<typeof placementV2>["id"] | null;
-    rightPlacementId: IInferModelRow<typeof placementV2>["id"] | null;
+    leftPlacementId: IInferModelRow<typeof placementV1>["id"] | null;
+    rightPlacementId: IInferModelRow<typeof placementV1>["id"] | null;
     placements: {
-      placementId: IInferModelRow<typeof placementV2>["id"];
+      placementId: IInferModelRow<typeof placementV1>["id"];
       width: number;
       minWidth: number;
     }[];
@@ -103,7 +103,7 @@ export function useWallResize(props: {
         kind: "width";
         rowId: typeof rowIdSchema.Type;
         placements: {
-          placementId: IInferModelRow<typeof placementV2>["id"];
+          placementId: IInferModelRow<typeof placementV1>["id"];
           widthWeight: number;
         }[];
       }
@@ -114,8 +114,8 @@ export function useWallResize(props: {
     | {
         kind: "width";
         rowId: typeof rowIdSchema.Type;
-        leftPlacementId: IInferModelRow<typeof placementV2>["id"];
-        rightPlacementId: IInferModelRow<typeof placementV2>["id"];
+        leftPlacementId: IInferModelRow<typeof placementV1>["id"];
+        rightPlacementId: IInferModelRow<typeof placementV1>["id"];
         leftWidth: number;
         rightWidth: number;
       }
@@ -135,7 +135,7 @@ export function useWallResize(props: {
       placements: row.placements.map((placement) => ({
         id: placement.id,
         moduleId: placement.brick.moduleId,
-        variantId: placement.variantId,
+        layoutId: placement.layoutId,
         widthWeight: placement.widthWeight,
       })),
     });
@@ -149,7 +149,7 @@ export function useWallResize(props: {
           placements: row.placements.map((placement) => ({
             id: placement.id,
             moduleId: placement.brick.moduleId,
-            variantId: placement.variantId,
+            layoutId: placement.layoutId,
           })),
         })),
       })),
@@ -355,8 +355,8 @@ export function useWallResize(props: {
     event: PointerEvent<HTMLSpanElement>;
     rowId: typeof rowIdSchema.Type;
     kind: "width" | "height";
-    leftPlacementId: IInferModelRow<typeof placementV2>["id"] | null;
-    rightPlacementId: IInferModelRow<typeof placementV2>["id"] | null;
+    leftPlacementId: IInferModelRow<typeof placementV1>["id"] | null;
+    rightPlacementId: IInferModelRow<typeof placementV1>["id"] | null;
   }) => {
     const { event, rowId, kind, leftPlacementId, rightPlacementId } = props;
     if (
@@ -386,7 +386,7 @@ export function useWallResize(props: {
       return {
         placementId: placement.id,
         width: surface.getBoundingClientRect().width,
-        minWidth: modulesHash[placement.brick.moduleId].variants[placement.variantId].minWidth,
+        minWidth: modulesHash[placement.brick.moduleId].variants.default.minWidth,
       };
     });
     const surface = line.querySelector<HTMLElement>(".brick-hover-surface");
@@ -413,7 +413,7 @@ export function useWallResize(props: {
         45,
         ...row.placements.map(
           (placement) =>
-            modulesHash[placement.brick.moduleId].variants[placement.variantId].minHeight ?? 45,
+            modulesHash[placement.brick.moduleId].variants.default.minHeight ?? 45,
         ),
       ),
       availableWidth: line.getBoundingClientRect().width,
@@ -547,8 +547,8 @@ export function useWallResize(props: {
   const startWidthResize = (props: {
     event: PointerEvent<HTMLSpanElement>;
     rowId: typeof rowIdSchema.Type;
-    leftPlacementId: IInferModelRow<typeof placementV2>["id"];
-    rightPlacementId: IInferModelRow<typeof placementV2>["id"];
+    leftPlacementId: IInferModelRow<typeof placementV1>["id"];
+    rightPlacementId: IInferModelRow<typeof placementV1>["id"];
   }) => {
     const { event, rowId, leftPlacementId, rightPlacementId } = props;
     start({ event, rowId, kind: "width", leftPlacementId, rightPlacementId });

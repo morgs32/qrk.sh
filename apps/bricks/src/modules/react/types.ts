@@ -1,11 +1,16 @@
 import type { IResult } from "@zerospin/error";
-import type { ComponentType, ReactNode, SVGProps } from "react";
+import type { ComponentType, ContextType, ReactNode, SVGProps } from "react";
 
 import type { Spec } from "@json-render/core";
 import type { ComponentRegistry } from "@json-render/react";
 import type { IShape } from "@zerospin/shapes";
 import type { makeModuleVersion } from "../../definition/makeModuleVersion";
 import type { categories } from "./categories";
+import type { IInferResource } from "@zerospin/sdk/browser";
+import type { brickV1 } from "../../zerospin/models/brick/BrickV1";
+import type { pageV1 } from "../../zerospin/models/page/PageV1";
+import type { wallInsertionTargetSchema } from "../../zerospin/wall/wallInsertionTargetSchema";
+import type { BrickSessionContext } from "./BrickSessionContext";
 
 /** A library module with shared state and JSON Render variants. */
 export type IModule<MODULE extends string> = {
@@ -21,11 +26,20 @@ export type IModule<MODULE extends string> = {
   /** Maximum bricks of this module per page, including hidden and unconfigured bricks. */
   maxPerPage?: number;
   hasPlaceholder: boolean;
-  InlineEditor?: (props: {
+  inline: boolean;
+  defaultPlacementState: unknown;
+  add: (props: {
+    session: NonNullable<ContextType<typeof BrickSessionContext>>["session"];
+    pageId: IInferResource<typeof pageV1>["id"];
+    target: typeof wallInsertionTargetSchema.Type;
     state: unknown;
-    onSave: (state: unknown) => IResult<unknown, { message: string }>;
-    registerFlush: (flush: (onRecover?: () => void) => boolean) => () => void;
-  }) => ReactNode;
+    layoutId: string;
+  }) => IResult<unknown, { message: string }>;
+  update: (props: {
+    session: NonNullable<ContextType<typeof BrickSessionContext>>["session"];
+    brickId: IInferResource<typeof brickV1>["id"];
+    state: unknown;
+  }) => IResult<unknown, { message: string }>;
   Form?: (props: {
     state: unknown;
     onSave: (state: unknown) => IResult<unknown, { message: string }>;
@@ -34,7 +48,7 @@ export type IModule<MODULE extends string> = {
     measureFrame?: (selector: string) => number | undefined;
   }) => ReactNode;
   def: IModuleBrickDef<MODULE>;
-  Render: (props: { state: unknown; spec: Spec; variantId: "default" }) => ReactNode;
+  Render: (props: { brickState: unknown; placementState: unknown; spec: Spec; layoutId: string }) => ReactNode;
   variants: {
     default: ReturnType<typeof makeModuleVersion>["variants"]["default"] & {
       /** Display-only markup for an explicitly unconfigured brick (state === null). */

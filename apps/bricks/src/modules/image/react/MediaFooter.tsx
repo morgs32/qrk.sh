@@ -19,6 +19,6 @@ export const mediaFooterView = makeComponentView(mediaFooterComponentMetadata, {
 });
 
 export function ImageMediaFooterRegistry(props: Parameters<typeof mediaFooterView.RegistryComponent>[0]) {
-  const round = useStateValue<boolean>("/round") === true;
+  const round = useStateValue<boolean>("/brickState/round") === true;
   return round ? null : <mediaFooterView.RegistryComponent {...props} />;
 }

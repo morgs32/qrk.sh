@@ -1,19 +1,19 @@
 import type { IInferModelRow } from "@zerospin/core/models/types";
-import type { wallLayoutSchemaV4 } from "@qrk.sh/zerospin/src/aggregates/user/layout/wallLayoutSchemaV4";
-import type { placementV2 } from "@qrk.sh/zerospin/src/aggregates/user/models/placement/PlacementV2";
-import type { brickV6 } from "@qrk.sh/zerospin/src/aggregates/user/models/brick/BrickV6";
+import type { wallLayoutSchema } from "@qrk.sh/bricks/zerospin/models/wall/wallLayoutSchema";
+import type { placementV1 } from "@qrk.sh/bricks/zerospin/models/placement/PlacementV1";
+import type { brickV1 } from "@qrk.sh/bricks/zerospin/models/brick/BrickV1";
 
 /** Resolve structural references while preserving the Wall's authoritative array order. */
 export function makeWallLayoutView(props: {
   wall: {
-    layout: typeof wallLayoutSchemaV4.Type;
+    layout: typeof wallLayoutSchema.Type;
     placements: readonly {
-      id: IInferModelRow<typeof placementV2>["id"];
-      brickId: IInferModelRow<typeof placementV2>["brickId"];
-      variantId: IInferModelRow<typeof placementV2>["variantId"];
-      widthWeight: IInferModelRow<typeof placementV2>["widthWeight"];
-      spec: IInferModelRow<typeof placementV2>["spec"];
-      brick: IInferModelRow<typeof brickV6>;
+      id: IInferModelRow<typeof placementV1>["id"];
+      brickId: IInferModelRow<typeof placementV1>["brickId"];
+      layoutId: IInferModelRow<typeof placementV1>["layoutId"];
+      widthWeight: IInferModelRow<typeof placementV1>["widthWeight"];
+      state: IInferModelRow<typeof placementV1>["state"];
+      brick: IInferModelRow<typeof brickV1>;
     }[];
   };
 }) {

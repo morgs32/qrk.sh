@@ -17,17 +17,6 @@ import type { makeModuleVersion } from "../../definition/makeModuleVersion";
 import type { IModule, IModuleBrickDef } from "./types";
 import type { categories } from "./categories";
 
-function makeInitialState(state: unknown): Record<string, unknown> {
-  if (state !== null && typeof state === "object" && !Array.isArray(state)) {
-    const initialState: Record<string, unknown> = {};
-    mapValues(state, (value, key) => {
-      initialState[key] = value;
-    });
-    return initialState;
-  }
-  return {};
-}
-
 /** Compose shared variant sizing with JSON Render and module-owned editing UI. */
 export function makeModuleView<
   MODULE extends {
@@ -47,6 +36,17 @@ export function makeModuleView<
     defaultState: IInferDecodedRow<MODULE["stateShape"]>;
     previewStates?: Record<string, IInferDecodedRow<MODULE["stateShape"]>>;
     initialDraft?: IInferDecodedRow<MODULE["stateShape"]> | "preview";
+    inline?: boolean;
+    defaultPlacementState: unknown;
+    add: IModule<string>["add"];
+    update: IModule<string>["update"];
+    form?: (props: {
+      state: IInferDecodedRow<MODULE["stateShape"]> | null;
+      onSave: (state: IInferDecodedRow<MODULE["stateShape"]>) => IResult<unknown, { message: string }>;
+      onDraftChange?: (draft: { state: unknown; pending: boolean; valid: boolean }) => void;
+      previewWidth?: number;
+      measureFrame?: (selector: string) => number | undefined;
+    }) => ReactNode;
     LineIcon: ComponentType<SVGProps<SVGSVGElement>>;
     variants: {
       default: {
@@ -60,30 +60,7 @@ export function makeModuleView<
         registry: ComponentRegistry;
       };
     };
-  } & (
-    | {
-        form?: (props: {
-          state: IInferDecodedRow<MODULE["stateShape"]> | null;
-          onSave: (
-            state: IInferDecodedRow<MODULE["stateShape"]>,
-          ) => IResult<unknown, { message: string }>;
-          onDraftChange?: (draft: { state: unknown; pending: boolean; valid: boolean }) => void;
-          previewWidth?: number;
-          measureFrame?: (selector: string) => number | undefined;
-        }) => ReactNode;
-        inlineEditor?: never;
-      }
-    | {
-        form?: never;
-        inlineEditor: (props: {
-          state: IInferDecodedRow<MODULE["stateShape"]> | null;
-          onSave: (
-            state: IInferDecodedRow<MODULE["stateShape"]>,
-          ) => IResult<unknown, { message: string }>;
-          registerFlush: (flush: (onRecover?: () => void) => boolean) => () => void;
-        }) => ReactNode;
-      }
-  ),
+  },
 ) {
   const { defaultSpec, ...moduleFields } = module;
   const decodeState = Schema.decodeUnknownSync(
@@ -92,7 +69,6 @@ export function makeModuleView<
   const defaultState = decodeState(view.defaultState, { onExcessProperty: "ignore" });
   const def: IModuleBrickDef<MODULE["id"]> = { moduleId: module.id, state: defaultState };
   const EditorForm = view.form;
-  const Editor = view.inlineEditor;
   const variants = mapValues(view.variants, (variant, variantId) => {
     if (module.hasPlaceholder !== (variant.placeholder !== undefined)) {
       throw new Error(
@@ -148,23 +124,22 @@ export function makeModuleView<
   }
 
   function Render(props: Parameters<IModule<string>["Render"]>[0]) {
-    const { state, variantId, spec } = props;
-    const variant = variants[variantId];
-    if (state === null) {
+    const { brickState, placementState, spec } = props;
+    const variant = variants.default;
+    if (brickState === null) {
       const Placeholder = variant.placeholder;
       if (Placeholder === undefined) throw new Error(`${module.id} requires configured state`);
       return <Placeholder />;
     }
-    const decoded = decodeState(state, { onExcessProperty: "ignore" });
+    const decoded = decodeState(brickState, { onExcessProperty: "ignore" });
     if ("data" in decoded && decoded.data === null)
       return (
         <Empty role="status" className="items-start gap-0 p-0 text-left">
           <p>This brick has no saved content.</p>
         </Empty>
       );
-    const initialState = makeInitialState(decoded);
     return (
-      <StateProvider initialState={initialState}>
+      <StateProvider initialState={{ brickState: decoded, placementState }}>
         <VisibilityProvider>
           <ActionProvider handlers={{}}>
             <Renderer spec={spec} registry={variant.registry} />
@@ -184,21 +159,13 @@ export function makeModuleView<
       ? undefined
       : mapValues(view.previewStates, (state) => decodeState(state, { onExcessProperty: "ignore" })),
     initialDraft: view.initialDraft ?? null,
+    inline: view.inline ?? false,
+    defaultPlacementState: view.defaultPlacementState,
+    add: view.add,
+    update: view.update,
     def,
     variants,
     ...(EditorForm === undefined ? {} : { Form }),
-    ...(Editor === undefined
-      ? {}
-      : {
-          InlineEditor: function InlineEditor(
-            props: Parameters<NonNullable<IModule<string>["InlineEditor"]>>[0],
-          ) {
-            const { state, onSave, registerFlush } = props;
-            const decoded =
-              state === null ? null : decodeState(state, { onExcessProperty: "ignore" });
-            return <Editor state={decoded} onSave={onSave} registerFlush={registerFlush} />;
-          },
-        }),
     Render,
   };
 }

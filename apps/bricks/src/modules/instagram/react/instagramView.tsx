@@ -1,3 +1,4 @@
+import { addBrick, updateBrick } from "../commands/brickActions";
 import { instagramPreviewState } from "../definition/instagramPreviewState";
 import { makeModuleView } from "../../react/makeModuleView";
 import { BrickDetailsTrigger } from "../../../components/BrickDetailsTrigger";
@@ -8,6 +9,9 @@ import { InstagramPlaceholder } from "./InstagramPlaceholder";
 import { InstagramLineIcon } from "./InstagramLineIcon";
 
 const instagram = makeModuleView(instagramV1, {
+  defaultPlacementState: {},
+  add: addBrick,
+  update: updateBrick,
   categoryIds: ["social"],
   defaultState: instagramPreviewState,
   LineIcon: InstagramLineIcon,
@@ -25,10 +29,10 @@ const instagram = makeModuleView(instagramV1, {
 export const instagramView = {
   ...instagram,
   Render(props: Parameters<typeof instagram.Render>[0]) {
-    const { state, spec, variantId } = props;
+    const { brickState, placementState, layoutId, spec } = props;
     return (
       <BrickDetailsTrigger label={`Edit ${instagram.label}`}>
-        <instagram.Render state={state} spec={spec} variantId={variantId} />
+        <instagram.Render brickState={brickState} placementState={placementState} spec={spec} layoutId={layoutId} />
       </BrickDetailsTrigger>
     );
   },

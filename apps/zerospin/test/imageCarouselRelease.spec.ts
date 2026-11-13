@@ -1,58 +1,64 @@
 import { it } from "@effect/vitest";
-import { decodeAndAdaptPayload } from "@zerospin/core/contracts/decodeAndAdaptPayload/decodeAndAdaptPayload";
-import { encodePayload } from "@zerospin/core/contracts/encodePayload";
-import { DownAdapterRefused, makeQueryDbVersion, NanoIdFactory } from "@zerospin/sdk";
+import { makeQueryDbVersion, NanoIdFactory } from "@zerospin/sdk";
 import { makeSystemHarness } from "@zerospin/sdk/testing";
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { userAggregateV15 } from "../src/aggregates/user/UserV15";
-import { addBrickV7 } from "../src/aggregates/user/contracts/wall/AddBrickContractV7";
-import { addBrickV8 } from "../src/aggregates/user/contracts/wall/AddBrickContractV8";
-import { updateBrickV8 } from "../src/aggregates/user/contracts/brick/UpdateBrickV8";
-import { updateBrickV9 } from "../src/aggregates/user/contracts/brick/UpdateBrickV9";
+import { userAggregateV1 } from "../src/fresh/userAggregateV1";
 import { system } from "../src/system";
 
-it.effect("adapts retained Brick commands and refuses the new module on older releases", () =>
-  Effect.gen(function* () {
-    const legacy = {
-      id: "brk_carousel",
-      pageId: "pag_carousel",
-      moduleId: "image",
-      state: null,
-      target: { kind: "wall", wallId: "wal_pag_carousel_lg", beforeSectionId: null },
-    } satisfies Parameters<typeof addBrickV7.evaluate>[0]["payload"];
-    const oldPayload = yield* encodePayload(addBrickV7, { version: 7, payload: legacy });
-    expect(yield* decodeAndAdaptPayload(addBrickV8, {
-      command: { commandName: "addBrick", contractVersion: 7, payload: oldPayload },
-    })).toEqual(legacy);
-    const newPayload = yield* encodePayload(addBrickV8, {
-      version: 8, payload: { ...legacy, moduleId: "image-carousel" },
-    });
-    expect(yield* decodeAndAdaptPayload(addBrickV7, {
-      command: { commandName: "addBrick", contractVersion: 8, payload: newPayload },
-    }).pipe(Effect.flip)).toBe(DownAdapterRefused);
-    const update = yield* encodePayload(updateBrickV9, {
-      version: 9, payload: { brickId: "brk_carousel", moduleId: "image-carousel", state: null },
-    });
-    expect(yield* decodeAndAdaptPayload(updateBrickV8, {
-      command: { commandName: "updateBrick", contractVersion: 9, payload: update },
-    }).pipe(Effect.flip)).toBe(DownAdapterRefused);
-  }),
-);
-
-it.effect("registers the candidate and creates a user through its System command", () =>
+it.effect("saves a single image, preserves slide order and crop, and rejects invalid carousel content", () =>
   Effect.gen(function* () {
     const harness = yield* makeSystemHarness({ system });
-    const aggregateId = "acct_carousel_candidate";
+    const owner = { release: userAggregateV1, aggregateId: "acct_carousel" };
+    const db = makeQueryDbVersion({ models: owner.release.models });
+    const actor = {
+      kind: "actor" as const, aggregateName: "user", aggregateVersion: 1, aggregateId: owner.aggregateId,
+      actorName: "web", actorVersion: 1, claims: { aggregateId: owner.aggregateId, clerkUserId: "user_carousel" },
+      externalOutcome: null, nodeId: "node_carousel", sessionName: "userSession", contractVersion: 1,
+    };
     yield* harness.push({
-      kind: "system", id: "cmd_carousel_create_user", commandName: "createUser", contractVersion: 1,
-      aggregateName: "user", aggregateVersion: 15, aggregateId, externalOutcome: null,
+      kind: "system", id: "cmd_carousel_user", commandName: "createUser", contractVersion: 1,
+      aggregateName: "user", aggregateVersion: 1, aggregateId: owner.aggregateId, externalOutcome: null,
       payload: { id: "usr_carousel", clerkUserId: "user_carousel", username: null, displayName: null },
     });
     yield* harness.flush();
-    const db = makeQueryDbVersion({ models: userAggregateV15.models });
-    expect(yield* harness.query({ release: userAggregateV15, aggregateId },
-      db.query.user.findFirst({ where: { id: { eq: "usr_carousel" } } })))
-      .toMatchObject({ clerkUserId: "user_carousel" });
+    yield* harness.push({
+      ...actor, id: "cmd_carousel_site", pushIndex: 1, commandName: "createSite",
+      payload: { id: "sit_carousel", userId: "usr_carousel", slug: "carousel", name: null, description: null },
+    });
+    yield* harness.push({
+      ...actor, id: "cmd_carousel_page", pushIndex: 2, commandName: "createPage",
+      payload: { id: "pag_carousel", siteId: "sit_carousel", slug: null, title: null, description: null },
+    });
+    yield* harness.push({
+      ...actor, id: "cmd_carousel_add", pushIndex: 3, commandName: "addImageCarouselBrick",
+      payload: { brickId: "brk_carousel", pageId: "pag_carousel", state: null, target: { kind: "wall", wallId: "wal_pag_carousel_lg", beforeSectionId: null } },
+    });
+    const first = { id: "first", imageUrl: "https://example.com/first.png", alt: "First", crop: { x: 0.3, y: 0.6, zoom: 1.4 } };
+    const second = { id: "second", imageUrl: "https://example.com/second.png", alt: "Second", crop: null };
+    yield* harness.push({
+      ...actor, id: "cmd_carousel_single", pushIndex: 4, commandName: "updateImageCarouselBrick",
+      payload: { brickId: "brk_carousel", state: { slides: [first], interval: 5 } },
+    });
+    yield* harness.flush();
+    const query = db.query.brick.findFirst({ where: { id: { eq: "brk_carousel" } } });
+    expect((yield* harness.query(owner, query))?.state).toEqual({ slides: [first], interval: 5 });
+    const saved = { slides: [second, first], interval: 3 };
+    yield* harness.push({
+      ...actor, id: "cmd_carousel_reorder", pushIndex: 5, commandName: "updateImageCarouselBrick",
+      payload: { brickId: "brk_carousel", state: saved },
+    });
+    const empty = yield* harness.push({
+      ...actor, id: "cmd_carousel_empty", pushIndex: 6, commandName: "updateImageCarouselBrick",
+      payload: { brickId: "brk_carousel", state: { slides: [], interval: 5 } },
+    }).pipe(Effect.flip);
+    expect(empty).toMatchObject({ code: "encode-command-payload-failed" });
+    const interval = yield* harness.push({
+      ...actor, id: "cmd_carousel_interval", pushIndex: 7, commandName: "updateImageCarouselBrick",
+      payload: { brickId: "brk_carousel", state: { slides: [first], interval: 2 } },
+    }).pipe(Effect.flip);
+    expect(interval).toMatchObject({ code: "encode-command-payload-failed" });
+    yield* harness.flush();
+    expect((yield* harness.query(owner, query))?.state).toEqual(saved);
   }).pipe(Effect.provide(NanoIdFactory)),
 );

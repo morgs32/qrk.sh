@@ -3,11 +3,17 @@ import { pointerOutsideOfPreview } from "@atlaskit/pragmatic-drag-and-drop/utils
 import { setCustomNativeDragPreview } from "@atlaskit/pragmatic-drag-and-drop/utils/set-custom-native-drag-preview";
 import { BrickWrapper } from "@qrk.sh/bricks/components/BrickWrapper";
 import { Button } from "@qrk.sh/bricks/components/button";
-import { candidateLibraryV20 } from "@qrk.sh/bricks/modules/candidateLibrary";
+import { freshCandidateLibrary } from "@qrk.sh/bricks/modules/candidateLibrary";
 import { makeEffectSchema } from "@zerospin/shapes";
-import { Schema } from "effect";
+import { Result, Schema } from "effect";
 import { isEqual } from "es-toolkit";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { useSession } from "@zerospin/react";
+import { makeIdSchema } from "@zerospin/sdk/browser";
+import { pageV1 } from "@qrk.sh/bricks/zerospin/models/page/PageV1";
+import { wallInsertionTargetSchema } from "@qrk.sh/bricks/zerospin/wall/wallInsertionTargetSchema";
+import { resolveBrickLayout } from "@qrk.sh/bricks/modules/freshLibrary";
+import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
 import { BREAKPOINTS } from "../../../../../../../lib/breakpoints";
 import { BrickAction } from "../../../../../../../modules/components/BrickAction";
 import { modulesHash } from "../../../../../../../modules/modulesHash";
@@ -23,7 +29,8 @@ export function ModuleConfiguration(props: {
 }) {
   const { moduleId, layoutId, initialState, breakpoint, cardStyle, onClose, moduleAction } = props;
   const brickModule = modulesHash[moduleId];
-  const candidate = candidateLibraryV20[moduleId];
+  const session = useSession(userSessionDefinition);
+  const candidate = freshCandidateLibrary[moduleId];
   const previewRef = useRef<HTMLDivElement>(null);
   const [state, setState] = useState(initialState);
   const [{ state: draft, revision }, setFrame] = useState(() => ({
@@ -64,7 +71,6 @@ export function ModuleConfiguration(props: {
           moduleId,
           layoutId,
           state: structuredClone(draft),
-          onPlaced: onClose,
         };
       },
       onGenerateDragPreview: ({ nativeSetDragImage }) => {
@@ -82,9 +88,18 @@ export function ModuleConfiguration(props: {
           },
         });
       },
-      onDrop: () => setDragging(false),
+      onDrop: ({ location }) => {
+        setDragging(false);
+        const data = location.current.dropTargets[0]?.data;
+        if (data === undefined || data.eligible !== true || !element.isConnected) return;
+        const target = Schema.decodeUnknownResult(wallInsertionTargetSchema)(data);
+        const pageId = Schema.decodeUnknownResult(makeIdSchema(pageV1))(data.pageId);
+        if (Result.isFailure(target) || Result.isFailure(pageId)) return;
+        const result = brickModule.add({ session, pageId: pageId.success, target: target.success, state: draft, layoutId });
+        if (result._tag === "Success") onClose();
+      },
     });
-  }, [draft, layoutId, moduleId, onClose, ready]);
+  }, [brickModule, draft, layoutId, moduleId, onClose, ready, session]);
 
   const validRenderState =
     draft !== null && Schema.is(Schema.toType(makeEffectSchema(brickModule.stateShape)))(draft);
@@ -111,9 +126,10 @@ export function ModuleConfiguration(props: {
             <BrickWrapper className={cardStyle ? "brick-surface-card" : undefined}>
               <brickModule.Render
                 key={revision}
-                state={renderState}
-                variantId="default"
-                spec={spec}
+                brickState={renderState}
+                placementState={brickModule.defaultPlacementState}
+                layoutId={layoutId}
+                spec={resolveBrickLayout({ moduleId, layoutId, brickState: renderState })}
               />
             </BrickWrapper>
           </div>

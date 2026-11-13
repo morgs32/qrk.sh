@@ -2,50 +2,19 @@ import { it } from "@effect/vitest";
 import { makeQueryDbVersion, makeSystemSpec, NanoIdFactory } from "@zerospin/sdk";
 import { makeSystemHarness } from "@zerospin/sdk/testing";
 import { prepareAggregateInvocation } from "@zerospin/core/contracts/prepare/prepareAggregateInvocation";
-import { encodePayload } from "@zerospin/core/contracts/encodePayload";
-import { decodeAndAdaptPayload } from "@zerospin/core/contracts/decodeAndAdaptPayload/decodeAndAdaptPayload";
-import { DownAdapterRefused } from "@zerospin/sdk/browser";
 import { Effect, Result, Schema } from "effect";
 import { expect } from "vitest";
-import { userAggregateV16 } from "../src/aggregates/user/UserV16";
-import { publishPageV6 } from "../src/aggregates/user/contracts/publishPage/PublishPageV6";
-import { publishPageV7 } from "../src/aggregates/user/contracts/publishPage/PublishPageV7";
-import { setStackWidthWeightsV1 } from "../src/aggregates/user/contracts/wall/SetStackWidthWeightsV1";
+import { userAggregateV1 } from "../src/fresh/userAggregateV1";
+import { setStackWidthWeightsV1 } from "../src/fresh/contracts/wall/SetStackWidthWeightsV1";
 import {
-  insertPlacementInLayout,
   movePlacementToNewStackInLayout,
   moveStackInLayout,
   removePlacementFromLayout,
-} from "../src/aggregates/user/layout/wallLayoutV4";
-import type { wallLayoutSchemaV4 } from "../src/aggregates/user/layout/wallLayoutSchemaV4";
-import { PageSnapshotSchemaV7 } from "../src/aggregates/user/snapshots/pageSnapshotSchemaV7";
+} from "@qrk.sh/bricks/zerospin/wall/wallLayout";
+import { insertPlacementInLayout } from "@qrk.sh/bricks/zerospin/wall/insertPlacementInLayout";
+import type { wallLayoutSchema } from "@qrk.sh/bricks/zerospin/models/wall/wallLayoutSchema";
+import { pageSnapshotSchema } from "@qrk.sh/bricks/zerospin/models/pageSnapshot/pageSnapshotSchema";
 import { system } from "../src/system";
-
-it.effect("adapts historical publishing while refusing weighted snapshots in older releases", () =>
-  Effect.gen(function* () {
-    const legacy: {
-      pageId: `pag_${string}`;
-      snapshotId: `psn_${string}`;
-      preferredRowSizing: boolean;
-    } = {
-      pageId: "pag_stack_width",
-      snapshotId: "psn_stack_width",
-      preferredRowSizing: true,
-    };
-    const oldPayload = yield* encodePayload(publishPageV6, { version: 6, payload: legacy });
-    const adapted = yield* decodeAndAdaptPayload(publishPageV7, {
-      command: { commandName: "publishPage", contractVersion: 6, payload: oldPayload },
-    });
-    expect(adapted).toEqual({ ...legacy, preferredStackSizing: false });
-
-    const current = { ...legacy, preferredStackSizing: true };
-    const newPayload = yield* encodePayload(publishPageV7, { version: 7, payload: current });
-    const refused = yield* decodeAndAdaptPayload(publishPageV6, {
-      command: { commandName: "publishPage", contractVersion: 7, payload: newPayload },
-    }).pipe(Effect.flip);
-    expect(refused).toBe(DownAdapterRefused);
-  }),
-);
 
 it.effect("validates positive finite Stack weights at the command boundary", () =>
   Effect.gen(function* () {
@@ -94,7 +63,7 @@ it.effect("decodes published snapshots with and without saved Stack weights", ()
         },
       ],
     };
-    expect(Schema.decodeUnknownSync(PageSnapshotSchemaV7)(content)).toEqual(content);
+    expect(Schema.decodeUnknownSync(pageSnapshotSchema)(content)).toEqual(content);
     const weighted = {
       ...content,
       walls: content.walls.map((wall) => ({
@@ -106,16 +75,16 @@ it.effect("decodes published snapshots with and without saved Stack weights", ()
       })),
     };
     expect(
-      Schema.decodeUnknownSync(PageSnapshotSchemaV7)(weighted).walls[0].sections[0].stacks[0],
+      Schema.decodeUnknownSync(pageSnapshotSchema)(weighted).walls[0].sections[0].stacks[0],
     ).toMatchObject({ widthWeight: 2 });
   }),
 );
 
-it.effect("registers the Stack width candidate with the System", () =>
+it.effect("registers Stack width in the current System", () =>
   Effect.gen(function* () {
-    expect(system.aggregates.user.canonical).toBe(9);
-    expect(system.aggregates.user.releases[16]).toBe(userAggregateV16);
-    expect(userAggregateV16.actors.web.contracts.setStackWidthWeights.version).toBe(1);
+    expect(system.aggregates.user.canonical).toBe(1);
+    expect(system.aggregates.user.releases[1]).toBe(userAggregateV1);
+    expect(userAggregateV1.actors.web.contracts.setStackWidthWeights.version).toBe(1);
     expect(() => makeSystemSpec({ system })).not.toThrow();
 
     const harness = yield* makeSystemHarness({ system });
@@ -125,7 +94,7 @@ it.effect("registers the Stack width candidate with the System", () =>
       commandName: "createUser",
       contractVersion: 1,
       aggregateName: "user",
-      aggregateVersion: 16,
+      aggregateVersion: 1,
       aggregateId: "acct_stack_width",
       externalOutcome: null,
       payload: {
@@ -136,9 +105,9 @@ it.effect("registers the Stack width candidate with the System", () =>
       },
     });
     yield* harness.flush();
-    const db = makeQueryDbVersion({ models: userAggregateV16.models });
+    const db = makeQueryDbVersion({ models: userAggregateV1.models });
     const user = yield* harness.query(
-      { release: userAggregateV16, aggregateId: "acct_stack_width" },
+      { release: userAggregateV1, aggregateId: "acct_stack_width" },
       db.query.user.findFirst({ where: { id: { eq: "usr_stack_width" } } }),
     );
     expect(user?.clerkUserId).toBe("clerk_stack_width");
@@ -147,7 +116,7 @@ it.effect("registers the Stack width candidate with the System", () =>
 
 it.effect("keeps Stack proportions through insertions and movement", () =>
   Effect.sync(() => {
-    const layout: typeof wallLayoutSchemaV4.Type = {
+    const layout: typeof wallLayoutSchema.Type = {
       sections: [
         {
           id: "sec_source",
@@ -249,7 +218,7 @@ it.effect("keeps Stack proportions through insertions and movement", () =>
 
 it.effect("keeps the equal default omitted when editing historical layouts", () =>
   Effect.sync(() => {
-    const layout: typeof wallLayoutSchemaV4.Type = {
+    const layout: typeof wallLayoutSchema.Type = {
       sections: [
         {
           id: "sec_old",
@@ -297,7 +266,7 @@ it.effect("keeps the equal default omitted when editing historical layouts", () 
 
 it.effect("preserves the smallest positive Stack weight when computing a destination mean", () =>
   Effect.sync(() => {
-    const layout: typeof wallLayoutSchemaV4.Type = {
+    const layout: typeof wallLayoutSchema.Type = {
       sections: [
         {
           id: "sec_small",

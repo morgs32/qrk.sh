@@ -1,0 +1,81 @@
+import type { Spec } from "@json-render/core";
+
+export const freshDefaultSpec: Spec = {
+  root: "card-1",
+  elements: {
+    "card-1": {
+      type: "BrickShell",
+      props: {},
+      children: ["body-1", "footer-1"],
+    },
+    "header-1": {
+      type: "AvatarAndUsername",
+      props: {
+        avatar_url: { $state: "/brickState/data/avatar_url" },
+        login: { $state: "/brickState/data/login" },
+      },
+    },
+    "body-1": {
+      type: "BrickBody",
+      props: {},
+      children: ["body-column-1"],
+    },
+    "body-column-1": {
+      type: "Column",
+      props: {
+        gap: 2,
+      },
+      children: ["header-1", "bio-1", "location-1", "blog-1"],
+    },
+    "bio-1": {
+      type: "Bio",
+      props: {
+        bio: { $state: "/brickState/data/bio" },
+      },
+    },
+    "location-1": {
+      type: "Location",
+      props: {
+        location: { $state: "/brickState/data/location" },
+      },
+    },
+    "blog-1": {
+      type: "Blog",
+      props: {
+        blog: { $state: "/brickState/data/blog" },
+      },
+    },
+    "footer-1": {
+      type: "BrickFooter",
+      props: {},
+      children: ["footer-row-1"],
+    },
+    "footer-row-1": {
+      type: "Row",
+      props: {
+        gap: 2,
+        justifyContent: "flex-end",
+        className: "w-full",
+      },
+      children: ["followers-1", "following-1", "public-repos-1"],
+    },
+    "followers-1": {
+      type: "Followers",
+      props: {
+        followers: { $state: "/brickState/data/followers" },
+      },
+    },
+    "following-1": {
+      type: "Following",
+      props: {
+        following: { $state: "/brickState/data/following" },
+      },
+    },
+    "public-repos-1": {
+      type: "PublicRepos",
+      props: {
+        public_repos: { $state: "/brickState/data/public_repos" },
+      },
+    },
+  },
+};

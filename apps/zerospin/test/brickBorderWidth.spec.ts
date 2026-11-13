@@ -1,4 +1,4 @@
-import { userAggregateV9 } from "../src/aggregates/user/UserV9";
+import { userAggregateV1 } from "../src/fresh/userAggregateV1";
 import { expect, it } from "@effect/vitest";
 import { makeQueryDbVersion, NanoIdFactory } from "@zerospin/sdk";
 import { makeSystemHarness } from "@zerospin/sdk/testing";
@@ -6,8 +6,8 @@ import { prepareAggregateInvocation } from "@zerospin/core/contracts/prepare/pre
 import { Effect } from "effect";
 
 import { system } from "../src/system";
-import { setBrickBorderWidthV1 } from "../src/aggregates/user/contracts/brick/SetBrickBorderWidthV1";
-import { makePageSnapshotV2 } from "../src/aggregates/user/snapshots/makePageSnapshotV2";
+import { setBrickBorderWidthV1 } from "../src/fresh/contracts/SetBrickBorderWidthV1";
+import { makePageSnapshotV1 } from "../src/fresh/makePageSnapshotV1";
 import { swatchAndIconPreviewState } from "@qrk.sh/bricks/modules/swatchAndIcon/definition/swatchAndIconPreviewState";
 
 it.effect("decodes whole-pixel widths and rejects fractions at the actor command boundary", () =>
@@ -45,8 +45,8 @@ it.effect("keeps border changes unavailable to System commands", () =>
         id: "cmd_border_system",
         commandName: "setBrickBorderWidth",
         contractVersion: 1,
-        aggregateName: userAggregateV9.name,
-        aggregateVersion: userAggregateV9.version,
+        aggregateName: userAggregateV1.name,
+        aggregateVersion: userAggregateV1.version,
         aggregateId: "acct_border",
         externalOutcome: null,
         payload: { brickId: "brk_border", borderWidth: 1 },
@@ -54,10 +54,10 @@ it.effect("keeps border changes unavailable to System commands", () =>
       .pipe(Effect.flip);
     expect(rejected).toMatchObject({ code: "system-harness-command-forbidden" });
     yield* harness.flush();
-    const db = makeQueryDbVersion({ models: userAggregateV9.models });
+    const db = makeQueryDbVersion({ models: userAggregateV1.models });
     expect(
       yield* harness.query(
-        { release: userAggregateV9, aggregateId: "acct_border" },
+        { release: userAggregateV1, aggregateId: "acct_border" },
         db.query.brick.findMany({}),
       ),
     ).toEqual([]);
@@ -69,14 +69,14 @@ it.effect(
   () =>
     Effect.gen(function* () {
       const harness = yield* makeSystemHarness({ system });
-      const owner = { release: userAggregateV9, aggregateId: "acct_border" };
-      const db = makeQueryDbVersion({ models: userAggregateV9.models });
+      const owner = { release: userAggregateV1, aggregateId: "acct_border" };
+      const db = makeQueryDbVersion({ models: userAggregateV1.models });
       const actor = {
-        aggregateName: userAggregateV9.name,
-        aggregateVersion: userAggregateV9.version,
+        aggregateName: userAggregateV1.name,
+        aggregateVersion: userAggregateV1.version,
         aggregateId: "acct_border",
         actorName: "web",
-        actorVersion: 9,
+        actorVersion: 1,
         claims: { aggregateId: "acct_border", clerkUserId: "user_border" },
         externalOutcome: null,
         nodeId: "node_border",
@@ -87,8 +87,8 @@ it.effect(
         id: "cmd_border_user",
         commandName: "createUser",
         contractVersion: 1,
-        aggregateName: userAggregateV9.name,
-        aggregateVersion: userAggregateV9.version,
+        aggregateName: userAggregateV1.name,
+        aggregateVersion: userAggregateV1.version,
         aggregateId: "acct_border",
         externalOutcome: null,
         payload: {
@@ -118,7 +118,7 @@ it.effect(
         kind: "actor",
         id: "cmd_border_page",
         commandName: "createPage",
-        contractVersion: 2,
+        contractVersion: 1,
         pushIndex: 2,
         payload: {
           id: "pag_border",
@@ -137,13 +137,12 @@ it.effect(
         ...actor,
         kind: "actor",
         id: "cmd_border_brick",
-        commandName: "addBrick",
-        contractVersion: 5,
+        commandName: "addSwatchAndIconBrick",
+        contractVersion: 1,
         pushIndex: 3,
         payload: {
-          id: "brk_border",
+          brickId: "brk_border",
           pageId: "pag_border",
-          moduleId: "swatch-and-icon",
           state: capturedState,
           target: { kind: "wall", wallId: "wal_pag_border_sm", beforeSectionId: null },
         },
@@ -154,7 +153,7 @@ it.effect(
         db.query.brick.findFirst({ where: { id: { eq: "brk_border" } } }),
       );
       if (before === undefined) expect.fail("Expected the command-created Brick");
-      expect(before).toMatchObject({ borderWidth: 0, state: capturedState, stateRevision: 0 });
+      expect(before).toMatchObject({ borderWidth: 0, state: capturedState });
       const placementsBefore = yield* harness.query(owner, db.query.placement.findMany({}));
       expect(placementsBefore).toHaveLength(4);
       const placedBricks = yield* harness.query(
@@ -189,7 +188,6 @@ it.effect(
         ).toMatchObject({
           borderWidth,
           state: before.state,
-          stateRevision: before.stateRevision,
         });
         const placements = yield* harness.query(
           owner,
@@ -237,34 +235,31 @@ it.effect(
             ...actor,
             kind: "actor",
             id: `cmd_${entry.id}`,
-            commandName: "addBrick",
-            contractVersion: 5,
+            commandName: "addSwatchAndIconBrick",
+            contractVersion: 1,
             pushIndex: pushIndex++,
             payload: {
-              ...entry,
+              brickId: entry.id,
+              state: entry.state,
               pageId: "pag_border",
-              moduleId: "swatch-and-icon",
-              target: { kind: "wall", wallId: "wal_pag_border_sm", beforeSectionId: null },
+                  target: { kind: "wall", wallId: "wal_pag_border_sm", beforeSectionId: null },
             },
           })
           .pipe(Effect.flip);
-        expect(rejected).toMatchObject({ code: "add-brick-invalid-state" });
+        expect(rejected).toMatchObject({ code: "encode-command-payload-failed" });
       }
       const rejectedUpdate = yield* harness
         .push({
           ...actor,
           kind: "actor",
           id: "cmd_null_swatch_update",
-          commandName: "updateBrick",
-          contractVersion: 4,
+          commandName: "updateSwatchAndIconBrick",
+          contractVersion: 1,
           pushIndex: pushIndex++,
-          payload: { brickId: "brk_border", moduleId: "swatch-and-icon", state: null },
+          payload: { brickId: "brk_border", state: null },
         })
         .pipe(Effect.flip);
-      expect(rejectedUpdate).toMatchObject({
-        code: "contract-guard-failed",
-        cause: expect.stringContaining("updateBrick state failed swatch-and-icon decode"),
-      });
+      expect(rejectedUpdate).toMatchObject({ code: "encode-command-payload-failed" });
       yield* harness.flush();
       expect(yield* harness.query(owner, db.query.brick.findMany({}))).toHaveLength(1);
       expect(yield* harness.query(owner, db.query.placement.findMany({}))).toEqual(
@@ -277,19 +272,18 @@ it.effect(
             where: { id: { eq: "brk_border" } },
           }),
         ),
-      ).toMatchObject({ state: capturedState, stateRevision: 0 });
+      ).toMatchObject({ state: capturedState });
 
       yield* harness.push({
         ...actor,
         kind: "actor",
         id: "cmd_unconfigured_link",
-        commandName: "addBrick",
-        contractVersion: 5,
+        commandName: "addLinkBrick",
+        contractVersion: 1,
         pushIndex: pushIndex++,
         payload: {
-          id: "brk_link",
+          brickId: "brk_link",
           pageId: "pag_border",
-          moduleId: "link",
           state: null,
           target: { kind: "wall", wallId: "wal_pag_border_sm", beforeSectionId: null },
         },
@@ -321,25 +315,26 @@ it("includes shared border width in publication changes", () => {
     pageId: "pag_snapshot",
     moduleId: "swatch-and-icon",
     state: swatchAndIconPreviewState,
-    stateRevision: 0,
     borderWidth: 0,
     createdAt: recordedAt,
     updatedAt: recordedAt,
-  } satisfies Parameters<typeof makePageSnapshotV2>[0]["bricks"][number];
+  } satisfies Parameters<typeof makePageSnapshotV1>[0]["bricks"][number];
   const props = {
+    preferredRowSizing: true,
+    preferredStackSizing: true,
     page: { slug: null, title: null, description: null },
     bricks: [brick],
     walls: [],
     placements: [],
   };
-  const published = makePageSnapshotV2(props);
-  const changed = makePageSnapshotV2({ ...props, bricks: [{ ...brick, borderWidth: 12 }] });
+  const published = makePageSnapshotV1(props);
+  const changed = makePageSnapshotV1({ ...props, bricks: [{ ...brick, borderWidth: 12 }] });
 
   expect(published.bricks).toEqual([
-    { id: brick.id, moduleId: brick.moduleId, state: brick.state, borderWidth: 0 },
+    { id: brick.id, moduleId: brick.moduleId, brickState: brick.state, borderWidth: 0 },
   ]);
   expect(changed.bricks).toEqual([
-    { id: brick.id, moduleId: brick.moduleId, state: brick.state, borderWidth: 12 },
+    { id: brick.id, moduleId: brick.moduleId, brickState: brick.state, borderWidth: 12 },
   ]);
   expect(changed).not.toEqual(published);
 });

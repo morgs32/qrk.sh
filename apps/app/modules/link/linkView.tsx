@@ -1,4 +1,5 @@
 import { linkV1 } from "@qrk.sh/bricks/modules/link/definition";
+import { addBrick, updateBrick } from "@qrk.sh/bricks/modules/link/commands/brickActions";
 import { linkPreviewState } from "@qrk.sh/bricks/modules/link/definition/linkPreviewState";
 import { LinkForm } from "@qrk.sh/bricks/modules/link/LinkForm";
 import { LinkLineIcon } from "@qrk.sh/bricks/modules/link/LinkLineIcon";
@@ -24,6 +25,9 @@ async function lookupLinkPreview(url: string, signal: AbortSignal) {
 const link = makeModuleView(linkV1, {
   categoryIds: ["business", "tools"],
   defaultState: linkPreviewState,
+  defaultPlacementState: {},
+  add: addBrick,
+  update: updateBrick,
   LineIcon: LinkLineIcon,
   form(props) {
     const { state, onSave, onDraftChange } = props;
@@ -49,10 +53,10 @@ const link = makeModuleView(linkV1, {
 export const linkView = {
   ...link,
   Render(props: Parameters<typeof link.Render>[0]) {
-    const { state, spec, variantId } = props;
+    const { brickState, placementState, spec, layoutId } = props;
     return (
       <BrickDetailsTrigger label={`Edit ${link.label}`}>
-        <link.Render state={state} spec={spec} variantId={variantId} />
+        <link.Render brickState={brickState} placementState={placementState} spec={spec} layoutId={layoutId} />
       </BrickDetailsTrigger>
     );
   },

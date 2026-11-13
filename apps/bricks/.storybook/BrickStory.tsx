@@ -14,6 +14,7 @@ import { Button } from "../src/components/button";
 import { StudioSidebar } from "../src/components/StudioSidebar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../src/components/tabs";
 import type { IModule } from "../src/modules/react/types";
+import { resolveBrickLayout } from "../src/modules/freshLibrary";
 import type { BricksApi } from "@qrk.sh/bricks/rpc";
 
 const BREAKPOINTS = [
@@ -45,7 +46,12 @@ export function BrickStory<STATE_SHAPE extends IShape>(props: {
   const promptId = useId();
   const cardsId = useId();
   const preview = useRef<HTMLElement>(null);
-  const spec = generatedSpec ?? variant.spec;
+  const placementState = view.defaultPlacementState;
+  const spec = generatedSpec ?? resolveBrickLayout({
+    moduleId: view.id,
+    layoutId: "default",
+    brickState: moduleState,
+  });
   useEffect(() => () => activeGeneration.current?.abort(), []);
 
   const decodeState = Schema.decodeUnknownSync(
@@ -97,7 +103,7 @@ export function BrickStory<STATE_SHAPE extends IShape>(props: {
           </header>
           {BREAKPOINTS.map((entry) => {
             const previewWidth = Math.min(variant.defaultWidth, entry.previewWidth);
-            const specPreview = <Render variantId="default" state={moduleState} spec={spec} />;
+            const specPreview = <Render layoutId="default" brickState={moduleState} placementState={placementState} spec={spec} />;
             return (
               <section
                 key={entry.id}
@@ -177,7 +183,7 @@ export function BrickStory<STATE_SHAPE extends IShape>(props: {
                       const result = await api.generateSpec(
                         definition.id,
                         generatePrompt,
-                        moduleState,
+                        { brickState: moduleState, placementState },
                         spec,
                       );
                       if (request.signal.aborted) return;

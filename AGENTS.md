@@ -6,6 +6,7 @@
 - Before the day's first task that requires manual verification, ask whether the user or the agent should perform it.
 - Ask both together when both apply. As soon as the user gives or changes either choice, update the dated record below in this file. Keep the current day's answers and reuse them across chats. Ask only for choices the user has yet to give that day.
 - When the user chooses “I’ll verify,” complete the implementation and automated checks, then archive the plan. The user performs manual verification on their own time.
+- For 2026-11-13, work directly on `main`. The user performs manual verification.
 - For 2026-11-12, work directly on `main`. The user performs manual verification.
 - For 2026-11-11, work directly on `main`. The user performs manual verification by default. The agent verifies Plan 068, the Plan 070 asset move, the separate page editor navbar, and Plan 078.
 
@@ -88,9 +89,9 @@ Test authored backend behavior with `makeSystemHarness` from
 Use the actual System and registered releases, create model rows through commands,
 and call `harness.flush()` to execute queued external and command operations.
 Substitute provider services with Effect Layers; never call live providers in tests.
-The current harness accepts System-origin commands only; it does not test actor
-authentication or actor-origin commands. Keep representative success and rejection
-paths concise. These tests verify
+The harness supports System- and Actor-origin commands; Actor commands use captured
+claims and do not test authentication or distributed admission. Keep representative
+success and rejection paths concise. These tests verify
 authored behavior, not Durable Object delivery, browser synchronization, or production.
 Run the backend `test` script (through Nx when configured).
 

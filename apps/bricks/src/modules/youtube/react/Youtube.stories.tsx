@@ -10,7 +10,7 @@ const meta = {
   render() {
     const [state, setState] = useState<Parameters<typeof YoutubeForm>[0]["state"]>(null);
     return <main className="qrk-bricks flex flex-wrap gap-6 bg-background p-6">
-      <div className="w-[480px] max-w-full"><youtubeView.Render state={null} variantId="default" spec={youtubeView.variants.default.spec} /></div>
+      <div className="w-[480px] max-w-full"><youtubeView.Render brickState={null} placementState={{}} layoutId="default" spec={youtubeView.variants.default.spec} /></div>
       <div className="w-72"><YoutubeForm state={state} onSave={(next) => { setState(next); return { _tag: "Success", success: undefined }; }} /><p>Saved: {state?.content?.kind ?? "none"}</p></div>
     </main>;
   },

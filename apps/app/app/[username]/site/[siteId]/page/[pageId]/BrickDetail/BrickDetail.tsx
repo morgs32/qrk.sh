@@ -1,15 +1,15 @@
 "use client";
 
 import { modulesHash } from "../../../../../../../modules/modulesHash";
-import { makePlacementId } from "@qrk.sh/zerospin/src/aggregates/user/layout/makePlacementId";
-import { brickV6 } from "@qrk.sh/zerospin/src/aggregates/user/models/brick/BrickV6";
+import { makePlacementId } from "@qrk.sh/bricks/zerospin/wall/makePlacementId";
+import { brickV1 } from "@qrk.sh/bricks/zerospin/models/brick/BrickV1";
 import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
-import { pageV1 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV1";
-import { siteV1 as Site } from "@qrk.sh/zerospin/src/aggregates/user/models/site/SiteV1";
+import { pageV1 as Page } from "@qrk.sh/bricks/zerospin/models/page/PageV1";
+import { siteV1 as Site } from "@qrk.sh/bricks/zerospin/models/site/SiteV1";
+import { resolveBrickLayout } from "@qrk.sh/bricks/modules/freshLibrary";
 import { BREAKPOINTS } from "../../../../../../../lib/breakpoints";
 import { useLocation, useRouter, useSearch } from "@tanstack/react-router";
-import { isNonEmptySpec } from "@json-render/core";
-import { makeIdSchema, stageAggregateSessionCommand } from "@zerospin/sdk/browser";
+import { makeIdSchema } from "@zerospin/sdk/browser";
 import { useLiveQuery, useSession } from "@zerospin/react";
 import { Schema } from "effect";
 import { useLayoutEffect, useRef, useState } from "react";
@@ -28,7 +28,7 @@ const ParamsSchema = Schema.Struct({
 });
 
 function isBrickId(value: string): value is `brk_${string}` {
-  return value.startsWith(`${brickV6.abbreviation}_`);
+  return value.startsWith(`${brickV1.abbreviation}_`);
 }
 
 export function BrickDetail() {
@@ -100,35 +100,15 @@ export function BrickDetail() {
   }, [location.href, params.brickId, placementId, router]);
   if (site === undefined) return <NotFound />;
   const brick = brickRow !== undefined ? modulesHash[brickRow.moduleId] : undefined;
-  const view = placement === undefined ? undefined : brick?.variants[placement.variantId];
+  const view = placement === undefined ? undefined : brick?.variants.default;
   const Form = brick?.Form;
   const formState = brickRow?.state === undefined ? brick?.defaultState : brickRow.state;
-  const rawSpec: unknown =
-    placement === undefined
-      ? undefined
-      : typeof placement.spec === "string"
-        ? JSON.parse(placement.spec)
-        : placement.spec;
-  const spec =
-    isNonEmptySpec(rawSpec) ||
-    (brickRow?.state === null &&
-      view?.placeholder !== undefined &&
-      Schema.is(
-        Schema.Struct({
-          root: Schema.String,
-          elements: Schema.Record(Schema.String, Schema.Never),
-          state: Schema.optional(Schema.Record(Schema.String, Schema.Unknown)),
-        }),
-      )(rawSpec))
-      ? rawSpec
-      : undefined;
   const unavailable =
     brick === undefined ||
     brickRow === undefined ||
     placement === undefined ||
     entry === undefined ||
-    view === undefined ||
-    spec === undefined;
+    view === undefined;
   const title = titleSlot && createPortal(brick?.label ?? "Edit brick", titleSlot);
 
   if (unavailable) {
@@ -153,7 +133,7 @@ export function BrickDetail() {
     );
   }
 
-  if (brick.InlineEditor !== undefined) return title;
+  if (brick.inline) return title;
 
   const content =
     Form !== undefined ? (
@@ -173,15 +153,7 @@ export function BrickDetail() {
           if (navigationPending.current || currentPlacementId.current !== placement.id) {
             throw new DOMException("Brick editor navigation started", "AbortError");
           }
-          return stageAggregateSessionCommand({
-            session,
-            contractName: "updateBrick",
-            payload: {
-              brickId: brickRow.id,
-              moduleId: brickRow.moduleId,
-              state,
-            },
-          });
+          return brick.update({ session, brickId: brickRow.id, state });
         }}
       />
     ) : (
@@ -197,7 +169,12 @@ export function BrickDetail() {
             borderWidth={brickRow.borderWidth}
             className={site.cardStyle ? "brick-surface-card" : undefined}
           >
-            <brick.Render variantId={placement.variantId} state={brickRow.state} spec={spec} />
+            <brick.Render
+              layoutId={placement.layoutId}
+              brickState={brickRow.state}
+              placementState={placement.state}
+              spec={resolveBrickLayout({ moduleId: brickRow.moduleId, layoutId: placement.layoutId, brickState: brickRow.state })}
+            />
           </BrickWrapper>
         </div>
       </div>

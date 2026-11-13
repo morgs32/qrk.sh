@@ -11,10 +11,10 @@ import { Schema } from "effect";
 import { isEqual, omit } from "es-toolkit";
 import { useLiveQuery, useSession } from "@zerospin/react";
 import { makeId, makeIdSchema, stageAggregateSessionCommand } from "@zerospin/sdk/browser";
-import { pageV1 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV1";
-import { siteV1 as Site } from "@qrk.sh/zerospin/src/aggregates/user/models/site/SiteV1";
-import { pageSnapshotV9 as PageSnapshot } from "@qrk.sh/zerospin/src/aggregates/user/models/pageSnapshot/PageSnapshotV9";
-import { makePageSnapshotV9 } from "@qrk.sh/zerospin/src/aggregates/user/snapshots/makePageSnapshotV9";
+import { pageV1 as Page } from "@qrk.sh/bricks/zerospin/models/page/PageV1";
+import { siteV1 as Site } from "@qrk.sh/bricks/zerospin/models/site/SiteV1";
+import { pageSnapshotV1 as PageSnapshot } from "@qrk.sh/bricks/zerospin/models/pageSnapshot/PageSnapshotV1";
+import { makePageSnapshotV1 } from "@qrk.sh/zerospin/src/fresh/makePageSnapshotV1";
 import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
 import { WorkspaceSidebar } from "../WorkspaceSidebar";
@@ -70,7 +70,7 @@ export default function WorkspacePanelControls(props: {
   const savedContent =
     page === undefined
       ? null
-      : makePageSnapshotV9({
+      : makePageSnapshotV1({
           preferredRowSizing: true,
           preferredStackSizing: true,
           page,

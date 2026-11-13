@@ -36,8 +36,9 @@ const meta = {
         <div className="w-[480px] max-w-full">
           <BrickWrapper className="h-[360px] [&_.brick-content]:h-full">
             <imageCarouselView.Render
-              state={state}
-              variantId="default"
+              brickState={state}
+              placementState={{}}
+              layoutId="default"
               spec={imageCarouselView.variants.default.spec}
             />
           </BrickWrapper>

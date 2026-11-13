@@ -1,16 +1,20 @@
 "use client";
 
 import { MarkdownView } from "@meowdown/react";
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { stageAggregateSessionCommand } from "@zerospin/sdk/browser";
+import { useCallback, useContext, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { BrickSessionContext } from "../../react/BrickSessionContext";
 import { makeComponentView } from "../../react/makeComponentView";
 import { articleBrickComponentMetadata } from "../definition/generator/ArticleBrickComponentMetadata";
 import { BrickShell } from "../../../components/BrickShell";
-import "./article-font.css";
+import { ArticleEditor } from "./ArticleEditor";
+import "../../../components/spectral-font.css";
 import "./article-editor.css";
 
 export const articleBrickContentView = makeComponentView(articleBrickComponentMetadata, {
   component(props) {
     const { title, subtitle, content } = props;
+    const editing = useContext(BrickSessionContext);
     const [mounted, setMounted] = useState(false);
     const contentRef = useRef<HTMLDivElement>(null);
     const resolveXPost = useCallback(() => undefined, []);
@@ -41,6 +45,22 @@ export const articleBrickContentView = makeComponentView(articleBrickComponentMe
         checkbox.tabIndex = -1;
       }
     }, [mounted, content]);
+
+    if (editing !== null) {
+      const { session, brickId, placementId, registerFlush } = editing;
+      return (
+        <ArticleEditor
+          key={placementId}
+          state={{ title, subtitle, content }}
+          registerFlush={registerFlush}
+          onSave={(state) => stageAggregateSessionCommand({
+            session,
+            contractName: "updateArticleBrick",
+            payload: { brickId, state },
+          })}
+        />
+      );
+    }
 
     return (
       <BrickShell className="overflow-hidden bg-white">

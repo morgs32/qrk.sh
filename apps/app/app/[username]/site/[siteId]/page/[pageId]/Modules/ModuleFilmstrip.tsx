@@ -1,6 +1,5 @@
 import { Button } from "@qrk.sh/bricks/components/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@qrk.sh/bricks/components/tabs";
-import { candidateLibrary } from "@qrk.sh/bricks/modules/candidateLibrary";
 import { categories } from "@qrk.sh/bricks/modules/react/categories";
 import { Carousel } from "motion-plus/react";
 import { useCallback, useState } from "react";
@@ -157,7 +156,7 @@ export function ModuleFilmstrip(props: {
                             cardStyle={cardStyle}
                             label={label}
                             sampleState={brickModule.previewStates?.[previewId]}
-                            spec={candidateLibrary[brickModule.id].layouts[layoutId]}
+                            layoutId={layoutId}
                             onSelect={(state) =>
                               setSelected({
                                 moduleId: brickModule.id,

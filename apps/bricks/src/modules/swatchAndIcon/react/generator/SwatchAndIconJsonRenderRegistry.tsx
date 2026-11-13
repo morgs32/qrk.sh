@@ -19,7 +19,7 @@ export const { registry } = defineRegistry(
         const componentProps = Schema.decodeUnknownSync(
           Schema.toType(makeEffectSchema(swatchAndIconColorComponentMetadata.propsShape)),
         )(context.props, { onExcessProperty: "error" });
-        const color = useStateValue<unknown>("/payload/color");
+        const color = useStateValue<unknown>("/brickState/payload/color");
         if (typeof color !== "string") {
           throw new Error("Swatch and Icon requires a saved color.");
         }

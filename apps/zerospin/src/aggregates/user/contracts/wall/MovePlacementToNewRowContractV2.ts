@@ -8,7 +8,7 @@ import { movePlacementToNewRowInLayout } from "../../layout/wallLayoutV2";
 export const movePlacementToNewRowV2 = upgradeAggregateContractRelease(movePlacementToNewRowV1, {
   version: 2,
   payload: {},
-  models: { wall, placement },
+  models: { wall: { model: wall, fields: ["createdAt", "updatedAt", "pageId", "breakpoint", "layout"] }, placement: { model: placement, fields: ["createdAt", "updatedAt", "brickId", "wallId", "widthWeight", "spec", "variantId", "specRevision", "generation"] } },
   operations: { updateWall: wall.operations.update },
   program: Effect.fn("movePlacementToNewRow.program")(function* (props) {
     const { db, payload, operations, failures, claims } = props;

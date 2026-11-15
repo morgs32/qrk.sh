@@ -27,7 +27,7 @@ export const deleteStackV1 = makeAggregateContractRelease(defineAggregateContrac
     stackId: primitives.json({ schema: stackIdSchema }),
     allWidths: primitives.boolean(),
   },
-  models: { brick, page, placement, site, user, wall },
+  models: { brick: { model: brick, fields: ["createdAt", "updatedAt", "pageId", "moduleId", "state", "borderWidth", "stateRevision"] }, page: { model: page, fields: ["createdAt", "updatedAt", "siteId", "slug", "title", "description", "isPublished", "publishedSnapshotId"] }, placement: { model: placement, fields: ["createdAt", "updatedAt", "brickId", "wallId", "widthWeight", "spec", "variantId", "specRevision", "generation"] }, site: { model: site, fields: ["name", "createdAt", "updatedAt", "slug", "description", "isPublished", "userId", "logoUrl", "faviconLightUrl", "faviconDarkUrl", "stickyNavbar", "cardStyle", "brickGap"] }, user: { model: user, fields: ["createdAt", "updatedAt", "clerkUserId", "username", "displayName"] }, wall: { model: wall, fields: ["createdAt", "updatedAt", "pageId", "breakpoint", "layout"] } },
   operations: {
     updateWall: wall.operations.update,
     deletePlacement: placement.operations.delete,

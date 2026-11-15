@@ -8,7 +8,7 @@ import { removePlacementFromLayout } from "../../layout/wallLayoutV2";
 export const deleteBrickV3 = upgradeAggregateContractRelease(deleteBrickV2, {
   version: 3,
   payload: {},
-  models: { wall, placement },
+  models: { wall: { model: wall, fields: ["createdAt", "updatedAt", "pageId", "breakpoint", "layout"] }, placement: { model: placement, fields: ["createdAt", "updatedAt", "brickId", "wallId", "widthWeight", "spec", "variantId", "specRevision", "generation"] } },
   operations: { updateWall: wall.operations.update, deletePlacement: placement.operations.delete },
   program: Effect.fn("deleteBrick.program")(function* (props) {
     const { db, payload, operations, failures, claims } = props;

@@ -23,7 +23,7 @@ import { stackIdSchema } from "@qrk.sh/bricks/zerospin/models/wall/wallLayoutSch
 
 export const moveStackV1 = makeAggregateContractRelease(defineAggregateContract("moveStack"), {
   version: 1,
-  models: { page, site, user, wall, brick, placement },
+  models: { page: { model: page, fields: ["createdAt", "updatedAt", "siteId", "slug", "title", "description", "isPublished", "publishedSnapshotId"] }, site: { model: site, fields: ["name", "createdAt", "updatedAt", "slug", "description", "isPublished", "userId", "logoUrl", "faviconLightUrl", "faviconDarkUrl", "stickyNavbar", "cardStyle", "brickGap"] }, user: { model: user, fields: ["createdAt", "updatedAt", "clerkUserId", "username", "displayName"] }, wall: { model: wall, fields: ["createdAt", "updatedAt", "pageId", "breakpoint", "layout"] }, brick: { model: brick, fields: ["createdAt", "updatedAt", "pageId", "moduleId", "state", "borderWidth"] }, placement: { model: placement, fields: ["createdAt", "updatedAt", "state", "brickId", "wallId", "layoutId", "widthWeight"] } },
   claims: userClaims,
   operations: { updateWall: wall.operations.update },
   payload: {

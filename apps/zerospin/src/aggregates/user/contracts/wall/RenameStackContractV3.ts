@@ -6,7 +6,7 @@ import { renameStackV2 } from "./RenameStackContractV2";
 export const renameStackV3 = upgradeAggregateContractRelease(renameStackV2, {
   version: 3,
   payload: {},
-  models: { wall },
+  models: { wall: { model: wall, fields: ["createdAt", "updatedAt", "pageId", "breakpoint", "layout"] } },
   operations: { updateWall: wall.operations.update },
   down: Effect.fn("renameStackV3.down")(function* (props) {
     const { payload } = props;

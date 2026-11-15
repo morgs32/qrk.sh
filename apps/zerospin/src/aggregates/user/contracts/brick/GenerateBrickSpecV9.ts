@@ -7,7 +7,7 @@ import { generateBrickSpecExternalDefinitionV9 } from "./GenerateBrickSpecExtern
 export const generateBrickSpecV9 = upgradeAggregateContractRelease(generateBrickSpecV8, {
   version: 9,
   payload: {},
-  models: { brick },
+  models: { brick: { model: brick, fields: ["createdAt", "updatedAt", "pageId", "moduleId", "state", "borderWidth", "stateRevision"] } },
   operations: { generateSpec: generateBrickSpecExternalDefinitionV9.externalOperation },
   down: Effect.fn("generateBrickSpecV9.down")(function* (props) {
     const { payload } = props;

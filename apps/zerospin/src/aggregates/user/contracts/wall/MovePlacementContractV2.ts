@@ -4,5 +4,5 @@ import { movePlacementV1 } from "./MovePlacementContractV1";
 
 export const movePlacementV2 = upgradeAggregateContractRelease(movePlacementV1, {
   version: 2,
-  models: { brick: brickV2 },
+  models: { brick: { model: brickV2, fields: ["createdAt", "updatedAt", "pageId", "moduleId", "state", "borderWidth", "stateRevision"] } },
 });

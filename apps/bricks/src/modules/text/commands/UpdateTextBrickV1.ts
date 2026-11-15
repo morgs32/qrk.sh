@@ -24,7 +24,12 @@ export const updateTextBrickV1 = makeAggregateContractRelease(
       brickId: modelId({ model: brick }),
       state: primitives.json({ schema: completeStateSchema }),
     },
-    models: { brick: brickV1, page: pageV1, site: siteV1, user: userV1 },
+    models: {
+      brick: { model: brickV1, fields: ["pageId", "moduleId"] },
+      page: { model: pageV1, fields: ["siteId"] },
+      site: { model: siteV1, fields: ["userId"] },
+      user: { model: userV1, fields: ["clerkUserId"] },
+    },
     operations: { updateBrick: brickV1.operations.update },
     failures: { unavailable: ContractError.schema({ code: "update-text-brick-unavailable" }) },
     guard: Effect.fn("updateTextBrick.guard")(function* (props) {

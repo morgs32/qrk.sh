@@ -51,9 +51,9 @@ export const updateBrickV3 = makeAggregateContractRelease(defineAggregateContrac
   },
   payload: updateBrickPayload,
   models: {
-    brick,
-    placement,
-    wall,
+    brick: { model: brick, fields: ["createdAt", "updatedAt", "pageId", "moduleId", "state", "borderWidth", "stateRevision"] },
+    placement: { model: placement, fields: ["createdAt", "updatedAt", "brickId", "wallId", "spec", "variantId", "specRevision", "generation"] },
+    wall: { model: wall, fields: ["createdAt", "updatedAt", "pageId", "breakpoint", "layout"] },
   },
   version: 3,
   guard: Effect.fn("updateBrick.guard")(function* (props) {

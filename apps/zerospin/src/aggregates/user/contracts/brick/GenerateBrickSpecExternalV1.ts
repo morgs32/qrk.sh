@@ -13,7 +13,7 @@ import { wallV1 as wall } from "../../models/wall/WallV1";
 import { generateBrickSpecExternalDefinitionV1, libraryGenerateSpecResponse } from "./GenerateBrickSpecExternalDefinitionV1";
 
 export const generateBrickSpecExternalV1 = makeAggregateExternalContractRelease(generateBrickSpecExternalDefinitionV1, {
-  models: { brick, placement, wall },
+  models: { brick: { model: brick, fields: ["createdAt", "updatedAt", "pageId", "moduleId", "state", "stateRevision"] }, placement: { model: placement, fields: ["createdAt", "updatedAt", "brickId", "wallId", "spec", "variantId", "specRevision", "generation"] }, wall: { model: wall, fields: ["createdAt", "updatedAt", "pageId", "breakpoint", "layout"] } },
   operations: { updatePlacement: placement.operations.update },
   request: Effect.fn("generateBrickSpecExternal.request")(function* (props) {
       const { payload } = props;

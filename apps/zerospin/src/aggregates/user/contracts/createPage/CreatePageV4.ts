@@ -6,7 +6,7 @@ import { createPageV3 } from "./CreatePageV3";
 export const createPageV4 = upgradeAggregateContractRelease(createPageV3, {
   version: 4,
   payload: {},
-  models: { wall },
+  models: { wall: { model: wall, fields: ["createdAt", "updatedAt", "pageId", "breakpoint", "layout"] } },
   operations: { createWall: wall.operations.create },
   down: Effect.fn("createPageV4.down")(function* (props) {
     const { payload } = props;

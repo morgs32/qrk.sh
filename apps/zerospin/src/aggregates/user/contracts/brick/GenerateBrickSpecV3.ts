@@ -6,7 +6,7 @@ import { generateBrickSpecExternalDefinitionV3 } from "./GenerateBrickSpecExtern
 
 export const generateBrickSpecV3 = upgradeAggregateContractRelease(generateBrickSpecV2, {
   version: 3,
-  models: { wall, placement },
+  models: { wall: { model: wall, fields: ["createdAt", "updatedAt", "pageId", "breakpoint", "layout"] }, placement: { model: placement, fields: ["createdAt", "updatedAt", "brickId", "wallId", "widthWeight", "spec", "variantId", "specRevision", "generation"] } },
   operations: {
     updatePlacement: placement.operations.update,
     generateSpec: generateBrickSpecExternalDefinitionV3.externalOperation,

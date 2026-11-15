@@ -45,7 +45,7 @@ export const createPageV1 = makeAggregateContractRelease(createPage, {
     createPageSiteNotFound: ContractError.schema({ code: "create-page-site-not-found" }),
     createPageIndexTaken: ContractError.schema({ code: "create-page-index-taken" }),
   },
-  models: { site: Site, user: User, page: Page, wall: Wall },
+  models: { site: { model: Site, fields: ["name", "createdAt", "updatedAt", "slug", "description", "isPublished", "userId", "logoUrl", "faviconLightUrl", "faviconDarkUrl", "stickyNavbar", "cardStyle", "brickGap"] }, user: { model: User, fields: ["createdAt", "updatedAt", "clerkUserId", "username", "displayName"] }, page: { model: Page, fields: ["createdAt", "updatedAt", "siteId", "slug", "title", "description", "isPublished", "publishedSnapshotId"] }, wall: { model: Wall, fields: ["createdAt", "updatedAt", "pageId", "breakpoint", "layout"] } },
   guard: Effect.fn("createPageV1.guard")(function* (props) {
     const { failures, claims, db, payload } = props;
     const clerkUserId = claims?.clerkUserId;
@@ -56,7 +56,7 @@ export const createPageV1 = makeAggregateContractRelease(createPage, {
       });
     }
 
-    const site = yield* sdk.findFirst({ db, model: Site, where: { id: { eq: payload.siteId } } });
+    const site = yield* sdk.findFirst({ db, model: db.models.site, where: { id: { eq: payload.siteId } } });
 
     if (site === undefined) {
       return yield* failures.createPageSiteNotFound.make({
@@ -68,7 +68,7 @@ export const createPageV1 = makeAggregateContractRelease(createPage, {
     const user =
       site.userId === null
         ? undefined
-        : yield* sdk.findFirst({ db, model: User, where: { id: { eq: site.userId } } });
+        : yield* sdk.findFirst({ db, model: db.models.user, where: { id: { eq: site.userId } } });
 
     if (user === undefined || user.clerkUserId !== clerkUserId) {
       return yield* failures.createPageUserMismatch.make({
@@ -80,7 +80,7 @@ export const createPageV1 = makeAggregateContractRelease(createPage, {
     if (payload.slug === null) {
       const indexPage = yield* sdk.findFirst({
         db,
-        model: Page,
+        model: db.models.page,
         where: { siteId: { eq: payload.siteId }, slug: { isNull: true } },
       });
 

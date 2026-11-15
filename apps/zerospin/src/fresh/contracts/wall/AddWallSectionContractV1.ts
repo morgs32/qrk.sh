@@ -20,7 +20,7 @@ export const addWallSectionV1 = makeAggregateContractRelease(
   defineAggregateContract("addWallSection"),
   {
     version: 1,
-    models: { page, site, user, wall },
+    models: { page: { model: page, fields: ["createdAt", "updatedAt", "siteId", "slug", "title", "description", "isPublished", "publishedSnapshotId"] }, site: { model: site, fields: ["name", "createdAt", "updatedAt", "slug", "description", "isPublished", "userId", "logoUrl", "faviconLightUrl", "faviconDarkUrl", "stickyNavbar", "cardStyle", "brickGap"] }, user: { model: user, fields: ["createdAt", "updatedAt", "clerkUserId", "username", "displayName"] }, wall: { model: wall, fields: ["createdAt", "updatedAt", "pageId", "breakpoint", "layout"] } },
     claims: userClaims,
     operations: { updateWall: wall.operations.update },
     payload: {

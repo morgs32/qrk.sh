@@ -19,7 +19,7 @@ import { addBrickV8 } from "./AddBrickContractV8";
 export const addBrickV9 = upgradeAggregateContractRelease(addBrickV8, {
   version: 9,
   payload: {},
-  models: { wall },
+  models: { wall: { model: wall, fields: ["createdAt", "updatedAt", "pageId", "breakpoint", "layout"] } },
   operations: { updateWall: wall.operations.update, createPlacement: placement.operations.create },
   down: Effect.fn("addBrickV9.down")(function* (props) {
     const { payload } = props;

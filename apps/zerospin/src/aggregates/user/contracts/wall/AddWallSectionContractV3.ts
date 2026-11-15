@@ -6,7 +6,7 @@ import { addWallSectionV2 } from "./AddWallSectionContractV2";
 export const addWallSectionV3 = upgradeAggregateContractRelease(addWallSectionV2, {
   version: 3,
   payload: {},
-  models: { wall },
+  models: { wall: { model: wall, fields: ["createdAt", "updatedAt", "pageId", "breakpoint", "layout"] } },
   operations: { updateWall: wall.operations.update },
   down: Effect.fn("addWallSectionV3.down")(function* (props) {
     const { payload } = props;

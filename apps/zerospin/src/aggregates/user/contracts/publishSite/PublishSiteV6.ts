@@ -8,7 +8,7 @@ import { publishSiteV5 } from "./PublishSiteV5";
 export const publishSiteV6 = upgradeAggregateContractRelease(publishSiteV5, {
   version: 6,
   payload: {},
-  models: { brick, pageSnapshot },
+  models: { brick: { model: brick, fields: ["createdAt", "updatedAt", "pageId", "moduleId", "state", "borderWidth", "stateRevision"] }, pageSnapshot: { model: pageSnapshot, fields: ["createdAt", "updatedAt", "pageId", "content"] } },
   operations: { createPageSnapshot: pageSnapshot.operations.create },
   down: Effect.fn("publishSiteV6.down")(function* (props) {
     const { payload } = props;

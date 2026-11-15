@@ -32,7 +32,9 @@ export function makeUpdateBrickGuard(library: typeof candidateLibrary) {
       moduleId: keyof typeof candidateLibrary;
     };
     db: Omit<Parameters<typeof updateBrickV11.evaluate>[0]["db"], "models"> & {
-      models: Omit<typeof updateBrickV11.models, "brick"> & { brick: typeof brick | typeof brickV6 };
+      models: Omit<Parameters<typeof updateBrickV11.evaluate>[0]["db"]["models"], "brick"> & {
+        brick: Pick<typeof brick | typeof brickV6, "modelName" | "table">;
+      };
     };
     failures: typeof updateBrickV11.failures;
   }) {

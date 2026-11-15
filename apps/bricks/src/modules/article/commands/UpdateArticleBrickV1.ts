@@ -15,7 +15,7 @@ export const updateArticleBrickV1 = makeAggregateContractRelease(defineAggregate
     brickId: modelId({ model: brick }),
     state: primitives.json({ schema: completeStateSchema }),
   },
-  models: { brick: brickV1, page: pageV1, site: siteV1, user: userV1 },
+  models: { brick: { model: brickV1, fields: ["createdAt", "updatedAt", "pageId", "moduleId", "state", "borderWidth"] }, page: { model: pageV1, fields: ["createdAt", "updatedAt", "siteId", "slug", "title", "description", "isPublished", "publishedSnapshotId"] }, site: { model: siteV1, fields: ["name", "createdAt", "updatedAt", "slug", "description", "isPublished", "userId", "logoUrl", "faviconLightUrl", "faviconDarkUrl", "stickyNavbar", "cardStyle", "brickGap"] }, user: { model: userV1, fields: ["createdAt", "updatedAt", "clerkUserId", "username", "displayName"] } },
   operations: { updateBrick: brickV1.operations.update },
   failures: { unavailable: ContractError.schema({ code: "update-article-brick-unavailable" }) },
   guard: Effect.fn("updateArticleBrick.guard")(function* (props) {

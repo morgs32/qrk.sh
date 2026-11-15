@@ -6,7 +6,7 @@ import { deleteStackV4 } from "./DeleteStackContractV4";
 export const deleteStackV5 = upgradeAggregateContractRelease(deleteStackV4, {
   version: 5,
   payload: {},
-  models: { brick },
+  models: { brick: { model: brick, fields: ["createdAt", "updatedAt", "pageId", "moduleId", "state", "borderWidth", "stateRevision"] } },
   operations: { deleteBrick: brick.operations.delete },
   down: Effect.fn("deleteStackV5.down")(function* (props) {
     const { payload } = props;

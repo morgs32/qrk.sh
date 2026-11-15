@@ -13,7 +13,7 @@ import { insertStackV4 } from "./InsertStackContractV4";
 export const insertStackV5 = upgradeAggregateContractRelease(insertStackV4, {
   version: 5,
   payload: {},
-  models: { wall },
+  models: { wall: { model: wall, fields: ["createdAt", "updatedAt", "pageId", "breakpoint", "layout"] } },
   operations: { updateWall: wall.operations.update },
   down: Effect.fn("insertStackV5.down")(function* (props) {
     const { payload } = props;

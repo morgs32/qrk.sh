@@ -43,9 +43,9 @@ export const updatePageSettingsV1 = makeAggregateContractRelease(updatePageSetti
   },
   payload: updatePageSettingsPayload,
   models: {
-    user: User,
-    site: Site,
-    page: Page,
+    user: { model: User, fields: ["createdAt", "updatedAt", "clerkUserId", "username", "displayName"] },
+    site: { model: Site, fields: ["name", "createdAt", "updatedAt", "slug", "description", "isPublished", "userId", "logoUrl", "faviconLightUrl", "faviconDarkUrl", "stickyNavbar", "cardStyle", "brickGap"] },
+    page: { model: Page, fields: ["createdAt", "updatedAt", "siteId", "slug", "title", "description", "isPublished", "publishedSnapshotId"] },
   },
   guard: Effect.fn("updatePageSettingsV1.guard")(function* (props) {
     const { failures, claims, db, payload } = props;

@@ -6,7 +6,7 @@ import { setRowMinHeightV2 } from "./SetRowMinHeightV2";
 export const setRowMinHeightV3 = upgradeAggregateContractRelease(setRowMinHeightV2, {
   version: 3,
   payload: {},
-  models: { wall },
+  models: { wall: { model: wall, fields: ["createdAt", "updatedAt", "pageId", "breakpoint", "layout"] } },
   operations: { updateWall: wall.operations.update },
   down: Effect.fn("setRowMinHeightV3.down")(function* (props) {
     const { payload } = props;

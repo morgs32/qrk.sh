@@ -56,8 +56,8 @@ export const updateSiteSettingsV1 = makeAggregateContractRelease(updateSiteSetti
     stickyNavbar: primitives.boolean({ defaultValue: true }),
   },
   models: {
-    user: User,
-    site: Site,
+    user: { model: User, fields: ["createdAt", "updatedAt", "clerkUserId", "username", "displayName"] },
+    site: { model: Site, fields: ["name", "createdAt", "updatedAt", "slug", "description", "isPublished", "userId", "logoUrl", "faviconLightUrl", "faviconDarkUrl", "stickyNavbar", "cardStyle", "brickGap"] },
   },
   guard: Effect.fn("updateSiteSettingsV1.guard")(function* (props) {
     const { failures, claims, db, payload } = props;

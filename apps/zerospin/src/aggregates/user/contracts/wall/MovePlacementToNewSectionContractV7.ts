@@ -8,7 +8,7 @@ export const movePlacementToNewSectionV7 = upgradeAggregateContractRelease(
   {
     version: 7,
     payload: {},
-    models: { wall },
+    models: { wall: { model: wall, fields: ["createdAt", "updatedAt", "pageId", "breakpoint", "layout"] } },
     operations: { updateWall: wall.operations.update },
     down: Effect.fn("movePlacementToNewSectionV7.down")(function* (props) {
       const { payload } = props;

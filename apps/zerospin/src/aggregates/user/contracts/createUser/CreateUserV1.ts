@@ -29,7 +29,7 @@ const createUserPayload = {
 export const createUserV1 = makeAggregateContractRelease(createUser, {
   operations: { createUser: User.operations.create },
   payload: createUserPayload,
-  models: { user: User },
+  models: { user: { model: User, fields: ["createdAt", "updatedAt", "clerkUserId", "username", "displayName"] } },
   failures: {
     userAlreadyExists: ContractError.schema({ code: "user-already-exists" }),
   },
@@ -37,7 +37,7 @@ export const createUserV1 = makeAggregateContractRelease(createUser, {
     const { db, payload, failures } = props;
     const existingUser = yield* findFirst({
       db,
-      model: User,
+      model: db.models.user,
       where: { clerkUserId: { eq: payload.clerkUserId } },
     });
     if (existingUser !== undefined) {

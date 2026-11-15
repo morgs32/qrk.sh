@@ -14,7 +14,7 @@ export const movePlacementToRowV3 = upgradeAggregateContractRelease(movePlacemen
     const { payload } = props;
     return payload;
   }),
-  models: { wall, placement },
+  models: { wall: { model: wall, fields: ["createdAt", "updatedAt", "pageId", "breakpoint", "layout"] }, placement: { model: placement, fields: ["createdAt", "updatedAt", "brickId", "wallId", "widthWeight", "spec", "variantId", "specRevision", "generation"] } },
   operations: { updateWall: wall.operations.update },
   program: Effect.fn("movePlacementToRow.program")(function* (props) {
     const { db, payload, operations, failures, claims } = props;

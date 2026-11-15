@@ -22,7 +22,7 @@ export const addArticleBrickV1 = makeAggregateContractRelease(defineAggregateCon
     target: primitives.json({ schema: wallInsertionTargetSchema }),
     state: primitives.json({ schema: Schema.NullOr(completeStateSchema) }),
   },
-  models: { brick: brickV1, page: pageV1, placement: placementV1, site: siteV1, user: userV1, wall: wallV1 },
+  models: { brick: { model: brickV1, fields: ["createdAt", "updatedAt", "pageId", "moduleId", "state", "borderWidth"] }, page: { model: pageV1, fields: ["createdAt", "updatedAt", "siteId", "slug", "title", "description", "isPublished", "publishedSnapshotId"] }, placement: { model: placementV1, fields: ["createdAt", "updatedAt", "state", "brickId", "wallId", "layoutId", "widthWeight"] }, site: { model: siteV1, fields: ["name", "createdAt", "updatedAt", "slug", "description", "isPublished", "userId", "logoUrl", "faviconLightUrl", "faviconDarkUrl", "stickyNavbar", "cardStyle", "brickGap"] }, user: { model: userV1, fields: ["createdAt", "updatedAt", "clerkUserId", "username", "displayName"] }, wall: { model: wallV1, fields: ["createdAt", "updatedAt", "pageId", "breakpoint", "layout"] } },
   operations: {
     createBrick: brickV1.operations.create,
     createPlacement: placementV1.operations.create,

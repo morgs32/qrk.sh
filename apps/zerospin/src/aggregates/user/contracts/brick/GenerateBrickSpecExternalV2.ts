@@ -16,7 +16,7 @@ import { libraryGenerateSpecResponse } from "./GenerateBrickSpecExternalDefiniti
 export const generateBrickSpecExternalV2 = makeAggregateExternalContractRelease(
   generateBrickSpecExternalDefinitionV2,
   {
-    models: { brick, placement, wall },
+    models: { brick: { model: brick, fields: ["createdAt", "updatedAt", "pageId", "moduleId", "state", "borderWidth", "stateRevision"] }, placement: { model: placement, fields: ["createdAt", "updatedAt", "brickId", "wallId", "spec", "variantId", "specRevision", "generation"] }, wall: { model: wall, fields: ["createdAt", "updatedAt", "pageId", "breakpoint", "layout"] } },
     operations: { updatePlacement: placement.operations.update },
     request: Effect.fn("generateBrickSpecExternal.request")(function* (props) {
       const { payload } = props;

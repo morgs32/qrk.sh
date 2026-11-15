@@ -19,7 +19,7 @@ import { makeEffectSchema } from "@zerospin/shapes";
 export const addBrickV5 = upgradeAggregateContractRelease(addBrickV4, {
   version: 5,
   payload: {},
-  models: { wall, placement },
+  models: { wall: { model: wall, fields: ["createdAt", "updatedAt", "pageId", "breakpoint", "layout"] }, placement: { model: placement, fields: ["createdAt", "updatedAt", "brickId", "wallId", "widthWeight", "spec", "variantId", "specRevision", "generation"] } },
   operations: { updateWall: wall.operations.update, createPlacement: placement.operations.create },
   program: Effect.fn("addBrick.program")(function* (props) {
     const { db, payload, operations, failures, claims } = props;

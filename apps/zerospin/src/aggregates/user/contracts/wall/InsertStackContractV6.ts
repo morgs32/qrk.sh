@@ -6,7 +6,7 @@ import { insertStackV5 } from "./InsertStackContractV5";
 export const insertStackV6 = upgradeAggregateContractRelease(insertStackV5, {
   version: 6,
   payload: {},
-  models: { brick },
+  models: { brick: { model: brick, fields: ["createdAt", "updatedAt", "pageId", "moduleId", "state", "borderWidth", "stateRevision"] } },
   down: Effect.fn("insertStackV6.down")(function* (props) {
     const { payload } = props;
     return payload;

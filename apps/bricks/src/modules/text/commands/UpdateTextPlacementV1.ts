@@ -26,7 +26,7 @@ export const updateTextPlacementV1 = makeAggregateContractRelease(
       placementId: modelId({ model: placement }),
       state: primitives.json({ schema: textPlacementStateSchema }),
     },
-    models: { brick: brickV1, placement: placementV1, wall: wallV1, page: pageV1, site: siteV1, user: userV1 },
+    models: { brick: { model: brickV1, fields: ["createdAt", "updatedAt", "pageId", "moduleId", "state", "borderWidth"] }, placement: { model: placementV1, fields: ["createdAt", "updatedAt", "state", "brickId", "wallId", "layoutId", "widthWeight"] }, wall: { model: wallV1, fields: ["createdAt", "updatedAt", "pageId", "breakpoint", "layout"] }, page: { model: pageV1, fields: ["createdAt", "updatedAt", "siteId", "slug", "title", "description", "isPublished", "publishedSnapshotId"] }, site: { model: siteV1, fields: ["name", "createdAt", "updatedAt", "slug", "description", "isPublished", "userId", "logoUrl", "faviconLightUrl", "faviconDarkUrl", "stickyNavbar", "cardStyle", "brickGap"] }, user: { model: userV1, fields: ["createdAt", "updatedAt", "clerkUserId", "username", "displayName"] } },
     operations: { updatePlacement: placementV1.operations.update },
     failures: { unavailable: ContractError.schema({ code: "update-text-placement-unavailable" }) },
     guard: Effect.fn("updateTextPlacement.guard")(function* (props) {

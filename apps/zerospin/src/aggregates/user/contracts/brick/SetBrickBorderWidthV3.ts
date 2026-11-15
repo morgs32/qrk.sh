@@ -6,7 +6,7 @@ import { setBrickBorderWidthV2 } from "./SetBrickBorderWidthV2";
 export const setBrickBorderWidthV3 = upgradeAggregateContractRelease(setBrickBorderWidthV2, {
   version: 3,
   payload: {},
-  models: { brick },
+  models: { brick: { model: brick, fields: ["createdAt", "updatedAt", "pageId", "moduleId", "state", "borderWidth", "stateRevision"] } },
   operations: { updateBrick: brick.operations.update },
   down: Effect.fn("setBrickBorderWidthV3.down")(function* (props) {
     const { payload } = props;

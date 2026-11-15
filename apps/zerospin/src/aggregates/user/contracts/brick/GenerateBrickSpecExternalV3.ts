@@ -8,7 +8,7 @@ export const generateBrickSpecExternalV3 = upgradeAggregateExternalContractRelea
   generateBrickSpecExternalV2,
   {
     definition: generateBrickSpecExternalDefinitionV3,
-    models: { wall, placement },
+    models: { wall: { model: wall, fields: ["createdAt", "updatedAt", "pageId", "breakpoint", "layout"] }, placement: { model: placement, fields: ["createdAt", "updatedAt", "brickId", "wallId", "widthWeight", "spec", "variantId", "specRevision", "generation"] } },
     operations: { updatePlacement: placement.operations.update },
   },
 );

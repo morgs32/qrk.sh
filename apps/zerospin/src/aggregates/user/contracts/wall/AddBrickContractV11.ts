@@ -28,7 +28,7 @@ export const addBrickV11 = upgradeAggregateContractRelease(addBrickV10, {
     const { payload } = props;
     return { ...payload, layoutId: "default" };
   }),
-  models: { wall },
+  models: { wall: { model: wall, fields: ["createdAt", "updatedAt", "pageId", "breakpoint", "layout"] } },
   operations: { updateWall: wall.operations.update, createPlacement: placement.operations.create },
   down: Effect.fn("addBrickV11.down")(function* (props) {
     const { payload } = props;
@@ -43,10 +43,10 @@ export function makeAddBrickProgram(library: typeof candidateLibrary) {
   return Effect.fn("addBrick.program")(function* <MODULE extends keyof typeof candidateLibrary>(props: IContractProgramInput<
     Omit<Parameters<typeof addBrickV10.evaluate>[0], "db" | "payload" | "externalOutcome"> & {
       db: Omit<Parameters<typeof addBrickV10.evaluate>[0]["db"], "models"> & {
-        models: Omit<typeof addBrickV10.models, "wall" | "brick" | "placement"> & {
-          wall: typeof wall;
-          brick: typeof addBrickV10.models.brick | typeof brickV6;
-          placement: typeof placement;
+        models: Omit<Parameters<typeof addBrickV10.evaluate>[0]["db"]["models"], "wall" | "brick" | "placement"> & {
+          wall: Pick<typeof wall, "modelName" | "table">;
+          brick: Parameters<typeof addBrickV10.evaluate>[0]["db"]["models"]["brick"] | Pick<typeof brickV6, "modelName" | "table">;
+          placement: Pick<typeof placement, "modelName" | "table">;
         };
       };
       payload: Omit<Parameters<typeof addBrickV10.evaluate>[0]["payload"], "moduleId"> & {

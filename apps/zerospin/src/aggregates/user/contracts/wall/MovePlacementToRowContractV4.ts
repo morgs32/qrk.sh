@@ -12,7 +12,7 @@ import { canShareRow } from "../../layout/canShareRow";
 export const movePlacementToRowV4 = upgradeAggregateContractRelease(movePlacementToRowV3, {
   version: 4,
   payload: {},
-  models: { wall, placement, brick },
+  models: { wall: { model: wall, fields: ["createdAt", "updatedAt", "pageId", "breakpoint", "layout"] }, placement: { model: placement, fields: ["createdAt", "updatedAt", "brickId", "wallId", "widthWeight", "spec", "variantId", "specRevision", "generation"] }, brick: { model: brick, fields: ["createdAt", "updatedAt", "pageId", "moduleId", "state", "borderWidth", "stateRevision"] } },
   operations: { updateWall: wall.operations.update },
   program: Effect.fn("movePlacementToRow.program")(function* (props) {
     const { db, payload, operations, failures, claims } = props;

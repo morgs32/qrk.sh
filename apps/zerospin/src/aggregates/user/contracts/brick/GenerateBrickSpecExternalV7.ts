@@ -8,7 +8,7 @@ export const generateBrickSpecExternalV7 = upgradeAggregateExternalContractRelea
   generateBrickSpecExternalV6,
   {
     definition: generateBrickSpecExternalDefinitionV7,
-    models: { wall },
+    models: { wall: { model: wall, fields: ["createdAt", "updatedAt", "pageId", "breakpoint", "layout"] } },
     down: Effect.fn("generateBrickSpecExternalV7.down")(function* (props) {
       const { payload, externalOutcome } = props;
       return { payload, externalOutcome };

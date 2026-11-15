@@ -13,7 +13,7 @@ export const generateBrickSpecExternalV4 = upgradeAggregateExternalContractRelea
       const { payload, externalOutcome } = props;
       return { payload, externalOutcome };
     }),
-    models: { wall, placement },
+    models: { wall: { model: wall, fields: ["createdAt", "updatedAt", "pageId", "breakpoint", "layout"] }, placement: { model: placement, fields: ["createdAt", "updatedAt", "brickId", "wallId", "widthWeight", "spec", "variantId", "specRevision", "generation"] } },
     operations: { updatePlacement: placement.operations.update },
   },
 );

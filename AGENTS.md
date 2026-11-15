@@ -6,7 +6,7 @@
 - Before the day's first task that requires manual verification, ask whether the user or the agent should perform it.
 - Ask both together when both apply. As soon as the user gives or changes either choice, update the dated record below in this file. Keep the current day's answers and reuse them across chats. Ask only for choices the user has yet to give that day.
 - When the user chooses “I’ll verify,” complete the implementation and automated checks, then archive the plan. The user performs manual verification on their own time.
-- For 2026-11-15, use branches and PRs.
+- For 2026-11-15, use branches and PRs. The user performs manual verification.
 - For 2026-11-14, work directly on `main`.
 - For 2026-11-13, work directly on `main`. The user performs manual verification.
 - For 2026-11-12, work directly on `main`. The user performs manual verification.

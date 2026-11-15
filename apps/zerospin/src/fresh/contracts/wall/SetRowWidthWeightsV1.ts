@@ -36,7 +36,7 @@ export const setRowWidthWeightsV1 = makeAggregateContractRelease(
         ),
       }),
     },
-    models: { wall, placement, page, site, user },
+    models: { wall: { model: wall, fields: ["createdAt", "updatedAt", "pageId", "breakpoint", "layout"] }, placement: { model: placement, fields: ["createdAt", "updatedAt", "state", "brickId", "wallId", "layoutId", "widthWeight"] }, page: { model: page, fields: ["createdAt", "updatedAt", "siteId", "slug", "title", "description", "isPublished", "publishedSnapshotId"] }, site: { model: site, fields: ["name", "createdAt", "updatedAt", "slug", "description", "isPublished", "userId", "logoUrl", "faviconLightUrl", "faviconDarkUrl", "stickyNavbar", "cardStyle", "brickGap"] }, user: { model: user, fields: ["createdAt", "updatedAt", "clerkUserId", "username", "displayName"] } },
     operations: { updatePlacement: placement.operations.update },
     failures: { invalidSizing: ContractError.schema({ code: "row-width-weights-invalid" }) },
     program: Effect.fn("setRowWidthWeights.program")(function* (props) {

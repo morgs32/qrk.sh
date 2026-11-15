@@ -13,7 +13,7 @@ import { measureWallFit, wallBreakpointWidths } from "../../layout/wallSizing";
 export const updateSiteSettingsV2 = upgradeAggregateContractRelease(updateSiteSettingsV1, {
   version: 2,
   payload: {},
-  models: { page, wall, placement, brick },
+  models: { page: { model: page, fields: ["createdAt", "updatedAt", "siteId", "slug", "title", "description", "isPublished", "publishedSnapshotId"] }, wall: { model: wall, fields: ["createdAt", "updatedAt", "pageId", "breakpoint", "layout"] }, placement: { model: placement, fields: ["createdAt", "updatedAt", "brickId", "wallId", "widthWeight", "spec", "variantId", "specRevision", "generation"] }, brick: { model: brick, fields: ["createdAt", "updatedAt", "pageId", "moduleId", "state", "borderWidth", "stateRevision"] } },
   operations: { updateSite: site.operations.update },
   failures: {
     siteLayoutOverflow: ContractError.schema({ code: "site-layout-overflow" }),

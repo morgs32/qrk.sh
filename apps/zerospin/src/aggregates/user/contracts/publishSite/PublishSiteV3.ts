@@ -9,7 +9,7 @@ import { makePageSnapshotV3 } from "../../snapshots/makePageSnapshotV3";
 export const publishSiteV3 = upgradeAggregateContractRelease(publishSiteV2, {
   version: 3,
   payload: {},
-  models: { wall, placement, pageSnapshot: pageSnapshotV3 },
+  models: { wall: { model: wall, fields: ["createdAt", "updatedAt", "pageId", "breakpoint", "layout"] }, placement: { model: placement, fields: ["createdAt", "updatedAt", "brickId", "wallId", "widthWeight", "spec", "variantId", "specRevision", "generation"] }, pageSnapshot: { model: pageSnapshotV3, fields: ["createdAt", "updatedAt", "pageId", "content"] } },
   operations: { createPageSnapshot: pageSnapshotV3.operations.create },
   program: Effect.fn("publishSite")(function* (props) {
     const { payload, operations, db } = props;

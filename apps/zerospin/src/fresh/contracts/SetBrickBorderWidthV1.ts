@@ -23,7 +23,7 @@ export const setBrickBorderWidthV1 = makeAggregateContractRelease(
       brickId: modelId({ model: brick }),
       borderWidth: primitives.integer(),
     },
-    models: { brick: brickV1, page: pageV1, site: siteV1, user: userV1 },
+    models: { brick: { model: brickV1, fields: ["createdAt", "updatedAt", "pageId", "moduleId", "state", "borderWidth"] }, page: { model: pageV1, fields: ["createdAt", "updatedAt", "siteId", "slug", "title", "description", "isPublished", "publishedSnapshotId"] }, site: { model: siteV1, fields: ["name", "createdAt", "updatedAt", "slug", "description", "isPublished", "userId", "logoUrl", "faviconLightUrl", "faviconDarkUrl", "stickyNavbar", "cardStyle", "brickGap"] }, user: { model: userV1, fields: ["createdAt", "updatedAt", "clerkUserId", "username", "displayName"] } },
     operations: { updateBrick: brickV1.operations.update },
     failures: {
       invalidWidth: ContractError.schema({ code: "brick-border-width-invalid" }),

@@ -1,3 +1,4 @@
+import { addBrick, updateBrick } from "../commands/brickActions";
 import { defineRegistry } from "@json-render/react";
 import { Coffee } from "lucide-react";
 
@@ -20,6 +21,9 @@ const { registry } = defineRegistry(
 );
 
 const view = makeModuleView(buyMeACoffeeV1, {
+  defaultPlacementState: {},
+  add: addBrick,
+  update: updateBrick,
   categoryIds: ["new", "business"],
   defaultState: {
     payload: {
@@ -46,10 +50,10 @@ const view = makeModuleView(buyMeACoffeeV1, {
 export const buyMeACoffeeView = {
   ...view,
   Render(props: Parameters<typeof view.Render>[0]) {
-    const { state, spec, variantId } = props;
+    const { brickState, placementState, layoutId, spec } = props;
     return (
       <BrickDetailsTrigger label="Edit Buy Me a Coffee">
-        <view.Render state={state} spec={spec} variantId={variantId} />
+        <view.Render brickState={brickState} placementState={placementState} spec={spec} layoutId={layoutId} />
       </BrickDetailsTrigger>
     );
   },

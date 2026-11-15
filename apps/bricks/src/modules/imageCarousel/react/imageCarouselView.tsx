@@ -1,3 +1,4 @@
+import { addBrick, updateBrick } from "../commands/brickActions";
 import { defineRegistry } from "@json-render/react";
 import { Images } from "lucide-react";
 import {
@@ -18,6 +19,9 @@ const { registry } = defineRegistry(
 );
 
 const carousel = makeModuleView(imageCarouselV1, {
+  defaultPlacementState: {},
+  add: addBrick,
+  update: updateBrick,
   categoryIds: ["tools"],
   defaultState: { slides: [
     { id: "first", imageUrl: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=800&q=80", alt: "Mountains beside a lake", crop: null },
@@ -38,10 +42,10 @@ const carousel = makeModuleView(imageCarouselV1, {
 export const imageCarouselView = {
   ...carousel,
   Render(props: Parameters<typeof carousel.Render>[0]) {
-    const { state, variantId, spec } = props;
+    const { brickState, placementState, layoutId, spec } = props;
     return (
       <BrickDetailsTrigger label={`Edit ${carousel.label}`}>
-        <carousel.Render state={state} variantId={variantId} spec={spec} />
+        <carousel.Render brickState={brickState} placementState={placementState} layoutId={layoutId} spec={spec} />
       </BrickDetailsTrigger>
     );
   },

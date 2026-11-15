@@ -5,10 +5,10 @@ import { linkPreviewState } from "@qrk.sh/bricks/modules/link/definition/linkPre
 import { LinkLineIcon } from "@qrk.sh/bricks/modules/link/LinkLineIcon";
 import { LinkPlaceholder } from "@qrk.sh/bricks/modules/link/LinkPlaceholder";
 import { linkReactRegistry } from "@qrk.sh/bricks/modules/link/react";
+import { addBrick, updateBrick } from "@qrk.sh/bricks/modules/link/commands/brickActions";
 import { makeModuleView } from "@qrk.sh/bricks/modules/react/makeModuleView";
-import type { PageSnapshotSchemaV5 } from "@qrk.sh/zerospin/src/aggregates/user/snapshots/pageSnapshotSchemaV5";
-import { articleV1 } from "@qrk.sh/bricks/modules/article/definition";
-import { swatchAndIconV1 } from "@qrk.sh/bricks/modules/swatchAndIcon/definition";
+import type { pageSnapshotSchema } from "@qrk.sh/bricks/zerospin/models/pageSnapshot/pageSnapshotSchema";
+import { resolveBrickLayout } from "@qrk.sh/bricks/modules/freshLibrary";
 import { swatchAndIconPreviewState } from "@qrk.sh/bricks/modules/swatchAndIcon/definition/swatchAndIconPreviewState";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect } from "storybook/test";
@@ -17,6 +17,9 @@ import { WallViewer } from "./WallViewer";
 const linkView = makeModuleView(linkV1, {
   categoryIds: ["business", "tools"],
   defaultState: linkPreviewState,
+  defaultPlacementState: {},
+  add: addBrick,
+  update: updateBrick,
   LineIcon: LinkLineIcon,
   variants: {
     default: {
@@ -35,25 +38,25 @@ const snapshot = {
     {
       id: "brk_green",
       moduleId: "swatch-and-icon",
-      state: swatchAndIconPreviewState,
+      brickState: swatchAndIconPreviewState,
       borderWidth: 0,
     },
     {
       id: "brk_gold",
       moduleId: "swatch-and-icon",
-      state: { ...swatchAndIconPreviewState, payload: { hash: "", color: "#d6ad60" } },
+      brickState: { ...swatchAndIconPreviewState, payload: { hash: "", color: "#d6ad60" } },
       borderWidth: 0,
     },
     {
       id: "brk_field_notes",
       moduleId: "article",
-      state: { title: "Field notes", subtitle: "", content: "A weekend away from the city." },
+      brickState: { title: "Field notes", subtitle: "", content: "A weekend away from the city." },
       borderWidth: 1,
     },
     {
       id: "brk_link",
       moduleId: "link",
-      state: linkPreviewState,
+      brickState: linkPreviewState,
       borderWidth: 1,
     },
   ],
@@ -79,15 +82,17 @@ const snapshot = {
                       id: "plc_gold",
                       brickId: "brk_gold",
                       widthWeight: 240,
-                      variantId: "default",
-                      spec: swatchAndIconV1.defaultSpec,
+                      layoutId: "default",
+                      placementState: {},
+                      spec: resolveBrickLayout({ moduleId: "swatch-and-icon", layoutId: "default", brickState: swatchAndIconPreviewState }),
                     },
                     {
                       id: "plc_green",
                       brickId: "brk_green",
                       widthWeight: 180,
-                      variantId: "default",
-                      spec: swatchAndIconV1.defaultSpec,
+                      layoutId: "default",
+                      placementState: {},
+                      spec: resolveBrickLayout({ moduleId: "swatch-and-icon", layoutId: "default", brickState: swatchAndIconPreviewState }),
                     },
                   ],
                 },
@@ -113,8 +118,9 @@ const snapshot = {
                       id: "plc_field_notes",
                       brickId: "brk_field_notes",
                       widthWeight: 720,
-                      variantId: "default",
-                      spec: articleV1.defaultSpec,
+                      layoutId: "default",
+                      placementState: {},
+                      spec: resolveBrickLayout({ moduleId: "article", layoutId: "default", brickState: { title: "Field notes", subtitle: "", content: "A weekend away from the city." } }),
                     },
                   ],
                 },
@@ -128,7 +134,8 @@ const snapshot = {
                       id: "plc_link",
                       brickId: "brk_link",
                       widthWeight: 480,
-                      variantId: "default",
+                      layoutId: "default",
+                      placementState: {},
                       spec: {
                         root: "card",
                         elements: {
@@ -136,15 +143,15 @@ const snapshot = {
                           copy: {
                             type: "LinkCopy",
                             props: {
-                              url: { $state: "/data/url" },
+                              url: { $state: "/brickState/data/url" },
                               title: "A link saved on this Wall",
-                              siteName: { $state: "/data/siteName" },
-                              iconUrl: { $state: "/data/iconUrl" },
+                              siteName: { $state: "/brickState/data/siteName" },
+                              iconUrl: { $state: "/brickState/data/iconUrl" },
                             },
                           },
                           hero: {
                             type: "LinkHeroImage",
-                            props: { imageUrl: { $state: "/data/imageUrl" } },
+                            props: { imageUrl: { $state: "/brickState/data/imageUrl" } },
                           },
                         },
                       },
@@ -158,7 +165,7 @@ const snapshot = {
       ],
     },
   ],
-} satisfies typeof PageSnapshotSchemaV5.Type;
+} satisfies typeof pageSnapshotSchema.Type;
 
 const meta = {
   title: "Web/WallViewer",
@@ -169,10 +176,10 @@ const meta = {
     breakpoint: "lg",
     brickGap: 16,
     renderBrick: (brick, placement) => {
-      const { state } = brick;
+      const { brickState: state } = brick;
       if (brick.moduleId === "link") {
         return (
-          <linkView.Render state={state} variantId={placement.variantId} spec={placement.spec} />
+          <linkView.Render brickState={state} placementState={placement.placementState} layoutId={placement.layoutId} spec={placement.spec} />
         );
       }
       if (typeof state !== "object" || state === null)
@@ -247,8 +254,8 @@ export const PortfolioSnapshot = {
       ...snapshot,
       title: "Portfolio",
       bricks: [
-        { id: "brk_behance", moduleId: "behance", state: behanceView.def.state, borderWidth: 0 },
-        { id: "brk_coffee", moduleId: "buy-me-a-coffee", state: buyMeACoffeeView.def.state, borderWidth: 0 },
+        { id: "brk_behance", moduleId: "behance", brickState: behanceView.def.state, borderWidth: 0 },
+        { id: "brk_coffee", moduleId: "buy-me-a-coffee", brickState: buyMeACoffeeView.def.state, borderWidth: 0 },
       ],
       walls: [{
         id: "wal_lg",
@@ -263,8 +270,8 @@ export const PortfolioSnapshot = {
               minHeight: null,
               alignment: "left",
               placements: [
-                { id: "plc_behance", brickId: "brk_behance", variantId: "default", widthWeight: 400, spec: behanceView.variants.default.spec },
-                { id: "plc_coffee", brickId: "brk_coffee", variantId: "default", widthWeight: 320, spec: buyMeACoffeeView.variants.default.spec },
+                { id: "plc_behance", brickId: "brk_behance", layoutId: "default", placementState: {}, widthWeight: 400, spec: resolveBrickLayout({ moduleId: "behance", layoutId: "default", brickState: behanceView.def.state }) },
+                { id: "plc_coffee", brickId: "brk_coffee", layoutId: "default", placementState: {}, widthWeight: 320, spec: resolveBrickLayout({ moduleId: "buy-me-a-coffee", layoutId: "default", brickState: buyMeACoffeeView.def.state }) },
               ],
             }],
           }],
@@ -273,7 +280,7 @@ export const PortfolioSnapshot = {
     },
     renderBrick: (brick, placement) => {
       const { Render } = brick.moduleId === "behance" ? behanceView : buyMeACoffeeView;
-      return <Render state={brick.state} variantId={placement.variantId} spec={placement.spec} />;
+      return <Render brickState={brick.brickState} placementState={placement.placementState} layoutId={placement.layoutId} spec={placement.spec} />;
     },
   },
 } satisfies StoryObj<typeof meta>;

@@ -1,0 +1,25 @@
+@layer theme, base, components, meowdown, utilities;
+@import "@meowdown/core/style.css";
+
+.qrk-text-block {
+  min-width: 0;
+  width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.qrk-text-document,
+.qrk-text-document :is(p, h1, h2, h3, blockquote) {
+  margin: 0;
+  font: inherit;
+  line-height: 1.4;
+}
+
+.qrk-text-document blockquote {
+  border-left: 3px solid currentColor;
+  padding-left: 0.75em;
+}
+
+.qrk-text-document .ProseMirror {
+  outline: none;
+  min-height: 1.4em;
+}

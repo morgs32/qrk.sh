@@ -4,6 +4,7 @@ import { BrickStory } from "../../../../.storybook/BrickStory";
 import { makeModuleView } from "../../react/makeModuleView";
 import type { BricksApi } from "@qrk.sh/bricks/rpc";
 import { linkPreviewState } from "../definition/linkPreviewState";
+import { addBrick, updateBrick } from "../commands/brickActions";
 import { linkV1 } from "../definition/linkV1";
 import { linkCardView } from "./LinkCard";
 import { linkCopyView } from "./LinkCopy";
@@ -27,6 +28,9 @@ async function lookupLinkPreview(url: string, signal: AbortSignal) {
 }
 
 const view = makeModuleView(linkV1, {
+  defaultPlacementState: {},
+  add: addBrick,
+  update: updateBrick,
   categoryIds: ["business", "tools"],
   defaultState: linkPreviewState,
   LineIcon: LinkLineIcon,

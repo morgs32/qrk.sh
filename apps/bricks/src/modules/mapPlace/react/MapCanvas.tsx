@@ -2,25 +2,36 @@
 
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { makeComponentView } from "../../react/makeComponentView";
 import { mapCanvasComponentMetadata } from "../definition/generator/MapCanvasComponentMetadata";
 
-const MAPBOX_TOKEN = process.env.PUBLIC_MAPBOX_TOKEN;
+const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || process.env.PUBLIC_MAPBOX_TOKEN;
 
 export const mapCanvasView = makeComponentView(mapCanvasComponentMetadata, {
   component(props) {
     const { longitude, latitude, googlePlaceId, name } = props;
     const mapContainerRef = useRef<HTMLDivElement>(null);
+    const [visible, setVisible] = useState(false);
 
     useEffect(() => {
       const container = mapContainerRef.current;
-      if (container === null) {
+      if (container === null) return;
+      const update = () => setVisible(container.getClientRects().length > 0);
+      const observer = new ResizeObserver(update);
+      observer.observe(container);
+      update();
+      return () => observer.disconnect();
+    }, []);
+
+    useEffect(() => {
+      const container = mapContainerRef.current;
+      if (container === null || !visible) {
         return;
       }
 
       if (MAPBOX_TOKEN === undefined || MAPBOX_TOKEN.length === 0) {
-        throw new Error("PUBLIC_MAPBOX_TOKEN is required to render Map bricks");
+        throw new Error("A public Mapbox token is required to render Map bricks");
       }
 
       mapboxgl.accessToken = MAPBOX_TOKEN;
@@ -48,7 +59,7 @@ export const mapCanvasView = makeComponentView(mapCanvasComponentMetadata, {
         marker.remove();
         map.remove();
       };
-    }, [googlePlaceId, latitude, longitude]);
+    }, [googlePlaceId, latitude, longitude, visible]);
 
     return (
       <div

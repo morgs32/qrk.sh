@@ -23,7 +23,7 @@ export const movePlacementToRowV1 = makeAggregateContractRelease(
   {
     version: 1,
     claims: userClaims,
-    models: { page, placement, site, user, wall },
+    models: { page: { model: page, fields: ["createdAt", "updatedAt", "siteId", "slug", "title", "description", "isPublished", "publishedSnapshotId"] }, placement: { model: placement, fields: ["createdAt", "updatedAt", "brickId", "wallId", "spec", "variantId", "specRevision", "generation"] }, site: { model: site, fields: ["name", "createdAt", "updatedAt", "slug", "description", "isPublished", "userId", "logoUrl", "faviconLightUrl", "faviconDarkUrl", "stickyNavbar", "cardStyle", "brickGap"] }, user: { model: user, fields: ["createdAt", "updatedAt", "clerkUserId", "username", "displayName"] }, wall: { model: wall, fields: ["createdAt", "updatedAt", "pageId", "breakpoint", "layout"] } },
     operations: { updateWall: wall.operations.update },
     payload: {
       placementId: modelId({ model: placementIdentity }),

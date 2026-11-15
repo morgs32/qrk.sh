@@ -7,7 +7,7 @@ import { moveStackInLayout } from "../../layout/wallLayoutV2";
 export const moveStackV2 = upgradeAggregateContractRelease(moveStackV1, {
   version: 2,
   payload: {},
-  models: { wall },
+  models: { wall: { model: wall, fields: ["createdAt", "updatedAt", "pageId", "breakpoint", "layout"] } },
   operations: { updateWall: wall.operations.update },
   program: Effect.fn("moveStack.program")(function* (props) {
     const { db, payload, operations, failures, claims } = props;

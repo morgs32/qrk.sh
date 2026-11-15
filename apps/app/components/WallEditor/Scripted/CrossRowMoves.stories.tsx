@@ -1,4 +1,4 @@
-import { makePlacementId } from "@qrk.sh/zerospin/src/aggregates/user/layout/makePlacementId";
+import { makePlacementId } from "@qrk.sh/bricks/zerospin/wall/makePlacementId";
 import { prefixId } from "@zerospin/sdk/browser";
 import type { StoryObj } from "@storybook/react-vite";
 import { expect, fireEvent, userEvent, waitFor, within } from "storybook/test";

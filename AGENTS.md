@@ -6,6 +6,9 @@
 - Before the day's first task that requires manual verification, ask whether the user or the agent should perform it.
 - Ask both together when both apply. As soon as the user gives or changes either choice, update the dated record below in this file. Keep the current day's answers and reuse them across chats. Ask only for choices the user has yet to give that day.
 - When the user chooses “I’ll verify,” complete the implementation and automated checks, then archive the plan. The user performs manual verification on their own time.
+- For 2026-11-15, use branches and PRs. The user performs manual verification.
+- For 2026-11-14, work directly on `main`.
+- For 2026-11-13, work directly on `main`. The user performs manual verification.
 - For 2026-11-12, work directly on `main`. The user performs manual verification.
 - For 2026-11-11, work directly on `main`. The user performs manual verification by default. The agent verifies Plan 068, the Plan 070 asset move, the separate page editor navbar, and Plan 078.
 
@@ -88,15 +91,15 @@ Test authored backend behavior with `makeSystemHarness` from
 Use the actual System and registered releases, create model rows through commands,
 and call `harness.flush()` to execute queued external and command operations.
 Substitute provider services with Effect Layers; never call live providers in tests.
-The current harness accepts System-origin commands only; it does not test actor
-authentication or actor-origin commands. Keep representative success and rejection
-paths concise. These tests verify
+The harness supports System- and Actor-origin commands; Actor commands use captured
+claims and do not test authentication or distributed admission. Keep representative
+success and rejection paths concise. These tests verify
 authored behavior, not Durable Object delivery, browser synchronization, or production.
 Run the backend `test` script (through Nx when configured).
 
 ## Plans
 
-Use `$spec` to resolve unsettled design decisions and write implementation plans at `wiki/plans/XXX-plan-<topic>.md`. Do not create new spec files; existing specs remain under `wiki/specs/` and `wiki/archive/specs/`. Record a settled decision in `wiki/adrs/` only when it is hard to reverse, surprising without context, and the result of a real trade-off. If no glossary exists, ask before creating one. Revise plans in place and use ordered steps and numbered review findings.
+Resolve unsettled design decisions and write implementation plans at `wiki/plans/XXX-plan-<topic>.md`. Do not create new spec files; existing specs remain under `wiki/specs/` and `wiki/archive/specs/`. Record a settled decision in `wiki/adrs/` only when it is hard to reverse, surprising without context, and the result of a real trade-off. If no glossary exists, ask before creating one. Revise plans in place and use ordered steps and numbered review findings.
 
 Follow `$implement` for plan completion and archival. Mark a replaced ADR **Superseded** and link its successor; move it to `wiki/archive/adrs/` only when it no longer governs anything and archival is wanted. Completing a plan does not retire its ADRs.
 Plans created by agents must include gratuitous annotated examples and annotated code snippets.

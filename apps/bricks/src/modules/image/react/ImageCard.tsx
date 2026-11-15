@@ -20,6 +20,6 @@ export const imageCardView = makeComponentView(
 
 export function ImageCardRegistry(props: Parameters<typeof imageCardView.RegistryComponent>[0]) {
   const { props: resolvedProps } = props;
-  const round = useStateValue<boolean>("/round") === true;
+  const round = useStateValue<boolean>("/brickState/round") === true;
   return <imageCardView.RegistryComponent {...props} props={{ ...(resolvedProps ?? {}), round }} />;
 }

@@ -1,3 +1,4 @@
+import { addBrick, updateBrick } from "../commands/brickActions";
 import { defineRegistry } from "@json-render/react";
 import { Images } from "lucide-react";
 
@@ -17,6 +18,9 @@ const { registry } = defineRegistry(makeCatalogFromComponentMetadata(behanceV1.c
 });
 
 const view = makeModuleView(behanceV1, {
+  defaultPlacementState: {},
+  add: addBrick,
+  update: updateBrick,
   categoryIds: ["new", "social"],
   defaultState: {
     payload: { url: "https://www.behance.net/grapheine" },
@@ -52,10 +56,10 @@ const view = makeModuleView(behanceV1, {
 export const behanceView = {
   ...view,
   Render(props: Parameters<typeof view.Render>[0]) {
-    const { state, spec, variantId } = props;
+    const { brickState, placementState, layoutId, spec } = props;
     return (
       <BrickDetailsTrigger label="Edit Behance">
-        <view.Render state={state} spec={spec} variantId={variantId} />
+        <view.Render brickState={brickState} placementState={placementState} spec={spec} layoutId={layoutId} />
       </BrickDetailsTrigger>
     );
   },

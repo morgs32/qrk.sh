@@ -50,8 +50,8 @@ export const imageCarouselV1 = makeModuleVersion(imageCarousel, {
 
 export const completeStateSchema = Schema.toType(makeEffectSchema(imageCarouselV1.stateShape)).check(
   Schema.makeFilter((state) =>
-    (state.slides.length >= 2 && state.slides.every((slide) =>
+    (state.slides.length >= 1 && state.slides.every((slide) =>
       slide.imageUrl.trim().length > 0 && slide.alt.trim().length > 0,
-    )) || "At least two images with alt text are required",
+    )) || "At least one image with alt text is required",
   ),
 );

@@ -6,13 +6,12 @@ import type { IResult } from "@zerospin/error";
 import type { IInferDecodedRow } from "@zerospin/shapes";
 import { isEqual } from "es-toolkit";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { useAfterBrickInserted } from "../../react/useAfterBrickInserted";
 import { useWarnBeforeUnload } from "../../react/useWarnBeforeUnload";
 import { BrickShell } from "../../../components/BrickShell";
 import { Alert, AlertDescription, AlertTitle } from "../../../components/alert";
 import { Button } from "../../../components/button";
 
-import "./article-font.css";
+import "../../../components/spectral-font.css";
 import "./article-editor.css";
 
 export function ArticleEditor(props: {
@@ -52,10 +51,6 @@ export function ArticleEditor(props: {
   });
 
   useWarnBeforeUnload(draft !== null);
-
-  useAfterBrickInserted(() => {
-    titleRef.current?.focus();
-  });
 
   const finishDraft = useCallback(() => {
     current.current.draft = null;

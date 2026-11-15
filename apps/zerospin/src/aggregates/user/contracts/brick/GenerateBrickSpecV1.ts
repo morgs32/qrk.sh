@@ -31,9 +31,9 @@ export const generateBrickSpecV1 = makeAggregateContractRelease(
   {
     version: 1,
     models: {
-      brick,
-      placement,
-      wall,
+      brick: { model: brick, fields: ["createdAt", "updatedAt", "pageId", "moduleId", "state", "stateRevision"] },
+      placement: { model: placement, fields: ["createdAt", "updatedAt", "brickId", "wallId", "spec", "variantId", "specRevision", "generation"] },
+      wall: { model: wall, fields: ["createdAt", "updatedAt", "pageId", "breakpoint", "layout"] },
     },
     operations: {
       updatePlacement: placement.operations.update,

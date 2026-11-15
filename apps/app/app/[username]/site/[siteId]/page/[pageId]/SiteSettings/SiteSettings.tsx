@@ -27,7 +27,7 @@ import { TextboxInput } from "@qrk.sh/bricks/components/TextboxInput";
 import { Schema } from "effect";
 import { isEqual } from "es-toolkit";
 import { ExternalLink } from "lucide-react";
-import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import useSWR from "swr";
 
@@ -157,15 +157,11 @@ export function SiteSettings(props: {
   const isUploading = uploadingField !== null;
   useEffect(() => () => uploadRequest.current?.abort(), []);
   useWarnBeforeUnload(isDirty || isUploading);
-  const publishedUrl = useMemo(() => {
-    const pathname = `/${encodeURIComponent(username)}/${encodeURIComponent(siteId)}`;
-    return `https://www.qrk.sh${pathname}`;
-  }, [siteId, username]);
-  const siteDomain = site.slug ? `${site.slug}.qrk.sh` : null;
+  const webOrigin = new URL(process.env.NEXT_PUBLIC_WEB_ORIGIN ?? "https://qrk.localhost");
+  const siteDomain = site.slug ? `${site.slug}-${username.toLowerCase()}.${webOrigin.host}` : null;
+  const publishedUrl = siteDomain === null ? null : `${webOrigin.protocol}//${siteDomain}`;
 
-  const { data: qrDataUrl } = useSWR([username, siteId], async ([username, siteId]) => {
-    const pathname = `/${encodeURIComponent(username)}/${encodeURIComponent(siteId)}`;
-    const url = `https://www.qrk.sh${pathname}`;
+  const { data: qrDataUrl } = useSWR(publishedUrl, async (url) => {
     const { toDataURL } = await import("qrcode");
     return toDataURL(url, {
       errorCorrectionLevel: "M",
@@ -501,7 +497,7 @@ export function SiteSettings(props: {
                             aria-label="Open domain in a new tab"
                             render={
                               <a
-                                href={`https://${siteDomain}`}
+                                href={`${webOrigin.protocol}//${siteDomain}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 role="link"
@@ -523,20 +519,24 @@ export function SiteSettings(props: {
                   >
                     Share URL
                   </span>
-                  <InputGroup variant="sm">
-                    <InputGroupInput
-                      aria-labelledby="site-share-url-label"
-                      title={publishedUrl}
-                      value={publishedUrl}
-                      readOnly
-                      className="truncate font-mono"
-                    />
-                    <InputGroupAddon align="inline-end" className="shrink-0 gap-0 py-0">
-                      <TooltipProvider delay={0}>
-                        <CopyButton text={publishedUrl} inline />
-                      </TooltipProvider>
-                    </InputGroupAddon>
-                  </InputGroup>
+                  {publishedUrl === null ? (
+                    <BrickFieldDescription>No subdomain set</BrickFieldDescription>
+                  ) : (
+                    <InputGroup variant="sm">
+                      <InputGroupInput
+                        aria-labelledby="site-share-url-label"
+                        title={publishedUrl}
+                        value={publishedUrl}
+                        readOnly
+                        className="truncate font-mono"
+                      />
+                      <InputGroupAddon align="inline-end" className="shrink-0 gap-0 py-0">
+                        <TooltipProvider delay={0}>
+                          <CopyButton text={publishedUrl} inline />
+                        </TooltipProvider>
+                      </InputGroupAddon>
+                    </InputGroup>
+                  )}
                 </BrickField>
                 <BrickField aria-labelledby="site-qr-code-label">
                   <span
@@ -547,7 +547,11 @@ export function SiteSettings(props: {
                   </span>
                   <FieldContent>
                     <div className="aspect-square w-40 max-w-full overflow-hidden rounded-md border bg-background">
-                      {qrDataUrl ? (
+                      {publishedUrl === null ? (
+                        <div className="flex h-full w-full items-center justify-center text-sm text-muted-foreground">
+                          No subdomain set
+                        </div>
+                      ) : qrDataUrl ? (
                         <img
                           loading="lazy"
                           src={qrDataUrl}
@@ -585,7 +589,15 @@ export function SiteSettings(props: {
                           size="sm"
                           variant="destructive"
                           className="self-start"
-                          disabled
+                          onClick={() => {
+                            setSaveError(null);
+                            const result = stageAggregateSessionCommand({
+                              session,
+                              contractName: "unpublishSite",
+                              payload: { siteId },
+                            });
+                            if (result._tag === "Failure") setSaveError(result.failure.message);
+                          }}
                         >
                           Unpublish
                         </Button>

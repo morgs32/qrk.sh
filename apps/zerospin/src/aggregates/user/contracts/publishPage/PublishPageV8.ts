@@ -13,7 +13,7 @@ import { wallV4 as wall } from "../../models/wall/WallV4";
 export const publishPageV8 = upgradeAggregateContractRelease(publishPageV7, {
   version: 8,
   payload: {},
-  models: { brick, pageSnapshot, wall },
+  models: { brick: { model: brick, fields: ["createdAt", "updatedAt", "pageId", "moduleId", "state", "borderWidth", "stateRevision"] }, pageSnapshot: { model: pageSnapshot, fields: ["createdAt", "updatedAt", "pageId", "content"] }, wall: { model: wall, fields: ["createdAt", "updatedAt", "pageId", "breakpoint", "layout"] } },
   operations: { createPageSnapshot: pageSnapshot.operations.create },
   down: Effect.fn("publishPageV8.down")(function* (props) {
     const { payload } = props;

@@ -6,7 +6,7 @@ import { movePlacementToRowV7 } from "./MovePlacementToRowContractV7";
 export const movePlacementToRowV8 = upgradeAggregateContractRelease(movePlacementToRowV7, {
   version: 8,
   payload: {},
-  models: { wall },
+  models: { wall: { model: wall, fields: ["createdAt", "updatedAt", "pageId", "breakpoint", "layout"] } },
   operations: { updateWall: wall.operations.update },
   down: Effect.fn("movePlacementToRowV8.down")(function* (props) {
     const { payload } = props;

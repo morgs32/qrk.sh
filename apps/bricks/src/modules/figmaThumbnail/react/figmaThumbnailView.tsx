@@ -1,3 +1,4 @@
+import { addBrick, updateBrick } from "../commands/brickActions";
 import { figmaThumbnailPreviewState } from "../definition/figmaThumbnailPreviewState";
 import { makeModuleView } from "../../react/makeModuleView";
 import { BrickDetailsTrigger } from "../../../components/BrickDetailsTrigger";
@@ -8,6 +9,9 @@ import { FigmaThumbnailPlaceholder } from "./FigmaThumbnailPlaceholder";
 import { FigmaThumbnailLineIcon } from "./FigmaThumbnailLineIcon";
 
 const figmaThumbnail = makeModuleView(figmaThumbnailV1, {
+  defaultPlacementState: {},
+  add: addBrick,
+  update: updateBrick,
   categoryIds: ["tools"],
   defaultState: figmaThumbnailPreviewState,
   LineIcon: FigmaThumbnailLineIcon,
@@ -25,10 +29,10 @@ const figmaThumbnail = makeModuleView(figmaThumbnailV1, {
 export const figmaThumbnailView = {
   ...figmaThumbnail,
   Render(props: Parameters<typeof figmaThumbnail.Render>[0]) {
-    const { state, spec, variantId } = props;
+    const { brickState, placementState, layoutId, spec } = props;
     return (
       <BrickDetailsTrigger label={`Edit ${figmaThumbnail.label}`}>
-        <figmaThumbnail.Render state={state} spec={spec} variantId={variantId} />
+        <figmaThumbnail.Render brickState={brickState} placementState={placementState} spec={spec} layoutId={layoutId} />
       </BrickDetailsTrigger>
     );
   },

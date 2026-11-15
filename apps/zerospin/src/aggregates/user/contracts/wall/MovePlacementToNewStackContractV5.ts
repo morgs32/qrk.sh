@@ -8,7 +8,7 @@ export const movePlacementToNewStackV5 = upgradeAggregateContractRelease(
   {
     version: 5,
     payload: {},
-    models: { brick },
+    models: { brick: { model: brick, fields: ["createdAt", "updatedAt", "pageId", "moduleId", "state", "borderWidth", "stateRevision"] } },
     down: Effect.fn("movePlacementToNewStackV5.down")(function* (props) {
       const { payload } = props;
       return payload;

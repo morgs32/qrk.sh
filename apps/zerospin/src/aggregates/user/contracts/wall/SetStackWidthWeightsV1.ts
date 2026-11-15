@@ -32,7 +32,7 @@ export const setStackWidthWeightsV1 = makeAggregateContractRelease(
         schema: Schema.Number.check(Schema.isFinite(), Schema.isGreaterThan(0)),
       }),
     },
-    models: { wall, page, site, user },
+    models: { wall: { model: wall, fields: ["createdAt", "updatedAt", "pageId", "breakpoint", "layout"] }, page: { model: page, fields: ["createdAt", "updatedAt", "siteId", "slug", "title", "description", "isPublished", "publishedSnapshotId"] }, site: { model: site, fields: ["name", "createdAt", "updatedAt", "slug", "description", "isPublished", "userId", "logoUrl", "faviconLightUrl", "faviconDarkUrl", "stickyNavbar", "cardStyle", "brickGap"] }, user: { model: user, fields: ["createdAt", "updatedAt", "clerkUserId", "username", "displayName"] } },
     operations: { updateWall: wall.operations.update },
     failures: { invalidSizing: ContractError.schema({ code: "stack-width-weights-invalid" }) },
     program: Effect.fn("setStackWidthWeights.program")(function* (props) {

@@ -130,7 +130,16 @@ export async function generateSpec(props: {
   const catalog = catalogs[entry.id];
 
   try {
-    const system = catalog.prompt({ mode: "standalone" });
+    const namespacedState =
+      state !== null &&
+      typeof state === "object" &&
+      "brickState" in state &&
+      "placementState" in state;
+    const system = `${catalog.prompt({ mode: "standalone" })}${
+      namespacedState
+        ? "\nBind Brick content under /brickState and Placement settings under /placementState. Ignore any older state paths in component descriptions."
+        : ""
+    }`;
     const user = buildUserPrompt({
       prompt: trimmedPrompt,
       state: makeInitialState(state),

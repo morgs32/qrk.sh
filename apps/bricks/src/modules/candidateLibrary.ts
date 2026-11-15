@@ -11,6 +11,7 @@ import { completeStateSchema as figmaThumbnailStateSchema } from "./figmaThumbna
 import { completeStateSchema as imageCarouselStateSchema } from "./imageCarousel/definition/imageCarouselV1";
 import { completeStateSchema as spotifyStateSchema } from "./spotify/definition/spotifyV1";
 import { completeStateSchema as youtubeStateSchema } from "./youtube/definition/youtubeV1";
+import { completeStateSchema as textStateSchema } from "./text/definition/textV1";
 import { completeStateSchema as instagramStateSchema } from "./instagram/definition/instagramV1";
 import { completeStateSchema as linkStateSchema } from "./link/definition/linkV1";
 import { completeStateSchema as mapPlaceStateSchema } from "./mapPlace/definition/mapPlaceV1";
@@ -19,7 +20,7 @@ import { completeStateSchema as behanceStateSchema } from "./behance/definition/
 import { completeStateSchema as buyMeACoffeeStateSchema } from "./buyMeACoffee/definition/buyMeACoffeeV1";
 
 export const candidateLibrary: Record<
-  keyof typeof backendLibrary,
+  Exclude<keyof typeof backendLibrary, "text">,
   {
     module: (typeof backendLibrary)[keyof typeof backendLibrary] | typeof imageV3 | typeof imageV4;
     layouts: Record<string, Spec>;
@@ -102,4 +103,20 @@ export const candidateLibrary: Record<
 export const candidateLibraryV20: typeof candidateLibrary = {
   ...candidateLibrary,
   image: { module: imageV4, layouts: imageLayouts, completeStateSchema: completeImageStateSchemaV4 },
+};
+
+export const freshCandidateLibrary: Record<
+  keyof typeof backendLibrary,
+  {
+    module: (typeof backendLibrary)[keyof typeof backendLibrary] | typeof imageV3 | typeof imageV4;
+    layouts: Record<string, Spec>;
+    completeStateSchema: Schema.Codec<unknown>;
+  }
+> = {
+  ...candidateLibraryV20,
+  text: {
+    module: backendLibrary.text,
+    layouts: { default: backendLibrary.text.defaultSpec },
+    completeStateSchema: textStateSchema,
+  },
 };

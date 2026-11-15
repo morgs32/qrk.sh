@@ -3,18 +3,19 @@ import {
   allocateStackWidths,
   measureWallFit,
   wallBreakpointWidths,
-} from "@qrk.sh/zerospin/src/aggregates/user/layout/wallSizing";
-import type { PageSnapshotSchemaV9 } from "@qrk.sh/zerospin/src/aggregates/user/snapshots/pageSnapshotSchemaV9";
+} from "@qrk.sh/bricks/zerospin/wall/wallSizing";
+import type { pageSnapshotSchema } from "@qrk.sh/bricks/zerospin/models/pageSnapshot/pageSnapshotSchema";
 import { backendLibrary } from "@qrk.sh/bricks/modules/backendLibrary";
 import type { ReactNode } from "react";
+import "./WallViewer.css";
 
 export function WallViewer(props: {
-  snapshot: typeof PageSnapshotSchemaV9.Type;
+  snapshot: typeof pageSnapshotSchema.Type;
   breakpoint: keyof typeof wallBreakpointWidths;
   brickGap: number;
   renderBrick: (
-    brick: (typeof PageSnapshotSchemaV9.Type.bricks)[number],
-    placement: (typeof PageSnapshotSchemaV9.Type.walls)[number]["sections"][number]["stacks"][number]["rows"][number]["placements"][number],
+    brick: (typeof pageSnapshotSchema.Type.bricks)[number],
+    placement: (typeof pageSnapshotSchema.Type.walls)[number]["sections"][number]["stacks"][number]["rows"][number]["placements"][number],
   ) => ReactNode;
 }) {
   const { snapshot, breakpoint, brickGap, renderBrick } = props;
@@ -36,7 +37,7 @@ export function WallViewer(props: {
             throw new Error(
               `Placement ${placement.id} references missing Brick ${placement.brickId}`,
             );
-          const variant = backendLibrary[brick.moduleId].variants[placement.variantId];
+          const variant = backendLibrary[brick.moduleId].variants.default;
           placementMinimumWidths.set(placement.id, variant.minWidth);
           return { brick, placement, variant };
         }),
@@ -117,7 +118,7 @@ export function WallViewer(props: {
                               : 0,
                       }}
                     >
-                      {row.placements.map(({ brick, placement }, placementIndex) => (
+                      {row.placements.map(({ brick, placement, variant }, placementIndex) => (
                         <div
                           key={placement.id}
                           data-wall-placement-id={placement.id}
@@ -128,9 +129,12 @@ export function WallViewer(props: {
                             minWidth: 0,
                             borderWidth: brick.borderWidth,
                             borderStyle: "solid",
+                            ...{
+                              "--wall-brick-min-width": `${Math.max(0, variant.minWidth - brick.borderWidth * 2)}px`,
+                            },
                           }}
                         >
-                          {renderBrick(brick, placement)}
+                          <div data-wall-placement-content>{renderBrick(brick, placement)}</div>
                         </div>
                       ))}
                     </div>

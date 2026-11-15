@@ -14,7 +14,7 @@ import { moveStackV6 } from "./MoveStackContractV6";
 export const moveStackV7 = upgradeAggregateContractRelease(moveStackV6, {
   version: 7,
   payload: {},
-  models: { wall },
+  models: { wall: { model: wall, fields: ["createdAt", "updatedAt", "pageId", "breakpoint", "layout"] } },
   operations: { updateWall: wall.operations.update },
   down: Effect.fn("moveStackV7.down")(function* (props) {
     const { payload } = props;

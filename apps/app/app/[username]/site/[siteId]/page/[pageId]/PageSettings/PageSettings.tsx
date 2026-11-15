@@ -8,7 +8,6 @@ import { useId, useLayoutEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import type { ISessionModelRow } from "@zerospin/browser/ISessionModelRow";
 import { stageAggregateSessionCommand } from "@zerospin/sdk/browser";
-import { Schema } from "effect";
 
 import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
 import { Button } from "@qrk.sh/bricks/components/button";
@@ -17,16 +16,10 @@ import { Field, FieldError, FieldLabel } from "@qrk.sh/bricks/components/field";
 import { Input } from "@qrk.sh/bricks/components/Input";
 import { StudioSidebar } from "@qrk.sh/bricks/components/StudioSidebar";
 import { TextboxInput } from "@qrk.sh/bricks/components/TextboxInput";
-import { useValidatedParams } from "@/hooks/useValidatedParams";
+import { useUsername } from "@/hooks/useUsername";
 import { useWarnBeforeUnload } from "@qrk.sh/bricks/modules/react/useWarnBeforeUnload";
 
 import { SearchPreviewCard } from "../SearchPreviewCard";
-
-const ParamsSchema = Schema.Struct({
-  username: Schema.String,
-  siteId: Schema.TemplateLiteral(["sit_", Schema.String]),
-  pageId: Schema.TemplateLiteral(["pag_", Schema.String]),
-});
 
 export function PageSettings(props: {
   page: ISessionModelRow<typeof userSessionDefinition, "page", { with: { site: true } }>;
@@ -35,7 +28,7 @@ export function PageSettings(props: {
   const { faviconLightUrl, faviconDarkUrl } = page.site;
   const savedTitle = page.title ?? "";
   const savedDescription = page.description ?? "";
-  const params = useValidatedParams(ParamsSchema);
+  const username = useUsername();
   const session = useSession(userSessionDefinition);
   const formId = useId();
   const [saveSlot, setSaveSlot] = useState<HTMLElement | null>(null);
@@ -49,9 +42,11 @@ export function PageSettings(props: {
   const [saveError, setSaveError] = useState<string | null>(null);
   const isDirty = fields.title !== savedTitle || fields.description !== savedDescription;
   useWarnBeforeUnload(isDirty);
-  const sitePath = `/${encodeURIComponent(params.username)}/${encodeURIComponent(params.siteId)}`;
   const pagePath = page.slug ? `/${page.slug.split("/").map(encodeURIComponent).join("/")}` : "";
-  const previewUrl = `www.qrk.sh${sitePath}${pagePath}`;
+  const publicHost = new URL(process.env.NEXT_PUBLIC_WEB_ORIGIN ?? "https://qrk.localhost").host;
+  const previewUrl = page.site.slug
+    ? `${page.site.slug}-${username.toLowerCase()}.${publicHost}${pagePath}`
+    : "Site URL unavailable";
 
   return (
     <form

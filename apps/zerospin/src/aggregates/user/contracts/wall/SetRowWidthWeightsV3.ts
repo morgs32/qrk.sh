@@ -6,7 +6,7 @@ import { setRowWidthWeightsV2 } from "./SetRowWidthWeightsV2";
 export const setRowWidthWeightsV3 = upgradeAggregateContractRelease(setRowWidthWeightsV2, {
   version: 3,
   payload: {},
-  models: { wall },
+  models: { wall: { model: wall, fields: ["createdAt", "updatedAt", "pageId", "breakpoint", "layout"] } },
   down: Effect.fn("setRowWidthWeightsV3.down")(function* (props) {
     const { payload } = props;
     return payload;

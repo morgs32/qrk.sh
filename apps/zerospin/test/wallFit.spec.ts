@@ -3,15 +3,15 @@ import { makeQueryDbVersion, NanoIdFactory } from "@zerospin/sdk";
 import { makeSystemHarness } from "@zerospin/sdk/testing";
 import { Effect, Exit, Schema } from "effect";
 
-import { userAggregateV9 } from "../src/aggregates/user/UserV9";
-import { wallLayoutSchemaV2 } from "../src/aggregates/user/layout/wallLayoutSchemaV2";
+import { userAggregateV1 } from "../src/fresh/userAggregateV1";
+import { wallLayoutSchema } from "@qrk.sh/bricks/zerospin/models/wall/wallLayoutSchema";
 import {
   allocateRowWidths,
   allocateStackWidths,
   measureWallFit,
-} from "../src/aggregates/user/layout/wallSizing";
+} from "@qrk.sh/bricks/zerospin/wall/wallSizing";
 import { swatchAndIconPreviewState } from "@qrk.sh/bricks/modules/swatchAndIcon/definition/swatchAndIconPreviewState";
-import { makePlacementId } from "../src/aggregates/user/layout/makePlacementId";
+import { makePlacementId } from "@qrk.sh/bricks/zerospin/wall/makePlacementId";
 import { system } from "../src/system";
 
 it("sizes Row contents from Brick preferences within the Stack and minimums", () => {
@@ -103,7 +103,7 @@ it("allocates large Stack weights without overflow and rejects Sections that can
 });
 
 it("counts the widest Row, empty Stack floor, and existing half-gap allowances", () => {
-  const layout = Schema.decodeUnknownSync(wallLayoutSchemaV2)({
+  const layout = Schema.decodeUnknownSync(wallLayoutSchema)({
     sections: [
       {
         id: "sec_fit",
@@ -159,14 +159,14 @@ it.effect(
   () =>
     Effect.gen(function* () {
       const harness = yield* makeSystemHarness({ system });
-      const owner = { release: userAggregateV9, aggregateId: "acct_fit" };
-      const db = makeQueryDbVersion({ models: userAggregateV9.models });
+      const owner = { release: userAggregateV1, aggregateId: "acct_fit" };
+      const db = makeQueryDbVersion({ models: userAggregateV1.models });
       const actor = {
-        aggregateName: userAggregateV9.name,
-        aggregateVersion: userAggregateV9.version,
+        aggregateName: userAggregateV1.name,
+        aggregateVersion: userAggregateV1.version,
         aggregateId: owner.aggregateId,
         actorName: "web",
-        actorVersion: 9,
+        actorVersion: 1,
         claims: { aggregateId: owner.aggregateId, clerkUserId: "user_fit" },
         externalOutcome: null,
         nodeId: "node_fit",
@@ -202,7 +202,7 @@ it.effect(
           kind: "actor",
           id: `cmd_fit_${id}`,
           commandName: "createPage",
-          contractVersion: 2,
+          contractVersion: 1,
           pushIndex: pushIndex++,
           payload: { id, siteId: "sit_fit", slug, title: null, description: null },
         });
@@ -211,13 +211,13 @@ it.effect(
         ...actor,
         kind: "actor",
         id: "cmd_fit_swatch",
-        commandName: "addBrick",
-        contractVersion: 5,
+        commandName: "addSwatchAndIconBrick",
+        contractVersion: 1,
         pushIndex: pushIndex++,
         payload: {
-          id: "brk_fit_swatch",
+          brickId: "brk_fit_swatch",
           pageId: "pag_fit",
-          moduleId: "swatch-and-icon",
+
           state: swatchAndIconPreviewState,
           target: { kind: "wall", wallId: "wal_pag_fit_lg", beforeSectionId: null },
         },
@@ -310,13 +310,13 @@ it.effect(
         ...actor,
         kind: "actor",
         id: "cmd_fit_link",
-        commandName: "addBrick",
-        contractVersion: 5,
+        commandName: "addLinkBrick",
+        contractVersion: 1,
         pushIndex: pushIndex++,
         payload: {
-          id: "brk_fit_link",
+          brickId: "brk_fit_link",
           pageId: "pag_fit",
-          moduleId: "link",
+
           state: null,
           target: { kind: "stack", wallId: large.id, stackId: mainStack.id, beforeRowId: null },
         },
@@ -343,13 +343,13 @@ it.effect(
           ...actor,
           kind: "actor",
           id: "cmd_fit_overflow_add",
-          commandName: "addBrick",
-          contractVersion: 5,
+          commandName: "addSwatchAndIconBrick",
+          contractVersion: 1,
           pushIndex: pushIndex++,
           payload: {
-            id: "brk_fit_overflow",
+            brickId: "brk_fit_overflow",
             pageId: "pag_fit",
-            moduleId: "swatch-and-icon",
+
             state: swatchAndIconPreviewState,
             target: {
               kind: "row",
@@ -367,7 +367,7 @@ it.effect(
           kind: "actor",
           id: "cmd_fit_overflow_move",
           commandName: "movePlacementToRow",
-          contractVersion: 4,
+          contractVersion: 1,
           pushIndex: pushIndex++,
           payload: {
             placementId: makePlacementId("brk_fit_link", "sm"),
@@ -392,7 +392,7 @@ it.effect(
         kind: "actor",
         id: "cmd_fit_move_row",
         commandName: "movePlacementToNewRow",
-        contractVersion: 3,
+        contractVersion: 1,
         pushIndex: pushIndex++,
         payload: {
           placementId: makePlacementId("brk_fit_swatch", "lg"),
@@ -423,7 +423,7 @@ it.effect(
         kind: "actor",
         id: "cmd_fit_full_section",
         commandName: "addWallSection",
-        contractVersion: 2,
+        contractVersion: 1,
         pushIndex: pushIndex++,
         payload: { id: "fit_full", wallId: "wal_pag_fit_full_xl", beforeSectionId: null },
       });
@@ -455,7 +455,7 @@ it.effect(
           kind: "actor",
           id: "cmd_fit_gap_refused",
           commandName: "updateSiteSettings",
-          contractVersion: 2,
+          contractVersion: 1,
           pushIndex: pushIndex++,
           payload: {
             id: "sit_fit",

@@ -14,8 +14,9 @@ const meta = {
       <main className="qrk-bricks flex flex-wrap gap-6 bg-background p-6">
         <div className="w-[480px] max-w-full">
           <spotifyView.Render
-            state={null}
-            variantId="default"
+            brickState={null}
+            placementState={{}}
+            layoutId="default"
             spec={spotifyView.variants.default.spec}
           />
         </div>

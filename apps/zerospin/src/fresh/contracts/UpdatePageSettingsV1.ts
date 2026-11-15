@@ -1,0 +1,120 @@
+import { defineAggregateContract } from "@zerospin/sdk/browser";
+import { page as pageIdentity } from "@qrk.sh/bricks/zerospin/models/page/page";
+
+import { ContractError } from "@zerospin/error";
+
+import * as sdk from "@zerospin/sdk/browser";
+
+import { modelId, makeAggregateContractRelease, primitives } from "@zerospin/sdk/browser";
+
+import { Effect } from "effect";
+
+import { pageV1 as Page } from "@qrk.sh/bricks/zerospin/models/page/PageV1";
+
+import { siteV1 as Site } from "@qrk.sh/bricks/zerospin/models/site/SiteV1";
+
+import { userV1 as User } from "@qrk.sh/bricks/zerospin/models/user/UserV1";
+
+const updatePageSettings = defineAggregateContract("updatePageSettings");
+
+const updatePageSettingsPayload = {
+  id: modelId({ model: pageIdentity }),
+  title: primitives.text({
+    nullable: true,
+    defaultValue: null,
+  }),
+  description: primitives.text({
+    nullable: true,
+    defaultValue: null,
+  }),
+};
+
+export const updatePageSettingsV1 = makeAggregateContractRelease(updatePageSettings, {
+  operations: {
+    updatePage: Page.operations.update,
+  },
+  failures: {
+    updatePageSettingsUserMismatch: ContractError.schema({
+      code: "update-page-settings-user-mismatch",
+    }),
+    updatePageSettingsNotFound: ContractError.schema({ code: "update-page-settings-not-found" }),
+    updatePageSettingsSiteNotFound: ContractError.schema({
+      code: "update-page-settings-site-not-found",
+    }),
+  },
+  payload: updatePageSettingsPayload,
+  models: {
+    user: { model: User, fields: ["createdAt", "updatedAt", "clerkUserId", "username", "displayName"] },
+    site: { model: Site, fields: ["name", "createdAt", "updatedAt", "slug", "description", "isPublished", "userId", "logoUrl", "faviconLightUrl", "faviconDarkUrl", "stickyNavbar", "cardStyle", "brickGap"] },
+    page: { model: Page, fields: ["createdAt", "updatedAt", "siteId", "slug", "title", "description", "isPublished", "publishedSnapshotId"] },
+  },
+  guard: Effect.fn("updatePageSettingsV1.guard")(function* (props) {
+    const { failures, claims, db, payload } = props;
+    const clerkUserId = claims?.clerkUserId;
+
+    if (typeof clerkUserId !== "string") {
+      return yield* failures.updatePageSettingsUserMismatch.make({
+        message: "Updating page settings requires an authenticated user",
+        status: 403,
+      });
+    }
+
+    const page = yield* sdk.findFirst({
+      db,
+      model: db.models.page,
+      where: { id: { eq: payload.id } },
+    });
+
+    if (page === undefined) {
+      return yield* failures.updatePageSettingsNotFound.make({
+        message: `Page ${payload.id} was not found`,
+        status: 404,
+      });
+    }
+
+    if (page.siteId === null) {
+      return yield* failures.updatePageSettingsSiteNotFound.make({
+        message: `Page ${payload.id} has no site`,
+        status: 404,
+      });
+    }
+
+    const site = yield* sdk.findFirst({
+      db,
+      model: db.models.site,
+      where: { id: { eq: page.siteId } },
+    });
+
+    if (site === undefined) {
+      return yield* failures.updatePageSettingsSiteNotFound.make({
+        message: `Site ${page.siteId} was not found`,
+        status: 404,
+      });
+    }
+
+    const user =
+      site.userId === null
+        ? undefined
+        : yield* sdk.findFirst({ db, model: db.models.user, where: { id: { eq: site.userId } } });
+
+    if (user === undefined || user.clerkUserId !== clerkUserId) {
+      return yield* failures.updatePageSettingsUserMismatch.make({
+        message: `Page ${payload.id} does not belong to identity ${clerkUserId}`,
+        status: 403,
+      });
+    }
+  }),
+  program: (props) => {
+    const { operations, payload } = props;
+    return Effect.gen(function* () {
+      yield* operations.updatePage({
+        resourceId: payload.id,
+        attributes: {
+          title: payload.title,
+          description: payload.description,
+        },
+      });
+    });
+  },
+  version: 1,
+});

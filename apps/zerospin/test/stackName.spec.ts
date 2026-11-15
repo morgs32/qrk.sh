@@ -1,4 +1,4 @@
-import { userAggregateV9 } from "../src/aggregates/user/UserV9";
+import { userAggregateV1 } from "../src/fresh/userAggregateV1";
 import { expect, it } from "@effect/vitest";
 import { makeQueryDbVersion, NanoIdFactory } from "@zerospin/sdk";
 import { makeSystemHarness } from "@zerospin/sdk/testing";
@@ -10,14 +10,14 @@ import { system } from "../src/system";
 it.effect("renames only the owning Wall's Stack and rejects blank or mismatched targets", () =>
   Effect.gen(function* () {
     const harness = yield* makeSystemHarness({ system });
-    const owner = { release: userAggregateV9, aggregateId: "acct_stack" };
-    const db = makeQueryDbVersion({ models: userAggregateV9.models });
+    const owner = { release: userAggregateV1, aggregateId: "acct_stack" };
+    const db = makeQueryDbVersion({ models: userAggregateV1.models });
     const actor = {
-      aggregateName: userAggregateV9.name,
-      aggregateVersion: userAggregateV9.version,
+      aggregateName: userAggregateV1.name,
+      aggregateVersion: userAggregateV1.version,
       aggregateId: "acct_stack",
       actorName: "web",
-      actorVersion: 9,
+      actorVersion: 1,
       claims: { aggregateId: "acct_stack", clerkUserId: "user_stack" },
       externalOutcome: null,
       nodeId: "node_stack",
@@ -28,8 +28,8 @@ it.effect("renames only the owning Wall's Stack and rejects blank or mismatched 
       id: "cmd_stack_user",
       commandName: "createUser",
       contractVersion: 1,
-      aggregateName: userAggregateV9.name,
-      aggregateVersion: userAggregateV9.version,
+      aggregateName: userAggregateV1.name,
+      aggregateVersion: userAggregateV1.version,
       aggregateId: "acct_stack",
       externalOutcome: null,
       payload: {
@@ -59,7 +59,7 @@ it.effect("renames only the owning Wall's Stack and rejects blank or mismatched 
       kind: "actor",
       id: "cmd_stack_page",
       commandName: "createPage",
-      contractVersion: 2,
+      contractVersion: 1,
       pushIndex: 2,
       payload: {
         id: "pag_stack",
@@ -73,13 +73,12 @@ it.effect("renames only the owning Wall's Stack and rejects blank or mismatched 
       ...actor,
       kind: "actor",
       id: "cmd_stack_brick",
-      commandName: "addBrick",
-      contractVersion: 5,
+      commandName: "addSwatchAndIconBrick",
+      contractVersion: 1,
       pushIndex: 3,
       payload: {
-        id: "brk_stack",
+        brickId: "brk_stack",
         pageId: "pag_stack",
-        moduleId: "swatch-and-icon",
         state: swatchAndIconPreviewState,
         target: { kind: "wall", wallId: "wal_pag_stack_lg", beforeSectionId: null },
       },
@@ -98,7 +97,7 @@ it.effect("renames only the owning Wall's Stack and rejects blank or mismatched 
       kind: "actor",
       id: "cmd_stack_rename",
       commandName: "renameStack",
-      contractVersion: 2,
+      contractVersion: 1,
       pushIndex: 4,
       payload: { wallId: wall.id, stackId: stack.id, name: "  Main content  " },
     });
@@ -125,7 +124,7 @@ it.effect("renames only the owning Wall's Stack and rejects blank or mismatched 
           kind: "actor",
           id: `cmd_stack_rejected_${index}`,
           commandName: "renameStack",
-          contractVersion: 2,
+          contractVersion: 1,
           pushIndex: pushIndex++,
           payload: rejectedTarget,
         })

@@ -1,3 +1,4 @@
+import { addBrick, updateBrick } from "../commands/brickActions";
 import { defineRegistry } from "@json-render/react";
 import { Music2 } from "lucide-react";
 
@@ -16,6 +17,9 @@ const { registry } = defineRegistry(
 );
 
 const view = makeModuleView(spotifyV1, {
+  defaultPlacementState: {},
+  add: addBrick,
+  update: updateBrick,
   categoryIds: ["music"],
   defaultState: { url: null },
   LineIcon: Music2,
@@ -37,10 +41,10 @@ const view = makeModuleView(spotifyV1, {
 export const spotifyView = {
   ...view,
   Render(props: Parameters<typeof view.Render>[0]) {
-    const { state, spec, variantId } = props;
+    const { brickState, placementState, layoutId, spec } = props;
     return (
       <BrickDetailsTrigger label="Edit Spotify">
-        <view.Render state={state} spec={spec} variantId={variantId} />
+        <view.Render brickState={brickState} placementState={placementState} spec={spec} layoutId={layoutId} />
       </BrickDetailsTrigger>
     );
   },

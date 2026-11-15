@@ -1,3 +1,4 @@
+import { addBrick, updateBrick } from "../commands/brickActions";
 import { mapPlacePreviewState } from "../definition/mapPlacePreviewState";
 import { MapPlacePlaceholder } from "./MapPlacePlaceholder";
 import { makeModuleView } from "../../react/makeModuleView";
@@ -8,6 +9,9 @@ import { MapPlaceForm } from "./MapPlaceForm";
 import { MapPlaceLineIcon } from "./MapPlaceLineIcon";
 
 const mapPlace = makeModuleView(mapPlaceV1, {
+  defaultPlacementState: {},
+  add: addBrick,
+  update: updateBrick,
   categoryIds: ["business"],
   defaultState: mapPlacePreviewState,
   LineIcon: MapPlaceLineIcon,
@@ -26,10 +30,10 @@ const mapPlace = makeModuleView(mapPlaceV1, {
 export const mapPlaceView = {
   ...mapPlace,
   Render(props: Parameters<typeof mapPlace.Render>[0]) {
-    const { state, spec, variantId } = props;
+    const { brickState, placementState, layoutId, spec } = props;
     return (
       <BrickDetailsTrigger label={`Edit ${mapPlace.label}`}>
-        <mapPlace.Render state={state} spec={spec} variantId={variantId} />
+        <mapPlace.Render brickState={brickState} placementState={placementState} spec={spec} layoutId={layoutId} />
       </BrickDetailsTrigger>
     );
   },

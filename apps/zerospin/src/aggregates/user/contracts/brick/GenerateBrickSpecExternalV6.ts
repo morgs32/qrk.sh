@@ -11,7 +11,7 @@ export const generateBrickSpecExternalV6 = upgradeAggregateExternalContractRelea
   generateBrickSpecExternalV5,
   {
     definition: generateBrickSpecExternalDefinitionV6,
-    models: { brick },
+    models: { brick: { model: brick, fields: ["createdAt", "updatedAt", "pageId", "moduleId", "state", "borderWidth", "stateRevision"] } },
     request: Effect.fn("generateBrickSpecExternal.request")(function* (props) {
       const { payload } = props;
       const { env } = yield* Effect.promise(() => import("cloudflare:workers"));

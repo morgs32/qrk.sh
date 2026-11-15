@@ -10,7 +10,7 @@ export const movePlacementToNewSectionV2 = upgradeAggregateContractRelease(
   {
     version: 2,
     payload: {},
-    models: { wall, placement },
+    models: { wall: { model: wall, fields: ["createdAt", "updatedAt", "pageId", "breakpoint", "layout"] }, placement: { model: placement, fields: ["createdAt", "updatedAt", "brickId", "wallId", "widthWeight", "spec", "variantId", "specRevision", "generation"] } },
     operations: { updateWall: wall.operations.update },
     program: Effect.fn("movePlacementToNewSection.program")(function* (props) {
       const { db, payload, operations, failures, claims } = props;

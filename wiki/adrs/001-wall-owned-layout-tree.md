@@ -4,6 +4,10 @@
 **Date:** 2026-10-21  
 **Plan:** [039 — Wall-owned layout tree](../archive/plans/039-plan-wall-owned-layout-tree.md)
 
+**Partial supersession:** [ADR 002](002-brick-owned-commands-and-placement-state.md)
+replaces this ADR's Placement spec, revision, and generation-state details. The
+Wall-owned layout tree and structural operations remain in force.
+
 ## Context
 
 A Wall's arrangement was reconstructed from Section, Stack, Row, and Placement

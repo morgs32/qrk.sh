@@ -1,18 +1,20 @@
 "use client";
 
 import { MarkdownView } from "@meowdown/react";
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { stageAggregateSessionCommand } from "@zerospin/sdk/browser";
+import { useCallback, useContext } from "react";
+import { BrickSessionContext } from "../../react/BrickSessionContext";
 import { makeComponentView } from "../../react/makeComponentView";
 import { articleBrickComponentMetadata } from "../definition/generator/ArticleBrickComponentMetadata";
 import { BrickShell } from "../../../components/BrickShell";
-import "./article-font.css";
+import { ArticleEditor } from "./ArticleEditor";
+import "../../../components/spectral-font.css";
 import "./article-editor.css";
 
 export const articleBrickContentView = makeComponentView(articleBrickComponentMetadata, {
   component(props) {
     const { title, subtitle, content } = props;
-    const [mounted, setMounted] = useState(false);
-    const contentRef = useRef<HTMLDivElement>(null);
+    const editing = useContext(BrickSessionContext);
     const resolveXPost = useCallback(() => undefined, []);
     const resolveYouTubeVideo = useCallback(() => undefined, []);
     const onLinkClick = useCallback((props: { href: string }) => {
@@ -20,35 +22,29 @@ export const articleBrickContentView = makeComponentView(articleBrickComponentMe
       window.open(href, "_blank", "noopener,noreferrer");
     }, []);
 
-    // 1 — MarkdownView requires the DOM; server and initial client markup stay identical.
-    useEffect(() => {
-      let cancelled = false;
-      queueMicrotask(() => {
-        if (cancelled) return;
-        setMounted(true);
-      });
-      return () => {
-        cancelled = true;
-      };
-    }, []);
-
-    // 2 — Keep saved tasks read-only while rendered links remain active.
-    useLayoutEffect(() => {
-      for (const checkbox of contentRef.current?.querySelectorAll<HTMLInputElement>(
-        'input[type="checkbox"]',
-      ) ?? []) {
-        checkbox.disabled = true;
-        checkbox.tabIndex = -1;
-      }
-    }, [mounted, content]);
+    if (editing !== null) {
+      const { session, brickId, placementId, registerFlush } = editing;
+      return (
+        <ArticleEditor
+          key={placementId}
+          state={{ title, subtitle, content }}
+          registerFlush={registerFlush}
+          onSave={(state) => stageAggregateSessionCommand({
+            session,
+            contractName: "updateArticleBrick",
+            payload: { brickId, state },
+          })}
+        />
+      );
+    }
 
     return (
       <BrickShell className="overflow-hidden bg-white">
         <div className="qrk-article-document qrk-article-readonly qrk-responsive-insets">
           <h1 className="qrk-article-title">{title}</h1>
           <p className="qrk-article-subtitle">{subtitle}</p>
-          <div ref={contentRef} aria-label="Article content">
-            {mounted && (
+          <div aria-label="Article content">
+            <fieldset disabled style={{ display: "contents" }}>
               <MarkdownView
                 markdown={content ?? ""}
                 markMode="hide"
@@ -58,7 +54,7 @@ export const articleBrickContentView = makeComponentView(articleBrickComponentMe
                 resolveYouTubeVideo={resolveYouTubeVideo}
                 onLinkClick={onLinkClick}
               />
-            )}
+            </fieldset>
           </div>
         </div>
       </BrickShell>

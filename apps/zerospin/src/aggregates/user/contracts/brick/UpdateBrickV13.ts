@@ -6,7 +6,7 @@ import { updateBrickV12 } from "./UpdateBrickV12";
 export const updateBrickV13 = upgradeAggregateContractRelease(updateBrickV12, {
   version: 13,
   payload: { moduleId: brick.attributes.moduleId },
-  models: { brick },
+  models: { brick: { model: brick, fields: ["createdAt", "updatedAt", "pageId", "moduleId", "state", "borderWidth", "stateRevision"] } },
   operations: { updateBrick: brick.operations.update },
   down: Effect.fn("updateBrickV13.down")(function* (props) {
     const { payload } = props;

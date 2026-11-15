@@ -19,7 +19,7 @@ export const publishSiteV4 = upgradeAggregateContractRelease(publishSiteV3, {
     const { preferredRowSizing, ...legacy } = payload;
     return legacy;
   }),
-  models: { wall, placement, pageSnapshot: pageSnapshotV4 },
+  models: { wall: { model: wall, fields: ["createdAt", "updatedAt", "pageId", "breakpoint", "layout"] }, placement: { model: placement, fields: ["createdAt", "updatedAt", "brickId", "wallId", "widthWeight", "spec", "variantId", "specRevision", "generation"] }, pageSnapshot: { model: pageSnapshotV4, fields: ["createdAt", "updatedAt", "pageId", "content"] } },
   operations: { createPageSnapshot: pageSnapshotV4.operations.create },
   program: Effect.fn("publishSite")(function* (props) {
     const { payload, operations, db } = props;

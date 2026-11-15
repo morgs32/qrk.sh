@@ -8,6 +8,7 @@ import type { IInferModelRow } from "@zerospin/core/models/types";
 import {
   makeId,
   makeIdSchema,
+  prefixId,
   stageAggregateSessionCommand,
   validateAggregateSessionCommand,
 } from "@zerospin/sdk/browser";
@@ -24,7 +25,6 @@ import {
 } from "@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge";
 import { pointerOutsideOfPreview } from "@atlaskit/pragmatic-drag-and-drop/utils/pointer-outside-of-preview";
 import { setCustomNativeDragPreview } from "@atlaskit/pragmatic-drag-and-drop/utils/set-custom-native-drag-preview";
-import { isNonEmptySpec } from "@json-render/core";
 import {
   Fragment,
   useCallback,
@@ -36,24 +36,27 @@ import {
   type CSSProperties,
   type MouseEvent,
 } from "react";
-import { brickV6 } from "@qrk.sh/zerospin/src/aggregates/user/models/brick/BrickV6";
-import { wallV3 } from "@qrk.sh/zerospin/src/aggregates/user/models/wall/WallV3";
+import { brickV1 } from "@qrk.sh/bricks/zerospin/models/brick/BrickV1";
+import { wallV1 } from "@qrk.sh/bricks/zerospin/models/wall/WallV1";
 import { useLiveQuery, useSession } from "@zerospin/react";
 import { Result, Schema } from "effect";
-import { wallInsertionTargetSchema } from "@qrk.sh/zerospin/src/aggregates/user/layout/wallTargetSchemas";
-import type { stackIdSchema } from "@qrk.sh/zerospin/src/aggregates/user/layout/wallLayoutSchema";
-import { canShareRow } from "@qrk.sh/zerospin/src/aggregates/user/layout/canShareRow";
+import { wallInsertionTargetSchema } from "@qrk.sh/bricks/zerospin/wall/wallInsertionTargetSchema";
+import type { stackIdSchema } from "@qrk.sh/bricks/zerospin/models/wall/wallLayoutSchema";
+import { canShareRow } from "@qrk.sh/bricks/zerospin/wall/canShareRow";
+import { insertPlacementInLayout } from "@qrk.sh/bricks/zerospin/wall/insertPlacementInLayout";
+import { makePlacementId } from "@qrk.sh/bricks/zerospin/wall/makePlacementId";
 import {
   allocateRowWidths,
   allocateStackWidths,
   measureWallFit,
   wallBreakpointWidths,
-} from "@qrk.sh/zerospin/src/aggregates/user/layout/wallSizing";
+} from "@qrk.sh/bricks/zerospin/wall/wallSizing";
 
 import { StackAction } from "../../modules/components/StackAction";
 import { BrickDetailsContext } from "@qrk.sh/bricks/components/BrickDetailsTrigger";
 import { BrickWrapper } from "@qrk.sh/bricks/components/BrickWrapper";
-import { BrickInsertionContext } from "@qrk.sh/bricks/modules/react/useAfterBrickInserted";
+import { BrickSessionContext } from "@qrk.sh/bricks/modules/react/BrickSessionContext";
+import { resolveBrickLayout } from "@qrk.sh/bricks/modules/freshLibrary";
 import { WallPlacement } from "./WallPlacement";
 import { WallDropIndicator } from "./WallDropIndicator";
 import { PreviewSection } from "../PagePreview/PreviewSection";
@@ -79,21 +82,21 @@ import {
 
 const CatalogBrickData = Schema.Struct({
   type: Schema.Literal("catalog-brick"),
-  moduleId: brickV6.attributesSchema.fields.moduleId,
+  moduleId: brickV1.attributesSchema.fields.moduleId,
   layoutId: Schema.String,
   state: Schema.Unknown,
 });
 
 const WallPlacementData = Schema.Struct({
   type: Schema.Literal("wall-placement"),
-  wallId: makeIdSchema(wallV3),
+  wallId: makeIdSchema(wallV1),
   rowId: Schema.String,
   placementId: Schema.String,
 });
 
 /** Shared interactive Wall; its host owns navigation and the surrounding page chrome. */
 export function WallEditor(props: {
-  wallId: IInferModelRow<typeof wallV3>["id"];
+  wallId: IInferModelRow<typeof wallV1>["id"];
   selectedBrickId?: string | null;
   selectedWallId?: string | null;
   onSelectWallItem: (id: string) => void;
@@ -115,7 +118,7 @@ export function WallEditor(props: {
   const wallRef = useRef<HTMLDivElement>(null);
   const deleteReturnFocus = useRef<HTMLElement | null>(null);
   const deleteCancelRef = useRef<HTMLButtonElement>(null);
-  const [brickToDelete, setBrickToDelete] = useState<IInferModelRow<typeof brickV6>["id"] | null>(
+  const [brickToDelete, setBrickToDelete] = useState<IInferModelRow<typeof brickV1>["id"] | null>(
     null,
   );
   const [stackToDelete, setStackToDelete] = useState<{
@@ -140,10 +143,6 @@ export function WallEditor(props: {
   } | null>(null);
   const dropTarget = dropFeedback?.target ?? null;
   const [nativeDragActive, setNativeDragActive] = useState(false);
-  const [pendingInsertion, setPendingInsertion] = useState<{
-    brickId: string;
-    run: (action: () => void) => void;
-  } | null>(null);
   const [shadowSource, setShadowSource] = useState<{
     element: HTMLElement;
     moduleId: keyof typeof modulesHash;
@@ -161,16 +160,6 @@ export function WallEditor(props: {
         },
       }),
   });
-  useEffect(() => {
-    if (
-      pendingInsertion === null ||
-      !wall.placements.some((placement) => placement.brick.id === pendingInsertion.brickId)
-    )
-      return;
-    // The placed Brick's layout effect has already had a chance to respond.
-    setPendingInsertion((current) => (current === pendingInsertion ? null : current));
-  }, [pendingInsertion, wall.placements]);
-
   const { sections } = makeWallLayoutView({ wall });
   const deleteStack = (allWidths: boolean) => {
     if (stackToDelete === null) return;
@@ -300,7 +289,9 @@ export function WallEditor(props: {
               module.maxPerPage
           );
         },
-        getData: () => shadowTargetRef.current ?? {},
+        getData: () => shadowTargetRef.current === null
+          ? {}
+          : { ...shadowTargetRef.current, pageId: wall.pageId, eligible: true },
         getDropEffect: () => "copy",
       });
     },
@@ -314,6 +305,53 @@ export function WallEditor(props: {
     let movingElement: HTMLElement | null = null;
     const stacks = sections.flatMap((section) => section.stacks);
     const rows = stacks.flatMap((stack) => stack.rows);
+    const withDropEligibility = (
+      target: typeof wallInsertionTargetSchema.Type,
+      source: ElementEventBasePayload["source"],
+    ) => {
+      if (!Schema.is(CatalogBrickData)(source.data)) return target;
+      const module = modulesHash[source.data.moduleId];
+      const destination = target.kind === "row" ? rows.find((row) => row.id === target.rowId) : undefined;
+      const sharesRow = target.kind !== "row" || (destination !== undefined && canShareRow({
+        incomingVariant: module.variants.default,
+        existingVariants: destination.placements.map((placement) => modulesHash[placement.brick.moduleId].variants.default),
+      }));
+      const underLimit = module.maxPerPage === undefined || wall.placements.filter(
+        (placement) => placement.brick.moduleId === module.id,
+      ).length < module.maxPerPage;
+      let previewIndex = 0;
+      let previewBrickId = prefixId({ abbreviation: "brk" }, `preview_${wall.id}_${previewIndex}`);
+      while (wall.placements.some((placement) => placement.brickId === previewBrickId)) {
+        previewIndex += 1;
+        previewBrickId = prefixId({ abbreviation: "brk" }, `preview_${wall.id}_${previewIndex}`);
+      }
+      const placementId = makePlacementId(previewBrickId, wall.breakpoint);
+      const changed = insertPlacementInLayout({
+        layout: wall.layout,
+        target,
+        placementId,
+        newNodeIds: {
+          sectionId: prefixId({ abbreviation: "sec" }, `${previewBrickId}_${wall.id}`),
+          stackId: prefixId({ abbreviation: "stk" }, `${previewBrickId}_${wall.id}`),
+          rowId: prefixId({ abbreviation: "row" }, `${previewBrickId}_${wall.id}`),
+        },
+      });
+      let fits = false;
+      if (Result.isSuccess(changed)) {
+        const placementMinimumWidths = new Map<string, number>(wall.placements.map((placement) => [
+          placement.id,
+          modulesHash[placement.brick.moduleId].variants.default.minWidth,
+        ]));
+        placementMinimumWidths.set(placementId, module.variants.default.minWidth);
+        fits = measureWallFit({
+          layout: changed.success,
+          placementMinimumWidths,
+          wallWidth: wallBreakpointWidths[wall.breakpoint],
+          brickGap: wall.page.site.brickGap,
+        }).every((section) => section.fits);
+      }
+      return { ...target, pageId: wall.pageId, eligible: sharesRow && underLimit && fits };
+    };
     const resolveMove = (props: ElementEventBasePayload) => {
       const { source, location } = props;
       const data = Schema.decodeUnknownResult(WallPlacementData)(source.data);
@@ -354,10 +392,10 @@ export function WallEditor(props: {
           return null;
         if (
           !canShareRow({
-            incomingVariant: modulesHash[placement.brick.moduleId].variants[placement.variantId],
+            incomingVariant: modulesHash[placement.brick.moduleId].variants.default,
             existingVariants: row.placements
               .filter((entry) => entry.id !== placement.id)
-              .map((entry) => modulesHash[entry.brick.moduleId].variants[entry.variantId]),
+              .map((entry) => modulesHash[entry.brick.moduleId].variants.default),
           })
         )
           return null;
@@ -452,23 +490,12 @@ export function WallEditor(props: {
       const innermost = location.current.dropTargets[0];
       const target = Schema.decodeUnknownResult(wallInsertionTargetSchema)(innermost?.data);
       const data = Schema.decodeUnknownResult(CatalogBrickData)(source.data);
-      if (Result.isFailure(target) || Result.isFailure(data) || target.success.wallId !== wall.id) {
-        setDropFeedback(null);
-        return;
-      }
-      const validation = validateAggregateSessionCommand({
-        session,
-        contractName: "addBrick",
-        payload: {
-          id: session.runSync(makeId(brickV6)),
-          pageId: wall.pageId,
-          moduleId: data.success.moduleId,
-          layoutId: data.success.layoutId,
-          state: data.success.state,
-          target: target.success,
-        },
-      });
-      if (validation._tag === "Failure") {
+      if (
+        Result.isFailure(target) ||
+        Result.isFailure(data) ||
+        target.success.wallId !== wall.id ||
+        innermost?.data.eligible !== true
+      ) {
         setDropFeedback(null);
         return;
       }
@@ -563,46 +590,11 @@ export function WallEditor(props: {
         },
         onDrag,
         onDropTargetChange: onDrag,
-        onDrop: ({ source, location }) => {
+        onDrop: () => {
           setNativeDragActive(false);
           setDropFeedback(null);
           setShadowSource(null);
           shadowRowHeights.current.clear();
-          const data = Schema.decodeUnknownResult(CatalogBrickData)(source.data);
-          const target = Schema.decodeUnknownResult(wallInsertionTargetSchema)(
-            location.current.dropTargets[0]?.data,
-          );
-          if (
-            Result.isFailure(data) ||
-            Result.isFailure(target) ||
-            target.success.wallId !== wall.id ||
-            !source.element.isConnected
-          )
-            return;
-          const id = session.runSync(makeId(brickV6));
-          const result = stageAggregateSessionCommand({
-            session,
-            contractName: "addBrick",
-            payload: {
-              id,
-              pageId: wall.pageId,
-              moduleId: data.success.moduleId,
-              layoutId: data.success.layoutId,
-              state: data.success.state,
-              target: target.success,
-            },
-          });
-          if (result._tag !== "Success") return;
-          if (typeof source.data.onPlaced === "function") source.data.onPlaced();
-          let handled = false;
-          setPendingInsertion({
-            brickId: id,
-            run(action) {
-              if (handled) return;
-              handled = true;
-              action();
-            },
-          });
         },
       }),
     ];
@@ -620,7 +612,7 @@ export function WallEditor(props: {
                 module.maxPerPage
             );
           },
-          getData: () => ({ wallId: wall.id, kind: "wall", beforeSectionId: null }),
+          getData: ({ source }) => withDropEligibility({ wallId: wall.id, kind: "wall", beforeSectionId: null }, source),
           getDropEffect: () => "copy",
         }),
       );
@@ -648,12 +640,12 @@ export function WallEditor(props: {
                   .length < module.maxPerPage
               );
             },
-            getData: () => ({
+            getData: ({ source }) => withDropEligibility({
               wallId: wall.id,
               kind: "stack",
               stackId: stack.id,
               beforeRowId: null,
-            }),
+            }, source),
             getDropEffect: ({ source }) =>
               Schema.is(WallPlacementData)(source.data) ? "move" : "copy",
           }),
@@ -664,7 +656,7 @@ export function WallEditor(props: {
           );
           if (rowElement === null) throw new Error(`Missing Row ${row.id}`);
           const existingVariants = row.placements.map(
-            (placement) => modulesHash[placement.brick.moduleId].variants[placement.variantId],
+            (placement) => modulesHash[placement.brick.moduleId].variants.default,
           );
           cleanups.push(
             dropTargetForElements({
@@ -699,12 +691,12 @@ export function WallEditor(props: {
                   if (incoming === undefined) throw new Error("Missing moving Placement");
                   const canCombine = canShareRow({
                     incomingVariant:
-                      modulesHash[incoming.brick.moduleId].variants[incoming.variantId],
+                      modulesHash[incoming.brick.moduleId].variants.default,
                     existingVariants: row.placements
                       .filter((placement) => placement.id !== incoming.id)
                       .map(
                         (placement) =>
-                          modulesHash[placement.brick.moduleId].variants[placement.variantId],
+                          modulesHash[placement.brick.moduleId].variants.default,
                       ),
                   });
                   const rect = rowElement.getBoundingClientRect();
@@ -748,14 +740,14 @@ export function WallEditor(props: {
                     ? "reorder-before"
                     : "reorder-after";
                 if (row.placements.length === 0 || operation === "combine") {
-                  return {
+                  return withDropEligibility({
                     wallId: wall.id,
                     kind: "row",
                     rowId: row.id,
                     beforePlacementId: before?.id ?? null,
-                  };
+                  }, source);
                 }
-                return {
+                return withDropEligibility({
                   wallId: wall.id,
                   kind: "stack",
                   stackId: stack.id,
@@ -763,7 +755,7 @@ export function WallEditor(props: {
                     operation === "reorder-before"
                       ? row.id
                       : (stack.rows[rowIndex + 1]?.id ?? null),
-                };
+                }, source);
               },
               getDropEffect: ({ source }) =>
                 Schema.is(WallPlacementData)(source.data) ? "move" : "copy",
@@ -838,7 +830,7 @@ export function WallEditor(props: {
                     input.clientY < rect.top + (3 * height) / 4
                   );
                 },
-                getData: ({ input, element }) => {
+                getData: ({ input, element, source }) => {
                   const edge = extractClosestEdge(
                     attachClosestEdge(
                       {},
@@ -849,7 +841,7 @@ export function WallEditor(props: {
                       },
                     ),
                   );
-                  return {
+                  return withDropEligibility({
                     wallId: wall.id,
                     kind: "row",
                     rowId: row.id,
@@ -857,7 +849,7 @@ export function WallEditor(props: {
                       edge === "left"
                         ? placement.id
                         : (row.placements[placementIndex + 1]?.id ?? null),
-                  };
+                  }, source);
                 },
                 getDropEffect: () => "copy",
               }),
@@ -883,7 +875,7 @@ export function WallEditor(props: {
   const placementMinimumWidths = new Map(
     wall.placements.map((placement) => [
       placement.id,
-      modulesHash[placement.brick.moduleId].variants[placement.variantId].minWidth,
+      modulesHash[placement.brick.moduleId].variants.default.minWidth,
     ]),
   );
   const displayLayout = structuredClone(wall.layout);
@@ -1137,7 +1129,7 @@ export function WallEditor(props: {
                                 : null;
                             const variants = rowPlacements.map(
                               (placement) =>
-                                modulesHash[placement.brick.moduleId].variants[placement.variantId],
+                                modulesHash[placement.brick.moduleId].variants.default,
                             );
                             const minHeight = Math.max(
                               45,
@@ -1213,8 +1205,8 @@ export function WallEditor(props: {
                                           : null;
                                       const brick = placement.brick;
                                       const module = modulesHash[brick.moduleId];
-                                      const { InlineEditor, Render } = module;
-                                      const canEditInline = InlineEditor !== undefined;
+                                      const { Render } = module;
+                                      const canEditInline = module.inline;
                                       const selectInlineBrick = (
                                         event: MouseEvent<HTMLDivElement>,
                                       ) => {
@@ -1276,7 +1268,7 @@ export function WallEditor(props: {
                                               brickId: brick.id,
                                               width: widths[placementIndex],
                                               minWidth:
-                                                module.variants[placement.variantId].minWidth,
+                                                module.variants.default.minWidth,
                                               content: (
                                                 <BrickWrapper
                                                   borderWidth={brick.borderWidth}
@@ -1295,44 +1287,25 @@ export function WallEditor(props: {
                                                   <BrickDetailsContext.Provider
                                                     value={() => onEditBrick(brick.id)}
                                                   >
-                                                    <BrickInsertionContext.Provider
-                                                      value={
-                                                        pendingInsertion?.brickId === brick.id
-                                                          ? pendingInsertion.run
-                                                          : null
-                                                      }
+                                                    <BrickSessionContext.Provider
+                                                      value={{
+                                                        session,
+                                                        brickId: brick.id,
+                                                        placementId: placement.id,
+                                                        registerFlush: (flush) => registerBrickFlush(brick.id, flush),
+                                                      }}
                                                     >
-                                                      {canEditInline ? (
-                                                        <InlineEditor
-                                                          state={brick.state}
-                                                          onSave={(state) =>
-                                                            stageAggregateSessionCommand({
-                                                              session,
-                                                              contractName: "updateBrick",
-                                                              payload: {
-                                                                brickId: brick.id,
-                                                                moduleId: brick.moduleId,
-                                                                state,
-                                                              },
-                                                            })
-                                                          }
-                                                          registerFlush={(flush) =>
-                                                            registerBrickFlush(brick.id, flush)
-                                                          }
-                                                        />
-                                                      ) : (
-                                                        <Render
-                                                          state={brick.state}
-                                                          variantId={placement.variantId}
-                                                          spec={
-                                                            isNonEmptySpec(placement.spec)
-                                                              ? placement.spec
-                                                              : module.variants[placement.variantId]
-                                                                  .spec
-                                                          }
-                                                        />
-                                                      )}
-                                                    </BrickInsertionContext.Provider>
+                                                      <Render
+                                                        brickState={brick.state}
+                                                        placementState={placement.state}
+                                                        layoutId={placement.layoutId}
+                                                        spec={resolveBrickLayout({
+                                                          moduleId: brick.moduleId,
+                                                          layoutId: placement.layoutId,
+                                                          brickState: brick.state,
+                                                        })}
+                                                      />
+                                                    </BrickSessionContext.Provider>
                                                   </BrickDetailsContext.Provider>
                                                 </BrickWrapper>
                                               ),

@@ -12,21 +12,43 @@ export function ImageCarousel() {
   const slides =
     useStateValue<typeof imageCarouselSlidesSchema.Type>("/brickState/slides") ?? [];
   const interval = useStateValue<number>("/brickState/interval") ?? 5;
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(false);
   const [viewportRef, api] = useEmblaCarousel({ loop: true });
   const [selected, setSelected] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [hovered, setHovered] = useState(false);
   const playingBeforePointerFocus = useRef<boolean | null>(null);
+  const motionInitialized = useRef(false);
 
   useEffect(() => {
+    const container = containerRef.current;
+    if (container === null) return;
+    const update = () => setVisible(container.getClientRects().length > 0);
+    const observer = new ResizeObserver(update);
+    observer.observe(container);
+    update();
+    return () => observer.disconnect();
+  }, [slides.length]);
+
+  useEffect(() => {
+    if (!visible) {
+      setHovered(false);
+      return;
+    }
     const media = window.matchMedia("(prefers-reduced-motion: reduce)");
-    setPlaying(!media.matches);
+    if (!motionInitialized.current) {
+      setPlaying(!media.matches);
+      motionInitialized.current = true;
+    } else if (media.matches) {
+      setPlaying(false);
+    }
     const onChange = (event: MediaQueryListEvent) => {
       if (event.matches) setPlaying(false);
     };
     media.addEventListener("change", onChange);
     return () => media.removeEventListener("change", onChange);
-  }, []);
+  }, [visible]);
 
   const updateSelected = useCallback(() => {
     if (api !== undefined) setSelected(api.selectedScrollSnap());
@@ -43,10 +65,10 @@ export function ImageCarousel() {
   }, [api, updateSelected]);
 
   useEffect(() => {
-    if (api === undefined || !playing || hovered || slides.length < 2) return;
+    if (!visible || api === undefined || !playing || hovered || slides.length < 2) return;
     const timer = window.setInterval(() => api.scrollNext(), interval * 1000);
     return () => window.clearInterval(timer);
-  }, [api, hovered, interval, playing, slides.length]);
+  }, [api, hovered, interval, playing, slides.length, visible]);
 
   if (slides.length === 0)
     return (
@@ -57,6 +79,7 @@ export function ImageCarousel() {
 
   return (
     <div
+      ref={containerRef}
       role="region"
       aria-roledescription="carousel"
       aria-label="Image carousel"
@@ -94,7 +117,7 @@ export function ImageCarousel() {
         </Button>
       )}
       <div
-        ref={viewportRef}
+        ref={visible ? viewportRef : undefined}
         className="size-full overflow-hidden"
         data-image-carousel-frame
       >

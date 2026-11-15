@@ -1,54 +1,5 @@
-import { linkV1 } from "@qrk.sh/bricks/modules/link/definition";
-import { addBrick, updateBrick } from "@qrk.sh/bricks/modules/link/commands/brickActions";
-import { linkPreviewState } from "@qrk.sh/bricks/modules/link/definition/linkPreviewState";
-import { LinkForm } from "@qrk.sh/bricks/modules/link/LinkForm";
-import { LinkLineIcon } from "@qrk.sh/bricks/modules/link/LinkLineIcon";
-import { LinkPlaceholder } from "@qrk.sh/bricks/modules/link/LinkPlaceholder";
-import { linkReactRegistry } from "@qrk.sh/bricks/modules/link/react";
-import { makeModuleView } from "@qrk.sh/bricks/modules/react/makeModuleView";
 import { BrickDetailsTrigger } from "@qrk.sh/bricks/components/BrickDetailsTrigger";
-import type { BricksApi } from "@qrk.sh/bricks/rpc";
-import { newSyncRpcSession } from "@zerospin/core/utils/getApi/newSyncRpcSession/newSyncRpcSession";
-
-async function lookupLinkPreview(url: string, signal: AbortSignal) {
-  signal.throwIfAborted();
-  using api = newSyncRpcSession<BricksApi>("/rpc");
-  const close = () => api[Symbol.dispose]();
-  signal.addEventListener("abort", close, { once: true });
-  try {
-    return await api.linkBackend().getPreview(url);
-  } finally {
-    signal.removeEventListener("abort", close);
-  }
-}
-
-const link = makeModuleView(linkV1, {
-  categoryIds: ["business", "tools"],
-  defaultState: linkPreviewState,
-  defaultPlacementState: {},
-  add: addBrick,
-  update: updateBrick,
-  LineIcon: LinkLineIcon,
-  form(props) {
-    const { state, onSave, onDraftChange } = props;
-    return (
-      <LinkForm
-        state={state}
-        onSave={onSave}
-        onDraftChange={onDraftChange}
-        lookupLinkPreview={lookupLinkPreview}
-      />
-    );
-  },
-  variants: {
-    default: {
-      placeholder() {
-        return <LinkPlaceholder />;
-      },
-      registry: linkReactRegistry,
-    },
-  },
-});
+import { linkView as link } from "@qrk.sh/bricks/modules/link/view";
 
 export const linkView = {
   ...link,

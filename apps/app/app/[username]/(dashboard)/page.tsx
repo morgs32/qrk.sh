@@ -6,7 +6,6 @@ import { UnderlinedLink } from "@qrk.sh/web/components/UnderlinedLink";
 import { makeId, stageAggregateSessionCommand } from "@zerospin/sdk/browser";
 
 import { useLayoutEffect, useState } from "react";
-import { Schema } from "effect";
 import { toast } from "sonner";
 import { useLiveQuery, useSession } from "@zerospin/react";
 import { Check, X } from "lucide-react";
@@ -26,16 +25,12 @@ import {
   InputGroupInput,
 } from "@qrk.sh/bricks/components/input-group";
 import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
-import { useValidatedParams } from "@/hooks/useValidatedParams";
+import { useUsername } from "@/hooks/useUsername";
 import { startupTiming } from "@/lib/startupTiming";
 import { useWarnBeforeUnload } from "@qrk.sh/bricks/modules/react/useWarnBeforeUnload";
 
-const ParamsSchema = Schema.Struct({
-  username: Schema.String,
-});
-
 export default function UsernameDashboardPage() {
-  const { username } = useValidatedParams(ParamsSchema);
+  const username = useUsername();
   const session = useSession(userSessionDefinition);
   const [createSiteOpen, setCreateSiteOpen] = useState(false);
   const [siteName, setSiteName] = useState("");
@@ -80,14 +75,19 @@ export default function UsernameDashboardPage() {
     suffix += 1;
   }
   const slug = siteSlug === "" ? suggestedSlug : siteSlug;
+  const publicHost = new URL(process.env.NEXT_PUBLIC_WEB_ORIGIN ?? "https://qrk.localhost").host;
   const slugError =
-    slug === ""
-      ? "Enter a slug or a name that uses letters or numbers."
-      : !/^[a-z0-9]+(?:-[a-z0-9]+)*(?![\s\S])/.test(slug)
-        ? "Use lowercase letters and numbers separated by single hyphens."
-        : usedSlugs.has(slug)
-          ? "You already have a site with this slug."
-          : null;
+    !/^[a-z0-9]+$/i.test(username)
+      ? "Your username must contain only letters and numbers."
+      : slug === ""
+        ? "Enter a slug or a name that uses letters or numbers."
+        : !/^[a-z0-9]+(?:-[a-z0-9]+)*(?![\s\S])/.test(slug)
+          ? "Use lowercase letters and numbers separated by single hyphens."
+          : slug.length + username.length + 1 > 63
+            ? "The site slug and username must fit within 63 characters."
+            : usedSlugs.has(slug)
+              ? "You already have a site with this slug."
+              : null;
   const showSlugError = slugError !== null && (siteName !== "" || siteSlug !== "");
 
   return (
@@ -224,7 +224,9 @@ export default function UsernameDashboardPage() {
                           aria-describedby="create-site-slug-domain create-site-slug-feedback"
                         />
                         <InputGroupAddon align="inline-end" className="pe-2">
-                          <span id="create-site-slug-domain">.qrk.sh</span>
+                          <span id="create-site-slug-domain">
+                            -{username.toLowerCase()}.{publicHost}
+                          </span>
                         </InputGroupAddon>
                       </InputGroup>
                       <FieldDescription

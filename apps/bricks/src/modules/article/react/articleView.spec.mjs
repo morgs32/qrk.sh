@@ -28,4 +28,15 @@ describe("unconfigured Article rendering", () => {
     expect(html).not.toContain("data-article-placeholder");
     expect(html).toContain("textarea");
   });
+
+  it("renders the saved Article body on the server", () => {
+    const html = renderToStaticMarkup(createElement(articleView.Render, {
+      ...props,
+      brickState: { title: "Title", subtitle: "Subtitle", content: "Hello **world**\n\n- [x] Done\n\n[Link](https://example.test)" },
+    }));
+    expect(html).toContain("Hello");
+    expect(html).toContain("world");
+    expect(html).toContain("<fieldset disabled=");
+    expect(html).toContain('href="https://example.test"');
+  });
 });

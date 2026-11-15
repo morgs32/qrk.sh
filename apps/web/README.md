@@ -7,11 +7,23 @@ Web serves the site at <https://qrk.localhost/>.
 The **Web / WallViewer / Published Snapshot** Storybook fixture renders an
 ordered Wall from snapshot data. **Portfolio Snapshot** renders Behance and
 Buy Me a Coffee through their module views using the fresh V1 snapshot schema.
-`WallViewer` takes a breakpoint, the Site's
-Brick gap, and a callback that renders each saved Brick and Placement. It
-produces HTML using the saved Row sizing and alignment. The fixture supplies
-static Brick content. Public page routing and snapshot retrieval are separate
-from this fixture.
+`WallViewer` takes a breakpoint, the Site's Brick gap, and a callback that
+renders each saved Brick and Placement. It produces HTML using the saved Row
+sizing and alignment. The fixture supplies static Brick content.
+
+In local development a published Site is available at
+`https://<site-slug>-<username>.qrk.localhost/`, with its published Page paths
+after the host. Web resolves the username through the configured development
+Clerk instance and reads only the current published snapshot and public Site
+settings from the canonical User release. Site or Page unpublication makes a
+new request unavailable after the command commits.
+
+Web's server requires `ZEROSPIN_API_URL` and `ZEROSPIN_SECRET_KEY` matching
+the local Zerospin service in its own ignored
+`.env.local`. Never use a `NEXT_PUBLIC_` prefix for this administrative key.
+Map Bricks use the existing public `NEXT_PUBLIC_MAPBOX_TOKEN`. The local
+wildcard Portless proxy must be running; see the root README. These settings do
+not configure production.
 
 ## Development
 

@@ -7,6 +7,7 @@ import {
 import type { pageSnapshotSchema } from "@qrk.sh/bricks/zerospin/models/pageSnapshot/pageSnapshotSchema";
 import { backendLibrary } from "@qrk.sh/bricks/modules/backendLibrary";
 import type { ReactNode } from "react";
+import "./WallViewer.css";
 
 export function WallViewer(props: {
   snapshot: typeof pageSnapshotSchema.Type;
@@ -117,7 +118,7 @@ export function WallViewer(props: {
                               : 0,
                       }}
                     >
-                      {row.placements.map(({ brick, placement }, placementIndex) => (
+                      {row.placements.map(({ brick, placement, variant }, placementIndex) => (
                         <div
                           key={placement.id}
                           data-wall-placement-id={placement.id}
@@ -128,9 +129,12 @@ export function WallViewer(props: {
                             minWidth: 0,
                             borderWidth: brick.borderWidth,
                             borderStyle: "solid",
+                            ...{
+                              "--wall-brick-min-width": `${Math.max(0, variant.minWidth - brick.borderWidth * 2)}px`,
+                            },
                           }}
                         >
-                          {renderBrick(brick, placement)}
+                          <div data-wall-placement-content>{renderBrick(brick, placement)}</div>
                         </div>
                       ))}
                     </div>

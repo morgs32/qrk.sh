@@ -14,9 +14,9 @@ sizing and alignment. The fixture supplies static Brick content.
 In local development, a published Site is available at
 `https://<username>-<six-character-id>.qrk.localhost/`, with its published Page
 paths after the host. The server resolves the saved hostname through Domains and
-reads only the current published snapshot and public Site settings from the
-canonical User release. Site or Page unpublication makes a new request
-unavailable after the command commits.
+reads published snapshots and public Site settings from the registered User V4
+release. Site or Page unpublication makes the page unavailable once that
+release has materialized the command.
 
 Web's server requires `ZEROSPIN_API_URL` and `ZEROSPIN_SECRET_KEY` matching
 the local Zerospin service in its own ignored

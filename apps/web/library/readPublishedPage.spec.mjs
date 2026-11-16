@@ -38,6 +38,9 @@ describe("readPublishedPage", () => {
             canonical: 1,
             releases: {
               1: {
+                models: { user: 1, site: 1, page: 1, pageSnapshot: 1 },
+              },
+              4: {
                 models: { user: 1, site: 2, page: 1, pageSnapshot: 1 },
               },
             },
@@ -91,10 +94,11 @@ describe("readPublishedPage", () => {
       hostname: { eq: "morgs32-a7b2c3" },
     });
     expect(selections).toHaveLength(2);
+    expect(selections[0]).toMatchObject({ aggregateName: "user", aggregateVersion: 4 });
     expect(selections[0].read.config.where.site.hostname).toEqual({ eq: "morgs32-a7b2c3" });
     expect(selections[1]).toMatchObject({
       aggregateName: "user",
-      aggregateVersion: 1,
+      aggregateVersion: 4,
       aggregateId: "user_123",
       read: {
         modelName: "pageSnapshot",
@@ -167,6 +171,34 @@ describe("readPublishedPage", () => {
     expect(lastRead.config.where.page.publishedSnapshotId).toEqual({ eq: "psn_new" });
   });
 
+  it("fails after the published pointer changes twice", async () => {
+    mocks.executeAggregateQuery
+      .mockReturnValueOnce(Effect.succeed([{ id: "pag_one", publishedSnapshotId: "psn_old" }]))
+      .mockReturnValueOnce(Effect.succeed(undefined))
+      .mockReturnValueOnce(Effect.succeed([{ id: "pag_one", publishedSnapshotId: "psn_new" }]))
+      .mockReturnValueOnce(Effect.succeed(undefined));
+    await expect(
+      readPublishedPage({
+        host: "morgs32-a7b2c3",
+        requestHost: "morgs32-a7b2c3.qrk.localhost",
+        path: undefined,
+      }),
+    ).rejects.toThrow("Published Page changed while it was being read");
+    expect(mocks.executeAggregateQuery).toHaveBeenCalledTimes(4);
+  });
+
+  it("does not retry a failed aggregate query", async () => {
+    mocks.executeAggregateQuery.mockReturnValue(Effect.fail(new Error("User query unavailable")));
+    await expect(
+      readPublishedPage({
+        host: "morgs32-a7b2c3",
+        requestHost: "morgs32-a7b2c3.qrk.localhost",
+        path: undefined,
+      }),
+    ).rejects.toThrow("User query unavailable");
+    expect(mocks.executeAggregateQuery).toHaveBeenCalledTimes(1);
+  });
+
   it("rejects forged hosts and invalid paths without querying Domains", async () => {
     await expect(
       readPublishedPage({ host: "morgs32-a7b2c3", requestHost: "qrk.localhost", path: undefined }),
@@ -204,15 +236,18 @@ describe("readPublishedPage", () => {
     ).rejects.toThrow("Domains unavailable");
   });
 
-  it("rejects an incompatible canonical model graph before reading data", async () => {
+  it("rejects an incompatible User V4 model graph before reading data", async () => {
     mocks.makeSystemSpec.mockReturnValue(
       Effect.succeed({
         services: { domains: { canonical: 1, releases: { 1: { models: { domain: 1 } } } } },
         aggregates: {
           user: {
-            canonical: 2,
+            canonical: 1,
             releases: {
-              2: {
+              1: {
+                models: { user: 1, site: 1, page: 1, pageSnapshot: 1 },
+              },
+              4: {
                 models: { user: 1, site: 1, page: 1, pageSnapshot: 2 },
               },
             },
@@ -226,7 +261,7 @@ describe("readPublishedPage", () => {
         requestHost: "morgs32-a7b2c3.qrk.localhost",
         path: undefined,
       }),
-    ).rejects.toThrow("canonical User models");
+    ).rejects.toThrow("User V4 models");
     expect(mocks.executeAggregateQuery).not.toHaveBeenCalled();
   });
 });

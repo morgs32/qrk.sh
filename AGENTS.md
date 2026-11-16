@@ -6,6 +6,7 @@
 - Before the day's first task that requires manual verification, ask whether the user or the agent should perform it.
 - Ask both together when both apply. As soon as the user gives or changes either choice, update the dated record below in this file. Keep the current day's answers and reuse them across chats. Ask only for choices the user has yet to give that day.
 - When the user chooses “I’ll verify,” complete the implementation and automated checks, then archive the plan. The user performs manual verification on their own time.
+- For 2026-11-16, work directly on `main`. The user performs manual verification.
 - For 2026-11-15, use branches and PRs. The user performs manual verification.
 - For 2026-11-14, work directly on `main`.
 - For 2026-11-13, work directly on `main`. The user performs manual verification.
@@ -162,6 +163,15 @@ scaffolds or change domain permissions for these shortcuts.
 Run the focused HTTP tests with `node --experimental-strip-types --test apps/web/dev/handleDevelopmentSignIn.spec.mjs`. These tests mock Clerk requests and create no accounts.
 
 <!-- zerospin:agent-rules:start -->
+
+## Registered releases and canonical history
+
+An admitted session command executes on its addressed registered owner release.
+Queries can also address a registered release directly. A release does not need
+to be canonical to execute its commands or serve queries. `canonical` selects
+the release supplying the owner Chain's adopted published history; evaluate
+promotion separately from adding or using a release. A query of a release does
+not by itself guarantee that its materialization has caught up with other releases.
 
 ## Strict rule: user-only handwritten registry changes
 

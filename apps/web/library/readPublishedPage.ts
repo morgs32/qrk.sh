@@ -8,12 +8,13 @@ import { pageSnapshotV1 } from "@qrk.sh/bricks/zerospin/models/pageSnapshot/Page
 import { siteV2 } from "@qrk.sh/bricks/zerospin/models/site/SiteV2";
 import { userV1 } from "@qrk.sh/bricks/zerospin/models/user/UserV1";
 import { domainV1 } from "@qrk.sh/zerospin/src/services/domains/DomainV1";
-import { Effect, Layer, Redacted } from "effect";
+import { Effect, Layer, Redacted, Schedule } from "effect";
 
 const db = makeQueryDbVersion({
   models: { user: userV1, site: siteV2, page: pageV1, pageSnapshot: pageSnapshotV1 },
 });
 const domainsDb = makeQueryDbVersion({ models: { domain: domainV1 } });
+const userAggregateVersion = 4;
 
 export async function readPublishedPage(props: {
   host: string;
@@ -58,7 +59,7 @@ export async function readPublishedPage(props: {
       if (assignment === undefined) return null;
       const owner = spec.aggregates.user;
       if (owner === undefined) throw new Error("The User aggregate is not registered");
-      const release = owner.releases[String(owner.canonical)];
+      const release = owner.releases[String(userAggregateVersion)];
       if (
         release === undefined ||
         release.models.user !== userV1.version ||
@@ -66,12 +67,12 @@ export async function readPublishedPage(props: {
         release.models.page !== pageV1.version ||
         release.models.pageSnapshot !== pageSnapshotV1.version
       ) {
-        throw new Error("The canonical User models do not match the published-page reader");
+        throw new Error("The User V4 models do not match the published-page reader");
       }
-      for (let attempt = 0; attempt < 2; attempt++) {
+      const published = yield* Effect.gen(function* () {
         const pages = yield* api.executeAggregateQuery({
           aggregateName: "user",
-          aggregateVersion: owner.canonical,
+          aggregateVersion: userAggregateVersion,
           aggregateId: assignment.aggregateId,
           query: db.query.page.findMany({
             columns: { id: true, publishedSnapshotId: true },
@@ -97,7 +98,7 @@ export async function readPublishedPage(props: {
         if (snapshotId === null) throw new Error("Published Page has no current snapshot");
         const snapshot = yield* api.executeAggregateQuery({
           aggregateName: "user",
-          aggregateVersion: owner.canonical,
+          aggregateVersion: userAggregateVersion,
           aggregateId: assignment.aggregateId,
           query: db.query.pageSnapshot.findFirst({
             columns: { content: true },
@@ -145,8 +146,13 @@ export async function readPublishedPage(props: {
           }
           return { site, snapshot: snapshot.content };
         }
-      }
-      throw new Error("Published Page changed while it was being read");
+        return undefined;
+      }).pipe(
+        Effect.repeat({ schedule: Schedule.recurs(1), while: (result) => result === undefined }),
+      );
+      if (published === undefined)
+        throw new Error("Published Page changed while it was being read");
+      return published;
     }).pipe(
       Effect.provide(
         Layer.mergeAll(

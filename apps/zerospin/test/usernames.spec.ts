@@ -298,6 +298,24 @@ it.effect(
         pushIndex: 3,
         payload: { userId: "usr_one", username: "third" },
       });
+      const pendingUsername = yield* harness
+        .push({
+          ...actor,
+          id: "cmd_create_site_with_pending_username",
+          nodeId: "node_site_pending_username",
+          pushIndex: 1,
+          commandName: "createSite",
+          contractVersion: 2,
+          payload: {
+            id: "sit_pending_username",
+            userId: "usr_one",
+            slug: null,
+            name: "Pending Site",
+            description: null,
+          },
+        })
+        .pipe(Effect.flip);
+      expect(pendingUsername).toMatchObject({ code: "create-site-user-mismatch", status: 409 });
       yield* harness.push({
         ...actor,
         id: "cmd_username_request_taken",

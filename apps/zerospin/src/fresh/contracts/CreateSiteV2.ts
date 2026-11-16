@@ -24,7 +24,7 @@ export const createSiteV2 = upgradeAggregateContractRelease(createSiteV1, {
     return Effect.succeed({ ...payload, slug: legacySlug });
   },
   guard: Effect.fn("createSiteV2.guard")(function* (props) {
-    const { payload, claims, db, failures } = props;
+    const { command, payload, claims, db, failures } = props;
     if (typeof claims?.clerkUserId !== "string") {
       return yield* failures.createSiteUserMismatch.make({
         message: "Creating a Site requires an authenticated user",
@@ -36,7 +36,14 @@ export const createSiteV2 = upgradeAggregateContractRelease(createSiteV1, {
       model: db.models.user,
       where: { id: { eq: payload.userId }, clerkUserId: { eq: claims.clerkUserId } },
     });
-    if (owner === undefined || owner.username === null || owner.username === "") {
+    if (owner === undefined) {
+      return yield* failures.createSiteUserMismatch.make({
+        message: "Creating a Site requires the owning user",
+        status: 403,
+      });
+    }
+    if (command.contractVersion < 2) return;
+    if (owner.username === null || owner.username === "") {
       return yield* failures.createSiteUserMismatch.make({
         message: "Save a username before creating a Site",
         status: 403,

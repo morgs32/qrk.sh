@@ -1,4 +1,5 @@
 import type { IContractProgramInput } from "@zerospin/core/contracts/types";
+import type { IInferCommandPayload } from "@zerospin/core/models/types";
 import { brickV6 } from "../../models/brick/BrickV6";
 import { candidateLibrary } from "@qrk.sh/bricks/modules/candidateLibrary";
 import { mapParseError } from "@zerospin/error";
@@ -26,9 +27,9 @@ export const updateBrickV12 = upgradeAggregateContractRelease(updateBrickV11, {
 
 export function makeUpdateBrickGuard(library: typeof candidateLibrary) {
   return Effect.fn("updateBrick.guard")(function* (props: Omit<
-    Parameters<typeof updateBrickV11.evaluate>[0], "payload" | "db" | "externalOutcome"
+    Parameters<typeof updateBrickV11.evaluate>[0], "command" | "payload" | "db" | "externalOutcome"
   > & {
-    payload: Omit<Parameters<typeof updateBrickV11.evaluate>[0]["payload"], "moduleId"> & {
+    payload: Omit<IInferCommandPayload<typeof updateBrickV11.payload>, "moduleId"> & {
       moduleId: keyof typeof candidateLibrary;
     };
     db: Omit<Parameters<typeof updateBrickV11.evaluate>[0]["db"], "models"> & {

@@ -1,6 +1,7 @@
 import type { IRecordingOperations } from "@zerospin/core/contracts/operationDefinition";
 import { brickV6 } from "../../models/brick/BrickV6";
 import type { IContractProgramInput } from "@zerospin/core/contracts/types";
+import type { IInferCommandPayload } from "@zerospin/core/models/types";
 import {
   upgradeAggregateContractRelease,
   findFirst,
@@ -41,7 +42,7 @@ export const addBrickV11 = upgradeAggregateContractRelease(addBrickV10, {
 
 export function makeAddBrickProgram(library: typeof candidateLibrary) {
   return Effect.fn("addBrick.program")(function* <MODULE extends keyof typeof candidateLibrary>(props: IContractProgramInput<
-    Omit<Parameters<typeof addBrickV10.evaluate>[0], "db" | "payload" | "externalOutcome"> & {
+    Omit<Parameters<typeof addBrickV10.evaluate>[0], "command" | "db" | "payload" | "externalOutcome"> & {
       db: Omit<Parameters<typeof addBrickV10.evaluate>[0]["db"], "models"> & {
         models: Omit<Parameters<typeof addBrickV10.evaluate>[0]["db"]["models"], "wall" | "brick" | "placement"> & {
           wall: Pick<typeof wall, "modelName" | "table">;
@@ -49,7 +50,7 @@ export function makeAddBrickProgram(library: typeof candidateLibrary) {
           placement: Pick<typeof placement, "modelName" | "table">;
         };
       };
-      payload: Omit<Parameters<typeof addBrickV10.evaluate>[0]["payload"], "moduleId"> & {
+      payload: Omit<IInferCommandPayload<typeof addBrickV10.payload>, "moduleId"> & {
         layoutId: string;
         moduleId: MODULE;
       };
@@ -62,7 +63,7 @@ export function makeAddBrickProgram(library: typeof candidateLibrary) {
   > & {
     operations: {
       createBrick: (input: {
-        resourceId: Parameters<typeof addBrickV10.evaluate>[0]["payload"]["id"];
+        resourceId: IInferCommandPayload<typeof addBrickV10.payload>["id"];
         attributes: Omit<Parameters<typeof brickV6.operations.create.make>[0]["attributes"], "moduleId"> & {
           moduleId: MODULE;
         };

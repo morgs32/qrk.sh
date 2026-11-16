@@ -137,12 +137,12 @@
     "@prosekit/pm": "0.1.20",
     "@remix-run/route-pattern": "^0.22.1",
     "@unpic/react": "1.0.2",
-    "@zerospin/core": "46.0.2",
-    "@zerospin/error": "46.0.2",
-    "@zerospin/logger": "46.0.2",
-    "@zerospin/sdk": "46.0.2",
-    "@zerospin/shapes": "46.0.2",
-    "@zerospin/zod": "46.0.2",
+    "@zerospin/core": "46.0.3",
+    "@zerospin/error": "46.0.3",
+    "@zerospin/logger": "46.0.3",
+    "@zerospin/sdk": "46.0.3",
+    "@zerospin/shapes": "46.0.3",
+    "@zerospin/zod": "46.0.3",
     "capnweb": "^0.12.0",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.3.0",
@@ -159,7 +159,7 @@
     "react-dom": "19.2.7",
     "react-json-view-lite": "^2.5.0",
     "swr": "^2.3.3",
-    "system-worker": "46.0.2"
+    "system-worker": "46.0.3"
   },
   "devDependencies": {
     "@storybook/addon-a11y": "^10.6.7",

@@ -1,4 +1,4 @@
-import type { IRecordingOperations } from "@zerospin/core/contracts/operationDescriptor";
+import type { IRecordingOperations } from "@zerospin/core/contracts/operationDefinition";
 import { brickV6 } from "../../models/brick/BrickV6";
 import type { IContractProgramInput } from "@zerospin/core/contracts/types";
 import {

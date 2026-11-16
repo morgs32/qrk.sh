@@ -8,22 +8,15 @@ import { makeId, stageAggregateSessionCommand } from "@zerospin/sdk/browser";
 import { useLayoutEffect, useState } from "react";
 import { toast } from "sonner";
 import { useLiveQuery, useSession } from "@zerospin/react";
-import { Check, X } from "lucide-react";
-
-import { siteV1 as Site } from "@qrk.sh/zerospin/src/aggregates/user/models/site/SiteV1";
-import { pageV1 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV1";
+import { siteV1 as Site } from "@qrk.sh/bricks/zerospin/models/site/SiteV1";
+import { pageV1 as Page } from "@qrk.sh/bricks/zerospin/models/page/PageV1";
 
 import { Button } from "@qrk.sh/bricks/components/button";
 import { Dialog } from "@base-ui/react/dialog";
 import { DialogContent } from "@qrk.sh/bricks/components/dialog";
-import { Field, FieldDescription, FieldLabel } from "@qrk.sh/bricks/components/field";
+import { Field, FieldLabel } from "@qrk.sh/bricks/components/field";
 import { Input } from "@qrk.sh/bricks/components/Input";
 import { TextboxInput } from "@qrk.sh/bricks/components/TextboxInput";
-import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupInput,
-} from "@qrk.sh/bricks/components/input-group";
 import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
 import { useUsername } from "@/hooks/useUsername";
 import { startupTiming } from "@/lib/startupTiming";
@@ -35,10 +28,7 @@ export default function UsernameDashboardPage() {
   const [createSiteOpen, setCreateSiteOpen] = useState(false);
   const [siteName, setSiteName] = useState("");
   const [siteDescription, setSiteDescription] = useState("");
-  const [siteSlug, setSiteSlug] = useState("");
-  useWarnBeforeUnload(
-    createSiteOpen && (siteName !== "" || siteDescription !== "" || siteSlug !== ""),
-  );
+  useWarnBeforeUnload(createSiteOpen && (siteName !== "" || siteDescription !== ""));
   const { data: user } = useLiveQuery({
     session,
     query: (db) => {
@@ -48,7 +38,17 @@ export default function UsernameDashboardPage() {
       }
       return db.query.user.findFirst({
         where: { clerkUserId: { eq: state.initialized.claims.clerkUserId } },
-        with: { sites: { with: { pages: true } } },
+        with: { sites: { with: { pages: true, failures: true } } },
+      });
+    },
+  });
+  const { data: usernameStatus } = useLiveQuery({
+    session,
+    query: (db) => {
+      const state = session.store.getState();
+      if (state.initialized === null) throw new Error("Your session is not ready");
+      return db.query.usernameStatus.findFirst({
+        where: { user: { clerkUserId: { eq: state.initialized.claims.clerkUserId } } },
       });
     },
   });
@@ -61,41 +61,14 @@ export default function UsernameDashboardPage() {
     return <p role="alert">User not found</p>;
   }
 
-  const slugBase = siteName
-    .normalize("NFKD")
-    .replace(/\p{M}/gu, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-  const usedSlugs = new Set(user.sites.map((site) => site.slug));
-  let suggestedSlug = slugBase;
-  let suffix = 1;
-  while (suggestedSlug !== "" && usedSlugs.has(suggestedSlug)) {
-    suggestedSlug = `${slugBase}-${suffix}`;
-    suffix += 1;
-  }
-  const slug = siteSlug === "" ? suggestedSlug : siteSlug;
-  const publicHost = new URL(process.env.NEXT_PUBLIC_WEB_ORIGIN ?? "https://qrk.localhost").host;
-  const slugError =
-    !/^[a-z0-9]+$/i.test(username)
-      ? "Your username must contain only letters and numbers."
-      : slug === ""
-        ? "Enter a slug or a name that uses letters or numbers."
-        : !/^[a-z0-9]+(?:-[a-z0-9]+)*(?![\s\S])/.test(slug)
-          ? "Use lowercase letters and numbers separated by single hyphens."
-          : slug.length + username.length + 1 > 63
-            ? "The site slug and username must fit within 63 characters."
-            : usedSlugs.has(slug)
-              ? "You already have a site with this slug."
-              : null;
-  const showSlugError = slugError !== null && (siteName !== "" || siteSlug !== "");
+  const canCreateSite = user.username !== null && user.username !== "" && !usernameStatus?.pending;
 
   return (
     <div className="flex flex-col">
       <main className="flex-1 p-6">
         <div className="mx-auto flex w-full max-w-3xl flex-col gap-4 p-6">
           <div className="flex items-center justify-between gap-3">
-            <h1 className="text-xl font-medium">{username}</h1>
+            <h1 className="text-xl font-medium">{user.username ?? "Your sites"}</h1>
             <div className="flex flex-col items-end gap-2">
               <Dialog.Root
                 open={createSiteOpen}
@@ -104,11 +77,12 @@ export default function UsernameDashboardPage() {
                   if (!open) {
                     setSiteName("");
                     setSiteDescription("");
-                    setSiteSlug("");
                   }
                 }}
               >
-                <Dialog.Trigger render={<Button type="button" />}>Create site</Dialog.Trigger>
+                <Dialog.Trigger render={<Button type="button" disabled={!canCreateSite} />}>
+                  Create site
+                </Dialog.Trigger>
                 <DialogContent>
                   <div className="grid gap-2 pe-8">
                     <Dialog.Title className="text-sm font-medium">Create site</Dialog.Title>
@@ -128,10 +102,7 @@ export default function UsernameDashboardPage() {
                         toast.error("Description is required");
                         return;
                       }
-                      if (slugError !== null) {
-                        toast.error(slugError);
-                        return;
-                      }
+                      if (!canCreateSite) return;
                       const state = session.store.getState();
                       if (state.initialized === null) {
                         toast.error("Your session is not ready");
@@ -145,7 +116,7 @@ export default function UsernameDashboardPage() {
                           userId: user.id,
                           name,
                           description,
-                          slug,
+                          slug: null,
                         },
                       });
                       if (siteResult._tag === "Failure") return;
@@ -164,14 +135,11 @@ export default function UsernameDashboardPage() {
 
                       setSiteName("");
                       setSiteDescription("");
-                      setSiteSlug("");
                       setCreateSiteOpen(false);
                     }}
                   >
                     <Field>
-                      <FieldLabel htmlFor="create-site-name">
-                        Name
-                      </FieldLabel>
+                      <FieldLabel htmlFor="create-site-name">Name</FieldLabel>
                       <Input
                         id="create-site-name"
                         name="name"
@@ -183,9 +151,7 @@ export default function UsernameDashboardPage() {
                       />
                     </Field>
                     <Field>
-                      <FieldLabel htmlFor="create-site-description">
-                        Description
-                      </FieldLabel>
+                      <FieldLabel htmlFor="create-site-description">Description</FieldLabel>
                       <TextboxInput
                         id="create-site-description"
                         name="description"
@@ -195,51 +161,6 @@ export default function UsernameDashboardPage() {
                         }}
                         required
                       />
-                    </Field>
-                    <Field data-invalid={showSlugError || undefined}>
-                      <div className="flex items-center gap-2">
-                        <FieldLabel htmlFor="create-site-slug">
-                          Subdomain
-                        </FieldLabel>
-                        {slugError === null ? (
-                          <Check className="size-4" aria-hidden="true" />
-                        ) : showSlugError ? (
-                          <X className="size-4 text-destructive" aria-hidden="true" />
-                        ) : null}
-                      </div>
-                      <InputGroup>
-                        <InputGroupInput
-                          id="create-site-slug"
-                          name="slug"
-                          value={siteSlug}
-                          placeholder={suggestedSlug}
-                          onChange={(event) => {
-                            setSiteSlug(event.target.value);
-                          }}
-                          autoCapitalize="none"
-                          autoCorrect="off"
-                          spellCheck={false}
-                          pattern="[a-z0-9]+(?:-[a-z0-9]+)*"
-                          aria-invalid={showSlugError}
-                          aria-describedby="create-site-slug-domain create-site-slug-feedback"
-                        />
-                        <InputGroupAddon align="inline-end" className="pe-2">
-                          <span id="create-site-slug-domain">
-                            -{username.toLowerCase()}.{publicHost}
-                          </span>
-                        </InputGroupAddon>
-                      </InputGroup>
-                      <FieldDescription
-                        id="create-site-slug-feedback"
-                        className="sr-only"
-                        role="status"
-                      >
-                        {slugError === null
-                          ? "Slug available."
-                          : siteName === "" && siteSlug === ""
-                            ? "Use lowercase letters and numbers separated by single hyphens."
-                            : slugError}
-                      </FieldDescription>
                     </Field>
                     <div className="flex flex-wrap justify-end gap-2">
                       <Dialog.Close
@@ -252,9 +173,7 @@ export default function UsernameDashboardPage() {
                       <Button
                         type="submit"
                         disabled={
-                          siteName.trim() === "" ||
-                          siteDescription.trim() === "" ||
-                          slugError !== null
+                          siteName.trim() === "" || siteDescription.trim() === "" || !canCreateSite
                         }
                       >
                         Create site
@@ -263,6 +182,15 @@ export default function UsernameDashboardPage() {
                   </form>
                 </DialogContent>
               </Dialog.Root>
+              {!canCreateSite ? (
+                <p className="text-sm text-muted-foreground">
+                  Save a username in{" "}
+                  <Link to="/$username/settings" params={{ username }} className="underline">
+                    Settings
+                  </Link>{" "}
+                  before creating a Site.
+                </p>
+              ) : null}
             </div>
           </div>
           {user.sites.length > 0 ? (
@@ -286,6 +214,16 @@ export default function UsernameDashboardPage() {
                     {site.description ? (
                       <p className="mt-2 text-sm text-muted-foreground">{site.description}</p>
                     ) : null}
+                    {site.hostname !== null ? (
+                      <p className="mt-2 text-sm text-muted-foreground">
+                        {site.hostname}.{new URL(process.env.NEXT_PUBLIC_WEB_ORIGIN ?? "https://qrk.localhost").host}
+                      </p>
+                    ) : null}
+                    {site.failures.map((failure) => (
+                      <p key={failure.id} role="alert" className="mt-2 text-sm text-destructive">
+                        {failure.message}
+                      </p>
+                    ))}
                   </li>
                 );
               })}

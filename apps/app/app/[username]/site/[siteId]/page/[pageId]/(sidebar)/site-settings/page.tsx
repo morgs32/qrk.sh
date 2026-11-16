@@ -26,7 +26,7 @@ export default function Page() {
         key={site.id}
         site={{
           id: site.id,
-          slug: site.slug,
+          hostname: site.hostname,
           name: site.name ?? "",
           description: site.description ?? "",
           logoUrl: site.logoUrl ?? "",

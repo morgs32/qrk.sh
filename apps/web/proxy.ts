@@ -10,6 +10,7 @@ const isPublicRoute = createRouteMatcher([
   "/privacy",
   "/terms",
   "/ordered-outline",
+  "/api/usernames/availability",
 ]);
 
 const clerkProxy = clerkMiddleware(async (auth, request) => {
@@ -36,16 +37,11 @@ export default function proxy(request: NextRequest, event: NextFetchEvent) {
     const suffix = ".qrk.localhost";
     if (hostname.endsWith(suffix)) {
       const label = hostname.slice(0, -suffix.length);
-      if (!label.includes(".") && !["admin", "app", "api", "bricks", "zerospin", "studio", "storybook"].includes(label)) {
-        const separator = label.lastIndexOf("-");
-        const site = label.slice(0, separator);
-        const username = label.slice(separator + 1);
-        if (
-          label.length > 63 ||
-          separator < 1 ||
-          !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(site) ||
-          !/^[a-z0-9]+$/.test(username)
-        ) {
+      if (
+        !label.includes(".") &&
+        !["admin", "app", "api", "bricks", "zerospin", "studio", "storybook"].includes(label)
+      ) {
+        if (!/^[a-z0-9]{1,56}-[a-z0-9]{6}$/.test(label)) {
           return new NextResponse("Not found", { status: 404 });
         }
         const destination = request.nextUrl.clone();
@@ -64,7 +60,9 @@ export const config = {
     // Published Page paths can legitimately end in a file-like suffix.
     {
       source: "/((?!_next|assets/).*)",
-      has: [{ type: "header", key: "host", value: ".+-[a-zA-Z0-9]+\\.qrk\\.localhost(?::[0-9]+)?" }],
+      has: [
+        { type: "header", key: "host", value: ".+-[a-zA-Z0-9]+\\.qrk\\.localhost(?::[0-9]+)?" },
+      ],
     },
     // Skip Next.js internals and static files, unless found in search params
     "/((?!_next|assets/|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|wasm|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",

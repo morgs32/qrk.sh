@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as UsernameRouteImport } from './routes/$username'
 import { Route as UsernameIndexRouteImport } from './routes/$username.index'
+import { Route as UsernameSettingsRouteImport } from './routes/$username.settings'
 import { Route as UsernameSiteSiteIdRouteImport } from './routes/$username.site.$siteId'
 import { Route as UsernameSiteSiteIdIndexRouteImport } from './routes/$username.site.$siteId.index'
 import { Route as UsernameSiteSiteIdPagePageIdRouteImport } from './routes/$username.site.$siteId.page.$pageId'
@@ -36,6 +37,11 @@ const UsernameRoute = UsernameRouteImport.update({
 const UsernameIndexRoute = UsernameIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => UsernameRoute,
+} as any)
+const UsernameSettingsRoute = UsernameSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
   getParentRoute: () => UsernameRoute,
 } as any)
 const UsernameSiteSiteIdRoute = UsernameSiteSiteIdRouteImport.update({
@@ -99,6 +105,7 @@ const UsernameSiteSiteIdPagePageIdSidebarModulesIndexRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/$username': typeof UsernameRouteWithChildren
+  '/$username/settings': typeof UsernameSettingsRoute
   '/$username/': typeof UsernameIndexRoute
   '/$username/site/$siteId': typeof UsernameSiteSiteIdRouteWithChildren
   '/$username/site/$siteId/': typeof UsernameSiteSiteIdIndexRoute
@@ -112,6 +119,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/$username/settings': typeof UsernameSettingsRoute
   '/$username': typeof UsernameIndexRoute
   '/$username/site/$siteId': typeof UsernameSiteSiteIdIndexRoute
   '/$username/site/$siteId/page/$pageId': typeof UsernameSiteSiteIdPagePageIdIndexRoute
@@ -125,6 +133,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/$username': typeof UsernameRouteWithChildren
+  '/$username/settings': typeof UsernameSettingsRoute
   '/$username/': typeof UsernameIndexRoute
   '/$username/site/$siteId': typeof UsernameSiteSiteIdRouteWithChildren
   '/$username/site/$siteId/': typeof UsernameSiteSiteIdIndexRoute
@@ -142,6 +151,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/$username'
+    | '/$username/settings'
     | '/$username/'
     | '/$username/site/$siteId'
     | '/$username/site/$siteId/'
@@ -155,6 +165,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/$username/settings'
     | '/$username'
     | '/$username/site/$siteId'
     | '/$username/site/$siteId/page/$pageId'
@@ -167,6 +178,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/$username'
+    | '/$username/settings'
     | '/$username/'
     | '/$username/site/$siteId'
     | '/$username/site/$siteId/'
@@ -206,6 +218,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/$username/'
       preLoaderRoute: typeof UsernameIndexRouteImport
+      parentRoute: typeof UsernameRoute
+    }
+    '/$username/settings': {
+      id: '/$username/settings'
+      path: '/settings'
+      fullPath: '/$username/settings'
+      preLoaderRoute: typeof UsernameSettingsRouteImport
       parentRoute: typeof UsernameRoute
     }
     '/$username/site/$siteId': {
@@ -341,11 +360,13 @@ const UsernameSiteSiteIdRouteWithChildren =
   UsernameSiteSiteIdRoute._addFileChildren(UsernameSiteSiteIdRouteChildren)
 
 interface UsernameRouteChildren {
+  UsernameSettingsRoute: typeof UsernameSettingsRoute
   UsernameIndexRoute: typeof UsernameIndexRoute
   UsernameSiteSiteIdRoute: typeof UsernameSiteSiteIdRouteWithChildren
 }
 
 const UsernameRouteChildren: UsernameRouteChildren = {
+  UsernameSettingsRoute: UsernameSettingsRoute,
   UsernameIndexRoute: UsernameIndexRoute,
   UsernameSiteSiteIdRoute: UsernameSiteSiteIdRouteWithChildren,
 }

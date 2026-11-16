@@ -16,7 +16,6 @@ import { Field, FieldError, FieldLabel } from "@qrk.sh/bricks/components/field";
 import { Input } from "@qrk.sh/bricks/components/Input";
 import { StudioSidebar } from "@qrk.sh/bricks/components/StudioSidebar";
 import { TextboxInput } from "@qrk.sh/bricks/components/TextboxInput";
-import { useUsername } from "@/hooks/useUsername";
 import { useWarnBeforeUnload } from "@qrk.sh/bricks/modules/react/useWarnBeforeUnload";
 
 import { SearchPreviewCard } from "../SearchPreviewCard";
@@ -28,7 +27,6 @@ export function PageSettings(props: {
   const { faviconLightUrl, faviconDarkUrl } = page.site;
   const savedTitle = page.title ?? "";
   const savedDescription = page.description ?? "";
-  const username = useUsername();
   const session = useSession(userSessionDefinition);
   const formId = useId();
   const [saveSlot, setSaveSlot] = useState<HTMLElement | null>(null);
@@ -44,8 +42,8 @@ export function PageSettings(props: {
   useWarnBeforeUnload(isDirty);
   const pagePath = page.slug ? `/${page.slug.split("/").map(encodeURIComponent).join("/")}` : "";
   const publicHost = new URL(process.env.NEXT_PUBLIC_WEB_ORIGIN ?? "https://qrk.localhost").host;
-  const previewUrl = page.site.slug
-    ? `${page.site.slug}-${username.toLowerCase()}.${publicHost}${pagePath}`
+  const previewUrl = page.site.hostname
+    ? `${page.site.hostname}.${publicHost}${pagePath}`
     : "Site URL unavailable";
 
   return (

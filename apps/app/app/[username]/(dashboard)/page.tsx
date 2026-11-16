@@ -8,6 +8,7 @@ import { makeId, stageAggregateSessionCommand } from "@zerospin/sdk/browser";
 import { useLayoutEffect, useState } from "react";
 import { toast } from "sonner";
 import { useLiveQuery, useSession } from "@zerospin/react";
+import { Schema } from "effect";
 import { siteV1 as Site } from "@qrk.sh/bricks/zerospin/models/site/SiteV1";
 import { pageV1 as Page } from "@qrk.sh/bricks/zerospin/models/page/PageV1";
 
@@ -18,12 +19,12 @@ import { Field, FieldLabel } from "@qrk.sh/bricks/components/field";
 import { Input } from "@qrk.sh/bricks/components/Input";
 import { TextboxInput } from "@qrk.sh/bricks/components/TextboxInput";
 import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
-import { useUsername } from "@/hooks/useUsername";
+import { useValidatedParams } from "@/hooks/useValidatedParams";
 import { startupTiming } from "@/lib/startupTiming";
 import { useWarnBeforeUnload } from "@qrk.sh/bricks/modules/react/useWarnBeforeUnload";
 
 export default function UsernameDashboardPage() {
-  const username = useUsername();
+  const { username } = useValidatedParams(Schema.Struct({ username: Schema.String }));
   const session = useSession(userSessionDefinition);
   const [createSiteOpen, setCreateSiteOpen] = useState(false);
   const [siteName, setSiteName] = useState("");
@@ -36,7 +37,7 @@ export default function UsernameDashboardPage() {
       if (state.initialized === null) {
         throw new Error("Your session is not ready");
       }
-      return db.query.user.findFirst({
+      return db.query.user.findFirstOrThrow({
         where: { clerkUserId: { eq: state.initialized.claims.clerkUserId } },
         with: { sites: { with: { pages: true, failures: true } } },
       });
@@ -54,12 +55,8 @@ export default function UsernameDashboardPage() {
   });
 
   useLayoutEffect(() => {
-    startupTiming.dashboardCommitted(user !== undefined);
+    startupTiming.dashboardCommitted(true);
   }, [session, user]);
-
-  if (user === undefined) {
-    return <p role="alert">User not found</p>;
-  }
 
   const canCreateSite = user.username !== null && user.username !== "" && !usernameStatus?.pending;
 

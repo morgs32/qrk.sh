@@ -24,7 +24,7 @@ export default function SettingsPage() {
     query: (db) => {
       const state = session.store.getState();
       if (state.initialized === null) throw new Error("Your session is not ready");
-      return db.query.user.findFirst({
+      return db.query.user.findFirstOrThrow({
         where: { clerkUserId: { eq: state.initialized.claims.clerkUserId } },
       });
     },
@@ -39,9 +39,9 @@ export default function SettingsPage() {
       });
     },
   });
-  const value = draft ?? user?.username ?? "";
+  const value = draft ?? user.username ?? "";
   const valid = /^[a-z0-9]{1,56}$/.test(value);
-  const changed = value !== (user?.username ?? "");
+  const changed = value !== (user.username ?? "");
   const currentAvailability = checkedUsername === value ? availability : "idle";
   useEffect(() => {
     if (!valid || !changed) return;
@@ -78,7 +78,6 @@ export default function SettingsPage() {
     };
   }, [changed, getToken, valid, value]);
 
-  if (user === undefined) return <p role="alert">User not found</p>;
   const saving = status?.pending !== null && status?.pending !== undefined;
   return (
     <main className="mx-auto w-full max-w-3xl p-6">

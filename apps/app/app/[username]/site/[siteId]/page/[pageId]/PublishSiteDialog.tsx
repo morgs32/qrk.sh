@@ -32,7 +32,7 @@ export function PublishSiteDialog(props: { siteId: `sit_${string}` }) {
     query: (db) => {
       const state = session.store.getState();
       if (state.initialized === null) throw new Error("Your session is not ready");
-      return db.query.user.findFirst({
+      return db.query.user.findFirstOrThrow({
         where: { clerkUserId: { eq: state.initialized.claims.clerkUserId } },
       });
     },
@@ -47,11 +47,7 @@ export function PublishSiteDialog(props: { siteId: `sit_${string}` }) {
       });
     },
   });
-  const canPublish =
-    user !== undefined &&
-    user.username !== null &&
-    user.username !== "" &&
-    !usernameStatus?.pending;
+  const canPublish = user.username !== null && user.username !== "" && !usernameStatus?.pending;
 
   useWarnBeforeUnload(
     open &&

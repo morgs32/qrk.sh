@@ -6,6 +6,7 @@ import {
   SessionProvider,
   SessionReady,
   useConnectedAggregateSession,
+  useLiveQuery,
   useSession,
 } from "@zerospin/react";
 import { signature } from "@qrk.sh/zerospin/src/signature";
@@ -82,15 +83,25 @@ export default function UserLayout(props: { children: ReactNode }) {
         definition={userSessionDefinition}
         renderError={(error, retry) => <UserStartupFailure error={error} retry={retry} />}
       >
-        <UserStartupDiagnostics />
+        <UserSessionReadiness />
         {children}
       </SessionReady>
     </SessionProvider>
   );
 }
 
-function UserStartupDiagnostics() {
+function UserSessionReadiness() {
   const session = useSession(userSessionDefinition);
+  useLiveQuery({
+    session,
+    query: (db) => {
+      const state = session.store.getState();
+      if (state.initialized === null) throw new Error("Your session is not ready");
+      return db.query.user.findFirstOrThrow({
+        where: { clerkUserId: { eq: state.initialized.claims.clerkUserId } },
+      });
+    },
+  });
   useEffect(() => {
     if (!import.meta.env.DEV) return;
     const observe = () => {

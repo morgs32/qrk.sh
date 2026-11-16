@@ -40,7 +40,8 @@ export const userAggregateV4 = makeAggregateRelease(userAggregate, {
     web: {
       createPage: createPageGuard,
       publishSite: Effect.fn("userV4.publishSite.guard")(function* (props) {
-        const { db, claims, failures } = props;
+        const { command, db, claims, failures } = props;
+        if (command.contractVersion < 2) return;
         const user = yield* findFirst({
           db,
           model: db.models.user,

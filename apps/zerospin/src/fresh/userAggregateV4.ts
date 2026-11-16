@@ -47,7 +47,10 @@ export const userAggregateV4 = makeAggregateRelease(userAggregate, {
           model: db.models.user,
           where: { clerkUserId: { eq: claims.clerkUserId } },
         });
-        if (user === undefined || user.username === null || user.username === "") {
+        if (user === undefined) {
+          return yield* Effect.die(new Error("Authenticated User is missing"));
+        }
+        if (user.username === null || user.username === "") {
           return yield* failures.usernameRequired.make({
             message: "Save a username before publishing",
             status: 403,

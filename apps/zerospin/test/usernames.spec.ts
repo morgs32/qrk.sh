@@ -1,10 +1,47 @@
 import { expect, it } from "@effect/vitest";
 import { makeQueryDbVersion, NanoIdFactory } from "@zerospin/sdk";
 import { makeSystemHarness } from "@zerospin/sdk/testing";
-import { Effect } from "effect";
+import { Cause, Effect, Exit } from "effect";
 import { usersV1 } from "../src/services/users/usersV1";
 import { userAggregateV4 } from "../src/fresh/userAggregateV4";
 import { system } from "../src/system";
+
+it.effect("defects when publication has no authenticated User", () =>
+  Effect.gen(function* () {
+    const harness = yield* makeSystemHarness({ system });
+    const result = yield* harness
+      .push({
+        kind: "actor",
+        actorName: "web",
+        actorVersion: 3,
+        aggregateName: "user",
+        aggregateVersion: 4,
+        aggregateId: "account_missing_user",
+        nodeId: "node_missing_user",
+        sessionName: "userSession",
+        pushIndex: 1,
+        id: "cmd_publish_missing_user",
+        commandName: "publishSite",
+        contractVersion: 2,
+        externalOutcome: null,
+        claims: { aggregateId: "account_missing_user", clerkUserId: "account_missing_user" },
+        payload: {
+          siteId: "sit_missing_user",
+          preferredRowSizing: true,
+          preferredStackSizing: true,
+          pages: [{ pageId: "pag_missing_user", snapshotId: "psn_missing_user" }],
+        },
+      })
+      .pipe(Effect.exit);
+    expect(Exit.hasDies(result)).toBe(true);
+    if (Exit.isFailure(result)) {
+      expect(Cause.squash(result.cause)).toMatchObject({
+        message: "Authenticated User is missing",
+      });
+    }
+    yield* harness.flush();
+  }).pipe(Effect.provide(NanoIdFactory)),
+);
 
 it.effect("enforces global usernames and ignores older delivered requests", () =>
   Effect.gen(function* () {

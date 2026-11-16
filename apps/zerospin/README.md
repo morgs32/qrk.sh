@@ -12,6 +12,10 @@ Zerospin 44 requires a fresh SystemRepo catalog and AggregateVersionChain
 storage for archive-backed Aggregate publication. The development Worker
 rejects pre-cutover catalogs at startup.
 
+Zerospin 46 requires fresh AggregateChain and ServiceChain storage for the
+recorded-command outcome cutover. Reset the identified development System
+store before starting the updated Worker.
+
 ## Portless
 
 ```sh
@@ -35,6 +39,6 @@ show the authored Declaration Board. Restart Studio after declaration changes.
 Deployment credentials are unnecessary. Repo/table inspection belongs in
 Zerospin Cloud under Organization → System → Instance → Studio.
 
-The consumer framework packages use the exact `44.0.3` release. The Studio
+The consumer framework packages use the exact `46.0.3` release. The Studio
 process is separate from the existing development scripts and does not deploy
 or reset application storage.

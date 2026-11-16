@@ -36,7 +36,6 @@ import { CopyButton } from "./CopyButton";
 import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@qrk.sh/bricks/components/input-group";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { useUsername } from "@/hooks/useUsername";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
 import { useWarnBeforeUnload } from "@qrk.sh/bricks/modules/react/useWarnBeforeUnload";
 
@@ -94,7 +93,7 @@ async function uploadSiteImage(props: {
 export function SiteSettings(props: {
   site: {
     id: `sit_${string}`;
-    slug: string | null;
+    hostname: string | null;
     name: string;
     description: string;
     logoUrl: string;
@@ -108,7 +107,6 @@ export function SiteSettings(props: {
 }) {
   const { site } = props;
   const params = useValidatedParams(ParamsSchema);
-  const username = useUsername();
   const { getToken } = useAuth();
   const session = useSession(userSessionDefinition);
   const siteId = site.id;
@@ -158,7 +156,7 @@ export function SiteSettings(props: {
   useEffect(() => () => uploadRequest.current?.abort(), []);
   useWarnBeforeUnload(isDirty || isUploading);
   const webOrigin = new URL(process.env.NEXT_PUBLIC_WEB_ORIGIN ?? "https://qrk.localhost");
-  const siteDomain = site.slug ? `${site.slug}-${username.toLowerCase()}.${webOrigin.host}` : null;
+  const siteDomain = site.hostname ? `${site.hostname}.${webOrigin.host}` : null;
   const publishedUrl = siteDomain === null ? null : `${webOrigin.protocol}//${siteDomain}`;
 
   const { data: qrDataUrl } = useSWR(publishedUrl, async (url) => {
@@ -269,7 +267,7 @@ export function SiteSettings(props: {
 
         <BrickField orientation="horizontal">
           <BrickFieldLabel htmlFor="site-subdomain">Site subdomain</BrickFieldLabel>
-          <Input variant="sm" id="site-subdomain" value={site.slug ?? ""} placeholder="Not set" readOnly />
+          <Input variant="sm" id="site-subdomain" value={site.hostname ?? ""} placeholder="Not set" readOnly />
         </BrickField>
 
         <BrickField orientation="horizontal">

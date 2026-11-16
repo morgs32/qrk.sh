@@ -11,12 +11,12 @@ Buy Me a Coffee through their module views using the fresh V1 snapshot schema.
 renders each saved Brick and Placement. It produces HTML using the saved Row
 sizing and alignment. The fixture supplies static Brick content.
 
-In local development a published Site is available at
-`https://<site-slug>-<username>.qrk.localhost/`, with its published Page paths
-after the host. Web resolves the username through the configured development
-Clerk instance and reads only the current published snapshot and public Site
-settings from the canonical User release. Site or Page unpublication makes a
-new request unavailable after the command commits.
+In local development, a published Site is available at
+`https://<username>-<six-character-id>.qrk.localhost/`, with its published Page
+paths after the host. The server resolves the saved hostname through Domains and
+reads only the current published snapshot and public Site settings from the
+canonical User release. Site or Page unpublication makes a new request
+unavailable after the command commits.
 
 Web's server requires `ZEROSPIN_API_URL` and `ZEROSPIN_SECRET_KEY` matching
 the local Zerospin service in its own ignored

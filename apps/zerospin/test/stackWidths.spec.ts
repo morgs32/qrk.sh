@@ -28,14 +28,46 @@ it.effect("validates positive finite Stack weights at the command boundary", () 
     };
     const accepted = yield* prepareAggregateInvocation({
       contract: setStackWidthWeightsV1,
-      command: { aggregateId: "acct_stack_width", payload },
+      command: {
+        id: "cmd_stack_width",
+        aggregateId: "acct_stack_width",
+        aggregateName: "user",
+        aggregateVersion: 1,
+        kind: "actor",
+        actorName: "web",
+        actorVersion: 1,
+        claims: { aggregateId: "acct_stack_width", clerkUserId: "clerk_stack_width" },
+        nodeId: "node_stack_width",
+        sessionName: "userSession",
+        pushIndex: 1,
+        externalOutcome: null,
+        commandName: "setStackWidthWeights",
+        contractVersion: 1,
+        payload,
+      },
       claims: { aggregateId: "acct_stack_width", clerkUserId: "clerk_stack_width" },
     });
     expect(accepted.payload).toEqual(payload);
     for (const weight of [0, -1]) {
       const rejected = yield* prepareAggregateInvocation({
         contract: setStackWidthWeightsV1,
-        command: { aggregateId: "acct_stack_width", payload: { ...payload, leftWeight: weight } },
+        command: {
+          id: "cmd_stack_width_invalid",
+          aggregateId: "acct_stack_width",
+          aggregateName: "user",
+          aggregateVersion: 1,
+          kind: "actor",
+          actorName: "web",
+          actorVersion: 1,
+          claims: { aggregateId: "acct_stack_width", clerkUserId: "clerk_stack_width" },
+          nodeId: "node_stack_width",
+          sessionName: "userSession",
+          pushIndex: 1,
+          externalOutcome: null,
+          commandName: "setStackWidthWeights",
+          contractVersion: 1,
+          payload: { ...payload, leftWeight: weight },
+        },
         claims: { aggregateId: "acct_stack_width", clerkUserId: "clerk_stack_width" },
       }).pipe(Effect.flip);
       expect(rejected).toMatchObject({ code: "encode-command-json-payload-field-failed" });

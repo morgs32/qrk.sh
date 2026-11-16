@@ -1,7 +1,11 @@
 import "@fontsource/silkscreen/400.css";
+import { Link } from "@tanstack/react-router";
+import { Schema } from "effect";
+import { useValidatedParams } from "@/hooks/useValidatedParams";
 import { AccountMenu } from "./AccountMenu";
 
 export function Header() {
+  const { username } = useValidatedParams(Schema.Struct({ username: Schema.String }));
   return (
     <header
       className="sticky top-0 z-50 h-14 shrink-0 @container border-b border-border bg-background lg:h-16"
@@ -16,7 +20,12 @@ export function Header() {
         >
           QRK.SH
         </a>
-        <AccountMenu />
+        <div className="flex items-center gap-4">
+          <Link to="/$username/settings" params={{ username }} className="text-sm underline">
+            Settings
+          </Link>
+          <AccountMenu />
+        </div>
       </div>
     </header>
   );

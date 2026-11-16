@@ -27,6 +27,27 @@ export function PublishSiteDialog(props: { siteId: `sit_${string}` }) {
     key: siteId,
     query: (db, id) => db.query.page.findMany({ where: { siteId: { eq: id } } }),
   });
+  const { data: user } = useLiveQuery({
+    session,
+    query: (db) => {
+      const state = session.store.getState();
+      if (state.initialized === null) throw new Error("Your session is not ready");
+      return db.query.user.findFirstOrThrow({
+        where: { clerkUserId: { eq: state.initialized.claims.clerkUserId } },
+      });
+    },
+  });
+  const { data: usernameStatus } = useLiveQuery({
+    session,
+    query: (db) => {
+      const state = session.store.getState();
+      if (state.initialized === null) throw new Error("Your session is not ready");
+      return db.query.usernameStatus.findFirst({
+        where: { user: { clerkUserId: { eq: state.initialized.claims.clerkUserId } } },
+      });
+    },
+  });
+  const canPublish = user.username !== null && user.username !== "" && !usernameStatus?.pending;
 
   useWarnBeforeUnload(
     open &&
@@ -101,6 +122,7 @@ export function PublishSiteDialog(props: { siteId: `sit_${string}` }) {
           <Button
             type="button"
             size="sm"
+            disabled={!canPublish}
             className="h-7 gap-1 px-2 py-1 text-xs leading-none font-medium shadow-none"
           >
             Publish
@@ -119,6 +141,7 @@ export function PublishSiteDialog(props: { siteId: `sit_${string}` }) {
           className="flex min-h-0 flex-col gap-4"
           onSubmit={(event) => {
             event.preventDefault();
+            if (!canPublish) return;
             if (rootPage === undefined) {
               toast.error("The site must have exactly one root page before publishing");
               return;
@@ -168,7 +191,7 @@ export function PublishSiteDialog(props: { siteId: `sit_${string}` }) {
                 </Button>
               }
             />
-            <Button type="submit" disabled={rootPage === undefined}>
+            <Button type="submit" disabled={rootPage === undefined || !canPublish}>
               Publish Site
             </Button>
           </div>

@@ -1,3 +1,17 @@
+import { vi } from "vitest";
+vi.mock("cloudflare:workers", () => ({
+  env: {
+    ZEROSPIN_API_URL: "https://zerospin.qrk.localhost",
+    ZEROSPIN_SECRET_KEY: "test-only-secret",
+  },
+}));
+vi.mock("@zerospin/core/utils/getSystemApi/getSystemApi", async () => {
+  const { Effect } = await import("effect");
+  return {
+    getSystemApi: () =>
+      Effect.succeed({ executeServiceQuery: () => Effect.succeed({ username: "testuser" }) }),
+  };
+});
 import { it } from "@effect/vitest";
 import { makeQueryDbVersion, NanoIdFactory } from "@zerospin/sdk";
 import { makeSystemHarness } from "@zerospin/sdk/testing";
@@ -35,7 +49,6 @@ it.effect("deletes a Stack at one width or all widths and rejects a stale confir
       payload: {
         id: "usr_delete_stack",
         clerkUserId: actor.claims.clerkUserId,
-        username: null,
         displayName: null,
       },
     });
@@ -126,9 +139,24 @@ it.effect("deletes a Stack at one width or all widths and rejects a stale confir
       pushIndex: 6,
       commandName: "updateLinkBrick",
       contractVersion: 1,
-      payload: { brickId: "brk_delete_stack", state: { payload: { url: "https://example.com/" }, data: { url: "https://example.com/", title: "Example", description: "", siteName: "Example", imageUrl: "", iconUrl: "" } } },
+      payload: {
+        brickId: "brk_delete_stack",
+        state: {
+          payload: { url: "https://example.com/" },
+          data: {
+            url: "https://example.com/",
+            title: "Example",
+            description: "",
+            siteName: "Example",
+            imageUrl: "",
+            iconUrl: "",
+          },
+        },
+      },
     });
-    expect((yield* harness.query(owner, brick))?.state).toMatchObject({ payload: { url: "https://example.com/" } });
+    expect((yield* harness.query(owner, brick))?.state).toMatchObject({
+      payload: { url: "https://example.com/" },
+    });
 
     yield* harness.push({
       ...deleteAtLg,

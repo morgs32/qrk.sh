@@ -5,6 +5,8 @@ const mocks = vi.hoisted(() => ({
   verifyToken: vi.fn(),
   makeSystemSpec: vi.fn(),
   executeServiceQuery: vi.fn(),
+  executeAggregateQuery: vi.fn(),
+  executeServiceCommand: vi.fn(),
 }));
 vi.mock("@clerk/nextjs/server", () => ({ verifyToken: mocks.verifyToken }));
 vi.mock("@zerospin/core/utils/getSystemApi/getSystemApi", async () => {
@@ -14,11 +16,14 @@ vi.mock("@zerospin/core/utils/getSystemApi/getSystemApi", async () => {
       Effect.succeed({
         makeSystemSpec: mocks.makeSystemSpec,
         executeServiceQuery: mocks.executeServiceQuery,
+        executeAggregateQuery: mocks.executeAggregateQuery,
+        executeServiceCommand: mocks.executeServiceCommand,
       }),
   };
 });
 
 import { GET, OPTIONS } from "./route";
+import { POST } from "../assignment/route";
 
 describe("username availability", () => {
   beforeEach(() => {
@@ -113,5 +118,66 @@ describe("username availability", () => {
         )
       ).status,
     ).toBe(403);
+  });
+});
+
+describe("username assignment", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+    process.env.ZEROSPIN_API_URL = "https://zerospin.qrk.localhost";
+    process.env.ZEROSPIN_SECRET_KEY = "test-only-secret";
+    process.env.NEXT_PUBLIC_APP_ORIGIN = "https://app.qrk.localhost";
+    process.env.CLERK_SECRET_KEY = "test-only-clerk-secret";
+    mocks.verifyToken.mockResolvedValue({ sub: "account_one" });
+    mocks.executeAggregateQuery.mockReturnValue(
+      Effect.succeed({ id: "usr_one", clerkUserId: "account_one" }),
+    );
+    mocks.executeServiceCommand.mockReturnValue(
+      Effect.succeed({
+        result: { _tag: "Success", success: { status: "assigned", username: "morgan" } },
+        finalizedAt: new Date(),
+      }),
+    );
+  });
+  it("derives ownership from authentication and returns the authoritative assignment result", async () => {
+    const response = await POST(
+      new Request("https://qrk.localhost/api/usernames/assignment", {
+        method: "POST",
+        headers: {
+          origin: "https://app.qrk.localhost",
+          authorization: "Bearer token",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ username: "morgan" }),
+      }),
+    );
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ status: "assigned", username: "morgan" });
+    expect(mocks.executeServiceCommand.mock.calls[0][1]).toEqual({
+      contractName: "assignUsername",
+      payload: { userId: "usr_one", aggregateId: "account_one", username: "morgan" },
+    });
+    expect(response.headers.get("cache-control")).toBe("no-store");
+  });
+  it("refuses supplied ownership and leaves an unavailable outcome uncertain without resubmission", async () => {
+    const forged = await POST(
+      new Request("https://qrk.localhost/api/usernames/assignment", {
+        method: "POST",
+        headers: { authorization: "Bearer token" },
+        body: JSON.stringify({ username: "morgan", userId: "usr_other" }),
+      }),
+    );
+    expect(forged.status).toBe(400);
+    expect(mocks.executeServiceCommand).not.toHaveBeenCalled();
+    mocks.executeServiceCommand.mockReturnValue(Effect.fail(new Error("Disconnected")));
+    const unavailable = await POST(
+      new Request("https://qrk.localhost/api/usernames/assignment", {
+        method: "POST",
+        headers: { authorization: "Bearer token" },
+        body: JSON.stringify({ username: "morgan" }),
+      }),
+    );
+    expect(unavailable.status).toBe(503);
+    expect(mocks.executeServiceCommand).toHaveBeenCalledTimes(1);
   });
 });

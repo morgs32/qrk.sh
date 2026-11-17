@@ -1,4 +1,5 @@
 "use client";
+import { usersSessionDefinition } from "@/zerospin/usersSessionDefinition";
 
 import { useContext, useState } from "react";
 import { toast } from "sonner";
@@ -27,27 +28,21 @@ export function PublishSiteDialog(props: { siteId: `sit_${string}` }) {
     key: siteId,
     query: (db, id) => db.query.page.findMany({ where: { siteId: { eq: id } } }),
   });
-  const { data: user } = useLiveQuery({
-    session,
-    query: (db) => {
-      const state = session.store.getState();
-      if (state.initialized === null) throw new Error("Your session is not ready");
-      return db.query.user.findFirstOrThrow({
-        where: { clerkUserId: { eq: state.initialized.claims.clerkUserId } },
-      });
-    },
+  const usersSession = useSession(usersSessionDefinition);
+  const { data: claim } = useLiveQuery({
+    session: usersSession,
+    query: (db) => db.query.username.findFirst({}),
   });
-  const { data: usernameStatus } = useLiveQuery({
+  const { data: site } = useLiveQuery({
     session,
-    query: (db) => {
-      const state = session.store.getState();
-      if (state.initialized === null) throw new Error("Your session is not ready");
-      return db.query.usernameStatus.findFirst({
-        where: { user: { clerkUserId: { eq: state.initialized.claims.clerkUserId } } },
-      });
-    },
+    key: siteId,
+    query: (db, id) => db.query.site.findFirst({ where: { id: { eq: id } } }),
   });
-  const canPublish = user.username !== null && user.username !== "" && !usernameStatus?.pending;
+  const canPublish =
+    claim?.username !== undefined &&
+    claim.username !== null &&
+    site?.hostname !== null &&
+    site?.hostname !== undefined;
 
   useWarnBeforeUnload(
     open &&

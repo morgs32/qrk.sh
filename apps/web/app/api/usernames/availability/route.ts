@@ -60,15 +60,9 @@ export async function GET(request: Request) {
   const available = await Effect.runPromise(
     Effect.gen(function* () {
       const api = yield* getSystemApi();
-      const spec = yield* api.makeSystemSpec();
-      const owner = spec.services.users;
-      const release = owner?.releases[String(owner.canonical)];
-      if (owner === undefined || release?.models.username !== usernameV1.version) {
-        throw new Error("The canonical Users model does not match the availability reader");
-      }
       const existing = yield* api.executeServiceQuery({
         serviceName: "users",
-        serviceVersion: owner.canonical,
+        serviceVersion: 1,
         query: db.query.username.findFirst({
           columns: { aggregateId: true },
           where: { username: { eq: username } },

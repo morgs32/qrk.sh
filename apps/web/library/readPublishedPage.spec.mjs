@@ -40,9 +40,6 @@ describe("readPublishedPage", () => {
               1: {
                 models: { user: 1, site: 1, page: 1, pageSnapshot: 1 },
               },
-              4: {
-                models: { user: 1, site: 2, page: 1, pageSnapshot: 1 },
-              },
             },
           },
         },
@@ -94,11 +91,11 @@ describe("readPublishedPage", () => {
       hostname: { eq: "morgs32-a7b2c3" },
     });
     expect(selections).toHaveLength(2);
-    expect(selections[0]).toMatchObject({ aggregateName: "user", aggregateVersion: 4 });
+    expect(selections[0]).toMatchObject({ aggregateName: "user", aggregateVersion: 1 });
     expect(selections[0].read.config.where.site.hostname).toEqual({ eq: "morgs32-a7b2c3" });
     expect(selections[1]).toMatchObject({
       aggregateName: "user",
-      aggregateVersion: 4,
+      aggregateVersion: 1,
       aggregateId: "user_123",
       read: {
         modelName: "pageSnapshot",
@@ -236,7 +233,7 @@ describe("readPublishedPage", () => {
     ).rejects.toThrow("Domains unavailable");
   });
 
-  it("rejects an incompatible User V4 model graph before reading data", async () => {
+  it("rejects an incompatible User V1 model graph before reading data", async () => {
     mocks.makeSystemSpec.mockReturnValue(
       Effect.succeed({
         services: { domains: { canonical: 1, releases: { 1: { models: { domain: 1 } } } } },
@@ -245,9 +242,6 @@ describe("readPublishedPage", () => {
             canonical: 1,
             releases: {
               1: {
-                models: { user: 1, site: 1, page: 1, pageSnapshot: 1 },
-              },
-              4: {
                 models: { user: 1, site: 1, page: 1, pageSnapshot: 2 },
               },
             },
@@ -261,7 +255,7 @@ describe("readPublishedPage", () => {
         requestHost: "morgs32-a7b2c3.qrk.localhost",
         path: undefined,
       }),
-    ).rejects.toThrow("User V4 models");
+    ).rejects.toThrow("User V1 models");
     expect(mocks.executeAggregateQuery).not.toHaveBeenCalled();
   });
 });

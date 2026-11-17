@@ -5,13 +5,14 @@ import { Button } from "@qrk.sh/bricks/components/button";
 import { Field, FieldDescription, FieldLabel } from "@qrk.sh/bricks/components/field";
 import { Input } from "@qrk.sh/bricks/components/Input";
 import { useLiveQuery, useSession } from "@zerospin/react";
-import { stageAggregateSessionCommand } from "@zerospin/sdk/browser";
+
+import { assignUsernameResult } from "@qrk.sh/zerospin/src/services/users/AssignUsernameV1";
 import { Schema } from "effect";
 import { useEffect, useState } from "react";
-import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
+import { usersSessionDefinition } from "@/zerospin/usersSessionDefinition";
 
 export default function SettingsPage() {
-  const session = useSession(userSessionDefinition);
+  const session = useSession(usersSessionDefinition);
   const { getToken } = useAuth();
   const [draft, setDraft] = useState<string | null>(null);
   const [availability, setAvailability] = useState<
@@ -19,29 +20,15 @@ export default function SettingsPage() {
   >("idle");
   const [checkedUsername, setCheckedUsername] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const { data: user } = useLiveQuery({
+  const [saving, setSaving] = useState(false);
+  const { data: claim } = useLiveQuery({ session, query: (db) => db.query.username.findFirst({}) });
+  const { data: failures } = useLiveQuery({
     session,
-    query: (db) => {
-      const state = session.store.getState();
-      if (state.initialized === null) throw new Error("Your session is not ready");
-      return db.query.user.findFirstOrThrow({
-        where: { clerkUserId: { eq: state.initialized.claims.clerkUserId } },
-      });
-    },
+    query: (db) => db.query.usernameFailure.findMany({ orderBy: { createdAt: "desc" } }),
   });
-  const { data: status } = useLiveQuery({
-    session,
-    query: (db) => {
-      const state = session.store.getState();
-      if (state.initialized === null) throw new Error("Your session is not ready");
-      return db.query.usernameStatus.findFirst({
-        where: { user: { clerkUserId: { eq: state.initialized.claims.clerkUserId } } },
-      });
-    },
-  });
-  const value = draft ?? user.username ?? "";
+  const value = draft ?? claim?.username ?? "";
   const valid = /^[a-z0-9]{1,56}$/.test(value);
-  const changed = value !== (user.username ?? "");
+  const changed = value !== (claim?.username ?? "");
   const currentAvailability = checkedUsername === value ? availability : "idle";
   useEffect(() => {
     if (!valid || !changed) return;
@@ -78,7 +65,6 @@ export default function SettingsPage() {
     };
   }, [changed, getToken, valid, value]);
 
-  const saving = status?.pending !== null && status?.pending !== undefined;
   return (
     <main className="mx-auto w-full max-w-3xl p-6">
       <h1 className="text-xl font-medium">Settings</h1>
@@ -88,12 +74,34 @@ export default function SettingsPage() {
           event.preventDefault();
           if (!valid || !changed || currentAvailability !== "available" || saving) return;
           setError(null);
-          const result = stageAggregateSessionCommand({
-            session,
-            contractName: "requestUsername",
-            payload: { userId: user.id, username: value },
-          });
-          if (result._tag === "Failure") setError(result.failure.message);
+          setSaving(true);
+          void (async () => {
+            try {
+              const token = await getToken();
+              if (token === null) throw new Error("Sign in to assign a username");
+              const url = new URL(
+                "/api/usernames/assignment",
+                process.env.NEXT_PUBLIC_WEB_ORIGIN ?? "https://qrk.localhost",
+              );
+              const response = await fetch(url, {
+                method: "POST",
+                headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+                body: JSON.stringify({ username: value }),
+              });
+              const result = Schema.decodeUnknownSync(assignUsernameResult)(await response.json());
+              if (result.status === "rejected") setError(result.message);
+              else {
+                setDraft(result.username);
+                setAvailability("idle");
+              }
+            } catch {
+              setError(
+                "The assignment outcome is unavailable. Check your saved username before trying again.",
+              );
+            } finally {
+              setSaving(false);
+            }
+          })();
         }}
       >
         <Field>
@@ -125,7 +133,7 @@ export default function SettingsPage() {
         ) : changed && valid && currentAvailability === "unavailable" ? (
           <p role="alert">Could not check availability</p>
         ) : null}
-        {(error ?? status?.failure) ? <p role="alert">{error ?? status?.failure}</p> : null}
+        {error ? <p role="alert">{error}</p> : null}
         <Button
           type="submit"
           disabled={!valid || !changed || currentAvailability !== "available" || saving}
@@ -133,6 +141,18 @@ export default function SettingsPage() {
           Save username
         </Button>
       </form>
+      {failures.length > 0 ? (
+        <section className="mt-6" aria-label="Username assignment failures">
+          <h2>Failed assignments</h2>
+          <ul>
+            {failures.map((failure) => (
+              <li key={failure.id}>
+                {failure.username}: {failure.message}
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
     </main>
   );
 }

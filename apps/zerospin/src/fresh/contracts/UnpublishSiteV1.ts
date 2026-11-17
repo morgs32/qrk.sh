@@ -20,8 +20,26 @@ export const unpublishSiteV1 = makeAggregateContractRelease(unpublishSite, {
   version: 1,
   payload: { siteId: modelId({ model: siteIdentity }) },
   models: {
-    site: { model: Site, fields: ["name", "createdAt", "updatedAt", "slug", "description", "isPublished", "userId", "logoUrl", "faviconLightUrl", "faviconDarkUrl", "stickyNavbar", "cardStyle", "brickGap"] },
-    user: { model: User, fields: ["createdAt", "updatedAt", "clerkUserId", "username", "displayName"] },
+    site: {
+      model: Site,
+      fields: [
+        "hostname",
+        "name",
+        "createdAt",
+        "updatedAt",
+        "slug",
+        "description",
+        "isPublished",
+        "userId",
+        "logoUrl",
+        "faviconLightUrl",
+        "faviconDarkUrl",
+        "stickyNavbar",
+        "cardStyle",
+        "brickGap",
+      ],
+    },
+    user: { model: User, fields: ["createdAt", "updatedAt", "clerkUserId", "displayName"] },
   },
   operations: {
     updateSite: Site.operations.update,

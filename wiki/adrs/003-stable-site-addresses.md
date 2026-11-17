@@ -19,12 +19,13 @@ Site creation records a request for Domains to reserve one complete hostname.
 The hostname combines the saved QRK username with a six-character lowercase
 alphanumeric suffix. Domains enforces unique hostname and Site identity; a
 repeated assignment for the same Site and owner returns the existing hostname.
-The User aggregate's continuation saves the successful result on the Site.
-Final assignment failures can be recorded separately on the Site.
+Domains records an external query of the Users Service and allocates from that retained username observation. The Domains external continuation records a command to apply the hostname on the User Aggregate; lookup and allocation failures become SiteFailure rows. A rename after the observation does not invalidate the resulting Site address.
 
 Changing the username or unpublishing the Site does not change its address.
 Address assignment does not publish the Site; publication state controls whether
 Web serves its current Page snapshot.
+
+The username ownership flow was simplified in [Plan 092](../archive/plans/092-plan-service-owned-usernames.md).
 
 ## Consequences and alternatives
 
@@ -39,7 +40,7 @@ hostname.
 
 1. [Domain model](../../apps/zerospin/src/services/domains/DomainV1.ts) and
    [assignment contract](../../apps/zerospin/src/services/domains/AssignDomainV1.ts).
-2. [Site creation extension](../../apps/zerospin/src/fresh/contracts/CreateSiteExtensionV2.ts)
-   and [assignment continuation](../../apps/zerospin/src/fresh/contracts/CompleteDomainV1.ts).
+2. [Site creation extension](../../apps/zerospin/src/fresh/contracts/CreateSiteExtensionV1.ts)
+   and [assignment completion command](../../apps/zerospin/src/fresh/contracts/ApplyDomainAssignmentV1.ts).
 3. [Site unpublish command](../../apps/zerospin/src/fresh/contracts/UnpublishSiteV1.ts)
    and [published-page reader](../../apps/web/library/readPublishedPage.ts).

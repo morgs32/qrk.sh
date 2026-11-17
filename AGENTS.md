@@ -2,6 +2,8 @@
 
 ## Daily choices
 
+- For 2026-11-17, use branches and PRs. The user performs manual verification.
+
 - Before the first repository change each day, ask the user whether to work directly on `main` or use branches and PRs.
 - Before the day's first task that requires manual verification, ask whether the user or the agent should perform it.
 - Ask both together when both apply. As soon as the user gives or changes either choice, update the dated record below in this file. Keep the current day's answers and reuse them across chats. Ask only for choices the user has yet to give that day.
@@ -25,6 +27,7 @@ Before editing files for a substantial task:
 - Use the loaded `SKILL.md` guidance while making the change.
 - Monorepos: when working across packages, run the skill check from the workspace root and prefer the local skill for the package being changed.
 - Multiple matches: prefer the most specific local skill for the package or concern you are changing; load additional skills only when the task spans multiple packages or concerns.
+
 <!-- intent-skills:end -->
 
 ## Working rules

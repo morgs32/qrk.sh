@@ -14,7 +14,7 @@ sizing and alignment. The fixture supplies static Brick content.
 In local development, a published Site is available at
 `https://<username>-<six-character-id>.qrk.localhost/`, with its published Page
 paths after the host. The server resolves the saved hostname through Domains and
-reads published snapshots and public Site settings from the registered User V4
+reads published snapshots and public Site settings from the registered User V1
 release. Site or Page unpublication makes the page unavailable once that
 release has materialized the command.
 
@@ -50,3 +50,5 @@ pnpm --filter @qrk.sh/web start
 ```
 
 Serves Next on `PORT` or `10011`.
+
+Username assignment uses authenticated `POST /api/usernames/assignment`. The endpoint resolves the caller's User from the verified Clerk subject and awaits `Users.assignUsername`; its request body contains only `username`. Claims and failed-attempt history belong to the Users Service, and the App reads them through an owner-filtered Service session. A lost HTTP response leaves the command outcome uncertain; the endpoint does not automatically submit another command.

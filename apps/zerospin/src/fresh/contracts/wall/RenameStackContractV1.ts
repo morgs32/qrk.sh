@@ -18,7 +18,42 @@ import { wall as wallIdentity } from "@qrk.sh/bricks/zerospin/models/wall/wall";
 export const renameStackV1 = makeAggregateContractRelease(defineAggregateContract("renameStack"), {
   version: 1,
   claims: userClaims,
-  models: { page: { model: page, fields: ["createdAt", "updatedAt", "siteId", "slug", "title", "description", "isPublished", "publishedSnapshotId"] }, site: { model: site, fields: ["name", "createdAt", "updatedAt", "slug", "description", "isPublished", "userId", "logoUrl", "faviconLightUrl", "faviconDarkUrl", "stickyNavbar", "cardStyle", "brickGap"] }, user: { model: user, fields: ["createdAt", "updatedAt", "clerkUserId", "username", "displayName"] }, wall: { model: wall, fields: ["createdAt", "updatedAt", "pageId", "breakpoint", "layout"] } },
+  models: {
+    page: {
+      model: page,
+      fields: [
+        "createdAt",
+        "updatedAt",
+        "siteId",
+        "slug",
+        "title",
+        "description",
+        "isPublished",
+        "publishedSnapshotId",
+      ],
+    },
+    site: {
+      model: site,
+      fields: [
+        "hostname",
+        "name",
+        "createdAt",
+        "updatedAt",
+        "slug",
+        "description",
+        "isPublished",
+        "userId",
+        "logoUrl",
+        "faviconLightUrl",
+        "faviconDarkUrl",
+        "stickyNavbar",
+        "cardStyle",
+        "brickGap",
+      ],
+    },
+    user: { model: user, fields: ["createdAt", "updatedAt", "clerkUserId", "displayName"] },
+    wall: { model: wall, fields: ["createdAt", "updatedAt", "pageId", "breakpoint", "layout"] },
+  },
   operations: { updateWall: wall.operations.update },
   payload: {
     wallId: modelId({ model: wallIdentity }),

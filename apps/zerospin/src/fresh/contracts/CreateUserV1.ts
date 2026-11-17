@@ -19,9 +19,6 @@ const createUser = defineAggregateContract("createUser");
 const createUserPayload = {
   id: modelId({ model: userIdentity }),
   clerkUserId: primitives.text(),
-  username: primitives.text({
-    nullable: true,
-  }),
   displayName: primitives.text({
     nullable: true,
   }),
@@ -30,7 +27,9 @@ const createUserPayload = {
 export const createUserV1 = makeAggregateContractRelease(createUser, {
   operations: { createUser: User.operations.create },
   payload: createUserPayload,
-  models: { user: { model: User, fields: ["createdAt", "updatedAt", "clerkUserId", "username", "displayName"] } },
+  models: {
+    user: { model: User, fields: ["createdAt", "updatedAt", "clerkUserId", "displayName"] },
+  },
   failures: {
     userAlreadyExists: ContractError.schema({ code: "user-already-exists" }),
   },
@@ -51,10 +50,10 @@ export const createUserV1 = makeAggregateContractRelease(createUser, {
   program: (props) => {
     const { operations, payload } = props;
     return Effect.gen(function* () {
-      const { id, clerkUserId, username, displayName } = payload;
+      const { id, clerkUserId, displayName } = payload;
       yield* operations.createUser({
         resourceId: id,
-        attributes: { clerkUserId, username, displayName },
+        attributes: { clerkUserId, displayName },
       });
     });
   },

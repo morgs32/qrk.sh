@@ -5,6 +5,7 @@ import { site } from "./site";
 export const siteV1 = makeModelVersion(site, {
   version: 1,
   attributes: {
+    hostname: primitives.text({ nullable: true, unique: true, defaultValue: null }),
     userId: modelRef({ model: user, relation: "user", inverse: "sites" }),
     slug: primitives.text({ nullable: true, defaultValue: null }),
     name: primitives.text({ nullable: true, defaultValue: null }),

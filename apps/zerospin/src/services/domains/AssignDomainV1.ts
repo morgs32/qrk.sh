@@ -1,73 +1,57 @@
-import { site } from "@qrk.sh/bricks/zerospin/models/site/site";
-import { user } from "@qrk.sh/bricks/zerospin/models/user/user";
-import { ContractError } from "@zerospin/error";
 import {
   defineServiceContract,
-  findFirst,
   makeServiceContractRelease,
   modelId,
   primitives,
-} from "@zerospin/sdk/browser";
+  makeCommandOperation,
+  findFirst,
+} from "@zerospin/sdk";
 import { Effect, Schema } from "effect";
+import { user } from "@qrk.sh/bricks/zerospin/models/user/user";
+import { site } from "@qrk.sh/bricks/zerospin/models/site/site";
+import { lookupUsername } from "./lookupUsername";
 import { domainV1 } from "./DomainV1";
+import { userAggregate } from "../../fresh/userAggregate";
+import { applyDomainAssignmentV1 } from "../../fresh/contracts/ApplyDomainAssignmentV1";
 
-const assignDomain = defineServiceContract("assignDomain");
-
-export const assignDomainV1 = makeServiceContractRelease(assignDomain, {
+export const assignDomainV1 = makeServiceContractRelease(defineServiceContract("assignDomain"), {
   version: 1,
   payload: {
     siteId: modelId({ model: site }),
     userId: modelId({ model: user }),
     aggregateId: primitives.text(),
-    username: primitives.text(),
   },
-  result: Schema.Struct({ hostname: Schema.NonEmptyString }),
-  models: { domain: { model: domainV1, fields: ["hostname", "siteId", "userId", "aggregateId"] } },
-  operations: { create: domainV1.operations.create },
-  failures: {
-    invalidUsername: ContractError.schema({ code: "domain-username-invalid" }),
-    ownerMismatch: ContractError.schema({ code: "domain-owner-mismatch" }),
-    exhausted: ContractError.schema({ code: "domain-candidates-exhausted" }),
+  result: Schema.Null,
+  models: { domain: { model: domainV1, fields: ["siteId", "userId", "aggregateId", "hostname"] } },
+  operations: {
+    lookup: lookupUsername.externalOperation,
+    complete: makeCommandOperation({
+      destination: { aggregate: userAggregate, version: 1 },
+      contract: applyDomainAssignmentV1,
+    }),
   },
   program: Effect.fn("domains.assignDomain")(function* (props) {
-    const { payload, db, operations, failures } = props;
-    const { siteId, userId, aggregateId, username } = payload;
-    if (!/^[a-z0-9]{1,56}$/.test(username) || aggregateId.length === 0) {
-      return yield* failures.invalidUsername.make({
-        message: "Username must use 1–56 lowercase letters or numbers",
-      });
-    }
+    const { payload, db, operations } = props;
     const existing = yield* findFirst({
       db,
       model: db.models.domain,
-      where: { siteId: { eq: siteId } },
+      where: { siteId: { eq: payload.siteId } },
     });
     if (existing !== undefined) {
-      if (existing.userId !== userId || existing.aggregateId !== aggregateId) {
-        return yield* failures.ownerMismatch.make({ message: "This Site belongs to another user" });
-      }
-      return { hostname: existing.hostname };
-    }
-    let hash = 2166136261;
-    for (const char of siteId) {
-      hash = Math.imul(hash ^ char.charCodeAt(0), 16777619) >>> 0;
-    }
-    for (let offset = 0; offset < 32; offset += 1) {
-      const suffix = ((hash + offset) % 2176782336).toString(36).padStart(6, "0");
-      const hostname = `${username}-${suffix}`;
-      const occupied = yield* findFirst({
-        db,
-        model: db.models.domain,
-        where: { hostname: { eq: hostname } },
+      const owned =
+        existing.userId === payload.userId && existing.aggregateId === payload.aggregateId;
+      yield* operations.complete({
+        aggregateId: payload.aggregateId,
+        payload: {
+          siteId: payload.siteId,
+          userId: payload.userId,
+          hostname: owned ? existing.hostname : null,
+          message: owned ? null : "This Site belongs to another user",
+        },
       });
-      if (occupied !== undefined) continue;
-      const id: `dom_${string}` = `dom_${siteId}`;
-      yield* operations.create({
-        resourceId: id,
-        attributes: { hostname, siteId, userId, aggregateId },
-      });
-      return { hostname };
+    } else {
+      yield* operations.lookup({ payload });
     }
-    return yield* failures.exhausted.make({ message: "Could not find an available Site address" });
+    return null;
   }),
 });

@@ -1,3 +1,17 @@
+import { vi } from "vitest";
+vi.mock("cloudflare:workers", () => ({
+  env: {
+    ZEROSPIN_API_URL: "https://zerospin.qrk.localhost",
+    ZEROSPIN_SECRET_KEY: "test-only-secret",
+  },
+}));
+vi.mock("@zerospin/core/utils/getSystemApi/getSystemApi", async () => {
+  const { Effect } = await import("effect");
+  return {
+    getSystemApi: () =>
+      Effect.succeed({ executeServiceQuery: () => Effect.succeed({ username: "testuser" }) }),
+  };
+});
 import { expect, it } from "@effect/vitest";
 import { makeQueryDbVersion, NanoIdFactory } from "@zerospin/sdk";
 import { makeSystemHarness } from "@zerospin/sdk/testing";
@@ -17,7 +31,7 @@ it.effect("creates a user in the isolated fresh owner", () =>
       aggregateVersion: 1,
       aggregateId: "acct_fresh",
       externalOutcome: null,
-      payload: { id: "usr_fresh", clerkUserId: "user_fresh", username: null, displayName: null },
+      payload: { id: "usr_fresh", clerkUserId: "user_fresh", displayName: null },
     });
     yield* harness.flush();
     const db = makeQueryDbVersion({ models: userAggregateV1.models });
@@ -42,7 +56,7 @@ it.effect("adds Text atomically and changes only the selected Placement", () =>
       aggregateVersion: 1,
       aggregateId: "acct_text",
       externalOutcome: null,
-      payload: { id: "usr_text", clerkUserId: "user_text", username: null, displayName: null },
+      payload: { id: "usr_text", clerkUserId: "user_text", displayName: null },
     });
     yield* harness.flush();
     const actor = {
@@ -162,6 +176,7 @@ it.effect("adds Text atomically and changes only the selected Placement", () =>
       })
       .pipe(Effect.flip);
     expect(wrongOwner).toMatchObject({ code: "update-text-brick-unavailable" });
+    yield* harness.flush();
     yield* harness.push({
       ...actor,
       id: "cmd_text_publish",

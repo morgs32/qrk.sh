@@ -29,7 +29,50 @@ export const addTextBrickV1 = makeAggregateContractRelease(
       pageId: modelId({ model: page }),
       target: primitives.json({ schema: wallInsertionTargetSchema }),
     },
-    models: { brick: { model: brickV1, fields: ["createdAt", "updatedAt", "pageId", "moduleId", "state", "borderWidth"] }, page: { model: pageV1, fields: ["createdAt", "updatedAt", "siteId", "slug", "title", "description", "isPublished", "publishedSnapshotId"] }, placement: { model: placementV1, fields: ["createdAt", "updatedAt", "state", "brickId", "wallId", "layoutId", "widthWeight"] }, site: { model: siteV1, fields: ["name", "createdAt", "updatedAt", "slug", "description", "isPublished", "userId", "logoUrl", "faviconLightUrl", "faviconDarkUrl", "stickyNavbar", "cardStyle", "brickGap"] }, user: { model: userV1, fields: ["createdAt", "updatedAt", "clerkUserId", "username", "displayName"] }, wall: { model: wallV1, fields: ["createdAt", "updatedAt", "pageId", "breakpoint", "layout"] } },
+    models: {
+      brick: {
+        model: brickV1,
+        fields: ["createdAt", "updatedAt", "pageId", "moduleId", "state", "borderWidth"],
+      },
+      page: {
+        model: pageV1,
+        fields: [
+          "createdAt",
+          "updatedAt",
+          "siteId",
+          "slug",
+          "title",
+          "description",
+          "isPublished",
+          "publishedSnapshotId",
+        ],
+      },
+      placement: {
+        model: placementV1,
+        fields: ["createdAt", "updatedAt", "state", "brickId", "wallId", "layoutId", "widthWeight"],
+      },
+      site: {
+        model: siteV1,
+        fields: [
+          "hostname",
+          "name",
+          "createdAt",
+          "updatedAt",
+          "slug",
+          "description",
+          "isPublished",
+          "userId",
+          "logoUrl",
+          "faviconLightUrl",
+          "faviconDarkUrl",
+          "stickyNavbar",
+          "cardStyle",
+          "brickGap",
+        ],
+      },
+      user: { model: userV1, fields: ["createdAt", "updatedAt", "clerkUserId", "displayName"] },
+      wall: { model: wallV1, fields: ["createdAt", "updatedAt", "pageId", "breakpoint", "layout"] },
+    },
     operations: {
       createBrick: brickV1.operations.create,
       createPlacement: placementV1.operations.create,
@@ -40,10 +83,17 @@ export const addTextBrickV1 = makeAggregateContractRelease(
       const { payload, operations, db, claims } = props;
       yield* operations.createBrick({
         resourceId: payload.brickId,
-        attributes: { pageId: payload.pageId, moduleId: "text", state: { content: "" }, borderWidth: 0 },
+        attributes: {
+          pageId: payload.pageId,
+          moduleId: "text",
+          state: { content: "" },
+          borderWidth: 0,
+        },
       });
       yield* insertBrickInWall({
-        db, operations, claims,
+        db,
+        operations,
+        claims,
         brickId: payload.brickId,
         pageId: payload.pageId,
         target: payload.target,

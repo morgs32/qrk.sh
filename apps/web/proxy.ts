@@ -11,6 +11,7 @@ const isPublicRoute = createRouteMatcher([
   "/terms",
   "/ordered-outline",
   "/api/usernames/availability",
+  "/api/usernames/assignment",
 ]);
 
 const clerkProxy = clerkMiddleware(async (auth, request) => {

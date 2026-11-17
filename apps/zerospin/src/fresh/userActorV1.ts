@@ -14,6 +14,7 @@ import { RoutePattern } from "@remix-run/route-pattern";
 import { mapParseError, prettyUnknownFailure, type IAnyError } from "@zerospin/error";
 import { Effect, Schema } from "effect";
 import { userClaims } from "@qrk.sh/bricks/zerospin/userClaims";
+import { siteFailureV1 } from "@qrk.sh/bricks/zerospin/models/siteFailure/SiteFailureV1";
 import { signature } from "../signature";
 import { createUserV1 } from "./contracts/CreateUserV1";
 import { sql } from "drizzle-orm";
@@ -62,6 +63,7 @@ const db = makeQueryDbVersion({
     pageSnapshot: PageSnapshot,
     site: Site,
     user: User,
+    siteFailure: siteFailureV1,
   },
 });
 
@@ -124,7 +126,6 @@ export const userActorV1 = makeAggregateActorRelease(defineAggregateActor({ name
       payload: {
         id: yield* makeId(User),
         clerkUserId: claims.clerkUserId,
-        username: null,
         displayName: null,
       },
     });
@@ -160,6 +161,7 @@ export const userActorV1 = makeAggregateActorRelease(defineAggregateActor({ name
     pageSnapshot: PageSnapshot,
     site: Site,
     user: User,
+    siteFailure: siteFailureV1,
   },
   contracts: {
     deleteBrick,
@@ -188,6 +190,9 @@ export const userActorV1 = makeAggregateActorRelease(defineAggregateActor({ name
     ...brickContracts,
   },
   selections: {
+    siteFailure: db.query.siteFailure.findMany({
+      where: { site: { user: { clerkUserId: { eq: identity.sql.placeholder("clerkUserId") } } } },
+    }),
     wall: db.query.wall.findMany({
       where: {
         page: { site: { user: { clerkUserId: { eq: identity.sql.placeholder("clerkUserId") } } } },

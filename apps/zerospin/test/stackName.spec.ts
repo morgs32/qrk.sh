@@ -1,3 +1,17 @@
+import { vi } from "vitest";
+vi.mock("cloudflare:workers", () => ({
+  env: {
+    ZEROSPIN_API_URL: "https://zerospin.qrk.localhost",
+    ZEROSPIN_SECRET_KEY: "test-only-secret",
+  },
+}));
+vi.mock("@zerospin/core/utils/getSystemApi/getSystemApi", async () => {
+  const { Effect } = await import("effect");
+  return {
+    getSystemApi: () =>
+      Effect.succeed({ executeServiceQuery: () => Effect.succeed({ username: "testuser" }) }),
+  };
+});
 import { userAggregateV1 } from "../src/fresh/userAggregateV1";
 import { expect, it } from "@effect/vitest";
 import { makeQueryDbVersion, NanoIdFactory } from "@zerospin/sdk";
@@ -35,7 +49,6 @@ it.effect("renames only the owning Wall's Stack and rejects blank or mismatched 
       payload: {
         id: "usr_stack",
         clerkUserId: "user_stack",
-        username: null,
         displayName: null,
       },
     });

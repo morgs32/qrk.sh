@@ -6,6 +6,7 @@ import {
   SessionProvider,
   SessionReady,
   useConnectedAggregateSession,
+  useConnectedServiceSession,
   useLiveQuery,
   useSession,
 } from "@zerospin/react";
@@ -16,6 +17,8 @@ import { toast } from "sonner";
 import AppError from "@/app/error";
 import { getClerkToken } from "@/lib/getClerkToken";
 import { startupTiming } from "@/lib/startupTiming";
+import usersWorkerUrl from "@/zerospin/users.node.worker?sharedworker&url";
+import { usersSessionDefinition } from "@/zerospin/usersSessionDefinition";
 import workerUrl from "@/zerospin/node.worker?sharedworker&url";
 import { userApplicationLayer } from "@/zerospin/userApplicationLayer";
 import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
@@ -70,6 +73,28 @@ export default function UserLayout(props: { children: ReactNode }) {
     },
     { onFailure: (error) => toast.error(error.message) },
   );
+  const usersSession = useConnectedServiceSession(
+    usersSessionDefinition,
+    () => {
+      if (!isLoaded || user === null || user === undefined) return null;
+      return {
+        sharedWorkerUrl: usersWorkerUrl,
+        credentialsSchema: signature,
+        layer: userApplicationLayer,
+        expectedClaims: { aggregateId: user.id, clerkUserId: user.id },
+        getCredentials: Effect.fn("App.usersCredentials")(function* () {
+          const sessionToken = yield* getClerkToken({ getToken });
+          if (sessionToken === null)
+            return yield* new ZerospinError({
+              code: "user-session-token-unavailable",
+              message: "Sign in to load usernames",
+            });
+          return { sessionToken };
+        }),
+      };
+    },
+    { onFailure: (error) => toast.error(error.message) },
+  );
   useEffect(() => startupTiming.mountUserLayout(), []);
   useEffect(() => {
     if (isLoaded) startupTiming.clerkReady(user !== null && user !== undefined);
@@ -84,7 +109,14 @@ export default function UserLayout(props: { children: ReactNode }) {
         renderError={(error, retry) => <UserStartupFailure error={error} retry={retry} />}
       >
         <UserSessionReadiness />
-        {children}
+        <SessionProvider session={usersSession}>
+          <SessionReady
+            definition={usersSessionDefinition}
+            renderError={(error, retry) => <UserStartupFailure error={error} retry={retry} />}
+          >
+            {children}
+          </SessionReady>
+        </SessionProvider>
       </SessionReady>
     </SessionProvider>
   );

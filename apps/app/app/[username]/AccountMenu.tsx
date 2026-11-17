@@ -5,8 +5,11 @@ import { toast } from "sonner";
 import { Skeleton } from "@qrk.sh/bricks/components/skeleton";
 import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
 
+import { usersSessionDefinition } from "@/zerospin/usersSessionDefinition";
+
 export function AccountMenu() {
   const clearAuthentication = useClearSessionAuthentication(userSessionDefinition);
+  const clearUsersAuthentication = useClearSessionAuthentication(usersSessionDefinition);
   const { signOut } = useClerk();
 
   return (
@@ -25,7 +28,7 @@ export function AccountMenu() {
             label="Sign out"
             labelIcon={<LogOut />}
             onClick={() => {
-              void clearAuthentication()
+              void Promise.all([clearAuthentication(), clearUsersAuthentication()])
                 .then(() => signOut())
                 .catch(() => toast.error("Could not sign out. Please try again."));
             }}

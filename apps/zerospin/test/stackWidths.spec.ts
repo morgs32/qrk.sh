@@ -1,3 +1,17 @@
+import { vi } from "vitest";
+vi.mock("cloudflare:workers", () => ({
+  env: {
+    ZEROSPIN_API_URL: "https://zerospin.qrk.localhost",
+    ZEROSPIN_SECRET_KEY: "test-only-secret",
+  },
+}));
+vi.mock("@zerospin/core/utils/getSystemApi/getSystemApi", async () => {
+  const { Effect } = await import("effect");
+  return {
+    getSystemApi: () =>
+      Effect.succeed({ executeServiceQuery: () => Effect.succeed({ username: "testuser" }) }),
+  };
+});
 import { it } from "@effect/vitest";
 import { makeQueryDbVersion, makeSystemSpec, NanoIdFactory } from "@zerospin/sdk";
 import { makeSystemHarness } from "@zerospin/sdk/testing";
@@ -132,7 +146,6 @@ it.effect("registers Stack width in the current System", () =>
       payload: {
         id: "usr_stack_width",
         clerkUserId: "clerk_stack_width",
-        username: null,
         displayName: null,
       },
     });

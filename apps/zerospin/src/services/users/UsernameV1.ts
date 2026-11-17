@@ -5,12 +5,9 @@ import { username } from "./username";
 export const usernameV1 = makeModelVersion(username, {
   version: 1,
   attributes: {
-    username: primitives.text({ unique: true, nullable: true }),
+    username: primitives.text({ unique: true }),
     userId: modelId({ model: user, unique: true }),
     aggregateId: primitives.text({ unique: true }),
-    revision: primitives.integer(),
-    requested: primitives.text(),
-    accepted: primitives.boolean(),
   },
   indexes: [],
 });

@@ -106,7 +106,6 @@ function makeResources(
         version: user.version,
         id: userId,
         clerkUserId: claims.clerkUserId,
-        username: "story",
         displayName: "Storybook",
       }),
     ],
@@ -682,7 +681,7 @@ function WallEditorStory(props: {
                   breakpoint={breakpoint.id}
                   cardStyle={cardStyle}
                   onClose={() => {}}
-                  moduleAction={(
+                  moduleAction={
                     <Button
                       type="button"
                       aria-label="Preview brick action"
@@ -690,7 +689,7 @@ function WallEditorStory(props: {
                     >
                       Clear selection
                     </Button>
-                  )}
+                  }
                 />
               )}
             </WorkspaceSidebar>

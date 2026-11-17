@@ -41,11 +41,48 @@ export const createPageV1 = makeAggregateContractRelease(createPage, {
     description: primitives.text({ nullable: true, defaultValue: null }),
   },
   failures: {
+    createPagePathInvalid: ContractError.schema({ code: "create-page-path-invalid" }),
+    createPagePathTaken: ContractError.schema({ code: "create-page-path-taken" }),
     createPageUserMismatch: ContractError.schema({ code: "create-page-user-mismatch" }),
     createPageSiteNotFound: ContractError.schema({ code: "create-page-site-not-found" }),
     createPageIndexTaken: ContractError.schema({ code: "create-page-index-taken" }),
   },
-  models: { site: { model: Site, fields: ["name", "createdAt", "updatedAt", "slug", "description", "isPublished", "userId", "logoUrl", "faviconLightUrl", "faviconDarkUrl", "stickyNavbar", "cardStyle", "brickGap"] }, user: { model: User, fields: ["createdAt", "updatedAt", "clerkUserId", "username", "displayName"] }, page: { model: Page, fields: ["createdAt", "updatedAt", "siteId", "slug", "title", "description", "isPublished", "publishedSnapshotId"] }, wall: { model: Wall, fields: ["createdAt", "updatedAt", "pageId", "breakpoint", "layout"] } },
+  models: {
+    site: {
+      model: Site,
+      fields: [
+        "hostname",
+        "name",
+        "createdAt",
+        "updatedAt",
+        "slug",
+        "description",
+        "isPublished",
+        "userId",
+        "logoUrl",
+        "faviconLightUrl",
+        "faviconDarkUrl",
+        "stickyNavbar",
+        "cardStyle",
+        "brickGap",
+      ],
+    },
+    user: { model: User, fields: ["createdAt", "updatedAt", "clerkUserId", "displayName"] },
+    page: {
+      model: Page,
+      fields: [
+        "createdAt",
+        "updatedAt",
+        "siteId",
+        "slug",
+        "title",
+        "description",
+        "isPublished",
+        "publishedSnapshotId",
+      ],
+    },
+    wall: { model: Wall, fields: ["createdAt", "updatedAt", "pageId", "breakpoint", "layout"] },
+  },
   guard: Effect.fn("createPageV1.guard")(function* (props) {
     const { failures, claims, db, payload } = props;
     const clerkUserId = claims?.clerkUserId;
@@ -56,7 +93,11 @@ export const createPageV1 = makeAggregateContractRelease(createPage, {
       });
     }
 
-    const site = yield* sdk.findFirst({ db, model: db.models.site, where: { id: { eq: payload.siteId } } });
+    const site = yield* sdk.findFirst({
+      db,
+      model: db.models.site,
+      where: { id: { eq: payload.siteId } },
+    });
 
     if (site === undefined) {
       return yield* failures.createPageSiteNotFound.make({
@@ -90,6 +131,31 @@ export const createPageV1 = makeAggregateContractRelease(createPage, {
           status: 409,
         });
       }
+    }
+    if (payload.slug !== null) {
+      if (
+        payload.slug
+          .split("/")
+          .some(
+            (segment) =>
+              segment === "" || segment === "." || segment === ".." || segment.includes("\\"),
+          )
+      )
+        return yield* failures.createPagePathInvalid.make({
+          message:
+            "Page paths must contain nonempty segments other than . or .., without backslashes",
+          status: 400,
+        });
+      const existing = yield* sdk.findFirst({
+        db,
+        model: db.models.page,
+        where: { siteId: { eq: payload.siteId }, slug: { eq: payload.slug } },
+      });
+      if (existing !== undefined)
+        return yield* failures.createPagePathTaken.make({
+          message: `Site ${payload.siteId} already has a Page at ${payload.slug}`,
+          status: 409,
+        });
     }
   }),
   program: Effect.fn("createPageV1")(function* (props) {

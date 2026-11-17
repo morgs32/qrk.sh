@@ -9,7 +9,7 @@ import * as sdk from "@zerospin/sdk/browser";
 
 import { modelId, makeAggregateContractRelease, primitives } from "@zerospin/sdk/browser";
 
-import { Effect, Schema } from "effect";
+import { Effect } from "effect";
 
 import { siteV1 as Site } from "@qrk.sh/bricks/zerospin/models/site/SiteV1";
 
@@ -20,7 +20,7 @@ const createSite = defineAggregateContract("createSite");
 const createSitePayload = {
   id: modelId({ model: siteIdentity }),
   userId: modelId({ model: userIdentity }),
-  slug: primitives.text(),
+  slug: primitives.text({ nullable: true }),
   name: primitives.text({
     nullable: true,
     defaultValue: null,
@@ -42,55 +42,45 @@ export const createSiteV1 = makeAggregateContractRelease(createSite, {
   },
   payload: createSitePayload,
   models: {
-    user: { model: User, fields: ["createdAt", "updatedAt", "clerkUserId", "username", "displayName"] },
-    site: { model: Site, fields: ["name", "createdAt", "updatedAt", "slug", "description", "isPublished", "userId", "logoUrl", "faviconLightUrl", "faviconDarkUrl", "stickyNavbar", "cardStyle", "brickGap"] },
+    user: { model: User, fields: ["createdAt", "updatedAt", "clerkUserId", "displayName"] },
+    site: {
+      model: Site,
+      fields: [
+        "hostname",
+        "name",
+        "createdAt",
+        "updatedAt",
+        "slug",
+        "description",
+        "isPublished",
+        "userId",
+        "logoUrl",
+        "faviconLightUrl",
+        "faviconDarkUrl",
+        "stickyNavbar",
+        "cardStyle",
+        "brickGap",
+      ],
+    },
   },
-  guard: Effect.fn("createSiteV1.guard")(function* (props) {
-    const { failures, claims, db, payload } = props;
+  guard: Effect.fn("createSite.guard")(function* (props) {
+    const { payload, claims, db, failures } = props;
     const clerkUserId = claims?.clerkUserId;
-
-    if (typeof clerkUserId !== "string") {
+    if (typeof clerkUserId !== "string")
       return yield* failures.createSiteUserMismatch.make({
-        message: "Creating a site requires an authenticated user",
+        message: "Creating a Site requires authentication",
         status: 403,
       });
-    }
-
-    const user = yield* sdk.findFirst({
+    const owner = yield* sdk.findFirst({
       db,
       model: db.models.user,
       where: { id: { eq: payload.userId }, clerkUserId: { eq: clerkUserId } },
     });
-
-    if (user === undefined) {
+    if (owner === undefined)
       return yield* failures.createSiteUserMismatch.make({
-        message: `User ${payload.userId} was not found for authenticated identity ${clerkUserId}`,
+        message: "Creating a Site requires its authenticated owner",
         status: 403,
       });
-    }
-
-    const SlugSchema = Schema.String.check(
-      Schema.isPattern(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
-      Schema.isTrimmed(),
-    );
-    if (!Schema.is(SlugSchema)(payload.slug)) {
-      return yield* failures.siteSlugInvalid.make({
-        message: "Use lowercase letters, numbers, and single hyphens between words",
-        status: 400,
-      });
-    }
-
-    const existingSite = yield* sdk.findFirst({
-      db,
-      model: db.models.site,
-      where: { userId: { eq: payload.userId }, slug: { eq: payload.slug } },
-    });
-    if (existingSite !== undefined) {
-      return yield* failures.siteSlugTaken.make({
-        message: `You already have a site with the slug ${payload.slug}`,
-        status: 409,
-      });
-    }
   }),
   program: Effect.fn("createSiteV1")(function* (props) {
     const { operations, failures, payload, claims } = props;
@@ -111,6 +101,7 @@ export const createSiteV1 = makeAggregateContractRelease(createSite, {
         logoUrl: null,
         faviconLightUrl: null,
         faviconDarkUrl: null,
+        hostname: null,
         isPublished: false,
         cardStyle: false,
         brickGap: 0,

@@ -5,16 +5,16 @@ import { getSystemApi } from "@zerospin/core/utils/getSystemApi/getSystemApi";
 import { makeQueryDbVersion, ZerospinApiUrl } from "@zerospin/sdk";
 import { pageV1 } from "@qrk.sh/bricks/zerospin/models/page/PageV1";
 import { pageSnapshotV1 } from "@qrk.sh/bricks/zerospin/models/pageSnapshot/PageSnapshotV1";
-import { siteV2 } from "@qrk.sh/bricks/zerospin/models/site/SiteV2";
+import { siteV1 } from "@qrk.sh/bricks/zerospin/models/site/SiteV1";
 import { userV1 } from "@qrk.sh/bricks/zerospin/models/user/UserV1";
 import { domainV1 } from "@qrk.sh/zerospin/src/services/domains/DomainV1";
 import { Effect, Layer, Redacted, Schedule } from "effect";
 
 const db = makeQueryDbVersion({
-  models: { user: userV1, site: siteV2, page: pageV1, pageSnapshot: pageSnapshotV1 },
+  models: { user: userV1, site: siteV1, page: pageV1, pageSnapshot: pageSnapshotV1 },
 });
 const domainsDb = makeQueryDbVersion({ models: { domain: domainV1 } });
-const userAggregateVersion = 4;
+const userAggregateVersion = 1;
 
 export async function readPublishedPage(props: {
   host: string;
@@ -44,13 +44,13 @@ export async function readPublishedPage(props: {
       const api = yield* getSystemApi();
       const spec = yield* api.makeSystemSpec();
       const domains = spec.services.domains;
-      const domainRelease = domains?.releases[String(domains.canonical)];
+      const domainRelease = domains?.releases["1"];
       if (domains === undefined || domainRelease?.models.domain !== domainV1.version) {
-        throw new Error("The canonical Domains model does not match the published-page reader");
+        throw new Error("The addressed Domains model does not match the published-page reader");
       }
       const assignment = yield* api.executeServiceQuery({
         serviceName: "domains",
-        serviceVersion: domains.canonical,
+        serviceVersion: 1,
         query: domainsDb.query.domain.findFirst({
           columns: { siteId: true, userId: true, aggregateId: true },
           where: { hostname: { eq: label } },
@@ -63,11 +63,11 @@ export async function readPublishedPage(props: {
       if (
         release === undefined ||
         release.models.user !== userV1.version ||
-        release.models.site !== siteV2.version ||
+        release.models.site !== siteV1.version ||
         release.models.page !== pageV1.version ||
         release.models.pageSnapshot !== pageSnapshotV1.version
       ) {
-        throw new Error("The User V4 models do not match the published-page reader");
+        throw new Error("The User V1 models do not match the published-page reader");
       }
       const published = yield* Effect.gen(function* () {
         const pages = yield* api.executeAggregateQuery({

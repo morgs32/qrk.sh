@@ -1,4 +1,9 @@
-import { defineAggregateContract, makeAggregateContractRelease, modelId, primitives } from "@zerospin/sdk/browser";
+import {
+  defineAggregateContract,
+  makeAggregateContractRelease,
+  modelId,
+  primitives,
+} from "@zerospin/sdk/browser";
 import { Effect, Schema } from "effect";
 import { brick } from "../../../zerospin/models/brick/brick";
 import { brickV1 } from "../../../zerospin/models/brick/BrickV1";
@@ -13,36 +18,89 @@ import { insertBrickInWall, wallInsertionFailure } from "../../../zerospin/wall/
 import { wallInsertionTargetSchema } from "../../../zerospin/wall/wallInsertionTargetSchema";
 import { completeStateSchema, instagramV1 } from "../definition/instagramV1";
 
-export const addInstagramBrickV1 = makeAggregateContractRelease(defineAggregateContract("addInstagramBrick"), {
-  version: 1,
-  claims: userClaims,
-  payload: {
-    brickId: modelId({ model: brick }),
-    pageId: modelId({ model: page }),
-    target: primitives.json({ schema: wallInsertionTargetSchema }),
-    state: primitives.json({ schema: Schema.NullOr(completeStateSchema) }),
+export const addInstagramBrickV1 = makeAggregateContractRelease(
+  defineAggregateContract("addInstagramBrick"),
+  {
+    version: 1,
+    claims: userClaims,
+    payload: {
+      brickId: modelId({ model: brick }),
+      pageId: modelId({ model: page }),
+      target: primitives.json({ schema: wallInsertionTargetSchema }),
+      state: primitives.json({ schema: Schema.NullOr(completeStateSchema) }),
+    },
+    models: {
+      brick: {
+        model: brickV1,
+        fields: ["createdAt", "updatedAt", "pageId", "moduleId", "state", "borderWidth"],
+      },
+      page: {
+        model: pageV1,
+        fields: [
+          "createdAt",
+          "updatedAt",
+          "siteId",
+          "slug",
+          "title",
+          "description",
+          "isPublished",
+          "publishedSnapshotId",
+        ],
+      },
+      placement: {
+        model: placementV1,
+        fields: ["createdAt", "updatedAt", "state", "brickId", "wallId", "layoutId", "widthWeight"],
+      },
+      site: {
+        model: siteV1,
+        fields: [
+          "hostname",
+          "name",
+          "createdAt",
+          "updatedAt",
+          "slug",
+          "description",
+          "isPublished",
+          "userId",
+          "logoUrl",
+          "faviconLightUrl",
+          "faviconDarkUrl",
+          "stickyNavbar",
+          "cardStyle",
+          "brickGap",
+        ],
+      },
+      user: { model: userV1, fields: ["createdAt", "updatedAt", "clerkUserId", "displayName"] },
+      wall: { model: wallV1, fields: ["createdAt", "updatedAt", "pageId", "breakpoint", "layout"] },
+    },
+    operations: {
+      createBrick: brickV1.operations.create,
+      createPlacement: placementV1.operations.create,
+      updateWall: wallV1.operations.update,
+    },
+    failures: { invalidLayout: wallInsertionFailure },
+    program: Effect.fn("addInstagramBrick.program")(function* (props) {
+      const { payload, operations, db, claims } = props;
+      yield* operations.createBrick({
+        resourceId: payload.brickId,
+        attributes: {
+          pageId: payload.pageId,
+          moduleId: "instagram",
+          state: structuredClone(payload.state),
+          borderWidth: 0,
+        },
+      });
+      yield* insertBrickInWall({
+        db,
+        operations,
+        claims,
+        brickId: payload.brickId,
+        pageId: payload.pageId,
+        target: payload.target,
+        module: instagramV1,
+        layoutId: "default",
+        placementState: {},
+      });
+    }),
   },
-  models: { brick: { model: brickV1, fields: ["createdAt", "updatedAt", "pageId", "moduleId", "state", "borderWidth"] }, page: { model: pageV1, fields: ["createdAt", "updatedAt", "siteId", "slug", "title", "description", "isPublished", "publishedSnapshotId"] }, placement: { model: placementV1, fields: ["createdAt", "updatedAt", "state", "brickId", "wallId", "layoutId", "widthWeight"] }, site: { model: siteV1, fields: ["name", "createdAt", "updatedAt", "slug", "description", "isPublished", "userId", "logoUrl", "faviconLightUrl", "faviconDarkUrl", "stickyNavbar", "cardStyle", "brickGap"] }, user: { model: userV1, fields: ["createdAt", "updatedAt", "clerkUserId", "username", "displayName"] }, wall: { model: wallV1, fields: ["createdAt", "updatedAt", "pageId", "breakpoint", "layout"] } },
-  operations: {
-    createBrick: brickV1.operations.create,
-    createPlacement: placementV1.operations.create,
-    updateWall: wallV1.operations.update,
-  },
-  failures: { invalidLayout: wallInsertionFailure },
-  program: Effect.fn("addInstagramBrick.program")(function* (props) {
-    const { payload, operations, db, claims } = props;
-    yield* operations.createBrick({
-      resourceId: payload.brickId,
-      attributes: { pageId: payload.pageId, moduleId: "instagram", state: structuredClone(payload.state), borderWidth: 0 },
-    });
-    yield* insertBrickInWall({
-      db, operations, claims,
-      brickId: payload.brickId,
-      pageId: payload.pageId,
-      target: payload.target,
-      module: instagramV1,
-      layoutId: "default",
-      placementState: {},
-    });
-  }),
-});
+);

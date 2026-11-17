@@ -1,3 +1,17 @@
+import { vi } from "vitest";
+vi.mock("cloudflare:workers", () => ({
+  env: {
+    ZEROSPIN_API_URL: "https://zerospin.qrk.localhost",
+    ZEROSPIN_SECRET_KEY: "test-only-secret",
+  },
+}));
+vi.mock("@zerospin/core/utils/getSystemApi/getSystemApi", async () => {
+  const { Effect } = await import("effect");
+  return {
+    getSystemApi: () =>
+      Effect.succeed({ executeServiceQuery: () => Effect.succeed({ username: "testuser" }) }),
+  };
+});
 import { expect, it } from "@effect/vitest";
 import { makeQueryDbVersion, NanoIdFactory } from "@zerospin/sdk";
 import { makeSystemHarness } from "@zerospin/sdk/testing";
@@ -182,7 +196,7 @@ it.effect(
         aggregateVersion: actor.aggregateVersion,
         aggregateId: owner.aggregateId,
         externalOutcome: null,
-        payload: { id: "usr_fit", clerkUserId: "user_fit", username: null, displayName: null },
+        payload: { id: "usr_fit", clerkUserId: "user_fit", displayName: null },
       });
       yield* harness.push({
         ...actor,

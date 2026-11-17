@@ -49,12 +49,48 @@ export const publishSiteV1 = makeAggregateContractRelease(publishSite, {
   },
   models: {
     wall: { model: Wall, fields: ["createdAt", "updatedAt", "pageId", "breakpoint", "layout"] },
-    brick: { model: Brick, fields: ["createdAt", "updatedAt", "pageId", "moduleId", "state", "borderWidth"] },
-    placement: { model: Placement, fields: ["createdAt", "updatedAt", "state", "brickId", "wallId", "layoutId", "widthWeight"] },
-    page: { model: Page, fields: ["createdAt", "updatedAt", "siteId", "slug", "title", "description", "isPublished", "publishedSnapshotId"] },
+    brick: {
+      model: Brick,
+      fields: ["createdAt", "updatedAt", "pageId", "moduleId", "state", "borderWidth"],
+    },
+    placement: {
+      model: Placement,
+      fields: ["createdAt", "updatedAt", "state", "brickId", "wallId", "layoutId", "widthWeight"],
+    },
+    page: {
+      model: Page,
+      fields: [
+        "createdAt",
+        "updatedAt",
+        "siteId",
+        "slug",
+        "title",
+        "description",
+        "isPublished",
+        "publishedSnapshotId",
+      ],
+    },
     pageSnapshot: { model: PageSnapshot, fields: ["createdAt", "updatedAt", "pageId", "content"] },
-    site: { model: Site, fields: ["name", "createdAt", "updatedAt", "slug", "description", "isPublished", "userId", "logoUrl", "faviconLightUrl", "faviconDarkUrl", "stickyNavbar", "cardStyle", "brickGap"] },
-    user: { model: User, fields: ["createdAt", "updatedAt", "clerkUserId", "username", "displayName"] },
+    site: {
+      model: Site,
+      fields: [
+        "hostname",
+        "name",
+        "createdAt",
+        "updatedAt",
+        "slug",
+        "description",
+        "isPublished",
+        "userId",
+        "logoUrl",
+        "faviconLightUrl",
+        "faviconDarkUrl",
+        "stickyNavbar",
+        "cardStyle",
+        "brickGap",
+      ],
+    },
+    user: { model: User, fields: ["createdAt", "updatedAt", "clerkUserId", "displayName"] },
   },
   operations: {
     createPageSnapshot: PageSnapshot.operations.create,
@@ -97,6 +133,11 @@ export const publishSiteV1 = makeAggregateContractRelease(publishSite, {
         status: 403,
       });
     }
+    if (site.hostname === null)
+      return yield* failures.publishSiteUnavailable.make({
+        message: "Wait for the Site address to be assigned",
+        status: 409,
+      });
     if (site.isPublished) {
       return yield* failures.publishSiteUnavailable.make({
         message: `Site ${site.id} is already published`,

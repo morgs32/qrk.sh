@@ -1,4 +1,5 @@
 "use client";
+import { usersSessionDefinition } from "@/zerospin/usersSessionDefinition";
 
 import { Link } from "@tanstack/react-router";
 import { UnderlinedLink } from "@qrk.sh/web/components/UnderlinedLink";
@@ -43,29 +44,24 @@ export default function UsernameDashboardPage() {
       });
     },
   });
-  const { data: usernameStatus } = useLiveQuery({
-    session,
-    query: (db) => {
-      const state = session.store.getState();
-      if (state.initialized === null) throw new Error("Your session is not ready");
-      return db.query.usernameStatus.findFirst({
-        where: { user: { clerkUserId: { eq: state.initialized.claims.clerkUserId } } },
-      });
-    },
+  const usersSession = useSession(usersSessionDefinition);
+  const { data: claim } = useLiveQuery({
+    session: usersSession,
+    query: (db) => db.query.username.findFirst({}),
   });
 
   useLayoutEffect(() => {
     startupTiming.dashboardCommitted(true);
   }, [session, user]);
 
-  const canCreateSite = user.username !== null && user.username !== "" && !usernameStatus?.pending;
+  const canCreateSite = claim?.username !== undefined && claim.username !== null;
 
   return (
     <div className="flex flex-col">
       <main className="flex-1 p-6">
         <div className="mx-auto flex w-full max-w-3xl flex-col gap-4 p-6">
           <div className="flex items-center justify-between gap-3">
-            <h1 className="text-xl font-medium">{user.username ?? "Your sites"}</h1>
+            <h1 className="text-xl font-medium">{claim?.username ?? "Your sites"}</h1>
             <div className="flex flex-col items-end gap-2">
               <Dialog.Root
                 open={createSiteOpen}
@@ -213,7 +209,11 @@ export default function UsernameDashboardPage() {
                     ) : null}
                     {site.hostname !== null ? (
                       <p className="mt-2 text-sm text-muted-foreground">
-                        {site.hostname}.{new URL(process.env.NEXT_PUBLIC_WEB_ORIGIN ?? "https://qrk.localhost").host}
+                        {site.hostname}.
+                        {
+                          new URL(process.env.NEXT_PUBLIC_WEB_ORIGIN ?? "https://qrk.localhost")
+                            .host
+                        }
                       </p>
                     ) : null}
                     {site.failures.map((failure) => (

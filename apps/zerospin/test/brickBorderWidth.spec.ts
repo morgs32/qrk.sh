@@ -1,3 +1,17 @@
+import { vi } from "vitest";
+vi.mock("cloudflare:workers", () => ({
+  env: {
+    ZEROSPIN_API_URL: "https://zerospin.qrk.localhost",
+    ZEROSPIN_SECRET_KEY: "test-only-secret",
+  },
+}));
+vi.mock("@zerospin/core/utils/getSystemApi/getSystemApi", async () => {
+  const { Effect } = await import("effect");
+  return {
+    getSystemApi: () =>
+      Effect.succeed({ executeServiceQuery: () => Effect.succeed({ username: "testuser" }) }),
+  };
+});
 import { userAggregateV1 } from "../src/fresh/userAggregateV1";
 import { expect, it } from "@effect/vitest";
 import { makeQueryDbVersion, NanoIdFactory } from "@zerospin/sdk";
@@ -120,7 +134,6 @@ it.effect(
         payload: {
           id: "usr_border",
           clerkUserId: "user_border",
-          username: null,
           displayName: null,
         },
       });
@@ -268,7 +281,7 @@ it.effect(
               brickId: entry.id,
               state: entry.state,
               pageId: "pag_border",
-                  target: { kind: "wall", wallId: "wal_pag_border_sm", beforeSectionId: null },
+              target: { kind: "wall", wallId: "wal_pag_border_sm", beforeSectionId: null },
             },
           })
           .pipe(Effect.flip);

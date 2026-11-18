@@ -1,5 +1,7 @@
 # 062 — Brick-owned click and focus
 
+> Relevant remaining work is tracked in [MOR-469](https://linear.app/morganatwork/issue/MOR-469/finish-qrk-studio-and-storybook-verification-for-brick-and-overlay). This file preserves the source plan and its evidence.
+
 **Status:** Implemented on `main`. Manual Studio verification pending.
 
 Studio currently makes every placed Brick a click-to-edit surface through

@@ -1,5 +1,7 @@
 # Plan 066 — Standardize Brick inputs on shadcn Base UI
 
+> Relevant remaining work is tracked in [MOR-469](https://linear.app/morganatwork/issue/MOR-469/finish-qrk-studio-and-storybook-verification-for-brick-and-overlay). This file preserves the source plan and its evidence.
+
 Use shadcn’s Base UI components where they match the interaction. Keep the
 compact Studio controls, existing field orientations, and Brick-owned validation,
 provider lookups, and autosave. Build on [Plan 065](./065-plan-brick-form-autosave.md)

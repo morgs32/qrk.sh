@@ -8,7 +8,7 @@
 - Before the first repository change each day, ask the user whether to work directly on `main` or use branches and PRs.
 - Before the day's first task that requires manual verification, ask whether the user or the agent should perform it.
 - Ask both together when both apply. As soon as the user gives or changes either choice, update the dated record below in this file. Keep the current day's answers and reuse them across chats. Ask only for choices the user has yet to give that day.
-- When the user chooses “I’ll verify,” complete the implementation and automated checks, then archive the plan. The user performs manual verification on their own time.
+- When the user chooses “I’ll verify,” complete the implementation and automated checks. Keep the Linear issue open with the user's remaining manual checks recorded.
 - For 2026-11-16, work directly on `main`. The user performs manual verification.
 - For 2026-11-15, use branches and PRs. The user performs manual verification.
 - For 2026-11-14, work directly on `main`.
@@ -104,9 +104,9 @@ Run the backend `test` script (through Nx when configured).
 
 ## Plans
 
-Resolve unsettled design decisions and write implementation plans at `wiki/plans/XXX-plan-<topic>.md`. Do not create new spec files; existing specs remain under `wiki/specs/` and `wiki/archive/specs/`. Record a settled decision in `wiki/adrs/` only when it is hard to reverse, surprising without context, and the result of a real trade-off. If no glossary exists, ask before creating one. Revise plans in place and use ordered steps and numbered review findings.
+Use `$grill-with-docs` for unsettled decisions, `$to-spec` for the canonical Linear issue in team MOR, and `$to-tickets` for sub-issues. Keep existing wiki plans and specs as historical records. Record a settled decision in `wiki/adrs/` only when it is hard to reverse, surprising without context, and the result of a real trade-off. If no glossary exists, ask before creating one. Revise plans in place and use ordered steps and numbered review findings.
 
-Follow `$implement` for plan completion and archival. Mark a replaced ADR **Superseded** and link its successor; move it to `wiki/archive/adrs/` only when it no longer governs anything and archival is wanted. Completing a plan does not retire its ADRs.
+Follow `$implement` for verified issue completion. Mark a replaced ADR **Superseded** and link its successor; move it to `wiki/archive/adrs/` only when it no longer governs anything and archival is wanted. Completing a plan does not retire its ADRs.
 Plans created by agents must include gratuitous annotated examples and annotated code snippets.
 
 <!-- nx configuration start-->

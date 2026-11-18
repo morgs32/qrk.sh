@@ -1,5 +1,7 @@
 # Plan 071 — Adopt shadcn Base UI Input in Bricks
 
+> Relevant remaining work is tracked in [MOR-469](https://linear.app/morganatwork/issue/MOR-469/finish-qrk-studio-and-storybook-verification-for-brick-and-overlay). This file preserves the source plan and its evidence.
+
 Use shadcn's Base UI Input at the existing Bricks export. Preserve the compact
 28px field surface, slots, autofill policy, native file control, and callers'
 control of value and validation. [Adoption audit](../research/shadcn-component-adoption-audit.md#bricks) · [Registry Input](https://github.com/shadcn-ui/ui/blob/main/apps/v4/registry/bases/base/ui/input.tsx)

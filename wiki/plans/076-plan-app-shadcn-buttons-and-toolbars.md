@@ -1,5 +1,7 @@
 # Plan 076 — Adopt shadcn Button in App and align the Wall toolbars
 
+> Relevant remaining work is tracked in [MOR-469](https://linear.app/morganatwork/issue/MOR-469/finish-qrk-studio-and-storybook-verification-for-brick-and-overlay). This file preserves the source plan and its evidence.
+
 Switch App's own Button to the shadcn Base UI registry. Preserve the compact
 Wall controls and route link semantics. Plan 069 owns the separate Bricks
 Button and InputGroupButton implementation.

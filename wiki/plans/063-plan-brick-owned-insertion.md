@@ -1,5 +1,7 @@
 # 063 — Brick-owned insertion behavior
 
+> Relevant remaining work is tracked in [MOR-469](https://linear.app/morganatwork/issue/MOR-469/finish-qrk-studio-and-storybook-verification-for-brick-and-overlay). This file preserves the source plan and its evidence.
+
 **Status:** Implemented on `main`. Manual Studio verification pending.
 
 After a successful catalog drop, the placed Brick chooses what happens next.

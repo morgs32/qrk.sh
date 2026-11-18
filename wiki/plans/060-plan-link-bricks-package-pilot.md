@@ -1,5 +1,7 @@
 # 060 · Pilot the Bricks workspace package with Link
 
+> Relevant remaining work is tracked in [MOR-469](https://linear.app/morganatwork/issue/MOR-469/finish-qrk-studio-and-storybook-verification-for-brick-and-overlay). This file preserves the source plan and its evidence.
+
 1. Create one private, source-consumed `@qrk.sh/bricks` package. Move Link's definition, React registry and components, form and stories, plus their shared dependencies. Rewire the other Bricks to the same defining files.
 2. Keep `linkV1` and saved specs compatible. Keep the existing System registration and provider execution in their owners. App binds the lookup callback at its Link registration and Web's WallViewer fixture renders a saved Link spec.
 3. Put the reusable `BrickStory` component and Storybook configuration in Bricks. Share one example state and active spec across the four breakpoint comparisons. Put Configure and Generate Spec in a right-side shadcn Sidebar. Keep live RPC through the Storybook proxy and keep the two Link story IDs.

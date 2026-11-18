@@ -1,5 +1,7 @@
 # 058 — Layout component views
 
+> Relevant remaining work is tracked in [MOR-466](https://linear.app/morganatwork/issue/MOR-466/bind-the-qrk-layout-components-through-makecomponentview). This file preserves the source plan and its evidence.
+
 **Status:** Ready for implementation.
 
 Bind the five shared layout components through `makeComponentView` and delete the handwritten prop parsers. Zerospin keeps the catalog metadata. App keeps the React. Saved specs that already pass `gap: 2` or `gap: 4` keep rendering.

@@ -1,5 +1,7 @@
 # 077 · Behance and Buy Me a Coffee Bricks
 
+> Relevant remaining work is tracked in [MOR-470](https://linear.app/morganatwork/issue/MOR-470/verify-the-qrk-behance-and-buy-me-a-coffee-release-candidate). This file preserves the source plan and its evidence.
+
 Add two module choices to Studio. Behance showcases selected projects from a public portfolio. Buy Me a Coffee gives visitors a direct link to the creator's hosted support page.
 
 ## 1. Verify Behance import

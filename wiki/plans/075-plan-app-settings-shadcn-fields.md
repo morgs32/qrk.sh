@@ -1,5 +1,7 @@
 # Plan 075 — Standardize App settings and creation fields
 
+> Relevant remaining work is tracked in [MOR-469](https://linear.app/morganatwork/issue/MOR-469/finish-qrk-studio-and-storybook-verification-for-brick-and-overlay). This file preserves the source plan and its evidence.
+
 Adopt the shadcn Base UI Input, Field, Slider and Checkbox in App. Use the
 existing Switch for Sticky navbar. Keep the current forms, validation,
 upload flows, publish selection, and command payloads.

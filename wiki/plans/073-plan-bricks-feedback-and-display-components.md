@@ -1,5 +1,7 @@
 # Plan 073 — Adopt shadcn feedback and display components in Bricks
 
+> Relevant remaining work is tracked in [MOR-469](https://linear.app/morganatwork/issue/MOR-469/finish-qrk-studio-and-storybook-verification-for-brick-and-overlay). This file preserves the source plan and its evidence.
+
 Use registry parts for the avatar fallback, alerts, and small presentation
 controls identified by the audit. Keep the editor, provider data, and
 module layout behavior at their existing call sites.

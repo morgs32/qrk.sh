@@ -1,5 +1,7 @@
 # Grouped Brick drawer and configuration
 
+> Relevant remaining work is tracked in [MOR-471](https://linear.app/morganatwork/issue/MOR-471/verify-the-grouped-qrk-brick-drawer-and-retained-history-behavior). This file preserves the source plan and its evidence.
+
 ## Goal and decisions
 
 1. Replace direct catalog dragging with curated horizontal rows and a configuration view. Group GitHub previews together and show captioned Image, captionless Image, and Image Carousel together. Keep category filters; initially give each other module its own row.

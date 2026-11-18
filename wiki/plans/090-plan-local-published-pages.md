@@ -1,5 +1,7 @@
 # Local published Pages
 
+> Relevant remaining work is tracked in [MOR-473](https://linear.app/morganatwork/issue/MOR-473/verify-qrk-published-page-routing-and-unpublish-against-the-addressed). This file preserves the source plan and its evidence.
+
 ## Problem
 
 QRK records immutable Page snapshots and publication state, but Web has no route that retrieves a published Page. Its `WallViewer` is only used by Storybook, and its fixture renderer does not render every registered Brick. A visitor must be able to open the actual published Site locally without seeing saved drafts or historical snapshots.

@@ -1,5 +1,7 @@
 # 064 · Non-destructive Image Brick cropping
 
+> Relevant remaining work is tracked in [MOR-469](https://linear.app/morganatwork/issue/MOR-469/finish-qrk-studio-and-storybook-verification-for-brick-and-overlay). This file preserves the source plan and its evidence.
+
 1. Keep the original source URL, title, and a shared normalized focal point and zoom in Image Brick state. Measure the active Placement image frame for the editor and use the default Image Cover proportions when it has no measurable frame.
 2. Keep Upload, Paste from URL, and Crop in the image dialog. Start replacement sources centered at 1×. Apply uploads an original local file and stages the URL and crop in the form. Save commits the Brick. Cancel discards the current draft.
 3. Add Image V2 and a candidate User release with `updateBrick@6`. Existing state decodes as uncropped. Existing specs keep their position until a crop is set, and recover it on reset. Preserve current canonical selections and registrations.

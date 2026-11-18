@@ -1,5 +1,7 @@
 # Plan 072 — Use shadcn registry controls in Brick editors
 
+> Relevant remaining work is tracked in [MOR-469](https://linear.app/morganatwork/issue/MOR-469/finish-qrk-studio-and-storybook-verification-for-brick-and-overlay). This file preserves the source plan and its evidence.
+
 Adopt the registry shells for Map Place results, Image crop, and Fit. Keep
 Bricks' shared Field, Input Group, and Tabs parts. Reuse Plan 069's compact
 input action when it lands. Align already uses Base UI Radio Group with

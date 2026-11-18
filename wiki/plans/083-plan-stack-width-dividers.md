@@ -1,5 +1,7 @@
 # 083 — Stack width dividers
 
+> Relevant remaining work is tracked in [MOR-472](https://linear.app/morganatwork/issue/MOR-472/verify-qrk-stack-divider-release-behavior-against-the-exact-session). This file preserves the source plan and its evidence.
+
 **Status:** Implemented; runtime verification remains.
 
 ## Problem and decisions

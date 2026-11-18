@@ -1,5 +1,7 @@
 # 061 — Sidebar-only Studio workspace
 
+> Relevant remaining work is tracked in [MOR-469](https://linear.app/morganatwork/issue/MOR-469/finish-qrk-studio-and-storybook-verification-for-brick-and-overlay). This file preserves the source plan and its evidence.
+
 **Status:** Implemented. Manual Studio verification pending.
 
 Studio currently switches between a right sidebar and a bottom drawer for the

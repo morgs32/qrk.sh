@@ -1,5 +1,7 @@
 # Plan 065 — Brick form autosave
 
+> Relevant remaining work is tracked in [MOR-469](https://linear.app/morganatwork/issue/MOR-469/finish-qrk-studio-and-storybook-verification-for-brick-and-overlay). This file preserves the source plan and its evidence.
+
 1. Use shadcn Base UI Field and FieldGroup in the Form Inputs catalog, Brick sidebar forms, and lookup search fields. Stack the labels above the inputs for Figma Thumbnail, Link, Instagram, GitHub Repo, GitHub Profile, and GitHub Activity. Keep the specialized image, color, place, and icon interactions. Use a white surface for the standalone Studio sidebar.
 2. Commit valid text after 500 ms idle, on blur, or on Enter. Commit place selection and image Apply immediately. Remove form-level Save and Cancel, and keep crop dialog controls.
 3. Cancel on new text or navigation, preserve drafts on failure, and show help, validation, pending status, and failure inline. Keep provider lookup and decoding in the owning module.

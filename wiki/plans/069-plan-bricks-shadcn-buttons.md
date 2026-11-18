@@ -1,5 +1,7 @@
 # Plan 069 — Adopt shadcn Base UI buttons in Bricks
 
+> Relevant remaining work is tracked in [MOR-469](https://linear.app/morganatwork/issue/MOR-469/finish-qrk-studio-and-storybook-verification-for-brick-and-overlay). This file preserves the source plan and its evidence.
+
 Replace the Bricks `Button` and `InputGroupButton` implementations with the
 shadcn Base UI registry versions using Nova button styles and QRK's existing
 theme colors. Ordinary buttons take on Nova's appearance. Keep the 24px

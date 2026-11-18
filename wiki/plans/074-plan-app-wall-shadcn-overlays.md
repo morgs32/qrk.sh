@@ -1,5 +1,7 @@
 # Plan 074 — Adopt shadcn overlays for Wall actions
 
+> Relevant remaining work is tracked in [MOR-469](https://linear.app/morganatwork/issue/MOR-469/finish-qrk-studio-and-storybook-verification-for-brick-and-overlay). This file preserves the source plan and its evidence.
+
 Use shadcn Base UI Dropdown Menu for the three Wall menus and Alert Dialog
 for Delete Brick. Preserve QRK's overlay stacking, compact sizes, command
 logic, and focus return. [Adoption audit](../research/shadcn-component-adoption-audit.md#app)

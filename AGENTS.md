@@ -3,6 +3,7 @@
 ## Daily choices
 
 - For 2026-11-18, commit and push the first-principles guidance directly to `main`.
+- For the 2026-11-18 Assets V1 reboot, commit directly on local `main` without pushing. The user performs manual verification.
 - For 2026-11-17, use branches and PRs. The user performs manual verification.
 
 - Before the first repository change each day, ask the user whether to work directly on `main` or use branches and PRs.
@@ -177,11 +178,22 @@ the release supplying the owner Chain's adopted published history; evaluate
 promotion separately from adding or using a release. A query of a release does
 not by itself guarantee that its materialization has caught up with other releases.
 
-## System registry changes
+## Strict rule: user-only handwritten registry changes
 
-Before changing any `system.ts`, present the user with exact before-and-after
-snippets of every proposed change and ask for approval. Wait for approval before
-making the approved changes. The agent may then make those changes.
+Agents **MUST NOT change an existing `canonical` selection or remove/omit any
+previously registered Aggregate, Service, or owner release from the System
+registry/SystemSpec. The user must personally handwrite those changes.**
+
+This prohibition includes temporary canonical changes, whole-registry rewrites,
+scripts, generated configuration, automation, and Studio/UI actions. General
+implementation, upgrade, repair, cleanup, or migration requests do not authorize
+these edits. Successful validation, a newer release, or apparent lack of
+remaining dependencies does not authorize them either.
+
+Agents may add candidate releases while preserving **all existing canonical
+selections and registrations**, investigate promotion/retirement eligibility,
+and present evidence and exact recommendations. Stop before editing a canonical
+selection or omitting a registration; leave that handwritten change to the user.
 
 <!-- zerospin:agent-rules:end -->
 

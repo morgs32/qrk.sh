@@ -2,6 +2,7 @@
 
 ## Daily choices
 
+- For 2026-11-18, commit and push the first-principles guidance directly to `main`.
 - For 2026-11-17, use branches and PRs. The user performs manual verification.
 
 - Before the first repository change each day, ask the user whether to work directly on `main` or use branches and PRs.
@@ -183,3 +184,10 @@ snippets of every proposed change and ask for approval. Wait for approval before
 making the approved changes. The agent may then make those changes.
 
 <!-- zerospin:agent-rules:end -->
+
+## Start from first principles
+
+In design discussions and implementation, name the required behavior and sketch
+the simplest end-to-end flow you’d build today before using existing code as a
+starting point. Show the underlying calls. Keep a wrapper, state, or handoff only
+if you can name the problem it solves. Remove machinery the design no longer needs.

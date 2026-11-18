@@ -167,6 +167,16 @@ claims existing clients and unregisters without reloading them or clearing data.
 Its retained asset fallback still serves exact old `/assets/` URLs; subsequent
 document navigation uses the network. Production preview serves the real worker.
 
+Online navigations fetch the document first so Vercel Routing Middleware can
+verify Clerk on protected pages before the shell rewrite. The worker serves the
+precached shell if the document fetch fails and continues to cache immutable
+build assets. Auth responses and request-specific HTML stay out of Cache Storage.
+Configure the App deployment's server-only `CLERK_SECRET_KEY` and its
+`NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `NEXT_PUBLIC_APP_ORIGIN`, and
+`NEXT_PUBLIC_WEB_ORIGIN`. Keep the App origin and Web's allowed post-sign-in
+redirect origins aligned, including for previews. See the
+[navigation and reload research](../../wiki/research/2026-11-18-pwa-navigation-and-reload.md).
+
 After a successful online visit, a previously verified user can reopen the exact
 saved editor URL and edit its locally saved Page offline. Zerospin restores
 only an eligible exact remembered identity and retains pending commands locally.

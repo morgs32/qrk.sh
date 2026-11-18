@@ -21,8 +21,6 @@ export default defineConfig(({ mode }) => {
     workbox: {
       cacheId: offlineCachePrefix,
       importScripts: ["offline-cache.js"],
-      navigateFallback: "/index.html",
-      navigateFallbackDenylist: [/^\/__dev(?:\/|$)/, /^\/rpc(?:\/|$)/],
       globPatterns: ["**/*.{js,css,html,wasm,woff,woff2,png,svg,ico}"],
       // The icon picker downloads the Material Symbols catalog on its first search.
       globIgnores: ["**/node_modules/**/*", "**/materialSymbols-*.js"],
@@ -30,6 +28,14 @@ export default defineConfig(({ mode }) => {
       clientsClaim: true,
       cleanupOutdatedCaches: false,
       runtimeCaching: [
+        {
+          urlPattern: ({ request, sameOrigin, url }) =>
+            request.mode === "navigate" &&
+            sameOrigin &&
+            !/^\/(?:__dev|rpc|api|sign-in|sign-up|assets)(?:\/|$)/.test(url.pathname),
+          handler: "NetworkOnly",
+          options: { precacheFallback: { fallbackURL: "/index.html" } },
+        },
         {
           urlPattern: /^https:\/\/[^/]+\/npm\/@clerk\/.*\.js(?:\?.*)?$/,
           handler: "StaleWhileRevalidate",

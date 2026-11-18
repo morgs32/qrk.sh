@@ -21,6 +21,9 @@ release has materialized the command.
 Web's server requires `ZEROSPIN_API_URL` and `ZEROSPIN_SECRET_KEY` matching
 the local Zerospin service in its own ignored
 `.env.local`. Never use a `NEXT_PUBLIC_` prefix for this administrative key.
+Set `NEXT_PUBLIC_API_URL=https://api.qrk.localhost` in the same file for
+published creator images and favicons. Web constructs anonymous `/files/:fileId`
+URLs; the API Worker checks current publication before reading the private bucket.
 Map Bricks use the existing public `NEXT_PUBLIC_MAPBOX_TOKEN`. The local
 wildcard Portless proxy must be running; see the root README. These settings do
 not configure production.

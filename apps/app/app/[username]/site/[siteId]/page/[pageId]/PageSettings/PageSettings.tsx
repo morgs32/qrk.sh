@@ -16,6 +16,7 @@ import { Field, FieldError, FieldLabel } from "@qrk.sh/bricks/components/field";
 import { Input } from "@qrk.sh/bricks/components/Input";
 import { StudioSidebar } from "@qrk.sh/bricks/components/StudioSidebar";
 import { TextboxInput } from "@qrk.sh/bricks/components/TextboxInput";
+import { useCreatorImageSrc } from "@qrk.sh/bricks/creatorFile/useCreatorImageSrc";
 import { useWarnBeforeUnload } from "@qrk.sh/bricks/modules/react/useWarnBeforeUnload";
 
 import { SearchPreviewCard } from "../SearchPreviewCard";
@@ -25,6 +26,8 @@ export function PageSettings(props: {
 }) {
   const { page } = props;
   const { faviconLightUrl, faviconDarkUrl } = page.site;
+  const lightFaviconSrc = useCreatorImageSrc(faviconLightUrl ?? "");
+  const darkFaviconSrc = useCreatorImageSrc(faviconDarkUrl ?? faviconLightUrl ?? "");
   const savedTitle = page.title ?? "";
   const savedDescription = page.description ?? "";
   const session = useSession(userSessionDefinition);
@@ -118,7 +121,7 @@ export function PageSettings(props: {
                     title={fields.title}
                     url={previewUrl}
                     description={fields.description}
-                    faviconSrc={faviconLightUrl || undefined}
+                    faviconSrc={lightFaviconSrc || undefined}
                   />
                 </Field>
                 <Field aria-labelledby="browser-tab-preview-label">
@@ -131,12 +134,12 @@ export function PageSettings(props: {
                   <div className="overflow-hidden rounded-lg border border-sidebar-border bg-[#dbe5f5] dark:bg-zinc-900">
                     <div className="mx-2 mt-2 flex h-8 max-w-56 min-w-0 items-center gap-2 rounded-t-lg bg-[#f7faff] px-3 text-xs text-zinc-800 dark:bg-zinc-800 dark:text-zinc-100">
                       <img
-                        src={faviconLightUrl || "/favicon-light.png"}
+                        src={lightFaviconSrc || "/favicon-light.png"}
                         alt=""
                         className="size-4 shrink-0 object-contain dark:hidden"
                       />
                       <img
-                        src={faviconDarkUrl || faviconLightUrl || "/favicon-light.png"}
+                        src={darkFaviconSrc || "/favicon-light.png"}
                         alt=""
                         className="hidden size-4 shrink-0 object-contain dark:block"
                       />

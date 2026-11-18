@@ -4,6 +4,8 @@
   "private": true,
   "type": "module",
   "exports": {
+    "./creatorFile/creatorFileId": "./src/creatorFile/creatorFileId.ts",
+    "./creatorFile/useCreatorImageSrc": "./src/creatorFile/useCreatorImageSrc.ts",
     "./zerospin/brickContracts": "./src/zerospin/brickContracts.ts",
     "./zerospin/models/brick/BrickV1": "./src/zerospin/models/brick/BrickV1.ts",
     "./zerospin/models/brick/brick": "./src/zerospin/models/brick/brick.ts",
@@ -32,6 +34,8 @@
     "./zerospin/wall/stackMoveTargetSchema": "./src/zerospin/wall/stackMoveTargetSchema.ts",
     "./modules/text/commands/textPlacementState": "./src/modules/text/commands/textPlacementState.ts",
     "./modules/image/definition/v2": "./src/modules/image/definition/imageV2.ts",
+    "./modules/image/definition/v4": "./src/modules/image/definition/imageV4.ts",
+    "./modules/imageCarousel/definition": "./src/modules/imageCarousel/definition/imageCarouselV1.ts",
     "./modules/link/definition": "./src/modules/link/definition/linkV1.ts",
     "./modules/link/react": "./src/modules/link/react/LinkJsonRenderRegistry.tsx",
     "./modules/link/view": "./src/modules/link/react/linkView.tsx",

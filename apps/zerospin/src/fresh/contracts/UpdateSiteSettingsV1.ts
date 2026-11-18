@@ -1,4 +1,5 @@
 import { defineAggregateContract, findMany } from "@zerospin/sdk/browser";
+import { creatorImageSourceSchema } from "@qrk.sh/bricks/creatorFile/creatorFileId";
 import { pageV1 as Page } from "@qrk.sh/bricks/zerospin/models/page/PageV1";
 import { wallV1 as Wall } from "@qrk.sh/bricks/zerospin/models/wall/WallV1";
 import { placementV1 as Placement } from "@qrk.sh/bricks/zerospin/models/placement/PlacementV1";
@@ -31,15 +32,18 @@ const updateSiteSettingsPayload = {
     nullable: true,
     defaultValue: null,
   }),
-  logoUrl: primitives.text({
+  logoUrl: primitives.json({
+    schema: creatorImageSourceSchema,
     nullable: true,
     defaultValue: null,
   }),
-  faviconLightUrl: primitives.text({
+  faviconLightUrl: primitives.json({
+    schema: creatorImageSourceSchema,
     nullable: true,
     defaultValue: null,
   }),
-  faviconDarkUrl: primitives.text({
+  faviconDarkUrl: primitives.json({
+    schema: creatorImageSourceSchema,
     nullable: true,
     defaultValue: null,
   }),

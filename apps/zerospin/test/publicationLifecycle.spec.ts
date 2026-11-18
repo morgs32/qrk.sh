@@ -18,6 +18,7 @@ import { makeSystemHarness } from "@zerospin/sdk/testing";
 import { Effect } from "effect";
 
 import { system } from "../src/system";
+import { assetsV1 } from "../src/services/assets/assetsV1";
 
 it.effect("publishes, unpublishes, and republishes the current saved Page snapshot", () =>
   Effect.gen(function* () {
@@ -77,10 +78,32 @@ it.effect("publishes, unpublishes, and republishes the current saved Page snapsh
       },
     });
     yield* harness.flush();
+    const image = {
+      imageUrl: "ast_publication",
+      altText: "Photo",
+      caption: "",
+      crop: null,
+      round: false,
+    };
+    yield* harness.push({
+      ...actor,
+      id: "cmd_publication_image",
+      pushIndex: 3,
+      commandName: "addImageBrick",
+      contractVersion: release.actors.web.contracts.addImageBrick.version,
+      payload: {
+        brickId: "brk_publication",
+        pageId: "pag_publication",
+        layoutId: "default",
+        state: image,
+        target: { kind: "wall", wallId: "wal_pag_publication_lg", beforeSectionId: null },
+      },
+    });
+    yield* harness.flush();
     yield* harness.push({
       ...actor,
       id: "cmd_publish_first",
-      pushIndex: 3,
+      pushIndex: 4,
       commandName: "publishSite",
       contractVersion: release.actors.web.contracts.publishSite.version,
       payload: {
@@ -107,10 +130,18 @@ it.effect("publishes, unpublishes, and republishes the current saved Page snapsh
     yield* harness.push({
       ...actor,
       id: "cmd_edit_page",
-      pushIndex: 4,
+      pushIndex: 5,
       commandName: "updatePageSettings",
       contractVersion: release.actors.web.contracts.updatePageSettings.version,
       payload: { id: "pag_publication", title: "Second", description: null },
+    });
+    yield* harness.push({
+      ...actor,
+      id: "cmd_replace_publication_image",
+      pushIndex: 6,
+      commandName: "updateImageBrick",
+      contractVersion: release.actors.web.contracts.updateImageBrick.version,
+      payload: { brickId: "brk_publication", state: { ...image, imageUrl: "https://example.com/new.png" } },
     });
     yield* harness.flush();
     expect(
@@ -118,11 +149,11 @@ it.effect("publishes, unpublishes, and republishes the current saved Page snapsh
         owner,
         db.query.pageSnapshot.findFirst({ where: { id: { eq: "psn_first" } } }),
       ),
-    ).toMatchObject({ content: { title: "First" } });
+    ).toMatchObject({ content: { title: "First", bricks: [{ brickState: image }] } });
     yield* harness.push({
       ...actor,
       id: "cmd_publish_update",
-      pushIndex: 5,
+      pushIndex: 7,
       commandName: "publishPage",
       contractVersion: release.actors.web.contracts.publishPage.version,
       payload: {
@@ -135,7 +166,7 @@ it.effect("publishes, unpublishes, and republishes the current saved Page snapsh
     yield* harness.push({
       ...actor,
       id: "cmd_unpublish",
-      pushIndex: 6,
+      pushIndex: 8,
       commandName: "unpublishSite",
       contractVersion: release.actors.web.contracts.unpublishSite.version,
       payload: { siteId: "sit_publication" },
@@ -157,7 +188,7 @@ it.effect("publishes, unpublishes, and republishes the current saved Page snapsh
       .push({
         ...actor,
         id: "cmd_publish_while_unpublished",
-        pushIndex: 7,
+        pushIndex: 9,
         commandName: "publishPage",
         contractVersion: release.actors.web.contracts.publishPage.version,
         payload: {
@@ -174,7 +205,7 @@ it.effect("publishes, unpublishes, and republishes the current saved Page snapsh
     yield* harness.push({
       ...actor,
       id: "cmd_republish_site",
-      pushIndex: 8,
+      pushIndex: 10,
       commandName: "publishSite",
       contractVersion: release.actors.web.contracts.publishSite.version,
       payload: {
@@ -206,5 +237,61 @@ it.effect("publishes, unpublishes, and republishes the current saved Page snapsh
       ["psn_second", "Second"],
       ["psn_third", "Second"],
     ]);
+    expect(snapshots.find((snapshot) => snapshot.id === "psn_third")?.content.bricks).toMatchObject([
+      { brickState: { imageUrl: "https://example.com/new.png" } },
+    ]);
+  }).pipe(Effect.provide(NanoIdFactory)),
+);
+
+it.effect("preserves an immutable Asset reservation through retries and readiness", () =>
+  Effect.gen(function* () {
+    const harness = yield* makeSystemHarness({ system });
+    const db = makeQueryDbVersion({ models: assetsV1.models });
+    const assetId = "ast_publication";
+    const reservation = {
+      kind: "system",
+      commandName: "reserveAsset",
+      serviceName: "assets",
+      serviceVersion: 1,
+      contractVersion: 1,
+      externalOutcome: null,
+      payload: {
+        assetId,
+        ownerAggregateId: "user_publication",
+        uploadSiteId: "sit_publication",
+        objectKey: `creator/${assetId}`,
+        contentType: "image/png",
+        size: 120,
+        sha256: "a".repeat(64),
+      },
+    } as const;
+    const current = db.query.asset.findFirst({ where: { id: { eq: assetId } } });
+    yield* harness.push({ ...reservation, id: "cmd_reserve_publication" });
+    yield* harness.flush();
+    expect(yield* harness.query({ release: assetsV1 }, current)).toMatchObject({ ready: false });
+
+    yield* harness.push({
+      kind: "system",
+      id: "cmd_ready_publication",
+      commandName: "markAssetReady",
+      serviceName: "assets",
+      serviceVersion: 1,
+      contractVersion: 1,
+      externalOutcome: null,
+      payload: { assetId },
+    });
+    yield* harness.push({ ...reservation, id: "cmd_retry_publication" });
+    yield* harness.flush();
+    const conflict = yield* harness.push({
+      ...reservation,
+      id: "cmd_conflict_publication",
+      payload: { ...reservation.payload, sha256: "b".repeat(64) },
+    }).pipe(Effect.flip);
+    expect(conflict).toMatchObject({ code: "asset-reservation-conflict" });
+    expect(yield* harness.query({ release: assetsV1 }, current)).toMatchObject({
+      id: assetId,
+      sha256: reservation.payload.sha256,
+      ready: true,
+    });
   }).pipe(Effect.provide(NanoIdFactory)),
 );

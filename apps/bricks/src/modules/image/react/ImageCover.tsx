@@ -1,6 +1,7 @@
 import { useStateValue } from "@json-render/react";
 import { primitives } from "@zerospin/shapes";
 import { CroppedImage } from "../../../components/CroppedImage";
+import { useCreatorImageSrc } from "../../../creatorFile/useCreatorImageSrc";
 import { imageCropSchema } from "../definition/imageV2";
 import { Image as UnpicImage } from "@unpic/react";
 import { makeComponentView } from "../../react/makeComponentView";
@@ -17,6 +18,7 @@ export const imageCoverView = makeComponentView(
   {
     component(props) {
       const { imageUrl, title, imagePosition, crop, round } = props;
+      const src = useCreatorImageSrc(imageUrl);
       const photo = (
         <div
           data-image-cover
@@ -24,11 +26,11 @@ export const imageCoverView = makeComponentView(
             ? "absolute left-1/2 top-1/2 size-[min(100cqw,100cqh)] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-full"
             : "relative min-h-[200px] min-w-[200px] flex-1 overflow-hidden"}
         >
-          {crop !== null ? (
-            <CroppedImage key={imageUrl} src={imageUrl} alt={title} crop={crop} />
+          {src === "" ? null : crop !== null ? (
+            <CroppedImage key={imageUrl} src={src} alt={title} crop={crop} />
           ) : (
             <UnpicImage
-              src={imageUrl}
+              src={src}
               alt={title}
               className="absolute inset-0 size-full object-cover object-center data-[image-position=top-left]:object-left-top data-[image-position=top-center]:object-top data-[image-position=top-right]:object-right-top data-[image-position=center-left]:object-left data-[image-position=center-right]:object-right data-[image-position=bottom-left]:object-left-bottom data-[image-position=bottom-center]:object-bottom data-[image-position=bottom-right]:object-right-bottom"
               data-image-position={imagePosition}

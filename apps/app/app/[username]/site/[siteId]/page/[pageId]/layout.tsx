@@ -15,6 +15,7 @@ import { makeIdSchema } from "@zerospin/sdk/browser";
 import { Schema } from "effect";
 import { SWRConfig } from "swr";
 import { Tabs, TabsContent } from "@qrk.sh/bricks/components/tabs";
+import { creatorFileIdSchema, makeCreatorFileUrl } from "@qrk.sh/bricks/creatorFile/creatorFileId";
 import { siteV1 as Site } from "@qrk.sh/zerospin/src/aggregates/user/models/site/SiteV1";
 import { pageV1 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV1";
 import { BREAKPOINTS, PREVIEW_BORDER_WIDTH } from "../../../../../../lib/breakpoints";
@@ -160,6 +161,19 @@ export default function PageLayout(props: { children: ReactNode }) {
   const editorScroll = useRef<HTMLDivElement>(null);
   const backgroundPress = useRef<number | null>(null);
   const { getToken } = useAuth();
+  const uploadIds = useRef(new WeakMap<File, string>());
+  const fetchCreatorImage = useCallback(async (fileId: string, options: { signal: AbortSignal }) => {
+    const { signal } = options;
+    const token = await getToken();
+    signal.throwIfAborted();
+    if (token === null) throw new Error("Sign in to preview images");
+    const response = await fetch(makeCreatorFileUrl(fileId), {
+      headers: { Authorization: `Bearer ${token}` },
+      signal,
+    });
+    if (!response.ok) throw new Error("Creator image is not available");
+    return response.blob();
+  }, [getToken]);
   const session = useSession(userSessionDefinition);
   const { breakpoint, previewRef } = useBreakpointGuard(PREVIEW_GUTTERS);
   const previewGutter =
@@ -250,7 +264,10 @@ export default function PageLayout(props: { children: ReactNode }) {
     const body = new FormData();
     body.set("file", file);
     body.set("siteId", params.siteId);
-    const response = await fetch(`${apiUrl.replace(/\/$/, "")}/upload`, {
+    const fileId = uploadIds.current.get(file) ?? `ast_${crypto.randomUUID()}`;
+    uploadIds.current.set(file, fileId);
+    body.set("fileId", fileId);
+    const response = await fetch(`${apiUrl.replace(/\/$/, "")}/files`, {
       method: "POST",
       headers: { Authorization: `Bearer ${token}` },
       body,
@@ -264,9 +281,10 @@ export default function PageLayout(props: { children: ReactNode }) {
       throw new Error(error.message);
     }
     const uploaded = Schema.decodeUnknownSync(
-      Schema.Struct({ key: Schema.String, url: Schema.String, contentType: Schema.String }),
+      Schema.Struct({ fileId: creatorFileIdSchema }),
     )(result);
-    return uploaded.url;
+    if (uploaded.fileId !== fileId) throw new Error("Upload returned a different file ID");
+    return uploaded.fileId;
   };
   const siteName = site.name ?? "";
   const pageTitle = page.title ?? "";
@@ -295,7 +313,7 @@ export default function PageLayout(props: { children: ReactNode }) {
   };
 
   return (
-    <SWRConfig value={{ uploadImage }}>
+    <SWRConfig value={{ uploadImage, fetchCreatorImage }}>
       <BrickAutosaveContext value={{ registerBrickFlush, flushBrick, flushPageEditors }}>
         <Tabs value={pageTab} className="h-full min-h-0 gap-0">
           <div

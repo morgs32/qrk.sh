@@ -5,9 +5,7 @@ import { stageAggregateSessionCommand } from "@zerospin/sdk/browser";
 
 /* oxlint-disable next/no-img-element -- App uses Vite, so Next image optimization is unavailable. */
 
-import { useAuth } from "@clerk/react";
 import { Slider as SliderPrimitive } from "@base-ui/react/slider";
-import { ClerkOfflineError } from "@clerk/react/errors";
 import { Button } from "@qrk.sh/bricks/components/button";
 import { Checkbox } from "@qrk.sh/bricks/components/checkbox";
 import { CroppedImage } from "@qrk.sh/bricks/components/CroppedImage";
@@ -23,27 +21,20 @@ import { ImageUploadInput } from "@qrk.sh/bricks/components/ImageUploadInput";
 import { Slider } from "@qrk.sh/bricks/components/slider";
 import { StudioSidebar } from "@qrk.sh/bricks/components/StudioSidebar";
 import { TextboxInput } from "@qrk.sh/bricks/components/TextboxInput";
+import { useCreatorImageSrc } from "@qrk.sh/bricks/creatorFile/useCreatorImageSrc";
 
-import { Schema } from "effect";
 import { isEqual } from "es-toolkit";
 import { ExternalLink } from "lucide-react";
 import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import useSWR from "swr";
+import useSWR, { useSWRConfig } from "swr";
 
 import { CopyButton } from "./CopyButton";
 
 import { userSessionDefinition } from "@/zerospin/userSessionDefinition";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@qrk.sh/bricks/components/input-group";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { useValidatedParams } from "@/hooks/useValidatedParams";
 import { useWarnBeforeUnload } from "@qrk.sh/bricks/modules/react/useWarnBeforeUnload";
-
-const ParamsSchema = Schema.Struct({
-  username: Schema.String,
-  siteId: Schema.TemplateLiteral(["sit_", Schema.String]),
-  pageId: Schema.String,
-});
 
 const siteImageFields = [
   { field: "logoUrl", label: "Logo", description: "PNG or SVG, up to 48px tall recommended" },
@@ -51,44 +42,6 @@ const siteImageFields = [
   { field: "faviconDarkUrl", label: "Dark favicon", description: "64 × 64 pixels" },
 ] as const;
 const siteImageTypes = ["image/png", "image/jpeg", "image/webp", "image/svg+xml"];
-
-async function uploadSiteImage(props: {
-  file: File;
-  siteId: string;
-  sessionToken: string;
-  signal: AbortSignal;
-}): Promise<{ url: string }> {
-  const { file, siteId, sessionToken, signal } = props;
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
-  if (!apiBaseUrl) {
-    throw new Error("NEXT_PUBLIC_API_URL is required");
-  }
-
-  const formData = new FormData();
-  formData.set("file", file);
-  formData.set("siteId", siteId);
-
-  const response = await fetch(`${apiBaseUrl.replace(/\/$/, "")}/upload`, {
-    method: "POST",
-    signal,
-    headers: {
-      Authorization: `Bearer ${sessionToken}`,
-    },
-    body: formData,
-  });
-
-  const body = (await response.json().catch(() => null)) as {
-    url?: string;
-    message?: string;
-    code?: string;
-  } | null;
-
-  if (!response.ok || body === null || typeof body.url !== "string") {
-    throw new Error(body?.message ?? `Upload failed (${response.status})`);
-  }
-
-  return { url: body.url };
-}
 
 export function SiteSettings(props: {
   site: {
@@ -106,8 +59,7 @@ export function SiteSettings(props: {
   };
 }) {
   const { site } = props;
-  const params = useValidatedParams(ParamsSchema);
-  const { getToken } = useAuth();
+  const { uploadImage } = useSWRConfig();
   const session = useSession(userSessionDefinition);
   const siteId = site.id;
   const formId = useId();
@@ -125,6 +77,11 @@ export function SiteSettings(props: {
     brickGap: site.brickGap,
     stickyNavbar: site.stickyNavbar,
   }));
+  const imagePreviews = {
+    logoUrl: useCreatorImageSrc(fields.logoUrl),
+    faviconLightUrl: useCreatorImageSrc(fields.faviconLightUrl),
+    faviconDarkUrl: useCreatorImageSrc(fields.faviconDarkUrl),
+  };
   const [saveError, setSaveError] = useState<string | null>(null);
   const [socialPreview, setSocialPreview] = useState<{
     imageUrl: string;
@@ -195,15 +152,10 @@ export function SiteSettings(props: {
         URL.revokeObjectURL(localUrl);
       }
       signal.throwIfAborted();
-      const sessionToken = await getToken().catch((cause) => {
-        if (ClerkOfflineError.is(cause)) throw new Error("Clerk is offline");
-        throw cause;
-      });
-      if (sessionToken === null) throw new Error("Sign in to upload images");
+      if (uploadImage === undefined) throw new Error("Image upload is unavailable");
+      const fileId = await uploadImage(file, { signal });
       signal.throwIfAborted();
-      const { url } = await uploadSiteImage({ file, siteId: params.siteId, sessionToken, signal });
-      signal.throwIfAborted();
-      setFields((current) => ({ ...current, [field]: url }));
+      setFields((current) => ({ ...current, [field]: fileId }));
     } catch (cause) {
       if (!signal.aborted) {
         const message = cause instanceof Error ? cause.message : "Image upload failed.";
@@ -281,7 +233,7 @@ export function SiteSettings(props: {
 
         {siteImageFields.map(({ field, label, description }) => {
           const id = `site-${field}`;
-          const imageUrl = fields[field];
+          const imageUrl = imagePreviews[field];
           const error = uploadErrors[field];
           const dark = field === "faviconDarkUrl";
           return (

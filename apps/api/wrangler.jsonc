@@ -13,10 +13,15 @@
       "binding": "ASSETS",
       "bucket_name": "assets",
     },
+    {
+      "binding": "CREATOR_FILES",
+      "bucket_name": "qrk-creator-files",
+    },
   ],
   "vars": {
     // Portless exposes local public objects through the API Worker's /assets route.
     "R2_PUBLIC_BASE_URL": "https://api.qrk.localhost/assets",
+    "ZEROSPIN_API_URL": "https://zerospin.qrk.localhost/",
     "CLERK_AUTHORIZED_PARTY": "https://app.qrk.localhost",
   },
   "browser": { "binding": "BROWSER", "remote": true },

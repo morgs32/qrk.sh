@@ -6,7 +6,24 @@ import { ChevronLeft, ChevronRight, Pause, Play } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "../../../components/button";
 import { CroppedImage } from "../../../components/CroppedImage";
+import { useCreatorImageSrc } from "../../../creatorFile/useCreatorImageSrc";
 import type { imageCarouselSlidesSchema } from "../definition/imageCarouselV1";
+
+function CarouselSlideImage(props: { slide: typeof imageCarouselSlidesSchema.Type[number] }) {
+  const { slide } = props;
+  const src = useCreatorImageSrc(slide.imageUrl);
+  if (src === "") return null;
+  return slide.crop === null ? (
+    <img
+      src={src}
+      alt={slide.alt}
+      draggable={false}
+      className="absolute inset-0 size-full select-none object-cover"
+    />
+  ) : (
+    <CroppedImage src={src} alt={slide.alt} crop={slide.crop} />
+  );
+}
 
 export function ImageCarousel() {
   const slides =
@@ -131,20 +148,7 @@ export function ImageCarousel() {
               aria-hidden={index !== selected}
               className="relative min-w-0 flex-[0_0_100%]"
             >
-              {slide.crop === null ? (
-                <img
-                  src={slide.imageUrl}
-                  alt={slide.alt}
-                  draggable={false}
-                  className="absolute inset-0 size-full select-none object-cover"
-                />
-              ) : (
-                <CroppedImage
-                  src={slide.imageUrl}
-                  alt={slide.alt}
-                  crop={slide.crop}
-                />
-              )}
+              <CarouselSlideImage slide={slide} />
             </div>
           ))}
         </div>

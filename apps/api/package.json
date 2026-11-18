@@ -13,7 +13,10 @@
     "@clerk/backend": "^3.8.5",
     "@qrk.sh/bricks": "workspace:*",
     "@qrk.sh/zerospin": "workspace:*",
-    "capnweb": "^0.12.0"
+    "@zerospin/core": "48.0.0",
+    "@zerospin/sdk": "48.0.0",
+    "capnweb": "^0.12.0",
+    "effect": "4.0.2"
   },
   "devDependencies": {
     "@types/node": "^25.5.2",

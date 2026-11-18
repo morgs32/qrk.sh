@@ -7,6 +7,7 @@ import { GooglePlacesBackend } from "@qrk.sh/bricks/worker/mapPlace/GooglePlaces
 import { newWorkersRpcResponse } from "capnweb";
 
 import { handleR2Asset } from "./assets";
+import { handleCreatorFiles } from "./files/handleCreatorFiles";
 import { emptyCorsResponse, jsonResponse, requireClerkUserId, UploadHttpError } from "./http";
 import { handleUpload } from "./handleUpload";
 
@@ -21,6 +22,10 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
 
   if (url.pathname === "/") {
     return newWorkersRpcResponse(request, new BricksApi(env));
+  }
+
+  if (url.pathname === "/files" || url.pathname.startsWith("/files/")) {
+    return handleCreatorFiles(request, env, url.pathname);
   }
 
   const assetResponse = await handleR2Asset({

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
+import { isCreatorFileId, makeCreatorFileUrl } from "@qrk.sh/bricks/creatorFile/creatorFileId";
 import { PublishedWalls } from "@/library/PublishedWalls";
 import { readPublishedPage } from "@/library/readPublishedPage";
 
@@ -23,10 +24,16 @@ export async function generateMetadata(props: {
       icon: [
         ...(site.faviconLightUrl === null
           ? []
-          : [{ url: site.faviconLightUrl, media: "(prefers-color-scheme: light)" }]),
+          : [{
+            url: isCreatorFileId(site.faviconLightUrl) ? makeCreatorFileUrl(site.faviconLightUrl) : site.faviconLightUrl,
+            media: "(prefers-color-scheme: light)",
+          }]),
         ...(site.faviconDarkUrl === null
           ? []
-          : [{ url: site.faviconDarkUrl, media: "(prefers-color-scheme: dark)" }]),
+          : [{
+            url: isCreatorFileId(site.faviconDarkUrl) ? makeCreatorFileUrl(site.faviconDarkUrl) : site.faviconDarkUrl,
+            media: "(prefers-color-scheme: dark)",
+          }]),
       ],
     },
   };

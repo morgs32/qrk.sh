@@ -3,7 +3,7 @@
 ## Zerospin packages
 
 Zerospin owns its source, builds, and releases in the sibling `../zerospin`
-checkout. QRK installs exact `47.0.3` packages from the local Verdaccio registry;
+checkout. QRK installs exact `48.0.0` packages from the local Verdaccio registry;
 there is no vendored Zerospin source or consumer-side Zerospin build.
 Actor and agent selection identity uses the authored definition rather than
 generated SQL. Existing direct Drizzle dependencies use the same exact local
@@ -95,7 +95,7 @@ See [Modules](apps/app/modules/README.md) and [App](apps/app/README.md).
    On the first registry bootstrap, install, build, verify, and publish the
    release in Zerospin before installing QRK. Follow Zerospin's package release
    instructions. Existing registry storage survives restarts. A fresh checkout
-   requires the running registry with the locked `47.0.3` packages; hosted
+   requires the running registry with the locked `48.0.0` packages; hosted
    distribution and deployment-machine bootstrap are not configured here.
 
 2. Start the development servers through Portless:
@@ -105,6 +105,19 @@ See [Modules](apps/app/modules/README.md) and [App](apps/app/README.md).
    ```
 
 3. Open [https://qrk.localhost/](https://qrk.localhost/).
+
+An existing local checkout crossing the Zerospin 44/46 storage cutovers needs
+the one-time [local System reboot](apps/zerospin/README.md#local-v1-reboot)
+before starting the full stack. Do not reset API Worker storage.
+
+Local creator image uploads use the API Worker's private `CREATOR_FILES`
+binding and the Assets V1 service. The API Worker needs its own server-only
+`ZEROSPIN_SECRET_KEY` matching the local System, in an ignored env file. Image
+and Carousel uploads and Site media settings save a file ID, not a bucket URL.
+Editor preview requires the owning Clerk account. Anonymous delivery checks the
+owner's current published Page snapshots and live favicons; logo settings by
+themselves do not publish a file. Unpublishing the last use stops new anonymous
+reads without deleting the bytes.
 
 The root `portless.json` uses Portless's native monorepo discovery with the
 `dev:app` script. It starts Web, App, Admin, API, Zerospin, and Bricks Storybook.

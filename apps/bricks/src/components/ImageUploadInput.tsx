@@ -4,6 +4,7 @@ import { Dialog } from "@base-ui/react/dialog";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import type { imageCropSchema } from "../modules/image/definition/imageV2";
 
+import { useCreatorImageSrc } from "../creatorFile/useCreatorImageSrc";
 import { Button } from "./button";
 import { CroppedImage } from "./CroppedImage";
 import { DialogContent } from "./dialog";
@@ -61,6 +62,8 @@ export function ImageUploadInput(
   const [applying, setApplying] = useState(false);
   const objectUrl = useRef<string>(null);
   const request = useRef<AbortController | null>(null);
+  const displayImageUrl = useCreatorImageSrc(imageUrl);
+  const displaySource = useCreatorImageSrc(source);
   const centered = { x: 0.5, y: 0.5, zoom: 1 };
   const framing = draft ?? centered;
   const tabClass =
@@ -215,8 +218,8 @@ export function ImageUploadInput(
           >
             <span id={`${id}-image`}>Image</span>
             {preview ??
-              (imageUrl && (
-                <img src={imageUrl} alt="" className="size-5 shrink-0 rounded-[4px] object-cover" />
+              (displayImageUrl && (
+                <img src={displayImageUrl} alt="" className="size-5 shrink-0 rounded-[4px] object-cover" />
               ))}
           </Dialog.Trigger>
           <DialogContent
@@ -311,14 +314,14 @@ export function ImageUploadInput(
                   </Button>
                 </TabsContent>
                 <TabsContent value="crop" keepMounted className="grid gap-3 data-hidden:hidden">
-                  {source && (
+                  {displaySource && (
                     <div
                       className="relative mx-auto overflow-hidden rounded-md bg-muted ring-1 ring-border"
                       style={{ width: `min(100%, ${ratio * 320}px)`, aspectRatio: ratio }}
                     >
                       <CroppedImage
                         key={source}
-                        src={source}
+                        src={displaySource}
                         alt="Crop preview"
                         crop={framing}
                         onPan={applying ? undefined : pan}

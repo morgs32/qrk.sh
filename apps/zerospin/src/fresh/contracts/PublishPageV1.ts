@@ -28,6 +28,7 @@ import { siteV1 as Site } from "@qrk.sh/bricks/zerospin/models/site/SiteV1";
 
 import { userV1 as User } from "@qrk.sh/bricks/zerospin/models/user/UserV1";
 
+import { getReferencedAssetIds } from "../getReferencedAssetIds";
 import { makePageSnapshotV1 } from "../makePageSnapshotV1";
 
 const publishPage = defineAggregateContract("publishPage");
@@ -63,7 +64,10 @@ export const publishPageV1 = makeAggregateContractRelease(publishPage, {
         "publishedSnapshotId",
       ],
     },
-    pageSnapshot: { model: PageSnapshot, fields: ["createdAt", "updatedAt", "pageId", "content"] },
+    pageSnapshot: {
+      model: PageSnapshot,
+      fields: ["createdAt", "updatedAt", "pageId", "content", "referencedAssetIds"],
+    },
     site: {
       model: Site,
       fields: [
@@ -170,18 +174,20 @@ export const publishPageV1 = makeAggregateContractRelease(publishPage, {
       model: db.models.placement,
       where: { wallId: { in: walls.map((entry) => entry.id) } },
     });
+    const content = makePageSnapshotV1({
+      page,
+      bricks,
+      walls,
+      placements,
+      preferredRowSizing: payload.preferredRowSizing,
+      preferredStackSizing: payload.preferredStackSizing,
+    });
     yield* operations.createPageSnapshot({
       resourceId: payload.snapshotId,
       attributes: {
         pageId: page.id,
-        content: makePageSnapshotV1({
-          page,
-          bricks,
-          walls,
-          placements,
-          preferredRowSizing: payload.preferredRowSizing,
-          preferredStackSizing: payload.preferredStackSizing,
-        }),
+        content,
+        referencedAssetIds: getReferencedAssetIds(content),
       },
     });
     yield* operations.updatePage({

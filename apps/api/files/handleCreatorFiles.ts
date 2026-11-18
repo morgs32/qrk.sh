@@ -1,6 +1,4 @@
 import { creatorFileIdSchema } from "@qrk.sh/bricks/creatorFile/creatorFileId";
-import { completeImageStateSchemaV4 } from "@qrk.sh/bricks/modules/image/definition/v4";
-import { completeStateSchema as carouselStateSchema } from "@qrk.sh/bricks/modules/imageCarousel/definition";
 import { pageV1 } from "@qrk.sh/bricks/zerospin/models/page/PageV1";
 import { pageSnapshotV1 } from "@qrk.sh/bricks/zerospin/models/pageSnapshot/PageSnapshotV1";
 import { siteV1 } from "@qrk.sh/bricks/zerospin/models/site/SiteV1";
@@ -99,7 +97,10 @@ const upload = Effect.fn("creatorFiles.upload")(function* (props: {
   return { fileId };
 });
 
-const isPublished = Effect.fn("creatorFiles.isPublished")(function* (owner: string, fileId: string) {
+const isPublished = Effect.fn("creatorFiles.isPublished")(function* (
+  owner: string,
+  fileId: typeof creatorFileIdSchema.Type,
+) {
   const api = yield* getSystemApi();
   const subject = { aggregateName: "user", aggregateVersion: 1, aggregateId: owner };
   const favicons = yield* api.executeAggregateQuery({
@@ -136,7 +137,7 @@ const isPublished = Effect.fn("creatorFiles.isPublished")(function* (owner: stri
       const snapshot = yield* api.executeAggregateQuery({
         ...subject,
         query: userDb.query.pageSnapshot.findFirst({
-          columns: { content: true },
+          columns: { referencedAssetIds: true },
           where: {
             id: { eq: snapshotId },
             page: { ...publishedPage, id: { eq: page.id }, publishedSnapshotId: { eq: snapshotId } },
@@ -147,26 +148,7 @@ const isPublished = Effect.fn("creatorFiles.isPublished")(function* (owner: stri
         unstable = true;
         continue;
       }
-      const placedBrickIds = new Set(snapshot.content.walls.flatMap((wall) =>
-        wall.sections.flatMap((section) =>
-          section.stacks.flatMap((stack) =>
-            stack.rows.flatMap((row) => row.placements.map((placement) => placement.brickId)),
-          ),
-        ),
-      ));
-      for (const { id, moduleId, brickState } of snapshot.content.bricks) {
-        if (!placedBrickIds.has(id)) continue;
-        if (
-          (moduleId === "image" &&
-            Schema.is(completeImageStateSchemaV4)(brickState) &&
-            brickState.imageUrl === fileId) ||
-          (moduleId === "image-carousel" &&
-            Schema.is(carouselStateSchema)(brickState) &&
-            brickState.slides.some((slide) => slide.imageUrl === fileId))
-        ) {
-          return true;
-        }
-      }
+      if (snapshot.referencedAssetIds.includes(fileId)) return true;
     }
     if (!unstable) return false;
   }

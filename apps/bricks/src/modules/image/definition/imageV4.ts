@@ -1,6 +1,6 @@
 import { makeEffectSchema, primitives } from "@zerospin/shapes";
 import { Schema } from "effect";
-import { creatorImageSourceSchema } from "../../../creatorFile/creatorFileId";
+import { creatorImageSourceSchema, isCreatorFileId } from "../../../creatorFile/creatorFileId";
 import { makeModuleVersion } from "../../../definition/makeModuleVersion";
 import { image } from "./image";
 import { imageV3 } from "./imageV3";
@@ -25,3 +25,10 @@ export const completeImageStateSchemaV4 = imageStateSchemaV4.check(
     (!round || caption.trim().length === 0) || "A round image cannot have a caption",
   ),
 );
+
+export function getImageReferencedAssetId(state: unknown) {
+  if (Schema.is(completeImageStateSchemaV4)(state) && isCreatorFileId(state.imageUrl)) {
+    return state.imageUrl;
+  }
+  return undefined;
+}

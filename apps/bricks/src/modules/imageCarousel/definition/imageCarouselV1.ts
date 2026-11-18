@@ -1,6 +1,6 @@
 import { makeEffectSchema, primitives } from "@zerospin/shapes";
 import { Schema } from "effect";
-import { creatorImageSourceSchema } from "../../../creatorFile/creatorFileId";
+import { creatorImageSourceSchema, isCreatorFileId } from "../../../creatorFile/creatorFileId";
 import { defineComponentMetadata } from "../../../definition/defineComponentMetadata";
 import { defineModule } from "../../../definition/defineModule";
 import { makeModuleVersion } from "../../../definition/makeModuleVersion";
@@ -56,3 +56,8 @@ export const completeStateSchema = Schema.toType(makeEffectSchema(imageCarouselV
     )) || "At least one image with alt text is required",
   ),
 );
+
+export function getCarouselReferencedAssetIds(state: unknown) {
+  if (!Schema.is(completeStateSchema)(state)) return [];
+  return state.slides.map((slide) => slide.imageUrl).filter(isCreatorFileId);
+}

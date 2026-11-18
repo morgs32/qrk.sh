@@ -17,6 +17,7 @@ import { makeQueryDbVersion, NanoIdFactory } from "@zerospin/sdk";
 import { makeSystemHarness } from "@zerospin/sdk/testing";
 import { Effect } from "effect";
 
+import { getReferencedAssetIds } from "../src/fresh/getReferencedAssetIds";
 import { system } from "../src/system";
 import { assetsV1 } from "../src/services/assets/assetsV1";
 
@@ -99,11 +100,37 @@ it.effect("publishes, unpublishes, and republishes the current saved Page snapsh
         target: { kind: "wall", wallId: "wal_pag_publication_lg", beforeSectionId: null },
       },
     });
+    const externalSlide = {
+      id: "external",
+      imageUrl: "https://example.com/ast_unmanaged",
+      alt: "External photo",
+      crop: null,
+    };
+    yield* harness.push({
+      ...actor,
+      id: "cmd_publication_carousel",
+      pushIndex: 4,
+      commandName: "addImageCarouselBrick",
+      contractVersion: release.actors.web.contracts.addImageCarouselBrick.version,
+      payload: {
+        brickId: "brk_carousel",
+        pageId: "pag_publication",
+        state: {
+          slides: [
+            { ...externalSlide, id: "duplicate", imageUrl: "ast_publication" },
+            { ...externalSlide, id: "managed", imageUrl: "ast_carousel" },
+            externalSlide,
+          ],
+          interval: 5,
+        },
+        target: { kind: "wall", wallId: "wal_pag_publication_sm", beforeSectionId: null },
+      },
+    });
     yield* harness.flush();
     yield* harness.push({
       ...actor,
       id: "cmd_publish_first",
-      pushIndex: 4,
+      pushIndex: 5,
       commandName: "publishSite",
       contractVersion: release.actors.web.contracts.publishSite.version,
       payload: {
@@ -126,11 +153,26 @@ it.effect("publishes, unpublishes, and republishes the current saved Page snapsh
         db.query.page.findFirst({ where: { id: { eq: "pag_publication" } } }),
       ),
     ).toMatchObject({ isPublished: true, publishedSnapshotId: "psn_first" });
+    const firstPublishedAssets = db.query.pageSnapshot.findFirst({
+      columns: { referencedAssetIds: true },
+      where: {
+        id: { eq: "psn_first" },
+        page: {
+          id: { eq: "pag_publication" },
+          publishedSnapshotId: { eq: "psn_first" },
+          isPublished: { eq: true },
+          site: { isPublished: { eq: true }, user: { clerkUserId: { eq: "user_publication" } } },
+        },
+      },
+    });
+    expect(yield* harness.query(owner, firstPublishedAssets)).toEqual({
+      referencedAssetIds: ["ast_carousel", "ast_publication"],
+    });
 
     yield* harness.push({
       ...actor,
       id: "cmd_edit_page",
-      pushIndex: 5,
+      pushIndex: 6,
       commandName: "updatePageSettings",
       contractVersion: release.actors.web.contracts.updatePageSettings.version,
       payload: { id: "pag_publication", title: "Second", description: null },
@@ -138,22 +180,52 @@ it.effect("publishes, unpublishes, and republishes the current saved Page snapsh
     yield* harness.push({
       ...actor,
       id: "cmd_replace_publication_image",
-      pushIndex: 6,
+      pushIndex: 7,
       commandName: "updateImageBrick",
       contractVersion: release.actors.web.contracts.updateImageBrick.version,
       payload: { brickId: "brk_publication", state: { ...image, imageUrl: "https://example.com/new.png" } },
     });
+    yield* harness.push({
+      ...actor,
+      id: "cmd_replace_publication_carousel",
+      pushIndex: 8,
+      commandName: "updateImageCarouselBrick",
+      contractVersion: release.actors.web.contracts.updateImageCarouselBrick.version,
+      payload: { brickId: "brk_carousel", state: { slides: [externalSlide], interval: 5 } },
+    });
     yield* harness.flush();
+    const firstSnapshot = yield* harness.query(
+      owner,
+      db.query.pageSnapshot.findFirst({ where: { id: { eq: "psn_first" } } }),
+    );
+    expect(firstSnapshot).toMatchObject({
+      referencedAssetIds: ["ast_carousel", "ast_publication"],
+      content: {
+        title: "First",
+        bricks: expect.arrayContaining([
+          expect.objectContaining({ id: "brk_publication", brickState: image }),
+        ]),
+      },
+    });
+    if (firstSnapshot === undefined) throw new Error("Expected a published snapshot");
     expect(
-      yield* harness.query(
-        owner,
-        db.query.pageSnapshot.findFirst({ where: { id: { eq: "psn_first" } } }),
-      ),
-    ).toMatchObject({ content: { title: "First", bricks: [{ brickState: image }] } });
+      getReferencedAssetIds({
+        ...firstSnapshot.content,
+        bricks: [
+          ...firstSnapshot.content.bricks,
+          {
+            id: "brk_unplaced",
+            moduleId: "image",
+            brickState: { ...image, imageUrl: "ast_unplaced" },
+            borderWidth: 0,
+          },
+        ],
+      }),
+    ).toEqual(["ast_carousel", "ast_publication"]);
     yield* harness.push({
       ...actor,
       id: "cmd_publish_update",
-      pushIndex: 7,
+      pushIndex: 9,
       commandName: "publishPage",
       contractVersion: release.actors.web.contracts.publishPage.version,
       payload: {
@@ -163,10 +235,13 @@ it.effect("publishes, unpublishes, and republishes the current saved Page snapsh
         preferredStackSizing: true,
       },
     });
+    yield* harness.flush();
+    expect(yield* harness.query(owner, firstPublishedAssets)).toBeUndefined();
+
     yield* harness.push({
       ...actor,
       id: "cmd_unpublish",
-      pushIndex: 8,
+      pushIndex: 10,
       commandName: "unpublishSite",
       contractVersion: release.actors.web.contracts.unpublishSite.version,
       payload: { siteId: "sit_publication" },
@@ -188,7 +263,7 @@ it.effect("publishes, unpublishes, and republishes the current saved Page snapsh
       .push({
         ...actor,
         id: "cmd_publish_while_unpublished",
-        pushIndex: 9,
+        pushIndex: 11,
         commandName: "publishPage",
         contractVersion: release.actors.web.contracts.publishPage.version,
         payload: {
@@ -205,7 +280,7 @@ it.effect("publishes, unpublishes, and republishes the current saved Page snapsh
     yield* harness.push({
       ...actor,
       id: "cmd_republish_site",
-      pushIndex: 10,
+      pushIndex: 12,
       commandName: "publishSite",
       contractVersion: release.actors.web.contracts.publishSite.version,
       payload: {
@@ -232,14 +307,23 @@ it.effect("publishes, unpublishes, and republishes the current saved Page snapsh
       owner,
       db.query.pageSnapshot.findMany({ where: { pageId: { eq: "pag_publication" } } }),
     );
-    expect(snapshots.map((snapshot) => [snapshot.id, snapshot.content.title]).sort()).toEqual([
-      ["psn_first", "First"],
-      ["psn_second", "Second"],
-      ["psn_third", "Second"],
+    expect(
+      snapshots
+        .map((snapshot) => [snapshot.id, snapshot.content.title, snapshot.referencedAssetIds])
+        .sort(),
+    ).toEqual([
+      ["psn_first", "First", ["ast_carousel", "ast_publication"]],
+      ["psn_second", "Second", []],
+      ["psn_third", "Second", []],
     ]);
-    expect(snapshots.find((snapshot) => snapshot.id === "psn_third")?.content.bricks).toMatchObject([
-      { brickState: { imageUrl: "https://example.com/new.png" } },
-    ]);
+    expect(snapshots.find((snapshot) => snapshot.id === "psn_third")?.content.bricks).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "brk_publication",
+          brickState: { ...image, imageUrl: "https://example.com/new.png" },
+        }),
+      ]),
+    );
   }).pipe(Effect.provide(NanoIdFactory)),
 );
 

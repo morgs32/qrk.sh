@@ -1,7 +1,11 @@
 {
   "private": true,
+  "devSignInUrls": {
+    "web": "https://qrk.localhost/__dev/log-me-in/morgan.intrator%40gmail.com?returnTo=/replace",
+    "app": "https://app.qrk.localhost/__dev/log-me-in/morgan.intrator%40gmail.com"
+  },
   "scripts": {
-    "dev": "PORTLESS_PORT=443 PORTLESS_HTTPS=1 PORTLESS_WILDCARD=1 portless",
+    "dev": "jq '.devSignInUrls' package.json && PORTLESS_PORT=443 PORTLESS_HTTPS=1 PORTLESS_WILDCARD=1 portless",
     "bricks": "PORTLESS_PORT=443 PORTLESS_HTTPS=1 PORTLESS_WILDCARD=1 pnpm --dir apps/bricks dev",
     "app:storybook": "pnpm nx run @qrk.sh/app:storybook",
     "web:storybook": "pnpm nx run @qrk.sh/web:storybook",

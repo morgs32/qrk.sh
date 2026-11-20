@@ -16,7 +16,7 @@
     "framer-motion": "13.2.0"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "5.20260828.1",
+    "@cloudflare/workers-types": "5.20260918.1",
     "@tanstack/intent": "0.5.5",
     "@typescript/native": "npm:typescript@^7.0.2",
     "effect": "4.0.2",

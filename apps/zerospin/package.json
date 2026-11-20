@@ -38,7 +38,7 @@
     "drizzle-orm": "npm:@zerospin/drizzle-orm@1.0.0-rc.5-qrk.3",
     "typescript": "^6.0.2",
     "vitest": "5.0.5",
-    "wrangler": "^4.127.1"
+    "wrangler": "^4.135.0"
   },
   "nx": {
     "targets": {

@@ -1,4 +1,4 @@
-import { Schema } from "effect";
+import * as Schema from "effect/Schema";
 import { parseYoutubeUrl, youtubeContentSchema, youtubeEmbedUrl } from "./youtubeSchemas";
 
 it("accepts share, watch, Shorts, embed and playlist links with start times", () => {

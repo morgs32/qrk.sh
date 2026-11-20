@@ -1,5 +1,5 @@
 import { upgradeAggregateContractRelease } from "@zerospin/sdk/browser";
-import { Effect } from "effect";
+import * as Effect from "effect/Effect";
 import { wallV3 as wall } from "../../models/wall/WallV3";
 import { updateSiteSettingsV2 } from "./UpdateSiteSettingsV2";
 

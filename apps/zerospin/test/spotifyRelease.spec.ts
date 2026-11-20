@@ -1,7 +1,7 @@
 import { it } from "@effect/vitest";
 import { brickContracts } from "@qrk.sh/bricks/zerospin/brickContracts";
 import { encodePayload } from "@zerospin/core/contracts/encodePayload";
-import { Effect } from "effect";
+import * as Effect from "effect/Effect";
 import { expect } from "vitest";
 
 it.effect("accepts canonical supported Spotify content and rejects other destinations", () =>

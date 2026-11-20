@@ -1,7 +1,7 @@
 import type { Spec } from "@json-render/core";
 import { newSyncRpcSession } from "@zerospin/core/utils/getApi/newSyncRpcSession/newSyncRpcSession";
 import { makeEffectSchema, type IInferDecodedRow, type IShape } from "@zerospin/shapes";
-import { Schema } from "effect";
+import * as Schema from "effect/Schema";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { collapseAllNested, defaultStyles, JsonView } from "react-json-view-lite";
 import { SWRConfig } from "swr";

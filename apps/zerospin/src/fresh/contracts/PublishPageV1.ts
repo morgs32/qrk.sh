@@ -18,7 +18,7 @@ import {
   primitives,
 } from "@zerospin/sdk/browser";
 
-import { Effect } from "effect";
+import * as Effect from "effect/Effect";
 
 import { pageV1 as Page } from "@qrk.sh/bricks/zerospin/models/page/PageV1";
 

@@ -1,5 +1,5 @@
 import type { Spec } from "@json-render/core";
-import { Schema } from "effect";
+import * as Schema from "effect/Schema";
 import { imageStateSchemaV4 } from "./imageV4";
 
 const captioned: Spec = {

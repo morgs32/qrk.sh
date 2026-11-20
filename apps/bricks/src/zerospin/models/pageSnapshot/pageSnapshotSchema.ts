@@ -1,4 +1,4 @@
-import { Schema } from "effect";
+import * as Schema from "effect/Schema";
 import { placementSpecSchema } from "../../../definition/placementSpecSchema";
 import { brickV1 } from "../brick/BrickV1";
 import { pageV1 } from "../page/PageV1";

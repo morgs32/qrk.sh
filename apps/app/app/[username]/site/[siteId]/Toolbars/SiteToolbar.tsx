@@ -1,6 +1,6 @@
 "use client";
 
-import { Schema } from "effect";
+import * as Schema from "effect/Schema";
 import { motion, useReducedMotion } from "framer-motion";
 import { File, Globe, Plus } from "lucide-react";
 import { Link, useSearch } from "@tanstack/react-router";

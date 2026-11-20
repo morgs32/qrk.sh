@@ -3,7 +3,7 @@
 import { defineRegistry, useStateValue } from "@json-render/react";
 import { makeCatalogFromComponentMetadata } from "../../../../definition/makeCatalogFromComponentMetadata";
 import { makeEffectSchema } from "@zerospin/shapes";
-import { Schema } from "effect";
+import * as Schema from "effect/Schema";
 
 import { iconSvgGraphicView } from "../SwatchAndIcon/components/IconSvgGraphic";
 import { swatchAndIconColorView } from "../SwatchAndIcon/components/SwatchAndIconColor";

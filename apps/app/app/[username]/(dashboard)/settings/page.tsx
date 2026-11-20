@@ -7,7 +7,7 @@ import { Input } from "@qrk.sh/bricks/components/Input";
 import { useLiveQuery, useSession } from "@zerospin/react";
 
 import { assignUsernameResult } from "@qrk.sh/zerospin/src/services/users/AssignUsernameV1";
-import { Schema } from "effect";
+import * as Schema from "effect/Schema";
 import { useEffect, useState } from "react";
 import { usersSessionDefinition } from "@/zerospin/usersSessionDefinition";
 

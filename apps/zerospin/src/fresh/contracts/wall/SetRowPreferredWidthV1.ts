@@ -6,7 +6,7 @@ import {
   modelId,
   primitives,
 } from "@zerospin/sdk/browser";
-import { Effect } from "effect";
+import * as Effect from "effect/Effect";
 import { userClaims } from "@qrk.sh/bricks/zerospin/userClaims";
 import { rowPreferredWidthSchema } from "@qrk.sh/bricks/zerospin/models/wall/wallLayoutSchema";
 import { rowIdSchema } from "@qrk.sh/bricks/zerospin/models/wall/wallLayoutSchema";

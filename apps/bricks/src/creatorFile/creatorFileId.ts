@@ -1,4 +1,4 @@
-import { Schema } from "effect";
+import * as Schema from "effect/Schema";
 
 export const creatorFileIdSchema = Schema.TemplateLiteral(["ast_", Schema.String]).check(
   Schema.makeFilter(

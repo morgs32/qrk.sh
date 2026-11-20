@@ -10,7 +10,7 @@ import {
   modelId,
   primitives,
 } from "@zerospin/sdk";
-import { Effect } from "effect";
+import * as Effect from "effect/Effect";
 
 export const applyDomainAssignmentV1 = makeAggregateContractRelease(
   defineAggregateContract("applyDomainAssignment"),

@@ -1,7 +1,7 @@
 import { Button } from "@qrk.sh/bricks/components/button";
 import type { BricksApi } from "@qrk.sh/bricks/rpc";
 import { newSyncRpcSession } from "@zerospin/core/utils/getApi/newSyncRpcSession/newSyncRpcSession";
-import { Schema } from "effect";
+import * as Schema from "effect/Schema";
 import { useEffect, useRef, useState } from "react";
 import { collapseAllNested, defaultStyles, JsonView } from "react-json-view-lite";
 import "react-json-view-lite/dist/index.css";

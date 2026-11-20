@@ -3,7 +3,7 @@ import { makeCatalogFromComponentMetadata } from "@qrk.sh/bricks/definition/make
 import { makeModuleSpecDocumentSchema } from "@qrk.sh/bricks/definition/makeModuleSpecDocumentSchema";
 import { backendLibrary } from "@qrk.sh/bricks/modules/backendLibrary";
 import type { IRpcEither } from "@qrk.sh/bricks/rpc/types";
-import { Schema } from "effect";
+import * as Schema from "effect/Schema";
 import { mapValues } from "es-toolkit";
 
 const GENERATE_MODEL = "gpt-5.6-luna";

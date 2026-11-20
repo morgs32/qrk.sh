@@ -6,7 +6,7 @@ import {
   modelId,
   primitives,
 } from "@zerospin/sdk/browser";
-import { Effect } from "effect";
+import * as Effect from "effect/Effect";
 import { brickV1 } from "../../../zerospin/models/brick/BrickV1";
 import { pageV1 } from "../../../zerospin/models/page/PageV1";
 import { placement } from "../../../zerospin/models/placement/placement";

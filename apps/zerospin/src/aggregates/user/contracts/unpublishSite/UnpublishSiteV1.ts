@@ -7,7 +7,7 @@ import {
   makeAggregateContractRelease,
 } from "@zerospin/sdk/browser";
 
-import { Effect } from "effect";
+import * as Effect from "effect/Effect";
 
 import { siteV1 as Site } from "../../models/site/SiteV1";
 

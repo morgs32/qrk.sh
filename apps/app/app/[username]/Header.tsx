@@ -1,6 +1,6 @@
 import "@fontsource/silkscreen/400.css";
 import { Link } from "@tanstack/react-router";
-import { Schema } from "effect";
+import * as Schema from "effect/Schema";
 import { useValidatedParams } from "@/hooks/useValidatedParams";
 import { AccountMenu } from "./AccountMenu";
 

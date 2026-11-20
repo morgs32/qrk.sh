@@ -19,7 +19,8 @@ import { updateBrickV3 as updateBrick } from "../contracts/brick/UpdateBrickV3";
 import { generateBrickSpecV2 as generateBrickSpec } from "../contracts/brick/GenerateBrickSpecV2";
 import { publishSiteV2 as publishSite } from "../contracts/publishSite/PublishSiteV2";
 import { publishPageV2 as publishPage } from "../contracts/publishPage/PublishPageV2";
-import { Effect, Schema } from "effect";
+import * as Effect from "effect/Effect";
+import * as Schema from "effect/Schema";
 import { verifyToken } from "@clerk/backend";
 import { mapParseError, prettyUnknownFailure } from "@zerospin/error";
 

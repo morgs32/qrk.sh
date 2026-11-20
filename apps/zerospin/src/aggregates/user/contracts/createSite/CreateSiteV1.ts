@@ -8,7 +8,8 @@ import * as sdk from "@zerospin/sdk/browser";
 
 import { modelId, makeAggregateContractRelease, primitives } from "@zerospin/sdk/browser";
 
-import { Effect, Schema } from "effect";
+import * as Effect from "effect/Effect";
+import * as Schema from "effect/Schema";
 
 import { siteV1 as Site } from "../../models/site/SiteV1";
 

@@ -6,7 +6,8 @@ import {
   makeCommandOperation,
   findFirst,
 } from "@zerospin/sdk";
-import { Effect, Schema } from "effect";
+import * as Effect from "effect/Effect";
+import * as Schema from "effect/Schema";
 import { user } from "@qrk.sh/bricks/zerospin/models/user/user";
 import { site } from "@qrk.sh/bricks/zerospin/models/site/site";
 import { lookupUsername } from "./lookupUsername";

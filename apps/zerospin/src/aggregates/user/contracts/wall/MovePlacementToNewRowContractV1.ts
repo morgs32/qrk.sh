@@ -6,7 +6,9 @@ import {
   modelId,
   primitives,
 } from "@zerospin/sdk/browser";
-import { Effect, Result, Schema } from "effect";
+import * as Effect from "effect/Effect";
+import * as Result from "effect/Result";
+import * as Schema from "effect/Schema";
 import { userClaims } from "../../../../claims";
 import { stackIdSchema, rowIdSchema } from "../../layout/wallLayoutSchema";
 import { movePlacementToNewRowInLayout } from "../../layout/wallLayout";

@@ -1,5 +1,5 @@
 import { primitives, upgradeModelVersion } from "@zerospin/sdk/browser";
-import { Schema } from "effect";
+import * as Schema from "effect/Schema";
 
 import { siteV1 } from "./SiteV1";
 

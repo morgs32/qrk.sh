@@ -5,7 +5,8 @@ import {
   type ITelemetryBatch,
   type ITelemetryCollector,
 } from "@zerospin/logger";
-import { Effect, Logger } from "effect";
+import * as Effect from "effect/Effect";
+import * as Logger from "effect/Logger";
 
 const navigationId = import.meta.env.DEV ? crypto.randomUUID() : "";
 let startupId = "";

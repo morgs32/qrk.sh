@@ -4,7 +4,7 @@ import {
   findMany,
   prefixId,
 } from "@zerospin/sdk/browser";
-import { Effect } from "effect";
+import * as Effect from "effect/Effect";
 import { wallV4 as wall } from "../../models/wall/WallV4";
 import { backendLibrary } from "@qrk.sh/bricks/modules/backendLibrary";
 import { measureWallFit, wallBreakpointWidths } from "../../layout/wallSizing";

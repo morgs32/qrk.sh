@@ -8,7 +8,8 @@ import {
   modelId,
   primitives,
 } from "@zerospin/sdk/browser";
-import { Effect, Schema } from "effect";
+import * as Effect from "effect/Effect";
+import * as Schema from "effect/Schema";
 import { userClaims } from "../../../../claims";
 import { rowIdSchema } from "../../layout/wallLayoutSchema";
 import { placement as placementIdentity } from "../../models/placement/placement";

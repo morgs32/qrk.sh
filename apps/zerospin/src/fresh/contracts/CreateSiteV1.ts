@@ -9,7 +9,7 @@ import * as sdk from "@zerospin/sdk/browser";
 
 import { modelId, makeAggregateContractRelease, primitives } from "@zerospin/sdk/browser";
 
-import { Effect } from "effect";
+import * as Effect from "effect/Effect";
 
 import { siteV1 as Site } from "@qrk.sh/bricks/zerospin/models/site/SiteV1";
 

@@ -9,7 +9,7 @@ import { ModuleFilmstrip } from "./ModuleFilmstrip";
 import { BREAKPOINTS } from "../../../../../../../lib/breakpoints";
 import { pageV1 as Page } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV1";
 import { siteV1 as Site } from "@qrk.sh/zerospin/src/aggregates/user/models/site/SiteV1";
-import { Schema } from "effect";
+import * as Schema from "effect/Schema";
 
 import { useValidatedParams } from "@/hooks/useValidatedParams";
 import NotFound from "@/app/not-found";

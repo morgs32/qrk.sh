@@ -1,7 +1,7 @@
 "use client";
 
 import type { IResult } from "@zerospin/error";
-import { Schema } from "effect";
+import * as Schema from "effect/Schema";
 import { useId, useLayoutEffect, useRef, useState } from "react";
 import { useSWRConfig } from "swr";
 import { Checkbox } from "../../../components/checkbox";

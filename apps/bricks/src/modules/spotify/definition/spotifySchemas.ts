@@ -1,4 +1,4 @@
-import { Schema } from "effect";
+import * as Schema from "effect/Schema";
 
 const spotifyContentPath =
   /^\/(?:intl-[A-Za-z]{2}(?:-[A-Za-z]{2})?\/)?(track|album|playlist|artist|show|episode)\/([A-Za-z0-9]{1,128})\/?$/;

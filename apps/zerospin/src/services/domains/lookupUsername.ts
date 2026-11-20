@@ -1,7 +1,7 @@
 import { user } from "@qrk.sh/bricks/zerospin/models/user/user";
 import { site } from "@qrk.sh/bricks/zerospin/models/site/site";
 import { defineServiceExternalContract, modelId, primitives } from "@zerospin/sdk/browser";
-import { Schema } from "effect";
+import * as Schema from "effect/Schema";
 
 export const lookupUsername = defineServiceExternalContract({
   name: "lookupUsername",

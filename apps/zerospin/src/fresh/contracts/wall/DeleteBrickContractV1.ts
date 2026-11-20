@@ -7,7 +7,8 @@ import {
   findFirst,
   findMany,
 } from "@zerospin/sdk/browser";
-import { Effect, Result } from "effect";
+import * as Effect from "effect/Effect";
+import * as Result from "effect/Result";
 import { userClaims } from "@qrk.sh/bricks/zerospin/userClaims";
 import { pageV1 as page } from "@qrk.sh/bricks/zerospin/models/page/PageV1";
 import { siteV1 as site } from "@qrk.sh/bricks/zerospin/models/site/SiteV1";

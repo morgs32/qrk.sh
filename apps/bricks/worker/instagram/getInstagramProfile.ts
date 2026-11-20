@@ -1,6 +1,7 @@
 import { readRpcEnvelope } from "@zerospin/core/utils/readRpcEnvelope";
 import { ensureZerospinError } from "@zerospin/error";
-import { Effect, Schema } from "effect";
+import * as Effect from "effect/Effect";
+import * as Schema from "effect/Schema";
 
 import { BackendRepo } from "../BackendRepo";
 import { ScrapeError } from "../ScrapeError";

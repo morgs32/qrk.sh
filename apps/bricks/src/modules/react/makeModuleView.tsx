@@ -11,7 +11,7 @@ import {
   type ComponentRegistry,
 } from "@json-render/react";
 import { makeEffectSchema, type IInferDecodedRow, type IShape } from "@zerospin/shapes";
-import { Schema } from "effect";
+import * as Schema from "effect/Schema";
 import { mapValues } from "es-toolkit";
 import type { makeModuleVersion } from "../../definition/makeModuleVersion";
 import type { IModule, IModuleBrickDef } from "./types";

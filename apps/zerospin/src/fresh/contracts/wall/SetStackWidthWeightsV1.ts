@@ -6,7 +6,8 @@ import {
   modelId,
   primitives,
 } from "@zerospin/sdk/browser";
-import { Effect, Schema } from "effect";
+import * as Effect from "effect/Effect";
+import * as Schema from "effect/Schema";
 import { userClaims } from "@qrk.sh/bricks/zerospin/userClaims";
 import {
   sectionIdSchema,

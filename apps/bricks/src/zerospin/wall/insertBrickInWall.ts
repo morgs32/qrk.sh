@@ -1,7 +1,8 @@
 import type { IContractReadDb } from "@zerospin/core/contracts/make/makeContractReadDb";
 import type { IRecordingOperations } from "@zerospin/core/contracts/operationDefinition";
 import { ContractError, findFirst, findMany, prefixId, type IInferResource } from "@zerospin/sdk/browser";
-import { Effect, Result } from "effect";
+import * as Effect from "effect/Effect";
+import * as Result from "effect/Result";
 import { backendLibrary } from "../../modules/backendLibrary";
 import { brickV1 } from "../models/brick/BrickV1";
 import { pageV1 } from "../models/page/PageV1";

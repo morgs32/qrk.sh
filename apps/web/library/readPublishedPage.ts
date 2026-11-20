@@ -8,7 +8,10 @@ import { pageSnapshotV1 } from "@qrk.sh/bricks/zerospin/models/pageSnapshot/Page
 import { siteV1 } from "@qrk.sh/bricks/zerospin/models/site/SiteV1";
 import { userV1 } from "@qrk.sh/bricks/zerospin/models/user/UserV1";
 import { domainV1 } from "@qrk.sh/zerospin/src/services/domains/DomainV1";
-import { Effect, Layer, Redacted, Schedule } from "effect";
+import * as Effect from "effect/Effect";
+import * as Layer from "effect/Layer";
+import * as Redacted from "effect/Redacted";
+import * as Schedule from "effect/Schedule";
 
 const db = makeQueryDbVersion({
   models: { user: userV1, site: siteV1, page: pageV1, pageSnapshot: pageSnapshotV1 },

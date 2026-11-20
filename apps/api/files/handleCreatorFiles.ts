@@ -10,7 +10,9 @@ import { SecretKey } from "@zerospin/core/services/SecretKey";
 import { getSystemApi } from "@zerospin/core/utils/getSystemApi/getSystemApi";
 import { makeQueryDbVersion, ZerospinApiUrl } from "@zerospin/sdk";
 import { makeIdSchema } from "@zerospin/sdk/browser";
-import { Effect, Redacted, Schema } from "effect";
+import * as Effect from "effect/Effect";
+import * as Redacted from "effect/Redacted";
+import * as Schema from "effect/Schema";
 import { corsHeaders, jsonResponse, requireClerkUserId, UploadHttpError } from "../http";
 
 const userDb = makeQueryDbVersion({

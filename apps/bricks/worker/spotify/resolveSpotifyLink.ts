@@ -1,4 +1,4 @@
-import { Effect } from "effect";
+import * as Effect from "effect/Effect";
 
 import { normalizeSpotifyUrl } from "../../src/modules/spotify/definition/spotifySchemas";
 import { ScrapeError } from "../ScrapeError";

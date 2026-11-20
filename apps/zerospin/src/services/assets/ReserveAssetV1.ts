@@ -7,7 +7,7 @@ import {
   modelId,
   primitives,
 } from "@zerospin/sdk/browser";
-import { Effect } from "effect";
+import * as Effect from "effect/Effect";
 import { asset } from "./asset";
 import { assetV1 } from "./AssetV1";
 

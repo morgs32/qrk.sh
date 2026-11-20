@@ -8,7 +8,9 @@ import {
   ZerospinApiUrl,
   makeZerospinError,
 } from "@zerospin/sdk";
-import { Effect, Redacted, Schema } from "effect";
+import * as Effect from "effect/Effect";
+import * as Redacted from "effect/Redacted";
+import * as Schema from "effect/Schema";
 import { recordDomainLookupFailureV1 } from "./RecordDomainLookupFailureV1";
 import { lookupUsername } from "./lookupUsername";
 import { usernameV1 } from "../users/UsernameV1";

@@ -1,7 +1,9 @@
 import { ContractError, DownAdapterRefused, findFirst, upgradeAggregateContractRelease } from "@zerospin/sdk/browser";
 import { backendLibrary } from "@qrk.sh/bricks/modules/backendLibrary";
 import { makeEffectSchema } from "@zerospin/shapes";
-import { Effect, Result, Schema } from "effect";
+import * as Effect from "effect/Effect";
+import * as Result from "effect/Result";
+import * as Schema from "effect/Schema";
 import { makePlacementId } from "../../layout/makePlacementId";
 import { brickV3 as brick } from "../../models/brick/BrickV3";
 import { updateBrickV6 } from "./UpdateBrickV6";

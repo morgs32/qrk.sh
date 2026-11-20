@@ -1,4 +1,4 @@
-import { Schema } from "effect";
+import * as Schema from "effect/Schema";
 import { brickV3 } from "../models/brick/BrickV3";
 import { PageSnapshotSchemaV4 } from "./pageSnapshotSchemaV4";
 

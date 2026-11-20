@@ -1,4 +1,4 @@
-import { Schema } from "effect";
+import * as Schema from "effect/Schema";
 
 const videoIdPattern = /^[A-Za-z0-9_-]{11}$/;
 const playlistIdPattern = /^[A-Za-z0-9_-]{2,128}$/;

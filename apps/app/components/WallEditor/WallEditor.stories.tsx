@@ -10,7 +10,7 @@ import { prefixId, stageAggregateSessionCommand } from "@zerospin/sdk/browser";
 import type { IInferResource } from "@zerospin/core/models/types";
 import { sessionRepoDbConfig } from "@zerospin/core/aggregateSession/sessionRepoDbConfig";
 import { makeShapeCodecs } from "@zerospin/shapes";
-import { Schema } from "effect";
+import * as Schema from "effect/Schema";
 import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { Laptop, Monitor, MoveVertical, Smartphone, Tablet } from "lucide-react";

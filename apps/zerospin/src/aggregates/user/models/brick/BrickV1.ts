@@ -1,7 +1,7 @@
 import { modelRef } from "@zerospin/sdk/browser";
 import { makeModelVersion } from "@zerospin/core/models/make/makeModelVersion";
 import { primitives } from "@zerospin/shapes";
-import { Schema } from "effect";
+import * as Schema from "effect/Schema";
 import { brick } from "./brick";
 import { page } from "../page/page";
 

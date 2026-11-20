@@ -11,7 +11,7 @@ import { BREAKPOINTS } from "../../../../../../../lib/breakpoints";
 import { useLocation, useRouter, useSearch } from "@tanstack/react-router";
 import { makeIdSchema } from "@zerospin/sdk/browser";
 import { useLiveQuery, useSession } from "@zerospin/react";
-import { Schema } from "effect";
+import * as Schema from "effect/Schema";
 import { useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 

@@ -3,7 +3,10 @@ import { makeDbConfig } from "@zerospin/core/drizzle/make/makeDbConfig/makeDbCon
 import { ensureZerospinError, type IZerospinErrorJson } from "@zerospin/error";
 import { makeRpcEnvelope, type IRpcEnvelope } from "@zerospin/logger";
 import { makeTable, primitives } from "@zerospin/shapes";
-import { Effect, Layer, ManagedRuntime, Schema } from "effect";
+import * as Effect from "effect/Effect";
+import * as Layer from "effect/Layer";
+import * as ManagedRuntime from "effect/ManagedRuntime";
+import * as Schema from "effect/Schema";
 import { identity } from "es-toolkit";
 import { DurableObject } from "cloudflare:workers";
 import { makeMigratableDORepo } from "system-worker/makeMigratableDORepo/makeMigratableDORepo";

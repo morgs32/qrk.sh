@@ -4,7 +4,8 @@ import {
   modelId,
   primitives,
 } from "@zerospin/sdk/browser";
-import { Effect, Schema } from "effect";
+import * as Effect from "effect/Effect";
+import * as Schema from "effect/Schema";
 import { brick } from "../../../zerospin/models/brick/brick";
 import { brickV1 } from "../../../zerospin/models/brick/BrickV1";
 import { page } from "../../../zerospin/models/page/page";

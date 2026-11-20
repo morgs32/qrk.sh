@@ -1,5 +1,5 @@
 import { addBrick, updateBrick } from "../commands/brickActions";
-import { Schema } from "effect";
+import * as Schema from "effect/Schema";
 import type { IModule } from "../../react/types";
 import { imagePreviewState } from "../definition/imagePreviewState";
 import { ImagePlaceholder } from "./ImagePlaceholder";

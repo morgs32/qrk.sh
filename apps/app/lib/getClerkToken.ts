@@ -1,6 +1,6 @@
 import { ClerkOfflineError } from "@clerk/react/errors";
 import { prettyUnknownFailure, ZerospinError } from "@zerospin/error";
-import { Effect } from "effect";
+import * as Effect from "effect/Effect";
 
 export const getClerkToken = Effect.fn("getClerkToken")(function* (props: {
   getToken: () => Promise<string | null>;

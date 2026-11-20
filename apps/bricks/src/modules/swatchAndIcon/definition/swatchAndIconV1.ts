@@ -1,7 +1,7 @@
 import { defaultSpec } from "./generator/defaultSpec";
 
 import { makeEffectSchema, primitives } from "@zerospin/shapes";
-import { Schema } from "effect";
+import * as Schema from "effect/Schema";
 
 import { makeModuleVersion } from "../../../definition/makeModuleVersion";
 

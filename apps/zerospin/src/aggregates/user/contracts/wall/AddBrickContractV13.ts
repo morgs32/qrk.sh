@@ -1,6 +1,6 @@
 import { candidateLibraryV20 } from "@qrk.sh/bricks/modules/candidateLibrary";
 import { DownAdapterRefused, upgradeAggregateContractRelease } from "@zerospin/sdk/browser";
-import { Effect } from "effect";
+import * as Effect from "effect/Effect";
 import { makeAddBrickProgram } from "./AddBrickContractV11";
 import { addBrickV12 } from "./AddBrickContractV12";
 

@@ -1,5 +1,5 @@
 import { makeIdSchema } from "@zerospin/sdk/browser";
-import { Schema } from "effect";
+import * as Schema from "effect/Schema";
 import { placement } from "../models/placement/placement";
 import { wallLayoutSchema, sectionIdSchema, stackIdSchema, rowIdSchema } from "./wallLayoutSchema";
 import { rowAlignmentSchema, rowPreferredWidthSchema } from "./wallLayoutSchemaV3";

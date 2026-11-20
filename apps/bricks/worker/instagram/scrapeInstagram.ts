@@ -1,5 +1,6 @@
 import type { Browser } from "@cloudflare/puppeteer";
-import { Effect, Schema } from "effect";
+import * as Effect from "effect/Effect";
+import * as Schema from "effect/Schema";
 
 import { ScrapeError } from "../ScrapeError";
 import { InstagramPayloadSchema } from "../schemas";

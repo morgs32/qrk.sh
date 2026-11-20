@@ -1,6 +1,6 @@
 import { readRpcEnvelope } from "@zerospin/core/utils/readRpcEnvelope";
 import { ensureZerospinError } from "@zerospin/error";
-import { Effect } from "effect";
+import * as Effect from "effect/Effect";
 
 import { BackendRepo } from "../BackendRepo";
 import { fetchGitHubRepo } from "./fetchGitHubRepo";

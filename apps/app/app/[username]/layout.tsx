@@ -11,7 +11,9 @@ import {
   useSession,
 } from "@zerospin/react";
 import { signature } from "@qrk.sh/zerospin/src/signature";
-import { Cause, Effect, Exit } from "effect";
+import * as Cause from "effect/Cause";
+import * as Effect from "effect/Effect";
+import * as Exit from "effect/Exit";
 import { useEffect, type ReactNode } from "react";
 import { toast } from "sonner";
 import AppError from "@/app/error";

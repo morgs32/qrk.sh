@@ -1,5 +1,5 @@
 import { makeIdSchema } from "@zerospin/sdk/browser";
-import { Schema } from "effect";
+import * as Schema from "effect/Schema";
 import { wall } from "../models/wall/wall";
 
 export const stackMoveTargetSchema = Schema.Union([

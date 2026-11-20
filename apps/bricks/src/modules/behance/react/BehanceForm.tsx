@@ -3,7 +3,7 @@
 import { newSyncRpcSession } from "@zerospin/core/utils/getApi/newSyncRpcSession/newSyncRpcSession";
 import type { IResult } from "@zerospin/error";
 import type { IInferDecodedRow } from "@zerospin/shapes";
-import { Schema } from "effect";
+import * as Schema from "effect/Schema";
 import { useEffect, useRef, useState } from "react";
 
 import { Button } from "../../../components/button";

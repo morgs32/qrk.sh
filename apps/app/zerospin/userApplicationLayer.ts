@@ -2,7 +2,8 @@
 
 import { PublishableKey } from "@zerospin/core/services/PublishableKey";
 import { ZerospinApiUrl } from "@zerospin/core/services/ZerospinApiUrl";
-import { Layer, Redacted } from "effect";
+import * as Layer from "effect/Layer";
+import * as Redacted from "effect/Redacted";
 
 const apiUrl = process.env.NEXT_PUBLIC_ZEROSPIN_API_URL;
 const publishableKey = process.env.NEXT_PUBLIC_ZEROSPIN_PUBLISHABLE_KEY;

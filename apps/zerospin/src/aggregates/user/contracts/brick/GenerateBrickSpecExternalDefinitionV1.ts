@@ -1,6 +1,6 @@
 import { defineAggregateExternalContract, modelId } from "@zerospin/sdk/browser";
 import { primitives } from "@zerospin/shapes";
-import { Schema } from "effect";
+import * as Schema from "effect/Schema";
 
 import { brick as brickIdentity } from "../../models/brick/brick";
 import { brickV1 as brick } from "../../models/brick/BrickV1";

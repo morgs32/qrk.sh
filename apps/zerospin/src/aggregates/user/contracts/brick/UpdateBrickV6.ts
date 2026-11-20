@@ -4,7 +4,8 @@ import { findFirst } from "@zerospin/core/contracts/findFirst";
 import { mapParseError } from "@zerospin/error";
 import { upgradeAggregateContractRelease } from "@zerospin/sdk/browser";
 import { makeEffectSchema } from "@zerospin/shapes";
-import { Effect, Schema } from "effect";
+import * as Effect from "effect/Effect";
+import * as Schema from "effect/Schema";
 
 import { makePlacementId } from "../../layout/makePlacementId";
 import { brickV2 as brick } from "../../models/brick/BrickV2";

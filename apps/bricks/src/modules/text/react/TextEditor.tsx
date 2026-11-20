@@ -6,7 +6,7 @@ import { defineEditorExtension, docToMarkdown, markdownToDoc } from "@meowdown/c
 import { createEditor, defineDocChangeHandler, defineUpdateHandler, union } from "@prosekit/core";
 import type { IResult } from "@zerospin/error";
 import type { IInferDecodedRow } from "@zerospin/shapes";
-import { Schema } from "effect";
+import * as Schema from "effect/Schema";
 import { Bold, Highlighter, Italic, Link, Strikethrough } from "lucide-react";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Button } from "../../../components/button";

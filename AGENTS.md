@@ -2,6 +2,7 @@
 
 ## Daily choices
 
+- For the 2026-11-20 Wrangler upgrade, use branches and PRs. The user performs live Cloudflare Preview verification.
 - For 2026-11-18, commit and push the first-principles guidance directly to `main`.
 - For the 2026-11-18 Assets V1 reboot, commit directly on local `main` without pushing. The user performs manual verification.
 - For 2026-11-17, use branches and PRs. The user performs manual verification.

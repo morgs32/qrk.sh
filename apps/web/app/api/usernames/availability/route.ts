@@ -3,7 +3,9 @@ import { SecretKey } from "@zerospin/core/services/SecretKey";
 import { getSystemApi } from "@zerospin/core/utils/getSystemApi/getSystemApi";
 import { makeQueryDbVersion, ZerospinApiUrl } from "@zerospin/sdk";
 import { usernameV1 } from "@qrk.sh/zerospin/src/services/users/UsernameV1";
-import { Effect, Layer, Redacted } from "effect";
+import * as Effect from "effect/Effect";
+import * as Layer from "effect/Layer";
+import * as Redacted from "effect/Redacted";
 
 const db = makeQueryDbVersion({ models: { username: usernameV1 } });
 

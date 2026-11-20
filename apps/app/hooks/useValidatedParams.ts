@@ -2,7 +2,7 @@
 
 import { useParams } from "@tanstack/react-router";
 
-import { Schema } from "effect";
+import * as Schema from "effect/Schema";
 
 export function useValidatedParams<SCHEMA extends Schema.ConstraintDecoder<unknown>>(
   schema: SCHEMA,

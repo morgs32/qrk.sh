@@ -1,6 +1,6 @@
 import { findMany, upgradeAggregateContractRelease } from "@zerospin/sdk/browser";
 import { ContractError } from "@zerospin/error";
-import { Effect } from "effect";
+import * as Effect from "effect/Effect";
 import { updateSiteSettingsV1 } from "./UpdateSiteSettingsV1";
 import { pageV1 as page } from "../../models/page/PageV1";
 import { wallV2 as wall } from "../../models/wall/WallV2";

@@ -1,5 +1,5 @@
 import { makeAggregateContractExtension, makeCommandOperation } from "@zerospin/sdk";
-import { Effect } from "effect";
+import * as Effect from "effect/Effect";
 import { assignDomainV1 } from "../../services/domains/AssignDomainV1";
 import { domains } from "../../services/domains/domainsV1";
 import { createSiteV1 } from "./CreateSiteV1";

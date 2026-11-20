@@ -1,5 +1,5 @@
 import { upgradeAggregateContractRelease } from "@zerospin/sdk/browser";
-import { Effect } from "effect";
+import * as Effect from "effect/Effect";
 import { wallV4 as wall } from "../../models/wall/WallV4";
 import { generateBrickSpecV6 } from "./GenerateBrickSpecV6";
 import { generateBrickSpecExternalDefinitionV7 } from "./GenerateBrickSpecExternalDefinitionV7";

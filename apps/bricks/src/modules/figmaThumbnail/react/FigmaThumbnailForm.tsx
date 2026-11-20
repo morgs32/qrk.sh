@@ -5,7 +5,7 @@ import { normalizeFigmaThumbnailInput } from "../definition/normalizeFigmaThumbn
 
 import { makeEffectSchema, type IInferDecodedRow } from "@zerospin/shapes";
 import { newSyncRpcSession } from "@zerospin/core/utils/getApi/newSyncRpcSession/newSyncRpcSession";
-import { Schema } from "effect";
+import * as Schema from "effect/Schema";
 import { Link2 } from "lucide-react";
 import type { BricksApi } from "@qrk.sh/bricks/rpc";
 import { useState } from "react";

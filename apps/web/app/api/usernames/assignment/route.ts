@@ -5,7 +5,10 @@ import { makeQueryDbVersion, ZerospinApiUrl } from "@zerospin/sdk";
 import { userV1 } from "@qrk.sh/bricks/zerospin/models/user/UserV1";
 import { assignUsernameResult } from "@qrk.sh/zerospin/src/services/users/AssignUsernameV1";
 import { usersV1 } from "@qrk.sh/zerospin/src/services/users/usersV1";
-import { Effect, Layer, Redacted, Schema } from "effect";
+import * as Effect from "effect/Effect";
+import * as Layer from "effect/Layer";
+import * as Redacted from "effect/Redacted";
+import * as Schema from "effect/Schema";
 
 const db = makeQueryDbVersion({ models: { user: userV1 } });
 

@@ -1,4 +1,4 @@
-import { Schema } from "effect";
+import * as Schema from "effect/Schema";
 
 const reservedPaths =
   /^(?:about|app|blog|contact|dashboard|discover|explore|faq|help|login|logout|pricing|privacy|settings|signup|terms)$/i;

@@ -2,7 +2,7 @@ import type { PropsWithChildren, ReactNode } from "react";
 
 import type { BaseComponentProps } from "@json-render/react";
 import { makeEffectSchema, type IInferDecodedRow, type IShape } from "@zerospin/shapes";
-import { Schema } from "effect";
+import * as Schema from "effect/Schema";
 
 /** Bind display markup to component metadata and adapt resolved JSON-render props once. */
 export function makeComponentView<const PROPS_SHAPE extends IShape>(

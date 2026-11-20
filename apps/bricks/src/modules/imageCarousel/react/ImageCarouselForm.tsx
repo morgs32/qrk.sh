@@ -3,7 +3,7 @@
 import { Select } from "@base-ui/react/select";
 import type { IResult } from "@zerospin/error";
 import { makeEffectSchema, type IInferDecodedRow } from "@zerospin/shapes";
-import { Schema } from "effect";
+import * as Schema from "effect/Schema";
 import { ArrowDown, ArrowUp, Trash2 } from "lucide-react";
 import { useId, useLayoutEffect, useRef, useState } from "react";
 import { useSWRConfig } from "swr";

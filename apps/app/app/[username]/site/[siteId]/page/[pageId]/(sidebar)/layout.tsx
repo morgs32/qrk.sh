@@ -7,7 +7,7 @@ import { Button } from "@qrk.sh/bricks/components/button";
 import { Select } from "@base-ui/react/select";
 import { SelectContent, SelectItem, SelectTrigger } from "@qrk.sh/bricks/components/select";
 import { useHotkey } from "@tanstack/react-hotkeys";
-import { Schema } from "effect";
+import * as Schema from "effect/Schema";
 import { isEqual, omit } from "es-toolkit";
 import { useLiveQuery, useSession } from "@zerospin/react";
 import { makeId, makeIdSchema, stageAggregateSessionCommand } from "@zerospin/sdk/browser";

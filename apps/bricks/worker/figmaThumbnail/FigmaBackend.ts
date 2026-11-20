@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/durable-sqlite";
 import { migrate } from "drizzle-orm/durable-sqlite/migrator";
 import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
-import { Effect } from "effect";
+import * as Effect from "effect/Effect";
 import type { IFigmaFilePreviewPayload, IRpcEither } from "@qrk.sh/bricks/rpc/types";
 
 import { encodeRpc } from "../encodeRpc";

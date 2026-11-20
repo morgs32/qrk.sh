@@ -12,7 +12,7 @@ import { useAuth } from "@clerk/react";
 import { ClerkOfflineError } from "@clerk/react/errors";
 import { useLiveQuery, useSession } from "@zerospin/react";
 import { makeIdSchema } from "@zerospin/sdk/browser";
-import { Schema } from "effect";
+import * as Schema from "effect/Schema";
 import { SWRConfig } from "swr";
 import { Tabs, TabsContent } from "@qrk.sh/bricks/components/tabs";
 import { creatorFileIdSchema, makeCreatorFileUrl } from "@qrk.sh/bricks/creatorFile/creatorFileId";

@@ -20,7 +20,7 @@ import { ContractError } from "@zerospin/error";
 
 import { primitives } from "@zerospin/shapes";
 
-import { Effect } from "effect";
+import * as Effect from "effect/Effect";
 
 import { makePlacementId } from "../../layout/makePlacementId";
 

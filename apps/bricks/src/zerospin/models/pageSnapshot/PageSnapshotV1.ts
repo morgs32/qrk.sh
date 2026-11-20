@@ -1,5 +1,5 @@
 import { makeModelVersion, modelRef, primitives } from "@zerospin/sdk/browser";
-import { Schema } from "effect";
+import * as Schema from "effect/Schema";
 import { creatorFileIdSchema } from "../../../creatorFile/creatorFileId";
 import { page } from "../page/page";
 import { pageSnapshot } from "./pageSnapshot";

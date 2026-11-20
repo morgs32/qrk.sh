@@ -9,7 +9,7 @@ import { makeId, stageAggregateSessionCommand } from "@zerospin/sdk/browser";
 import { useLayoutEffect, useState } from "react";
 import { toast } from "sonner";
 import { useLiveQuery, useSession } from "@zerospin/react";
-import { Schema } from "effect";
+import * as Schema from "effect/Schema";
 import { siteV1 as Site } from "@qrk.sh/bricks/zerospin/models/site/SiteV1";
 import { pageV1 as Page } from "@qrk.sh/bricks/zerospin/models/page/PageV1";
 

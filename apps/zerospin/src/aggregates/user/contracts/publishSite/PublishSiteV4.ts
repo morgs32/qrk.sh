@@ -1,6 +1,6 @@
 import { upgradeAggregateContractRelease, findMany, primitives } from "@zerospin/sdk/browser";
 import { makePageSnapshotV3 } from "../../snapshots/makePageSnapshotV3";
-import { Effect } from "effect";
+import * as Effect from "effect/Effect";
 import { wallV3 as wall } from "../../models/wall/WallV3";
 import { placementV2 as placement } from "../../models/placement/PlacementV2";
 import { publishSiteV3 } from "./PublishSiteV3";

@@ -5,7 +5,7 @@ import { useNavigate, useParams, useSearch } from "@tanstack/react-router";
 import { pageV1 } from "@qrk.sh/zerospin/src/aggregates/user/models/page/PageV1";
 import { siteV1 } from "@qrk.sh/zerospin/src/aggregates/user/models/site/SiteV1";
 import { useLiveQuery, useSession } from "@zerospin/react";
-import { Schema } from "effect";
+import * as Schema from "effect/Schema";
 import { useContext } from "react";
 
 import { BREAKPOINTS, PREVIEW_BORDER_WIDTH } from "../../../../../../lib/breakpoints";

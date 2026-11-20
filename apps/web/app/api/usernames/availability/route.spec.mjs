@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { Effect } from "effect";
+import * as Effect from "effect/Effect";
 
 const mocks = vi.hoisted(() => ({
   verifyToken: vi.fn(),
@@ -10,7 +10,7 @@ const mocks = vi.hoisted(() => ({
 }));
 vi.mock("@clerk/nextjs/server", () => ({ verifyToken: mocks.verifyToken }));
 vi.mock("@zerospin/core/utils/getSystemApi/getSystemApi", async () => {
-  const { Effect } = await import("effect");
+  const Effect = await import("effect/Effect");
   return {
     getSystemApi: () =>
       Effect.succeed({

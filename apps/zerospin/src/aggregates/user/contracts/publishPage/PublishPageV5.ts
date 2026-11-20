@@ -1,5 +1,5 @@
 import { findFirst, findMany, upgradeAggregateContractRelease } from "@zerospin/sdk/browser";
-import { Effect } from "effect";
+import * as Effect from "effect/Effect";
 import { brickV3 as brick } from "../../models/brick/BrickV3";
 import { pageSnapshotV5 as pageSnapshot } from "../../models/pageSnapshot/PageSnapshotV5";
 import { makePageSnapshotV5 } from "../../snapshots/makePageSnapshotV5";

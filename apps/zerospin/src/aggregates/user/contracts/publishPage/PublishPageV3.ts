@@ -1,5 +1,5 @@
 import { upgradeAggregateContractRelease, findFirst, findMany } from "@zerospin/sdk/browser";
-import { Effect } from "effect";
+import * as Effect from "effect/Effect";
 import { wallV2 as wall } from "../../models/wall/WallV2";
 import { placementV2 as placement } from "../../models/placement/PlacementV2";
 import { publishPageV2 } from "./PublishPageV2";

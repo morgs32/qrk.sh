@@ -1,6 +1,6 @@
 import { makeIdSchema } from "@zerospin/sdk/browser";
 import { wall } from "../models/wall/wall";
-import { Schema } from "effect";
+import * as Schema from "effect/Schema";
 
 /** Stable anchors shared by route input, wall controls, and command boundaries. */
 export const wallInsertionTargetSchema = Schema.Union([

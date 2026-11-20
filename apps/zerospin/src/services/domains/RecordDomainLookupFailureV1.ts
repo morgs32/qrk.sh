@@ -3,7 +3,7 @@ import {
   defineServiceContract,
   makeCommandOperation,
 } from "@zerospin/sdk";
-import { Effect } from "effect";
+import * as Effect from "effect/Effect";
 import { lookupUsername } from "./lookupUsername";
 import { userAggregate } from "../../fresh/userAggregate";
 import { applyDomainAssignmentV1 } from "../../fresh/contracts/ApplyDomainAssignmentV1";

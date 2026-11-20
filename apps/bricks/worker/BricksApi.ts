@@ -6,7 +6,8 @@ import type {
   IInstagramScrapePayload,
   IRpcEither,
 } from "@qrk.sh/bricks/rpc/types";
-import { Layer, ManagedRuntime } from "effect";
+import * as Layer from "effect/Layer";
+import * as ManagedRuntime from "effect/ManagedRuntime";
 
 import { getBehanceProfile } from "./behance/getBehanceProfile";
 import { encodeRpc } from "./encodeRpc";

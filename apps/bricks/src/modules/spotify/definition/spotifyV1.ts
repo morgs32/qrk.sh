@@ -1,5 +1,5 @@
 import { makeEffectSchema, primitives } from "@zerospin/shapes";
-import { Schema } from "effect";
+import * as Schema from "effect/Schema";
 
 import { defineComponentMetadata } from "../../../definition/defineComponentMetadata";
 import { defineModule } from "../../../definition/defineModule";

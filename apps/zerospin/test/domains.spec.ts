@@ -2,7 +2,8 @@ import { expect, it } from "@effect/vitest";
 import { vi } from "vitest";
 import { makeQueryDbVersion, NanoIdFactory } from "@zerospin/sdk";
 import { makeSystemHarness } from "@zerospin/sdk/testing";
-import { Effect, Layer } from "effect";
+import * as Effect from "effect/Effect";
+import * as Layer from "effect/Layer";
 import { domainsV1 } from "../src/services/domains/domainsV1";
 import { usersV1 } from "../src/services/users/usersV1";
 import { userAggregateV1 } from "../src/fresh/userAggregateV1";
@@ -16,7 +17,7 @@ vi.mock("cloudflare:workers", () => ({
   },
 }));
 vi.mock("@zerospin/core/utils/getSystemApi/getSystemApi", async () => {
-  const { Effect } = await import("effect");
+  const Effect = await import("effect/Effect");
   return { getSystemApi: () => Effect.succeed({ executeServiceQuery: mocks.query }) };
 });
 

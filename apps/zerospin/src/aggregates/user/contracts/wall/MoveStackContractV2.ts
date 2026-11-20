@@ -1,5 +1,6 @@
 import { upgradeAggregateContractRelease, findFirst, prefixId } from "@zerospin/sdk/browser";
-import { Effect, Result } from "effect";
+import * as Effect from "effect/Effect";
+import * as Result from "effect/Result";
 import { wallV2 as wall } from "../../models/wall/WallV2";
 import { moveStackV1 } from "./MoveStackContractV1";
 import { moveStackInLayout } from "../../layout/wallLayoutV2";

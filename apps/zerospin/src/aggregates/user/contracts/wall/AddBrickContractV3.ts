@@ -9,7 +9,9 @@ import {
   primitives,
 } from "@zerospin/sdk/browser";
 import { makeEffectSchema } from "@zerospin/shapes";
-import { Effect, Result, Schema } from "effect";
+import * as Effect from "effect/Effect";
+import * as Result from "effect/Result";
+import * as Schema from "effect/Schema";
 import { userClaims } from "../../../../claims";
 import { brick as brickIdentity } from "../../models/brick/brick";
 import { page as pageIdentity } from "../../models/page/page";

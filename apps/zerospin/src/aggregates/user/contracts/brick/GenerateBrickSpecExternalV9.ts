@@ -1,5 +1,6 @@
 import { DownAdapterRefused, upgradeAggregateExternalContractRelease } from "@zerospin/sdk";
-import { Effect, Schema } from "effect";
+import * as Effect from "effect/Effect";
+import * as Schema from "effect/Schema";
 import { makeZerospinError } from "@zerospin/error";
 import { newHttpBatchRpcSession } from "capnweb";
 import { libraryGenerateSpecResponse } from "./GenerateBrickSpecExternalDefinitionV1";

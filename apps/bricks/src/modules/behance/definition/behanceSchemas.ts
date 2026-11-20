@@ -1,4 +1,4 @@
-import { Schema } from "effect";
+import * as Schema from "effect/Schema";
 
 const profilePath = /^\/[A-Za-z0-9_-]+\/?$/;
 const reservedPaths =

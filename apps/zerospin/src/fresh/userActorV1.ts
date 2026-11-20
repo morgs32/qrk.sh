@@ -12,7 +12,8 @@ import {
 import { verifyToken } from "@clerk/backend";
 import { RoutePattern } from "@remix-run/route-pattern";
 import { mapParseError, prettyUnknownFailure, type IAnyError } from "@zerospin/error";
-import { Effect, Schema } from "effect";
+import * as Effect from "effect/Effect";
+import * as Schema from "effect/Schema";
 import { userClaims } from "@qrk.sh/bricks/zerospin/userClaims";
 import { siteFailureV1 } from "@qrk.sh/bricks/zerospin/models/siteFailure/SiteFailureV1";
 import { signature } from "../signature";

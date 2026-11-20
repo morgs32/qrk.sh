@@ -9,7 +9,7 @@ import {
 
 import { ContractError } from "@zerospin/error";
 
-import { Effect } from "effect";
+import * as Effect from "effect/Effect";
 
 import { userV1 as User } from "../../models/user/UserV1";
 

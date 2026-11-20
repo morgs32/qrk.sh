@@ -14,7 +14,7 @@ before(async () => {
     stdin: {
       resolveDir: fileURLToPath(new URL(".", import.meta.url)),
       contents: `
-        import { Effect } from "effect";
+        import * as Effect from "effect/Effect";
         import { getOmniLinkData } from "../bricks/worker/omniLink/getOmniLinkData";
 
         export default {

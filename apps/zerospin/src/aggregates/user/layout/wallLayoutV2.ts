@@ -1,4 +1,4 @@
-import { Result } from "effect";
+import * as Result from "effect/Result";
 import type { wallLayoutSchemaV2 } from "./wallLayoutSchemaV2";
 import type { sectionIdSchema, stackIdSchema, rowIdSchema } from "./wallLayoutSchema";
 import type { wallInsertionTargetSchema, stackMoveTargetSchema } from "./wallTargetSchemas";

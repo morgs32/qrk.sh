@@ -1,4 +1,4 @@
-import { Schema } from "effect";
+import * as Schema from "effect/Schema";
 import { pageV1 } from "../models/page/PageV1";
 import { brickV2 } from "../models/brick/BrickV2";
 import { placementV1 } from "../models/placement/PlacementV1";

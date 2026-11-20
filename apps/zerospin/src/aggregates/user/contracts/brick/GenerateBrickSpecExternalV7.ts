@@ -1,5 +1,5 @@
 import { upgradeAggregateExternalContractRelease } from "@zerospin/sdk";
-import { Effect } from "effect";
+import * as Effect from "effect/Effect";
 import { wallV4 as wall } from "../../models/wall/WallV4";
 import { generateBrickSpecExternalV6 } from "./GenerateBrickSpecExternalV6";
 import { generateBrickSpecExternalDefinitionV7 } from "./GenerateBrickSpecExternalDefinitionV7";

@@ -1,5 +1,6 @@
 import { upgradeAggregateContractRelease, findFirst, findMany } from "@zerospin/sdk/browser";
-import { Effect, Result } from "effect";
+import * as Effect from "effect/Effect";
+import * as Result from "effect/Result";
 import { wallV4 as wall } from "../../models/wall/WallV4";
 import { backendLibrary } from "@qrk.sh/bricks/modules/backendLibrary";
 import { measureWallFit, wallBreakpointWidths } from "../../layout/wallSizing";

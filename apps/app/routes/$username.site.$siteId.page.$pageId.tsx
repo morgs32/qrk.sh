@@ -5,7 +5,7 @@ import {
   rowIdSchema,
   stackIdSchema,
 } from "@qrk.sh/zerospin/src/aggregates/user/layout/wallLayoutSchema";
-import { Schema } from "effect";
+import * as Schema from "effect/Schema";
 import PageLayout from "@/app/[username]/site/[siteId]/page/[pageId]/layout";
 
 const isWallSelectionId = Schema.is(

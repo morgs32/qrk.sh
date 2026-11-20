@@ -7,7 +7,8 @@ import {
   primitives,
   makeId,
 } from "@zerospin/sdk/browser";
-import { Effect, Schema } from "effect";
+import * as Effect from "effect/Effect";
+import * as Schema from "effect/Schema";
 import { usernameV1 } from "./UsernameV1";
 import { usernameFailureV1 } from "./UsernameFailureV1";
 

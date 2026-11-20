@@ -3,7 +3,8 @@ import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/durable-sqlite";
 import { migrate } from "drizzle-orm/durable-sqlite/migrator";
 import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
-import { Result, Schema } from "effect";
+import * as Result from "effect/Result";
+import * as Schema from "effect/Schema";
 
 import type { IGooglePlaceDetails, IGooglePlaceSuggestion, IRpcEither } from "@qrk.sh/bricks/rpc/types";
 

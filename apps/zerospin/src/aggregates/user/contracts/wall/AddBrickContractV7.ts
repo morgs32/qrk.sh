@@ -1,5 +1,5 @@
 import { DownAdapterRefused, upgradeAggregateContractRelease } from "@zerospin/sdk/browser";
-import { Effect } from "effect";
+import * as Effect from "effect/Effect";
 import { brickV3 as brick } from "../../models/brick/BrickV3";
 import { addBrickV6 } from "./AddBrickContractV6";
 

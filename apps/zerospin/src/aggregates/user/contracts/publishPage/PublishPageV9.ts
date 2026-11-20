@@ -3,7 +3,7 @@ import {
   findMany,
   upgradeAggregateContractRelease,
 } from "@zerospin/sdk/browser";
-import { Effect } from "effect";
+import * as Effect from "effect/Effect";
 import { brickV6 as brick } from "../../models/brick/BrickV6";
 import { pageSnapshotV9 as pageSnapshot } from "../../models/pageSnapshot/PageSnapshotV9";
 import { makePageSnapshotV9 } from "../../snapshots/makePageSnapshotV9";

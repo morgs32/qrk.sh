@@ -39,7 +39,8 @@ import {
 import { brickV1 } from "@qrk.sh/bricks/zerospin/models/brick/BrickV1";
 import { wallV1 } from "@qrk.sh/bricks/zerospin/models/wall/WallV1";
 import { useLiveQuery, useSession } from "@zerospin/react";
-import { Result, Schema } from "effect";
+import * as Result from "effect/Result";
+import * as Schema from "effect/Schema";
 import { wallInsertionTargetSchema } from "@qrk.sh/bricks/zerospin/wall/wallInsertionTargetSchema";
 import type { stackIdSchema } from "@qrk.sh/bricks/zerospin/models/wall/wallLayoutSchema";
 import { canShareRow } from "@qrk.sh/bricks/zerospin/wall/canShareRow";

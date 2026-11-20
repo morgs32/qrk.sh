@@ -1,7 +1,7 @@
 import { normalizeMapPlaceInput } from "./normalizeMapPlaceInput";
 import { defaultSpec } from "./generator/defaultSpec";
 
-import { Schema } from "effect";
+import * as Schema from "effect/Schema";
 
 import { makeEffectSchema, primitives } from "@zerospin/shapes";
 

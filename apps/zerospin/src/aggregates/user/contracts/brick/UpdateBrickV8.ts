@@ -1,7 +1,9 @@
 import { findFirst, upgradeAggregateContractRelease } from "@zerospin/sdk/browser";
 import { backendLibrary } from "@qrk.sh/bricks/modules/backendLibrary";
 import { makeEffectSchema } from "@zerospin/shapes";
-import { Effect, Result, Schema } from "effect";
+import * as Effect from "effect/Effect";
+import * as Result from "effect/Result";
+import * as Schema from "effect/Schema";
 import { makePlacementId } from "../../layout/makePlacementId";
 import { updateBrickV7 } from "./UpdateBrickV7";
 

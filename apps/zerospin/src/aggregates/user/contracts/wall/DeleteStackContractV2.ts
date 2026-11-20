@@ -5,7 +5,8 @@ import {
   primitives,
   upgradeAggregateContractRelease,
 } from "@zerospin/sdk/browser";
-import { Effect, Schema } from "effect";
+import * as Effect from "effect/Effect";
+import * as Schema from "effect/Schema";
 import { placementV2 } from "../../models/placement/PlacementV2";
 import { deleteStackV1 } from "./DeleteStackContractV1";
 

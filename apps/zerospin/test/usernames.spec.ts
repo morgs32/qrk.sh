@@ -1,7 +1,7 @@
 import { expect, it } from "@effect/vitest";
 import { makeQueryDbVersion, NanoIdFactory } from "@zerospin/sdk";
 import { makeSystemHarness } from "@zerospin/sdk/testing";
-import { Effect } from "effect";
+import * as Effect from "effect/Effect";
 import { usersV1 } from "../src/services/users/usersV1";
 import { system } from "../src/system";
 

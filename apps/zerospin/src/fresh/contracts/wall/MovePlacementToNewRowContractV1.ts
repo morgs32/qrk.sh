@@ -10,7 +10,9 @@ import {
   modelId,
   primitives,
 } from "@zerospin/sdk/browser";
-import { Effect, Result, Schema } from "effect";
+import * as Effect from "effect/Effect";
+import * as Result from "effect/Result";
+import * as Schema from "effect/Schema";
 import { userClaims } from "@qrk.sh/bricks/zerospin/userClaims";
 import { stackIdSchema, rowIdSchema } from "@qrk.sh/bricks/zerospin/models/wall/wallLayoutSchema";
 import { movePlacementToNewRowInLayout } from "@qrk.sh/bricks/zerospin/wall/wallLayout";

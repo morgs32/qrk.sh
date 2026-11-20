@@ -1,7 +1,7 @@
 import { modelRef } from "@zerospin/sdk/browser";
 import { makeModelVersion } from "@zerospin/core/models/make/makeModelVersion";
 import { primitives } from "@zerospin/shapes";
-import { Schema } from "effect";
+import * as Schema from "effect/Schema";
 import { placementSpecSchema } from "@qrk.sh/bricks/definition/placementSpecSchema";
 import { brick } from "../brick/brick";
 import { placement } from "./placement";

@@ -8,7 +8,7 @@ import {
   prefixId,
   primitives,
 } from "@zerospin/sdk/browser";
-import { Effect } from "effect";
+import * as Effect from "effect/Effect";
 import { userClaims } from "../../../../claims";
 import { pageV1 as page } from "../../models/page/PageV1";
 import { siteV1 as site } from "../../models/site/SiteV1";

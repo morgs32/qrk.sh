@@ -1,6 +1,7 @@
 import { makeId, stageAggregateSessionCommand } from "@zerospin/sdk/browser";
 import { makeEffectSchema } from "@zerospin/shapes";
-import { Result, Schema } from "effect";
+import * as Result from "effect/Result";
+import * as Schema from "effect/Schema";
 import type { IModule } from "../../react/types";
 import { brickV1 } from "../../../zerospin/models/brick/BrickV1";
 import { addGithubRepoBrickV1 } from "./AddGithubRepoBrickV1";

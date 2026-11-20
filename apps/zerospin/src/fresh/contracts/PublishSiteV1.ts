@@ -18,7 +18,8 @@ import {
 
 import { makeAbbreviationIdSchema } from "@zerospin/shapes";
 
-import { Effect, Schema } from "effect";
+import * as Effect from "effect/Effect";
+import * as Schema from "effect/Schema";
 
 import { pageV1 as Page } from "@qrk.sh/bricks/zerospin/models/page/PageV1";
 

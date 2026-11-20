@@ -4,7 +4,9 @@ import {
   findMany,
   prefixId,
 } from "@zerospin/sdk/browser";
-import { Effect, Result, Schema } from "effect";
+import * as Effect from "effect/Effect";
+import * as Result from "effect/Result";
+import * as Schema from "effect/Schema";
 import { wallV2 as wall } from "../../models/wall/WallV2";
 import { placementV2 as placement } from "../../models/placement/PlacementV2";
 import { addBrickV4 } from "./AddBrickContractV4";

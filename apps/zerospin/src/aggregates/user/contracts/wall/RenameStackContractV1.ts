@@ -6,7 +6,7 @@ import {
   modelId,
   primitives,
 } from "@zerospin/sdk/browser";
-import { Effect } from "effect";
+import * as Effect from "effect/Effect";
 import { userClaims } from "../../../../claims";
 import { stackIdSchema } from "../../layout/wallLayoutSchema";
 import { pageV1 as page } from "../../models/page/PageV1";

@@ -1,6 +1,6 @@
 import puppeteer, { type Browser } from "@cloudflare/puppeteer";
 import { DurableObject } from "cloudflare:workers";
-import { Effect } from "effect";
+import * as Effect from "effect/Effect";
 
 import { encodeRpc } from "./encodeRpc";
 import { scrapeLinktree } from "./scrapeLinktree";

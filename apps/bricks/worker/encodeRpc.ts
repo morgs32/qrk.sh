@@ -1,4 +1,5 @@
-import { Effect, Result } from "effect";
+import * as Effect from "effect/Effect";
+import * as Result from "effect/Result";
 
 import type { IRpcEither } from "@qrk.sh/bricks/rpc/types";
 import type { ScrapeError } from "./ScrapeError";

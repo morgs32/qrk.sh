@@ -1,6 +1,6 @@
 import type { Spec } from "@json-render/core";
 import type { IInferResource } from "@zerospin/sdk/browser";
-import { Schema } from "effect";
+import * as Schema from "effect/Schema";
 import { brickV1 } from "../zerospin/models/brick/BrickV1";
 import { backendLibrary } from "./backendLibrary";
 import { freshDefaultSpec as articleSpec } from "./article/definition/generator/freshDefaultSpec";

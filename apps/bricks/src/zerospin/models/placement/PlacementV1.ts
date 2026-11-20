@@ -1,5 +1,5 @@
 import { makeModelVersion, modelRef, primitives } from "@zerospin/sdk/browser";
-import { Schema } from "effect";
+import * as Schema from "effect/Schema";
 import { brick } from "../brick/brick";
 import { wall } from "../wall/wall";
 import { placement } from "./placement";

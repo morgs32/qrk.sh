@@ -123,7 +123,8 @@
     "build-storybook": "storybook build",
     "storybook": "storybook dev -p ${PORT:-10024} --host 127.0.0.1",
     "dev": "portless",
-    "dev:app": "pnpm run storybook --ci"
+    "dev:app": "pnpm run storybook --ci",
+    "lint": "eslint \"src/**/*.stories.tsx\" \"src/**/*Example.tsx\" \"src/**/*Examples.tsx\""
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
@@ -164,6 +165,7 @@
     "system-worker": "1.0.0-alpha.1"
   },
   "devDependencies": {
+    "@shadcn/lint": "0.2.5",
     "@storybook/addon-a11y": "^10.6.7",
     "@storybook/addon-docs": "^10.6.7",
     "@storybook/react-vite": "^10.6.7",
@@ -172,7 +174,9 @@
     "@types/node": "^25.5.2",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
+    "@typescript-eslint/parser": "8.73.0",
     "@vitejs/plugin-react": "6.0.3",
+    "eslint": "10.3.0",
     "storybook": "^10.6.7",
     "tailwindcss": "4.2.2",
     "typescript": "^6.0.2",

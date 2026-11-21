@@ -9,7 +9,8 @@
     "format": "vp fmt --config ../../.oxfmtrc.json .",
     "storybook": "PORTLESS_PORT=443 PORTLESS_HTTPS=1 PORTLESS_WILDCARD=1 portless storybook.app.qrk --app-port ${PORT:-10020} storybook dev -p ${PORT:-10020} --host 127.0.0.1",
     "build-storybook": "storybook build",
-    "preview": "vp preview --config vite.preview.config.ts --host 127.0.0.1 --port ${PORT:-10010} --strictPort"
+    "preview": "vp preview --config vite.preview.config.ts --host 127.0.0.1 --port ${PORT:-10010} --strictPort",
+    "lint": "eslint \"{app,components,routes,modules}/**/*.tsx\""
   },
   "dependencies": {
     "@atlaskit/pragmatic-drag-and-drop": "4.0.0",
@@ -59,6 +60,7 @@
     "zustand": "^5.0.12"
   },
   "devDependencies": {
+    "@shadcn/lint": "0.2.5",
     "@storybook/addon-a11y": "^10.6.0",
     "@storybook/addon-docs": "^10.6.0",
     "@storybook/react-vite": "^10.6.0",
@@ -68,7 +70,9 @@
     "@types/qrcode": "^1.5.6",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
+    "@typescript-eslint/parser": "8.73.0",
     "@vitejs/plugin-react": "6.0.3",
+    "eslint": "10.3.0",
     "react-zoom-pan-pinch": "4.2.0",
     "sass-embedded": "^1.104.1",
     "storybook": "^10.6.0",

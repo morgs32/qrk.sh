@@ -35,7 +35,6 @@ it.effect(
         actorName: "web",
         actorVersion: 1,
         claims: { aggregateId: owner.aggregateId, clerkUserId: "user_image_crop" },
-        externalOutcome: null,
         nodeId: "node_image_crop",
         sessionName: "userSession",
       };
@@ -47,7 +46,6 @@ it.effect(
         aggregateName: actor.aggregateName,
         aggregateVersion: actor.aggregateVersion,
         aggregateId: owner.aggregateId,
-        externalOutcome: null,
         payload: {
           id: "usr_image_crop",
           clerkUserId: actor.claims.clerkUserId,

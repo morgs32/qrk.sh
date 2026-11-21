@@ -41,7 +41,6 @@ it.effect(
         aggregateId: "account_one",
         commandName: "createUser",
         contractVersion: 1,
-        externalOutcome: null,
         payload: { id: "usr_one", clerkUserId: "account_one", displayName: null },
       });
       yield* harness.push({
@@ -51,7 +50,6 @@ it.effect(
         serviceVersion: 1,
         commandName: "assignUsername",
         contractVersion: 1,
-        externalOutcome: null,
         payload: { userId: "usr_one", aggregateId: "account_one", username: "morgs32" },
       });
       const actor = {
@@ -66,7 +64,6 @@ it.effect(
         claims: { aggregateId: "account_one", clerkUserId: "account_one" },
         commandName: "createSite",
         contractVersion: 1,
-        externalOutcome: null,
       } as const;
       yield* harness.push({
         ...actor,
@@ -114,7 +111,6 @@ it.effect(
         serviceVersion: 1,
         commandName: "assignUsername",
         contractVersion: 1,
-        externalOutcome: null,
         payload: { userId: "usr_one", aggregateId: "account_one", username: "renamed" },
       });
       yield* harness.push({
@@ -124,7 +120,6 @@ it.effect(
         serviceVersion: 1,
         commandName: "assignDomain",
         contractVersion: 1,
-        externalOutcome: null,
         payload: { siteId: "sit_1ar655v", userId: "usr_one", aggregateId: "account_one" },
       });
       yield* harness.flush();
@@ -201,7 +196,6 @@ it.effect("uses the observed username even when its owner renames before domain 
       aggregateId: "account_observed",
       commandName: "createUser",
       contractVersion: 1,
-      externalOutcome: null,
       payload: { id: "usr_observed", clerkUserId: "account_observed", displayName: null },
     });
     yield* harness.push({
@@ -211,7 +205,6 @@ it.effect("uses the observed username even when its owner renames before domain 
       serviceVersion: 1,
       commandName: "assignUsername",
       contractVersion: 1,
-      externalOutcome: null,
       payload: { userId: "usr_observed", aggregateId: "account_observed", username: "before" },
     });
     yield* harness.push({
@@ -228,7 +221,6 @@ it.effect("uses the observed username even when its owner renames before domain 
       pushIndex: 1,
       commandName: "createSite",
       contractVersion: 1,
-      externalOutcome: null,
       payload: {
         id: "sit_observed",
         userId: "usr_observed",

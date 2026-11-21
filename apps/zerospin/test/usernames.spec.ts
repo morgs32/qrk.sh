@@ -14,7 +14,6 @@ it.effect("keeps one global claim and preserves failed assignments after a succe
       serviceVersion: 1,
       commandName: "assignUsername",
       contractVersion: 1,
-      externalOutcome: null,
     } as const;
     const assigned = yield* harness.push({
       ...common,

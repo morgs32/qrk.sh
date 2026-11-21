@@ -214,7 +214,6 @@ it.effect("adds and updates every non-Text Brick through the fresh owner", () =>
       aggregateName: "user",
       aggregateVersion: 1,
       aggregateId: "acct_bricks",
-      externalOutcome: null,
       payload: { id: "usr_bricks", clerkUserId: "user_bricks", displayName: null },
     });
     yield* harness.flush();
@@ -228,7 +227,6 @@ it.effect("adds and updates every non-Text Brick through the fresh owner", () =>
       aggregateId: "acct_bricks",
       nodeId: "node_bricks",
       sessionName: "userSession",
-      externalOutcome: null,
       claims: { aggregateId: "acct_bricks", clerkUserId: "user_bricks" },
     };
     yield* harness.push({

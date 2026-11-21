@@ -184,7 +184,6 @@ it.effect(
         actorName: "web",
         actorVersion: 1,
         claims: { aggregateId: owner.aggregateId, clerkUserId: "user_fit" },
-        externalOutcome: null,
         nodeId: "node_fit",
         sessionName: "userSession",
       };
@@ -197,7 +196,6 @@ it.effect(
         aggregateName: actor.aggregateName,
         aggregateVersion: actor.aggregateVersion,
         aggregateId: owner.aggregateId,
-        externalOutcome: null,
         payload: { id: "usr_fit", clerkUserId: "user_fit", displayName: null },
       });
       yield* harness.push({

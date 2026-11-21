@@ -35,7 +35,6 @@ it.effect("saves and snapshots both portfolio Bricks", () =>
       actorName: "web",
       actorVersion: 1,
       claims: { aggregateId: owner.aggregateId, clerkUserId: "user_portfolio_bricks" },
-      externalOutcome: null,
       nodeId: "node_portfolio_bricks",
       sessionName: "userSession",
       contractVersion: 1,
@@ -48,7 +47,6 @@ it.effect("saves and snapshots both portfolio Bricks", () =>
       aggregateName: "user",
       aggregateVersion: 1,
       aggregateId: owner.aggregateId,
-      externalOutcome: null,
       payload: { id: "usr_portfolio", clerkUserId: actor.claims.clerkUserId, displayName: null },
     });
     yield* harness.flush();

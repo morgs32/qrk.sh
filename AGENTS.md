@@ -2,6 +2,7 @@
 
 ## Daily choices
 
+- For the 2026-11-21 Zerospin alpha.1 upgrade, commit and push directly to `main`.
 - For the 2026-11-20 Wrangler upgrade, use branches and PRs. The user performs live Cloudflare Preview verification.
 - For 2026-11-18, commit and push the first-principles guidance directly to `main`.
 - For the 2026-11-18 Assets V1 reboot, commit directly on local `main` without pushing. The user performs manual verification.
@@ -170,14 +171,42 @@ Run the focused HTTP tests with `node --experimental-strip-types --test apps/web
 
 <!-- zerospin:agent-rules:start -->
 
-## Registered releases and canonical history
+## Call Zerospin constructors directly
 
-An admitted session command executes on its addressed registered owner release.
-Queries can also address a registered release directly. A release does not need
-to be canonical to execute its commands or serve queries. `canonical` selects
-the release supplying the owner Chain's adopted published history; evaluate
-promotion separately from adding or using a release. A query of a release does
-not by itself guarantee that its materialization has caught up with other releases.
+**Never write an application factory that wraps a Zerospin `make*` constructor.**
+Call the constructor directly where you define each declaration or release.
+Pass its configuration as an inline object literal. Never forward a props
+object, spread a shared configuration into the call, or build it with a helper.
+Reuse named models, actors and contracts as values inside the literal.
+
+For example, `userAggregateReleaseV2.ts` declares its own release.
+
+```ts
+export const userAggregateReleaseV2 = sdk.makeAggregateRelease(user, {
+  version: 2,
+  models: { profile: profileV1 },
+  actors: { user: userActorV1 },
+});
+```
+
+A helper such as `makeUserAggregateRelease(version, contracts)` hides which
+models and actors each release selects. Inline its underlying SDK call at each
+release declaration and delete the wrapper.
+
+## Registered releases and history
+
+Queries address a registered release directly. Verify its materialization
+progress before assuming it has consumed a given command. Evaluate Service
+promotion and release retirement separately from changing the release that a
+consumer addresses.
+
+## System registry changes
+
+Before changing any `system.ts`, present the user with exact before-and-after
+snippets of every proposed change and ask for approval. Wait for approval before
+making the approved changes. The agent may then make those changes.
+
+<!-- zerospin:agent-rules:end -->
 
 ## Strict rule: user-only handwritten registry changes
 
@@ -195,8 +224,6 @@ Agents may add candidate releases while preserving **all existing canonical
 selections and registrations**, investigate promotion/retirement eligibility,
 and present evidence and exact recommendations. Stop before editing a canonical
 selection or omitting a registration; leave that handwritten change to the user.
-
-<!-- zerospin:agent-rules:end -->
 
 ## Start from first principles
 

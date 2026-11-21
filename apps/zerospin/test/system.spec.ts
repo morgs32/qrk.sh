@@ -32,7 +32,6 @@ it.effect(
         aggregateName: "user",
         aggregateVersion: 1,
         aggregateId: "acct_system",
-        externalOutcome: null,
         payload: { id: "usr_system", clerkUserId: "user_system", displayName: null },
       });
       const forbidden = yield* harness
@@ -44,7 +43,6 @@ it.effect(
           aggregateName: "user",
           aggregateVersion: 1,
           aggregateId: "acct_system",
-          externalOutcome: null,
           payload: {
             id: "sit_forbidden",
             userId: "usr_system",
@@ -65,7 +63,6 @@ it.effect(
         aggregateId: "acct_system",
         nodeId: "node_system",
         sessionName: "userSession",
-        externalOutcome: null,
         claims: { aggregateId: "acct_system", clerkUserId: "user_system" },
       };
       yield* harness.push({

@@ -29,7 +29,6 @@ it.effect("deletes a Stack at one width or all widths and rejects a stale confir
       aggregateName: "user",
       aggregateVersion: 1,
       aggregateId: owner.aggregateId,
-      externalOutcome: null,
     };
     const actor = {
       ...scope,

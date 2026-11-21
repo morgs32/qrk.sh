@@ -56,7 +56,6 @@ it.effect("validates positive finite Stack weights at the command boundary", () 
         nodeId: "node_stack_width",
         sessionName: "userSession",
         pushIndex: 1,
-        externalOutcome: null,
         commandName: "setStackWidthWeights",
         contractVersion: 1,
         payload,
@@ -79,7 +78,6 @@ it.effect("validates positive finite Stack weights at the command boundary", () 
           nodeId: "node_stack_width",
           sessionName: "userSession",
           pushIndex: 1,
-          externalOutcome: null,
           commandName: "setStackWidthWeights",
           contractVersion: 1,
           payload: { ...payload, leftWeight: weight },
@@ -130,7 +128,6 @@ it.effect("decodes published snapshots with and without saved Stack weights", ()
 
 it.effect("registers Stack width in the current System", () =>
   Effect.gen(function* () {
-    expect(system.aggregates.user.canonical).toBe(1);
     expect(system.aggregates.user.releases[1]).toBe(userAggregateV1);
     expect(userAggregateV1.actors.web.contracts.setStackWidthWeights.version).toBe(1);
     expect(() => makeSystemSpec({ system })).not.toThrow();
@@ -144,7 +141,6 @@ it.effect("registers Stack width in the current System", () =>
       aggregateName: "user",
       aggregateVersion: 1,
       aggregateId: "acct_stack_width",
-      externalOutcome: null,
       payload: {
         id: "usr_stack_width",
         clerkUserId: "clerk_stack_width",

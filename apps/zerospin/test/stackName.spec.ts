@@ -33,7 +33,6 @@ it.effect("renames only the owning Wall's Stack and rejects blank or mismatched 
       actorName: "web",
       actorVersion: 1,
       claims: { aggregateId: "acct_stack", clerkUserId: "user_stack" },
-      externalOutcome: null,
       nodeId: "node_stack",
       sessionName: "userSession",
     };
@@ -45,7 +44,6 @@ it.effect("renames only the owning Wall's Stack and rejects blank or mismatched 
       aggregateName: userAggregateV1.name,
       aggregateVersion: userAggregateV1.version,
       aggregateId: "acct_stack",
-      externalOutcome: null,
       payload: {
         id: "usr_stack",
         clerkUserId: "user_stack",

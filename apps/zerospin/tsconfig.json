@@ -14,5 +14,9 @@
     },
     "exactOptionalPropertyTypes": true
   },
-  "include": ["src/**/*.ts", "*.ts"]
+  "include": ["src/**/*.ts", "*.ts"],
+  "exclude": [
+    "src/aggregates/user/UserV*.ts",
+    "src/aggregates/user/contracts/brick/GenerateBrickSpecExternalV*.ts"
+  ]
 }

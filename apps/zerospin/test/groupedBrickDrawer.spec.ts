@@ -46,7 +46,6 @@ it.effect(
         aggregateName: "user",
         aggregateVersion: 1,
         aggregateId: "acct_drawer",
-        externalOutcome: null,
         payload: { id: "usr_drawer", clerkUserId: "user_drawer", displayName: null },
       });
       const actor = {
@@ -59,7 +58,6 @@ it.effect(
         aggregateId: "acct_drawer",
         nodeId: "node_drawer",
         sessionName: "userSession",
-        externalOutcome: null,
         claims: { aggregateId: "acct_drawer", clerkUserId: "user_drawer" },
       };
       yield* harness.push({

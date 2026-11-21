@@ -31,7 +31,6 @@ it.effect("enforces unique, unambiguous Page paths within each Site", () =>
       aggregateName: "user",
       aggregateVersion: 1,
       aggregateId: "acct_paths",
-      externalOutcome: null,
       payload: { id: "usr_paths", clerkUserId: "user_paths", displayName: null },
     });
     const actor = {
@@ -43,7 +42,6 @@ it.effect("enforces unique, unambiguous Page paths within each Site", () =>
       aggregateId: "acct_paths",
       nodeId: "node_paths",
       sessionName: "userSession",
-      externalOutcome: null,
       claims: { aggregateId: "acct_paths", clerkUserId: "user_paths" },
     };
     for (const [index, id] of ["sit_paths", "sit_second"].entries()) {
@@ -207,7 +205,6 @@ it.effect("rejects backslashes in Page paths on the initial release", () =>
       aggregateName: "user",
       aggregateVersion: 1,
       aggregateId: "acct_backslash",
-      externalOutcome: null,
       payload: { id: "usr_backslash", clerkUserId: "user_backslash", displayName: null },
     });
     const actor = {
@@ -219,7 +216,6 @@ it.effect("rejects backslashes in Page paths on the initial release", () =>
       aggregateId: "acct_backslash",
       nodeId: "node_backslash",
       sessionName: "userSession",
-      externalOutcome: null,
       claims: { aggregateId: "acct_backslash", clerkUserId: "user_backslash" },
     };
     yield* harness.push({

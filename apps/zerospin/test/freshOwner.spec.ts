@@ -30,7 +30,6 @@ it.effect("creates a user in the isolated fresh owner", () =>
       aggregateName: "user",
       aggregateVersion: 1,
       aggregateId: "acct_fresh",
-      externalOutcome: null,
       payload: { id: "usr_fresh", clerkUserId: "user_fresh", displayName: null },
     });
     yield* harness.flush();
@@ -55,7 +54,6 @@ it.effect("adds Text atomically and changes only the selected Placement", () =>
       aggregateName: "user",
       aggregateVersion: 1,
       aggregateId: "acct_text",
-      externalOutcome: null,
       payload: { id: "usr_text", clerkUserId: "user_text", displayName: null },
     });
     yield* harness.flush();
@@ -68,7 +66,6 @@ it.effect("adds Text atomically and changes only the selected Placement", () =>
       aggregateId: "acct_text",
       nodeId: "node_text",
       sessionName: "userSession",
-      externalOutcome: null,
       contractVersion: 1,
       claims: { aggregateId: "acct_text", clerkUserId: "user_text" },
     } as const;

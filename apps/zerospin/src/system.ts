@@ -6,7 +6,7 @@ import { usersV1 } from "./services/users/usersV1";
 
 export const system = makeSystem({
   name: "qrk-sh",
-  aggregates: { user: { releases: { 1: userAggregateV1 }, canonical: 1 } },
+  aggregates: { user: { releases: { 1: userAggregateV1 } } },
   services: {
     assets: { releases: { 1: assetsV1 }, canonical: 1 },
     domains: { releases: { 1: domainsV1 }, canonical: 1 },

@@ -35,7 +35,6 @@ it.effect(
         actorName: "web",
         actorVersion: 1,
         claims: { aggregateId: owner.aggregateId, clerkUserId: "user_carousel" },
-        externalOutcome: null,
         nodeId: "node_carousel",
         sessionName: "userSession",
         contractVersion: 1,
@@ -48,7 +47,6 @@ it.effect(
         aggregateName: "user",
         aggregateVersion: 1,
         aggregateId: owner.aggregateId,
-        externalOutcome: null,
         payload: { id: "usr_carousel", clerkUserId: "user_carousel", displayName: null },
       });
       yield* harness.flush();

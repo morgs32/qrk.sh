@@ -40,7 +40,6 @@ it.effect("decodes whole-pixel widths and rejects fractions at the actor command
         nodeId: "node_border",
         sessionName: "userSession",
         pushIndex: 1,
-        externalOutcome: null,
         commandName: "setBrickBorderWidth",
         contractVersion: 1,
         payload: { brickId: "brk_border", borderWidth: 1.5 },
@@ -64,7 +63,6 @@ it.effect("decodes whole-pixel widths and rejects fractions at the actor command
           nodeId: "node_border",
           sessionName: "userSession",
           pushIndex: 1,
-          externalOutcome: null,
           commandName: "setBrickBorderWidth",
           contractVersion: 1,
           payload: { brickId: "brk_border", borderWidth },
@@ -88,7 +86,6 @@ it.effect("keeps border changes unavailable to System commands", () =>
         aggregateName: userAggregateV1.name,
         aggregateVersion: userAggregateV1.version,
         aggregateId: "acct_border",
-        externalOutcome: null,
         payload: { brickId: "brk_border", borderWidth: 1 },
       })
       .pipe(Effect.flip);
@@ -118,7 +115,6 @@ it.effect(
         actorName: "web",
         actorVersion: 1,
         claims: { aggregateId: "acct_border", clerkUserId: "user_border" },
-        externalOutcome: null,
         nodeId: "node_border",
         sessionName: "userSession",
       };
@@ -130,7 +126,6 @@ it.effect(
         aggregateName: userAggregateV1.name,
         aggregateVersion: userAggregateV1.version,
         aggregateId: "acct_border",
-        externalOutcome: null,
         payload: {
           id: "usr_border",
           clerkUserId: "user_border",

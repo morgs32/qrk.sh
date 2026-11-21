@@ -24,7 +24,7 @@ import { assetsV1 } from "../src/services/assets/assetsV1";
 it.effect("publishes, unpublishes, and republishes the current saved Page snapshot", () =>
   Effect.gen(function* () {
     const harness = yield* makeSystemHarness({ system });
-    const release = system.aggregates.user.releases[system.aggregates.user.canonical];
+    const release = system.aggregates.user.releases[1];
     const db = makeQueryDbVersion({ models: release.models });
     const owner = { release, aggregateId: "acct_publication" };
     yield* harness.push({
@@ -35,7 +35,6 @@ it.effect("publishes, unpublishes, and republishes the current saved Page snapsh
       aggregateName: "user",
       aggregateVersion: release.version,
       aggregateId: owner.aggregateId,
-      externalOutcome: null,
       payload: { id: "usr_publication", clerkUserId: "user_publication", displayName: null },
     });
     const actor = {
@@ -47,7 +46,6 @@ it.effect("publishes, unpublishes, and republishes the current saved Page snapsh
       aggregateId: owner.aggregateId,
       nodeId: "node_publication",
       sessionName: "userSession",
-      externalOutcome: null,
       claims: { aggregateId: owner.aggregateId, clerkUserId: "user_publication" },
     };
     yield* harness.push({
@@ -338,7 +336,6 @@ it.effect("preserves an immutable Asset reservation through retries and readines
       serviceName: "assets",
       serviceVersion: 1,
       contractVersion: 1,
-      externalOutcome: null,
       payload: {
         assetId,
         ownerAggregateId: "user_publication",
@@ -361,7 +358,6 @@ it.effect("preserves an immutable Asset reservation through retries and readines
       serviceName: "assets",
       serviceVersion: 1,
       contractVersion: 1,
-      externalOutcome: null,
       payload: { assetId },
     });
     yield* harness.push({ ...reservation, id: "cmd_retry_publication" });
